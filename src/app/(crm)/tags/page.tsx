@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { db } from '@/lib/db'
 import { tags, taggables } from '@/lib/schema'
 import { desc } from 'drizzle-orm'

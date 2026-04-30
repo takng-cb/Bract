@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, activities, tasks } from '@/lib/schema'
 import { eq, desc, asc, lte, gte, ne, count } from 'drizzle-orm'
