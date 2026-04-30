@@ -77,105 +77,126 @@ export default async function TasksPage({
   }
 
   const TaskTable = ({ rows, label }: { rows: typeof tasksList; label: string }) => (
-    <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
-      <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200">
-        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-          {label} ({rows.length})
-        </span>
+    <div>
+      {/* PC: テーブル */}
+      <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
+        <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200">
+          <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{label} ({rows.length})</span>
+        </div>
+        {rows.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-zinc-400 text-center">すべて完了しています 🎉</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="border-b border-zinc-100">
+              <tr>
+                <th className="w-10 px-4 py-2"></th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-500">タイトル</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-500">優先度</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-500">期限日</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-500">取引先</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-500">商談</th>
+                <th className="px-4 py-2"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {rows.map((task) => {
+                const account     = task.accounts?.id     ? task.accounts     : null
+                const opportunity = task.opportunities?.id ? task.opportunities : null
+                const priority    = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
+                const isOverdue   = !task.done && task.due_date && task.due_date < today
+                return (
+                  <tr key={task.id} className={`hover:bg-zinc-50 transition-colors ${task.done ? 'opacity-50' : ''}`}>
+                    <td className="px-4 py-3 text-center">
+                      <form action={toggleDone}>
+                        <input type="hidden" name="id" value={task.id} />
+                        <input type="hidden" name="done" value={(!task.done).toString()} />
+                        <button type="submit" title={task.done ? '未完了に戻す' : '完了にする'}
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors mx-auto ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
+                          {task.done && <span className="text-xs leading-none">✓</span>}
+                        </button>
+                      </form>
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link href={`/tasks/${task.id}`} className={`hover:text-blue-600 ${task.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>{task.title}</Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {task.due_date
+                        ? <span className={`text-sm ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-500'}`}>{new Date(task.due_date).toLocaleDateString('ja-JP')}{isOverdue && <span className="ml-1 text-xs">(超過)</span>}</span>
+                        : <span className="text-zinc-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-600">
+                      {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link> : <span className="text-zinc-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-600">
+                      {opportunity ? <Link href={`/opportunities/${opportunity.id}`} className="hover:text-blue-600 text-xs">{opportunity.name}</Link> : <span className="text-zinc-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link href={`/tasks/${task.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700">編集</Link>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
-
-      {rows.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-zinc-400 text-center">すべて完了しています 🎉</p>
-      ) : (
-        <table className="w-full text-sm">
-          <thead className="border-b border-zinc-100">
-            <tr>
-              <th className="w-10 px-4 py-2"></th>
-              <th className="text-left px-4 py-2 font-medium text-zinc-500">タイトル</th>
-              <th className="text-left px-4 py-2 font-medium text-zinc-500">優先度</th>
-              <th className="text-left px-4 py-2 font-medium text-zinc-500">期限日</th>
-              <th className="text-left px-4 py-2 font-medium text-zinc-500">取引先</th>
-              <th className="text-left px-4 py-2 font-medium text-zinc-500">商談</th>
-              <th className="px-4 py-2"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
+      {/* モバイル: カード */}
+      <div className="md:hidden">
+        <div className="px-1 py-2 mb-2">
+          <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{label} ({rows.length})</span>
+        </div>
+        {rows.length === 0 ? (
+          <p className="text-sm text-zinc-400 text-center py-6 bg-white rounded-lg border border-zinc-200">すべて完了しています 🎉</p>
+        ) : (
+          <div className="space-y-2">
             {rows.map((task) => {
               const account     = task.accounts?.id     ? task.accounts     : null
               const opportunity = task.opportunities?.id ? task.opportunities : null
               const priority    = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
               const isOverdue   = !task.done && task.due_date && task.due_date < today
-
               return (
-                <tr key={task.id} className={`hover:bg-zinc-50 transition-colors ${task.done ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-3 text-center">
+                <div key={task.id} className={`bg-white rounded-lg border border-zinc-200 px-4 py-3 flex gap-3 ${task.done ? 'opacity-60' : ''}`}>
+                  <div className="pt-0.5 shrink-0">
                     <form action={toggleDone}>
                       <input type="hidden" name="id" value={task.id} />
                       <input type="hidden" name="done" value={(!task.done).toString()} />
-                      <button
-                        type="submit"
-                        title={task.done ? '未完了に戻す' : '完了にする'}
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors mx-auto
-                          ${task.done
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'border-zinc-300 hover:border-blue-400'
-                          }`}
-                      >
+                      <button type="submit"
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
                         {task.done && <span className="text-xs leading-none">✓</span>}
                       </button>
                     </form>
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    <Link
-                      href={`/tasks/${task.id}`}
-                      className={`hover:text-blue-600 ${task.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}
-                    >
-                      {task.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>
-                      {priority.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {task.due_date ? (
-                      <span className={`text-sm ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-500'}`}>
-                        {new Date(task.due_date).toLocaleDateString('ja-JP')}
-                        {isOverdue && <span className="ml-1 text-xs">(超過)</span>}
-                      </span>
-                    ) : (
-                      <span className="text-zinc-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">
-                    {account
-                      ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link>
-                      : <span className="text-zinc-300">—</span>
-                    }
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">
-                    {opportunity
-                      ? <Link href={`/opportunities/${opportunity.id}`} className="hover:text-blue-600 text-xs">{opportunity.name}</Link>
-                      : <span className="text-zinc-300">—</span>
-                    }
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link href={`/tasks/${task.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700">
-                      編集
-                    </Link>
-                  </td>
-                </tr>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link href={`/tasks/${task.id}`} className={`font-medium text-sm leading-snug ${task.done ? 'line-through text-zinc-400' : 'text-zinc-900 hover:text-blue-600'}`}>
+                        {task.title}
+                      </Link>
+                      <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-500">
+                      {task.due_date && (
+                        <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
+                          📅 {new Date(task.due_date).toLocaleDateString('ja-JP')}{isOverdue ? ' (超過)' : ''}
+                        </span>
+                      )}
+                      {account && <span>🏢 {account.name}</span>}
+                      {opportunity && <span>💼 {opportunity.name}</span>}
+                    </div>
+                  </div>
+                </div>
               )
             })}
-          </tbody>
-        </table>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   )
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">ToDo</h1>

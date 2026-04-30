@@ -64,7 +64,7 @@ export default async function AccountsPage({
   const hasFilter  = conditions.length > 0
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">取引先</h1>
@@ -105,46 +105,61 @@ export default async function AccountsPage({
           }
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">会社名</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">業種</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">電話番号</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">ステータス</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {(accountsList as typeof raw).map((account) => (
-                <tr key={account.id} className="hover:bg-zinc-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-zinc-900">
-                    <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">
-                      {account.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">{account.industry ?? '—'}</td>
-                  <td className="px-4 py-3 text-zinc-600">{account.type ?? '—'}</td>
-                  <td className="px-4 py-3 text-zinc-600">{account.phone ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      account.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'
-                    }`}>
-                      {account.status === 'active' ? '有効' : '無効'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:text-blue-800 text-xs">
-                      詳細 →
-                    </Link>
-                  </td>
+        <>
+          {/* PC: テーブル */}
+          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">会社名</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">業種</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">電話番号</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">ステータス</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {(accountsList as typeof raw).map((account) => (
+                  <tr key={account.id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-zinc-900">
+                      <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-600">{account.industry ?? '—'}</td>
+                    <td className="px-4 py-3 text-zinc-600">{account.type ?? '—'}</td>
+                    <td className="px-4 py-3 text-zinc-600">{account.phone ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${account.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                        {account.status === 'active' ? '有効' : '無効'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* モバイル: カード */}
+          <div className="md:hidden space-y-2">
+            {(accountsList as typeof raw).map((account) => (
+              <Link key={account.id} href={`/accounts/${account.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-semibold text-zinc-900 text-sm leading-snug">{account.name}</span>
+                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${account.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                    {account.status === 'active' ? '有効' : '無効'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
+                  {account.industry && <span>{account.industry}</span>}
+                  {account.type && <span>{account.type}</span>}
+                  {account.phone && <span>📞 {account.phone}</span>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

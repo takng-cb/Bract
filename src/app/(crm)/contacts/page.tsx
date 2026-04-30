@@ -63,7 +63,7 @@ export default async function ContactsPage({
   const hasFilter  = conditions.length > 0
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">担当者</h1>
@@ -104,46 +104,67 @@ export default async function ContactsPage({
           }
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">氏名</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">会社</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">役職 / 部署</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">メール</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">電話</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {(contactsList as typeof raw).map((c) => {
-                const account = c.accounts?.id ? c.accounts : null
-                return (
-                  <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-zinc-900">
-                      <Link href={`/contacts/${c.id}`} className="hover:text-blue-600">{c.full_name}</Link>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600">
-                      {account
-                        ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link>
-                        : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600">
-                      <span>{c.title ?? '—'}</span>
-                      {c.department && <span className="text-zinc-400 ml-1 text-xs">/ {c.department}</span>}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600">{c.email ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-600">{c.phone ?? '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/contacts/${c.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* PC: テーブル */}
+          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">氏名</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">会社</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">役職 / 部署</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">メール</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">電話</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {(contactsList as typeof raw).map((c) => {
+                  const account = c.accounts?.id ? c.accounts : null
+                  return (
+                    <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-zinc-900">
+                        <Link href={`/contacts/${c.id}`} className="hover:text-blue-600">{c.full_name}</Link>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-600">
+                        {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link> : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-600">
+                        <span>{c.title ?? '—'}</span>
+                        {c.department && <span className="text-zinc-400 ml-1 text-xs">/ {c.department}</span>}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-600">{c.email ?? '—'}</td>
+                      <td className="px-4 py-3 text-zinc-600">{c.phone ?? '—'}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Link href={`/contacts/${c.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* モバイル: カード */}
+          <div className="md:hidden space-y-2">
+            {(contactsList as typeof raw).map((c) => {
+              const account = c.accounts?.id ? c.accounts : null
+              return (
+                <Link key={c.id} href={`/contacts/${c.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-zinc-900 text-sm">👤 {c.full_name}</span>
+                    {c.title && <span className="shrink-0 text-xs text-zinc-500">{c.title}</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
+                    {account && <span>🏢 {account.name}</span>}
+                    {c.department && <span>{c.department}</span>}
+                    {c.email && <span>✉️ {c.email}</span>}
+                    {c.phone && <span>📞 {c.phone}</span>}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )

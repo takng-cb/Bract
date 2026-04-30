@@ -57,7 +57,7 @@ export default async function ActivitiesPage({
   const hasFilter      = conditions.length > 0
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">活動履歴</h1>
@@ -87,56 +87,70 @@ export default async function ActivitiesPage({
           }
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">件名</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">実施日</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {activitiesList.map((a) => {
-                const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
-                const account = a.accounts?.id ? a.accounts : null
-                return (
-                  <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}>
-                        {type.icon} {type.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block">
-                        {a.subject}
-                      </Link>
-                      {a.body && (
-                        <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">{a.body}</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600">
-                      {account
-                        ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link>
-                        : <span className="text-zinc-300">—</span>
-                      }
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">
+        <>
+          {/* PC: テーブル */}
+          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">件名</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">実施日</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {activitiesList.map((a) => {
+                  const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
+                  const account = a.accounts?.id ? a.accounts : null
+                  return (
+                    <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}>
+                          {type.icon} {type.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block">{a.subject}</Link>
+                        {a.body && <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">{a.body}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-600">
+                        {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link> : <span className="text-zinc-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">
+                        {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link href={`/activities/${a.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* モバイル: カード */}
+          <div className="md:hidden space-y-2">
+            {activitiesList.map((a) => {
+              const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
+              const account = a.accounts?.id ? a.accounts : null
+              return (
+                <Link key={a.id} href={`/activities/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${type.color}`}>{type.icon} {type.label}</span>
+                    <span className="text-xs text-zinc-400">
                       {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/activities/${a.id}`} className="text-blue-600 hover:text-blue-800 text-xs">
-                        詳細 →
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </span>
+                  </div>
+                  <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>
+                  {a.body && <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">{a.body}</p>}
+                  {account && <p className="text-xs text-zinc-500 mt-1">🏢 {account.name}</p>}
+                </Link>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )

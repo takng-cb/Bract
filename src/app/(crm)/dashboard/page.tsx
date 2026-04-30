@@ -117,7 +117,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* KPIカード */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'アクティブな取引先', value: accountCount, unit: '社', href: '/accounts', color: 'text-zinc-800' },
           { label: '今週締切のToDo', value: weekTasks.length, unit: '件', href: '/tasks', color: weekTasks.length > 0 ? 'text-orange-600' : 'text-zinc-800' },
@@ -134,9 +134,9 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         {/* 左カラム */}
-        <div className="col-span-3 space-y-6">
+        <div className="col-span-1 md:col-span-3 space-y-6">
 
           {/* 期限が近いToDo */}
           <section>
@@ -152,56 +152,70 @@ export default async function DashboardPage() {
                 今週締切のToDoはありません 🎉
               </div>
             ) : (
-              <div className="bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
-                <table className="w-full text-sm">
-                  <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
-                    <tr>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">タイトル</th>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">優先度</th>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">期限</th>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
-                      <th className="px-4 py-3"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100">
-                    {weekTasks.map((t) => {
-                      const account     = t.accounts?.id     ? t.accounts     : null
-                      const opportunity = t.opportunities?.id ? t.opportunities : null
-                      const priority    = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
-                      const isOverdue   = t.due_date && t.due_date < today
-                      return (
-                        <tr key={t.id} className="hover:bg-zinc-50 transition-colors">
-                          <td className="px-4 py-3 font-medium text-zinc-900">
-                            <Link href={`/tasks/${t.id}`} className="hover:text-blue-600 block truncate max-w-[14rem]">
-                              {t.title}
-                            </Link>
-                            {opportunity && (
-                              <p className="text-xs text-zinc-400 mt-0.5 truncate">💼 {opportunity.name}</p>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priority.color}`}>
-                              {priority.label}
-                            </span>
-                          </td>
-                          <td className={`px-4 py-3 whitespace-nowrap text-sm ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-600'}`}>
-                            {t.due_date ?? '—'}{isOverdue ? ' ⚠️' : ''}
-                          </td>
-                          <td className="px-4 py-3 text-zinc-600 text-sm">
-                            {account
-                              ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600 truncate block max-w-[8rem]">{account.name}</Link>
-                              : <span className="text-zinc-300">—</span>
-                            }
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <Link href={`/tasks/${t.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {/* PC: テーブル */}
+                <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
+                  <table className="w-full text-sm">
+                    <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">タイトル</th>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">優先度</th>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">期限</th>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
+                        <th className="px-4 py-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {weekTasks.map((t) => {
+                        const account     = t.accounts?.id     ? t.accounts     : null
+                        const opportunity = t.opportunities?.id ? t.opportunities : null
+                        const priority    = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
+                        const isOverdue   = t.due_date && t.due_date < today
+                        return (
+                          <tr key={t.id} className="hover:bg-zinc-50 transition-colors">
+                            <td className="px-4 py-3 font-medium text-zinc-900">
+                              <Link href={`/tasks/${t.id}`} className="hover:text-blue-600 block truncate max-w-[14rem]">{t.title}</Link>
+                              {opportunity && <p className="text-xs text-zinc-400 mt-0.5 truncate">💼 {opportunity.name}</p>}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priority.color}`}>{priority.label}</span>
+                            </td>
+                            <td className={`px-4 py-3 whitespace-nowrap text-sm ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-600'}`}>
+                              {t.due_date ?? '—'}{isOverdue ? ' ⚠️' : ''}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-600 text-sm">
+                              {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600 truncate block max-w-[8rem]">{account.name}</Link> : <span className="text-zinc-300">—</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <Link href={`/tasks/${t.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {/* モバイル: カード */}
+                <div className="md:hidden space-y-2">
+                  {weekTasks.map((t) => {
+                    const account  = t.accounts?.id ? t.accounts : null
+                    const priority = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
+                    const isOverdue = t.due_date && t.due_date < today
+                    return (
+                      <Link key={t.id} href={`/tasks/${t.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-medium text-zinc-900 text-sm leading-snug">{t.title}</span>
+                          <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
+                          {t.due_date && <span className={isOverdue ? 'text-red-500 font-medium' : ''}>📅 {t.due_date}{isOverdue ? ' ⚠️' : ''}</span>}
+                          {account && <span>🏢 {account.name}</span>}
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </section>
 
@@ -219,59 +233,79 @@ export default async function DashboardPage() {
                 今月完了予定の商談がありません
               </div>
             ) : (
-              <div className="bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
-                <table className="w-full text-sm">
-                  <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
-                    <tr>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">商談名</th>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">ステージ</th>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">完了予定日</th>
-                      <th className="text-right px-4 py-3 font-medium text-zinc-600">想定金額</th>
-                      <th className="px-4 py-3"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100">
-                    {thisMonthOpps.slice(0, 5).map((o) => {
-                      const base     = Number(o.amount ?? 0)
-                      const prob     = o.probability != null ? o.probability / 100 : 1
-                      const weighted = Math.round(base * prob)
-                      const account  = o.accounts?.name ? o.accounts : null
-                      const stage    = STAGE_CONFIG[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
-                      return (
-                        <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
-                          <td className="px-4 py-3 font-medium text-zinc-900">
-                            <Link href={`/opportunities/${o.id}`} className="hover:text-blue-600 block truncate max-w-[14rem]">
-                              {o.name}
-                            </Link>
-                            {account && <p className="text-xs text-zinc-400 mt-0.5">{account.name}</p>}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${stage.color}`}>
-                              {stage.label}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-zinc-600 whitespace-nowrap">{o.close_date ?? '—'}</td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">
-                            <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
-                            {o.probability != null && (
-                              <p className="text-xs text-zinc-400">確度 {o.probability}%</p>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <Link href={`/opportunities/${o.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {/* PC: テーブル */}
+                <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
+                  <table className="w-full text-sm">
+                    <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">商談名</th>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">ステージ</th>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">完了予定日</th>
+                        <th className="text-right px-4 py-3 font-medium text-zinc-600">想定金額</th>
+                        <th className="px-4 py-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {thisMonthOpps.slice(0, 5).map((o) => {
+                        const base     = Number(o.amount ?? 0)
+                        const prob     = o.probability != null ? o.probability / 100 : 1
+                        const weighted = Math.round(base * prob)
+                        const account  = o.accounts?.name ? o.accounts : null
+                        const stage    = STAGE_CONFIG[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
+                        return (
+                          <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
+                            <td className="px-4 py-3 font-medium text-zinc-900">
+                              <Link href={`/opportunities/${o.id}`} className="hover:text-blue-600 block truncate max-w-[14rem]">{o.name}</Link>
+                              {account && <p className="text-xs text-zinc-400 mt-0.5">{account.name}</p>}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${stage.color}`}>{stage.label}</span>
+                            </td>
+                            <td className="px-4 py-3 text-zinc-600 whitespace-nowrap">{o.close_date ?? '—'}</td>
+                            <td className="px-4 py-3 text-right whitespace-nowrap">
+                              <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
+                              {o.probability != null && <p className="text-xs text-zinc-400">確度 {o.probability}%</p>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <Link href={`/opportunities/${o.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {/* モバイル: カード */}
+                <div className="md:hidden space-y-2">
+                  {thisMonthOpps.slice(0, 5).map((o) => {
+                    const base     = Number(o.amount ?? 0)
+                    const prob     = o.probability != null ? o.probability / 100 : 1
+                    const weighted = Math.round(base * prob)
+                    const account  = o.accounts?.name ? o.accounts : null
+                    const stage    = STAGE_CONFIG[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
+                    return (
+                      <Link key={o.id} href={`/opportunities/${o.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-medium text-zinc-900 text-sm leading-snug">{o.name}</span>
+                          <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${stage.color}`}>{stage.label}</span>
+                        </div>
+                        {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
+                        <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
+                          <span>{o.close_date ?? '期限なし'}</span>
+                          <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </section>
         </div>
 
         {/* 右カラム */}
-        <div className="col-span-2 space-y-6">
+        <div className="col-span-1 md:col-span-2 space-y-6">
 
           {/* 最近の活動 */}
           <section>
@@ -282,41 +316,57 @@ export default async function DashboardPage() {
             {recentActivities.length === 0 ? (
               <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">活動がありません</div>
             ) : (
-              <div className="bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
-                <table className="w-full text-sm">
-                  <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
-                    <tr>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">件名 / 取引先</th>
-                      <th className="text-left px-4 py-3 font-medium text-zinc-600">日付</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100">
-                    {recentActivities.map((a) => {
-                      const account = a.accounts?.name ? a.accounts : null
-                      const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
-                      return (
-                        <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}>
-                              {type.icon} {type.label}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 min-w-0">
-                            <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-[10rem]">
-                              {a.subject}
-                            </Link>
-                            {account && <p className="text-xs text-zinc-400 mt-0.5 truncate">{account.name}</p>}
-                          </td>
-                          <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">
-                            {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {/* PC: テーブル */}
+                <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
+                  <table className="w-full text-sm">
+                    <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">件名 / 取引先</th>
+                        <th className="text-left px-4 py-3 font-medium text-zinc-600">日付</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {recentActivities.map((a) => {
+                        const account = a.accounts?.name ? a.accounts : null
+                        const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
+                        return (
+                          <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}>{type.icon} {type.label}</span>
+                            </td>
+                            <td className="px-4 py-3 min-w-0">
+                              <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-[10rem]">{a.subject}</Link>
+                              {account && <p className="text-xs text-zinc-400 mt-0.5 truncate">{account.name}</p>}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">
+                              {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {/* モバイル: カード */}
+                <div className="md:hidden space-y-2">
+                  {recentActivities.map((a) => {
+                    const account = a.accounts?.name ? a.accounts : null
+                    const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
+                    return (
+                      <Link key={a.id} href={`/activities/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${type.color}`}>{type.icon} {type.label}</span>
+                          <span className="text-xs text-zinc-400">{a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}</span>
+                        </div>
+                        <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>
+                        {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </section>
 

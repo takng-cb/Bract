@@ -164,61 +164,86 @@ export default async function ExpensesPage({
           )}
         </div>
       ) : (
-        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium text-zinc-600">日付</th>
-                <th className="text-left px-4 py-2 font-medium text-zinc-600">件名</th>
-                <th className="text-left px-4 py-2 font-medium text-zinc-600">カテゴリ</th>
-                <th className="text-right px-4 py-2 font-medium text-zinc-600">金額</th>
-                <th className="text-left px-4 py-2 font-medium text-zinc-600">商談</th>
-                <th className="px-4 py-2"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {expensesList.map((e) => {
-                const account     = e.accounts?.id     ? e.accounts     : null
-                const opportunity = e.opportunities?.id ? e.opportunities : null
-                const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
-                return (
-                  <tr key={e.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2 text-zinc-500 whitespace-nowrap">{e.expense_date}</td>
-                    <td className="px-4 py-2 font-medium">
-                      <Link href={`/expenses/${e.id}`} className="hover:text-blue-600">{e.title}</Link>
-                      {account && (
-                        <div className="text-xs text-zinc-400 mt-0.5">
-                          <Link href={`/accounts/${account.id}`} className="hover:text-blue-500">🏢 {account.name}</Link>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{e.category}</span>
-                    </td>
-                    <td className="px-4 py-2 text-right font-medium text-zinc-800">
-                      ¥{Number(e.amount).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-2 text-zinc-500 text-xs">
-                      {opportunity
-                        ? <Link href={`/opportunities/${opportunity.id}`} className="hover:text-blue-600">💼 {opportunity.name}</Link>
-                        : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <Link href={`/expenses/${e.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-            <tfoot className="border-t-2 border-zinc-200 bg-zinc-50">
-              <tr>
-                <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-zinc-700">合計</td>
-                <td className="px-4 py-2 text-right font-bold text-zinc-900">¥{total.toLocaleString()}</td>
-                <td colSpan={2} />
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <>
+          {/* PC: テーブル */}
+          <div className="hidden md:block bg-white border border-zinc-200 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">日付</th>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">件名</th>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">カテゴリ</th>
+                  <th className="text-right px-4 py-2 font-medium text-zinc-600">金額</th>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">商談</th>
+                  <th className="px-4 py-2"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {expensesList.map((e) => {
+                  const account     = e.accounts?.id     ? e.accounts     : null
+                  const opportunity = e.opportunities?.id ? e.opportunities : null
+                  const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
+                  return (
+                    <tr key={e.id} className="hover:bg-zinc-50">
+                      <td className="px-4 py-2 text-zinc-500 whitespace-nowrap">{e.expense_date}</td>
+                      <td className="px-4 py-2 font-medium">
+                        <Link href={`/expenses/${e.id}`} className="hover:text-blue-600">{e.title}</Link>
+                        {account && <div className="text-xs text-zinc-400 mt-0.5"><Link href={`/accounts/${account.id}`} className="hover:text-blue-500">🏢 {account.name}</Link></div>}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{e.category}</span>
+                      </td>
+                      <td className="px-4 py-2 text-right font-medium text-zinc-800">¥{Number(e.amount).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-zinc-500 text-xs">
+                        {opportunity ? <Link href={`/opportunities/${opportunity.id}`} className="hover:text-blue-600">💼 {opportunity.name}</Link> : '—'}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <Link href={`/expenses/${e.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              <tfoot className="border-t-2 border-zinc-200 bg-zinc-50">
+                <tr>
+                  <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-zinc-700">合計</td>
+                  <td className="px-4 py-2 text-right font-bold text-zinc-900">¥{total.toLocaleString()}</td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {/* モバイル: カード */}
+          <div className="md:hidden space-y-2">
+            {expensesList.map((e) => {
+              const account     = e.accounts?.id     ? e.accounts     : null
+              const opportunity = e.opportunities?.id ? e.opportunities : null
+              const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
+              return (
+                <Link key={e.id} href={`/expenses/${e.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{e.title}</span>
+                    <span className="shrink-0 font-bold text-zinc-800 text-sm">¥{Number(e.amount).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{e.category}</span>
+                    <span className="text-xs text-zinc-400">{e.expense_date}</span>
+                  </div>
+                  {(account || opportunity) && (
+                    <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-zinc-500">
+                      {account && <span>🏢 {account.name}</span>}
+                      {opportunity && <span>💼 {opportunity.name}</span>}
+                    </div>
+                  )}
+                </Link>
+              )
+            })}
+            <div className="bg-zinc-100 rounded-lg px-4 py-3 flex items-center justify-between">
+              <span className="text-sm font-semibold text-zinc-700">合計</span>
+              <span className="font-bold text-zinc-900">¥{total.toLocaleString()}</span>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

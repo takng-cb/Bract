@@ -83,7 +83,7 @@ export default async function OpportunitiesPage({
   const hasFilter       = conditions.length > 0
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">商談</h1>
@@ -124,54 +124,76 @@ export default async function OpportunitiesPage({
           }
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">商談名</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">ステージ</th>
-                <th className="text-right px-4 py-3 font-medium text-zinc-600">金額</th>
-                <th className="text-right px-4 py-3 font-medium text-zinc-600">確度</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">完了予定日</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {(opportunitiesList as typeof raw).map((o) => {
-                const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
-                const account   = o.accounts?.id ? o.accounts : null
-                return (
-                  <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-zinc-900">
-                      <Link href={`/opportunities/${o.id}`} className="hover:text-blue-600">{o.name}</Link>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600">
-                      {account
-                        ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link>
-                        : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${stageConf.color}`}>
-                        {stageConf.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-700 font-medium">
-                      {o.amount ? `¥${Number(o.amount).toLocaleString()}` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right text-zinc-500">
-                      {o.probability != null ? `${o.probability}%` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600">{o.close_date ?? '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/opportunities/${o.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* PC: テーブル */}
+          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">商談名</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">ステージ</th>
+                  <th className="text-right px-4 py-3 font-medium text-zinc-600">金額</th>
+                  <th className="text-right px-4 py-3 font-medium text-zinc-600">確度</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">完了予定日</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {(opportunitiesList as typeof raw).map((o) => {
+                  const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
+                  const account   = o.accounts?.id ? o.accounts : null
+                  return (
+                    <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-zinc-900">
+                        <Link href={`/opportunities/${o.id}`} className="hover:text-blue-600">{o.name}</Link>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-600">
+                        {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link> : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${stageConf.color}`}>{stageConf.label}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-zinc-700 font-medium">
+                        {o.amount ? `¥${Number(o.amount).toLocaleString()}` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right text-zinc-500">
+                        {o.probability != null ? `${o.probability}%` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-600">{o.close_date ?? '—'}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Link href={`/opportunities/${o.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* モバイル: カード */}
+          <div className="md:hidden space-y-2">
+            {(opportunitiesList as typeof raw).map((o) => {
+              const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
+              const account   = o.accounts?.id ? o.accounts : null
+              return (
+                <Link key={o.id} href={`/opportunities/${o.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{o.name}</span>
+                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${stageConf.color}`}>{stageConf.label}</span>
+                  </div>
+                  {account && <p className="text-xs text-zinc-500 mt-0.5">🏢 {account.name}</p>}
+                  <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
+                    <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
+                    <div className="text-right">
+                      {o.amount && <span className="font-semibold text-zinc-800">¥{Number(o.amount).toLocaleString()}</span>}
+                      {o.probability != null && <span className="ml-2 text-zinc-400">確度{o.probability}%</span>}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )
