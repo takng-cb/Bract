@@ -1,0 +1,76 @@
+'use server'
+
+import { supabase } from '@/lib/supabase'
+import { redirect } from 'next/navigation'
+import { logChanges } from '@/lib/changeLog'
+
+export async function createContact(formData: FormData) {
+  const full_name = formData.get('full_name') as string
+  if (!full_name?.trim()) throw new Error('氏名は必須です')
+
+  const { data, error } = await supabase.from('contacts').insert({
+    full_name:   full_name.trim(),
+    email:       (formData.get('email') as string) || null,
+    phone:       (formData.get('phone') as string) || null,
+    title:       (formData.get('title') as string) || null,
+    department:  (formData.get('department') as string) || null,
+    birthday:    (formData.get('birthday') as string) || null,
+    description: (formData.get('description') as string) || null,
+    account_id:  (formData.get('account_id') as string) || null,
+  }).select('id').single()
+
+  if (error) throw new Error(error.message)
+  redirect(`/contacts/${data.id}`)
+}
+
+export async function updateContact(id: string, formData: FormData) {
+  const full_name = formData.get('full_name') as string
+  if (!full_name?.trim()) throw new Error('氏名は必須です')
+
+  const { data: before } = await supabase
+    .from('contacts')
+    .select('full_name, title, department, email, phone')
+    .eq('id', id)
+    .single()
+
+  const { error } = await supabase.from('contacts').update({
+    full_name:   full_name.trim(),
+    email:       (formData.get('email') as string) || null,
+    phone:       (formData.get('phone') as string) || null,
+    title:       (formData.get('title') as string) || null,
+    department:  (formData.get('department') as string) || null,
+    birthday:    (formData.get('birthday') as string) || null,
+    description: (formData.get('description') as string) || null,
+    account_id:  (formData.get('account_id') as string) || null,
+    updated_at:  new Date().toISOString(),
+  }).eq('id', id)
+
+  if (error) throw new Error(error.message)
+
+  if (before) {
+    await logChanges('contact', id,
+      {
+        full_name:  { label: '氏名',   value: before.full_name },
+        title:      { label: '役職',   value: before.title },
+        department: { label: '部署',   value: before.department },
+        email:      { label: 'メール', value: before.email },
+        phone:      { label: '電話',   value: before.phone },
+      },
+      {
+        full_name:  { label: '氏名',   value: full_name.trim() },
+        title:      { label: '役職',   value: (formData.get('title') as string) || null },
+        department: { label: '部署',   value: (formData.get('department') as string) || null },
+        email:      { label: 'メール', value: (formData.get('email') as string) || null },
+        phone:      { label: '電話',   value: (formData.get('phone') as string) || null },
+      },
+    )
+  }
+
+  redirect(`/contacts/${id}`)
+}
+
+export async function deleteContact(id: string) {
+  const { error } = await supabase.from('contacts').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+  redirect('/contacts')
+}

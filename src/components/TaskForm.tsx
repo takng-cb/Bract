@@ -1,0 +1,134 @@
+'use client'
+
+import { useActionState } from 'react'
+import Link from 'next/link'
+
+type Account = { id: string; name: string }
+type Contact = { id: string; full_name: string }
+type Opportunity = { id: string; name: string }
+
+type TaskFormProps = {
+  action: (prevState: string | null, formData: FormData) => Promise<string | null>
+  cancelHref: string
+  accounts: Account[]
+  contacts: Contact[]
+  opportunities: Opportunity[]
+  defaultValues?: {
+    title?: string
+    due_date?: string | null
+    priority?: string
+    account_id?: string | null
+    contact_id?: string | null
+    opportunity_id?: string | null
+  }
+}
+
+const PRIORITIES = [
+  { value: 'high',   label: '🔴 高', color: 'text-red-600' },
+  { value: 'medium', label: '🟡 中', color: 'text-yellow-600' },
+  { value: 'low',    label: '🟢 低', color: 'text-green-600' },
+]
+
+export default function TaskForm({ action, cancelHref, accounts, contacts, opportunities, defaultValues = {} }: TaskFormProps) {
+  const [error, formAction, pending] = useActionState(action, null)
+
+  return (
+    <form action={formAction} className="space-y-5">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
+          タイトル <span className="text-red-500">*</span>
+        </label>
+        <input
+          name="title"
+          defaultValue={defaultValues.title ?? ''}
+          required
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="例: 提案書を作成する"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">期限</label>
+          <input
+            name="due_date"
+            type="date"
+            defaultValue={defaultValues.due_date ?? ''}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-2">優先度</label>
+          <div className="flex gap-4">
+            {PRIORITIES.map((p) => (
+              <label key={p.value} className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="priority"
+                  value={p.value}
+                  defaultChecked={(defaultValues.priority ?? 'medium') === p.value}
+                  className="accent-blue-600"
+                />
+                <span className={`text-sm font-medium ${p.color}`}>{p.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">取引先</label>
+        <select
+          name="account_id"
+          defaultValue={defaultValues.account_id ?? ''}
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">選択してください</option>
+          {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <select
+            name="contact_id"
+            defaultValue={defaultValues.contact_id ?? ''}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">選択してください</option>
+            {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">商談</label>
+          <select
+            name="opportunity_id"
+            defaultValue={defaultValues.opportunity_id ?? ''}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">選択してください</option>
+            {opportunities.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {pending ? '保存中...' : '保存'}
+        </button>
+        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+          キャンセル
+        </Link>
+      </div>
+    </form>
+  )
+}

@@ -1,0 +1,155 @@
+'use client'
+
+import { useActionState } from 'react'
+import Link from 'next/link'
+
+type Account = { id: string; name: string }
+type Contact = { id: string; full_name: string }
+type Opportunity = { id: string; name: string }
+
+type ExpenseFormProps = {
+  action: (prevState: string | null, formData: FormData) => Promise<string | null>
+  cancelHref: string
+  accounts: Account[]
+  contacts: Contact[]
+  opportunities: Opportunity[]
+  defaultValues?: {
+    title?: string
+    amount?: number | null
+    category?: string
+    expense_date?: string
+    account_id?: string | null
+    contact_id?: string | null
+    opportunity_id?: string | null
+    notes?: string | null
+  }
+}
+
+const CATEGORIES = ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他']
+
+export default function ExpenseForm({
+  action, cancelHref, accounts, contacts, opportunities, defaultValues = {}
+}: ExpenseFormProps) {
+  const [error, formAction, pending] = useActionState(action, null)
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  return (
+    <form action={formAction} className="space-y-5">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
+          件名 <span className="text-red-500">*</span>
+        </label>
+        <input
+          name="title"
+          defaultValue={defaultValues.title ?? ''}
+          required
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="例: 顧客との会食"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">
+            金額（円） <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="amount"
+            type="number"
+            min="1"
+            defaultValue={defaultValues.amount ?? ''}
+            required
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="例: 15000"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">カテゴリ</label>
+          <select
+            name="category"
+            defaultValue={defaultValues.category ?? 'その他'}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">日付</label>
+        <input
+          name="expense_date"
+          type="date"
+          defaultValue={defaultValues.expense_date ?? today}
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">商談</label>
+        <select
+          name="opportunity_id"
+          defaultValue={defaultValues.opportunity_id ?? ''}
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">選択してください</option>
+          {opportunities.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">取引先</label>
+          <select
+            name="account_id"
+            defaultValue={defaultValues.account_id ?? ''}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">選択してください</option>
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <select
+            name="contact_id"
+            defaultValue={defaultValues.contact_id ?? ''}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">選択してください</option>
+            {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">備考</label>
+        <textarea
+          name="notes"
+          rows={3}
+          defaultValue={defaultValues.notes ?? ''}
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          placeholder="詳細や目的を記入してください..."
+        />
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {pending ? '保存中...' : '保存'}
+        </button>
+        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+          キャンセル
+        </Link>
+      </div>
+    </form>
+  )
+}

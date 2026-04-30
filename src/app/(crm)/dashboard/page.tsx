@@ -1,0 +1,333 @@
+import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
+
+const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+  call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700' },
+  email:   { label: 'メール', icon: '✉️', color: 'bg-purple-50 text-purple-700' },
+  meeting: { label: '打合せ', icon: '🤝', color: 'bg-green-50 text-green-700' },
+  note:    { label: 'メモ',   icon: '📝', color: 'bg-yellow-50 text-yellow-700' },
+}
+
+const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
+  high:   { label: '高', color: 'bg-red-50 text-red-600' },
+  medium: { label: '中', color: 'bg-yellow-50 text-yellow-700' },
+  low:    { label: '低', color: 'bg-green-50 text-green-700' },
+}
+
+const STAGE_CONFIG: Record<string, { label: string; color: string }> = {
+  prospecting:   { label: '見込み',   color: 'bg-zinc-100 text-zinc-600' },
+  qualification: { label: '要件確認', color: 'bg-blue-100 text-blue-700' },
+  proposal:      { label: '提案',     color: 'bg-yellow-100 text-yellow-700' },
+  negotiation:   { label: '交渉',     color: 'bg-orange-100 text-orange-700' },
+  closed_won:    { label: '受注',     color: 'bg-green-100 text-green-700' },
+  closed_lost:   { label: '失注',     color: 'bg-red-100 text-red-600' },
+}
+
+export default async function DashboardPage() {
+  const now = new Date()
+  const year  = now.getFullYear()
+  const month = now.getMonth() + 1
+  const monthFrom = `${year}-${String(month).padStart(2, '0')}-01`
+  const monthTo   = new Date(year, month, 0).toISOString().slice(0, 10)
+  const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const today     = now.toISOString().slice(0, 10)
+
+  const [
+    { count: accountCount },
+    { data: pendingTasks },
+    { data: opportunities },
+    { data: recentAccounts },
+    { data: recentContacts },
+    { data: recentOpportunities },
+    { data: recentActivities },
+  ] = await Promise.all([
+    supabase.from('accounts').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('tasks').select('*, accounts(id, name), opportunities(id, name)')
+      .eq('done', false)
+      .lte('due_date', weekLater)
+      .gte('due_date', today)
+      .order('due_date'),
+    supabase.from('opportunities').select('id, name, stage, amount, probability, close_date, accounts(name)')
+      .gte('close_date', monthFrom)
+      .lte('close_date', monthTo)
+      .not('stage', 'eq', 'closed_lost'),
+    supabase.from('accounts').select('id, name, industry, updated_at').order('updated_at', { ascending: false }).limit(4),
+    supabase.from('contacts').select('id, full_name, title, updated_at').order('updated_at', { ascending: false }).limit(4),
+    supabase.from('opportunities').select('id, name, stage, updated_at').order('updated_at', { ascending: false }).limit(4),
+    supabase.from('activities').select('id, type, subject, occurred_at, accounts(name)').order('occurred_at', { ascending: false }).limit(5),
+  ])
+
+  // 今月の想定売上
+  const forecast = (opportunities ?? []).reduce((sum, o) => {
+    return sum + Number(o.amount ?? 0) * (o.probability != null ? o.probability / 100 : 1)
+  }, 0)
+
+  // 最近のレコードをマージ・ソート
+  const recent = [
+    ...(recentAccounts ?? []).map((r) => ({ type: '取引先', icon: '🏢', href: `/accounts/${r.id}`, title: r.name, sub: r.industry ?? '', at: r.updated_at })),
+    ...(recentContacts ?? []).map((r) => ({ type: '担当者', icon: '👤', href: `/contacts/${r.id}`, title: r.full_name, sub: r.title ?? '', at: r.updated_at })),
+    ...(recentOpportunities ?? []).map((r) => ({ type: '商談', icon: '💼', href: `/opportunities/${r.id}`, title: r.name, sub: STAGE_CONFIG[r.stage]?.label ?? r.stage, at: r.updated_at })),
+  ]
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, 8)
+
+  return (
+    <div className="p-8 max-w-5xl">
+      {/* ヘッダー */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-zinc-900">ダッシュボード</h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+        </p>
+      </div>
+
+      {/* KPIカード */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        {[
+          { label: 'アクティブな取引先', value: accountCount ?? 0, unit: '社', href: '/accounts', color: 'text-zinc-800' },
+          { label: '未完了のToDo', value: (pendingTasks ?? []).length, unit: '件', href: '/tasks', color: (pendingTasks ?? []).length > 0 ? 'text-orange-600' : 'text-zinc-800' },
+          { label: '今月完了予定の商談', value: (opportunities ?? []).length, unit: '件', href: '/opportunities', color: 'text-blue-600' },
+          { label: '今月の想定売上', value: `¥${Math.round(forecast).toLocaleString()}`, unit: '', href: '/forecast', color: 'text-green-700' },
+        ].map((k) => (
+          <Link key={k.label} href={k.href} className="bg-white border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
+            <p className="text-xs text-zinc-400 mb-2">{k.label}</p>
+            <p className={`text-2xl font-bold ${k.color}`}>
+              {typeof k.value === 'number' ? k.value.toLocaleString() : k.value}
+              {k.unit && <span className="text-sm font-normal text-zinc-500 ml-1">{k.unit}</span>}
+            </p>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-5 gap-6">
+        {/* 左カラム */}
+        <div className="col-span-3 space-y-6">
+
+          {/* 期限が近いToDo */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-zinc-800">
+                今週締切のToDo
+                <span className="ml-2 text-zinc-400 font-normal text-sm">({(pendingTasks ?? []).length})</span>
+              </h2>
+              <Link href="/tasks" className="text-xs text-blue-600 hover:text-blue-800">すべて見る →</Link>
+            </div>
+            {(pendingTasks ?? []).length === 0 ? (
+              <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
+                今週締切のToDoはありません 🎉
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">タイトル</th>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">優先度</th>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">期限</th>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {(pendingTasks ?? []).map((t) => {
+                      const account     = t.accounts     as { id: string; name: string } | null
+                      const opportunity = t.opportunities as { id: string; name: string } | null
+                      const priority    = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
+                      const isOverdue   = t.due_date && t.due_date < today
+                      return (
+                        <tr key={t.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-zinc-900">
+                            <Link href={`/tasks/${t.id}`} className="hover:text-blue-600 block truncate max-w-[14rem]">
+                              {t.title}
+                            </Link>
+                            {opportunity && (
+                              <p className="text-xs text-zinc-400 mt-0.5 truncate">💼 {opportunity.name}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priority.color}`}>
+                              {priority.label}
+                            </span>
+                          </td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-sm ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-600'}`}>
+                            {t.due_date ?? '—'}{isOverdue ? ' ⚠️' : ''}
+                          </td>
+                          <td className="px-4 py-3 text-zinc-600 text-sm">
+                            {account
+                              ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600 truncate block max-w-[8rem]">{account.name}</Link>
+                              : <span className="text-zinc-300">—</span>
+                            }
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Link href={`/tasks/${t.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          {/* 今月の商談 */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-zinc-800">
+                今月完了予定の商談
+                <span className="ml-2 text-zinc-400 font-normal text-sm">({(opportunities ?? []).length})</span>
+              </h2>
+              <Link href="/forecast" className="text-xs text-blue-600 hover:text-blue-800">売上予測へ →</Link>
+            </div>
+            {(opportunities ?? []).length === 0 ? (
+              <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
+                今月完了予定の商談がありません
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">商談名</th>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">ステージ</th>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">完了予定日</th>
+                      <th className="text-right px-4 py-3 font-medium text-zinc-600">想定金額</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {(opportunities ?? []).slice(0, 5).map((o) => {
+                      const base     = Number(o.amount ?? 0)
+                      const prob     = o.probability != null ? o.probability / 100 : 1
+                      const weighted = Math.round(base * prob)
+                      const account  = o.accounts as unknown as { name: string } | null
+                      const stage    = STAGE_CONFIG[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
+                      return (
+                        <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-zinc-900">
+                            <Link href={`/opportunities/${o.id}`} className="hover:text-blue-600 block truncate max-w-[14rem]">
+                              {o.name}
+                            </Link>
+                            {account?.name && (
+                              <p className="text-xs text-zinc-400 mt-0.5">{account.name}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${stage.color}`}>
+                              {stage.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-zinc-600 whitespace-nowrap">{o.close_date ?? '—'}</td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
+                            {o.probability != null && (
+                              <p className="text-xs text-zinc-400">確度 {o.probability}%</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Link href={`/opportunities/${o.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* 右カラム */}
+        <div className="col-span-2 space-y-6">
+
+          {/* 最近の活動 */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-zinc-800">最近の活動</h2>
+              <Link href="/activities" className="text-xs text-blue-600 hover:text-blue-800">すべて見る →</Link>
+            </div>
+            {(recentActivities ?? []).length === 0 ? (
+              <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">活動がありません</div>
+            ) : (
+              <div className="bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">件名 / 取引先</th>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">日付</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {(recentActivities ?? []).map((a) => {
+                      const account = a.accounts as unknown as { name: string } | null
+                      const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
+                      return (
+                        <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}>
+                              {type.icon} {type.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 min-w-0">
+                            <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-[10rem]">
+                              {a.subject}
+                            </Link>
+                            {account?.name && (
+                              <p className="text-xs text-zinc-400 mt-0.5 truncate">{account.name}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">
+                            {new Date(a.occurred_at).toLocaleDateString('ja-JP')}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          {/* 最近更新されたレコード */}
+          <section>
+            <h2 className="font-semibold text-zinc-800 mb-3">最近更新されたレコード</h2>
+            {recent.length === 0 ? (
+              <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">なし</div>
+            ) : (
+              <div className="bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
+                      <th className="text-left px-4 py-3 font-medium text-zinc-600">名前</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {recent.map((r, i) => (
+                      <tr key={i} className="hover:bg-zinc-50 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
+                            {r.icon} {r.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 min-w-0">
+                          <Link href={r.href} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-[12rem]">
+                            {r.title}
+                          </Link>
+                          {r.sub && (
+                            <p className="text-xs text-zinc-400 mt-0.5 truncate">{r.sub}</p>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  )
+}
