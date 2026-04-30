@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
+import SignOutButton from '@/components/SignOutButton'
 
 const navItems = [
   { href: '/dashboard',    label: 'ダッシュボード', icon: '🏠' },
@@ -73,6 +74,7 @@ export default function Sidebar() {
             </Link>
           )
         })}
+        <SignOutButton />
       </div>
     </aside>
   )
