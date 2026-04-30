@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { accounts, contacts, opportunities } from '@/lib/schema'
+import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import TaskForm from '@/components/TaskForm'
 import { createTask } from '@/app/actions/tasks'
@@ -7,9 +9,9 @@ async function createTaskAction(_: string | null, formData: FormData): Promise<s
   'use server'
   try { await createTask(formData); return null }
   catch (e) {
-  if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-  return (e as Error).message
-}
+    if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+    return (e as Error).message
+  }
 }
 
 export default async function NewTaskPage({
@@ -19,10 +21,13 @@ export default async function NewTaskPage({
 }) {
   const { account_id, contact_id, opportunity_id } = await searchParams
 
-  const [{ data: accounts }, { data: contacts }, { data: opportunities }] = await Promise.all([
-    supabase.from('accounts').select('id, name').eq('status', 'active').order('name'),
-    supabase.from('contacts').select('id, full_name').order('full_name'),
-    supabase.from('opportunities').select('id, name').order('name'),
+  const [accountsList, contactsList, opportunitiesList] = await Promise.all([
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
+    db.select({ id: opportunities.id, name: opportunities.name })
+      .from(opportunities).orderBy(asc(opportunities.name)),
   ])
 
   const cancelHref = account_id
@@ -45,9 +50,9 @@ export default async function NewTaskPage({
         <TaskForm
           action={createTaskAction}
           cancelHref={cancelHref}
-          accounts={accounts ?? []}
-          contacts={contacts ?? []}
-          opportunities={opportunities ?? []}
+          accounts={accountsList}
+          contacts={contactsList}
+          opportunities={opportunitiesList}
           defaultValues={{
             account_id: account_id ?? '',
             contact_id: contact_id ?? '',

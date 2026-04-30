@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { expenses, accounts, opportunities } from '@/lib/schema'
+import { desc, eq, gte, lte } from 'drizzle-orm'
 import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
@@ -52,16 +54,33 @@ export default async function ExpensesPage({
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const conditions = parseFilterParams(filterRaw)
 
-  const { data: raw } = await supabase
-    .from('expenses')
-    .select('*, accounts(id, name), opportunities(id, name)')
-    .gte('expense_date', from)
-    .lte('expense_date', to)
-    .order('expense_date', { ascending: false })
+  const raw = await db.select({
+    id:           expenses.id,
+    title:        expenses.title,
+    amount:       expenses.amount,
+    category:     expenses.category,
+    expense_date: expenses.expense_date,
+    accounts: {
+      id:   accounts.id,
+      name: accounts.name,
+    },
+    opportunities: {
+      id:   opportunities.id,
+      name: opportunities.name,
+    },
+  })
+    .from(expenses)
+    .leftJoin(accounts, eq(expenses.account_id, accounts.id))
+    .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
+    .where(gte(expenses.expense_date, from))
+    .orderBy(desc(expenses.expense_date))
 
-  const expenses  = applyFilters((raw ?? []) as Record<string, unknown>[], conditions)
-  const total     = expenses.reduce((s, e) => s + Number(e.amount), 0)
-  const hasFilter = conditions.length > 0
+  // to の日付フィルタは JS 側で適用（lte は同じ型で比較）
+  const filtered = raw.filter((e) => e.expense_date! <= to)
+
+  const expensesList = applyFilters(filtered as Record<string, unknown>[], conditions) as typeof raw
+  const total        = expensesList.reduce((s, e) => s + Number(e.amount), 0)
+  const hasFilter    = conditions.length > 0
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
   const yearOptions  = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i)
@@ -82,7 +101,7 @@ export default async function ExpensesPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">経費管理</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {periodLabel} — {expenses.length} 件 合計{' '}
+            {periodLabel} — {expensesList.length} 件 合計{' '}
             <span className="font-semibold text-zinc-800">¥{total.toLocaleString()}</span>
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
@@ -124,7 +143,6 @@ export default async function ExpensesPage({
         </button>
       </form>
 
-      {/* 絞り込みビルダー */}
       <FilterBuilder
         fields={FIELDS}
         initialFilters={filterRaw}
@@ -132,7 +150,7 @@ export default async function ExpensesPage({
         persistParams={persistParams}
       />
 
-      {expenses.length === 0 ? (
+      {expensesList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">💰</p>
           <p className="text-lg font-medium">
@@ -159,9 +177,9 @@ export default async function ExpensesPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {(expenses as NonNullable<typeof raw>).map((e) => {
-                const account     = e.accounts     as unknown as { id: string; name: string } | null
-                const opportunity = e.opportunities as unknown as { id: string; name: string } | null
+              {expensesList.map((e) => {
+                const account     = e.accounts?.id     ? e.accounts     : null
+                const opportunity = e.opportunities?.id ? e.opportunities : null
                 const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
                 return (
                   <tr key={e.id} className="hover:bg-zinc-50">

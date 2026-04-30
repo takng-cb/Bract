@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { activities, accounts } from '@/lib/schema'
+import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
@@ -35,17 +37,24 @@ export default async function ActivitiesPage({
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const conditions = parseFilterParams(filterRaw)
 
-  const { data: raw, error } = await supabase
-    .from('activities')
-    .select('id, type, subject, body, occurred_at, account_id, accounts(id, name)')
-    .order('occurred_at', { ascending: false })
+  const raw = await db.select({
+    id:          activities.id,
+    type:        activities.type,
+    subject:     activities.subject,
+    body:        activities.body,
+    occurred_at: activities.occurred_at,
+    account_id:  activities.account_id,
+    accounts: {
+      id:   accounts.id,
+      name: accounts.name,
+    },
+  })
+    .from(activities)
+    .leftJoin(accounts, eq(activities.account_id, accounts.id))
+    .orderBy(desc(activities.occurred_at))
 
-  if (error) {
-    return <div className="p-8 text-red-600">データの取得に失敗しました: {error.message}</div>
-  }
-
-  const activities = applyFilters(raw as Record<string, unknown>[], conditions)
-  const hasFilter  = conditions.length > 0
+  const activitiesList = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
+  const hasFilter      = conditions.length > 0
 
   return (
     <div className="p-8">
@@ -53,7 +62,7 @@ export default async function ActivitiesPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">活動履歴</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {activities.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {activitiesList.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
         <Link
@@ -66,7 +75,7 @@ export default async function ActivitiesPage({
 
       <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/activities" />
 
-      {activities.length === 0 ? (
+      {activitiesList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">📋</p>
           <p className="text-lg font-medium">
@@ -90,9 +99,9 @@ export default async function ActivitiesPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {(activities as typeof raw).map((a) => {
+              {activitiesList.map((a) => {
                 const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
-                const account = a.accounts as unknown as { id: string; name: string } | null
+                const account = a.accounts?.id ? a.accounts : null
                 return (
                   <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -115,7 +124,7 @@ export default async function ActivitiesPage({
                       }
                     </td>
                     <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">
-                      {new Date(a.occurred_at).toLocaleDateString('ja-JP')}
+                      {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/activities/${a.id}`} className="text-blue-600 hover:text-blue-800 text-xs">

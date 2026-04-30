@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { change_logs } from '@/lib/schema'
+import { eq, and, desc } from 'drizzle-orm'
 import { formatLogValue } from '@/lib/changeLog'
 
 type Props = {
@@ -7,15 +9,23 @@ type Props = {
 }
 
 export default async function ChangeLogSection({ objectType, objectId }: Props) {
-  const { data: logs } = await supabase
-    .from('change_logs')
-    .select('id, field_label, field_name, old_value, new_value, changed_at')
-    .eq('object_type', objectType)
-    .eq('object_id', objectId)
-    .order('changed_at', { ascending: false })
+  const logs = await db.select({
+    id:          change_logs.id,
+    field_label: change_logs.field_label,
+    field_name:  change_logs.field_name,
+    old_value:   change_logs.old_value,
+    new_value:   change_logs.new_value,
+    changed_at:  change_logs.changed_at,
+  })
+    .from(change_logs)
+    .where(and(
+      eq(change_logs.object_type, objectType),
+      eq(change_logs.object_id, objectId),
+    ))
+    .orderBy(desc(change_logs.changed_at))
     .limit(30)
 
-  if (!logs || logs.length === 0) {
+  if (logs.length === 0) {
     return (
       <p className="text-sm text-zinc-400 text-center py-4">変更履歴がありません</p>
     )
@@ -25,7 +35,6 @@ export default async function ChangeLogSection({ objectType, objectId }: Props) 
     <div className="divide-y divide-zinc-100">
       {logs.map((log) => (
         <div key={log.id} className="flex items-start gap-3 py-2.5 px-1">
-          {/* タイムライン点 */}
           <div className="mt-1.5 w-2 h-2 rounded-full bg-zinc-300 shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
@@ -47,9 +56,11 @@ export default async function ChangeLogSection({ objectType, objectId }: Props) 
             </div>
           </div>
           <span className="text-xs text-zinc-400 whitespace-nowrap shrink-0 mt-0.5">
-            {new Date(log.changed_at).toLocaleDateString('ja-JP', {
-              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-            })}
+            {log.changed_at
+              ? new Date(log.changed_at).toLocaleDateString('ja-JP', {
+                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                })
+              : '—'}
           </span>
         </div>
       ))}

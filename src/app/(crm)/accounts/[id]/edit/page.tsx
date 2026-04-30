@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { accounts } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AccountForm from '@/components/AccountForm'
@@ -10,7 +12,7 @@ export default async function EditAccountPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { data: account } = await supabase.from('accounts').select('*').eq('id', id).single()
+  const account = await db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null)
   if (!account) notFound()
 
   async function updateAccountAction(_: string | null, formData: FormData): Promise<string | null> {
@@ -38,7 +40,10 @@ export default async function EditAccountPage({
         <AccountForm
           action={updateAccountAction}
           cancelHref={`/accounts/${id}`}
-          defaultValues={account}
+          defaultValues={{
+            ...account,
+            annual_revenue: account.annual_revenue !== null ? Number(account.annual_revenue) : null,
+          }}
         />
       </div>
     </div>

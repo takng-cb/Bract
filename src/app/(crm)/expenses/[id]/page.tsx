@@ -1,6 +1,8 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { expenses, accounts, contacts, opportunities } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import DeleteButton from '@/components/DeleteButton'
 
@@ -17,26 +19,35 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default async function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const { data: expense } = await supabase
-    .from('expenses')
-    .select('*, accounts(id, name), contacts(id, full_name), opportunities(id, name)')
-    .eq('id', id)
-    .single()
+  const expense = await db.select({
+    id: expenses.id, title: expenses.title, amount: expenses.amount,
+    category: expenses.category, expense_date: expenses.expense_date,
+    notes: expenses.notes, created_at: expenses.created_at,
+    accounts:      { id: accounts.id, name: accounts.name },
+    contacts:      { id: contacts.id, full_name: contacts.full_name },
+    opportunities: { id: opportunities.id, name: opportunities.name },
+  })
+    .from(expenses)
+    .leftJoin(accounts, eq(expenses.account_id, accounts.id))
+    .leftJoin(contacts, eq(expenses.contact_id, contacts.id))
+    .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
+    .where(eq(expenses.id, id))
+    .then((r) => r[0] ?? null)
 
   if (!expense) notFound()
 
-  const account     = expense.accounts     as unknown as { id: string; name: string } | null
-  const contact     = expense.contacts     as unknown as { id: string; full_name: string } | null
-  const opportunity = expense.opportunities as unknown as { id: string; name: string } | null
+  const account     = expense.accounts?.id     ? expense.accounts     : null
+  const contact     = expense.contacts?.id     ? expense.contacts     : null
+  const opportunity = expense.opportunities?.id ? expense.opportunities : null
   const catColor    = CATEGORY_COLORS[expense.category] ?? CATEGORY_COLORS['その他']
 
   async function deleteAction() {
     'use server'
-    const { data: exp } = await supabase.from('expenses').select('opportunity_id').eq('id', id).single()
-    await supabase.from('expenses').delete().eq('id', id)
+    const row = await db.select({ opportunity_id: expenses.opportunity_id })
+      .from(expenses).where(eq(expenses.id, id)).then((r) => r[0] ?? null)
+    await db.delete(expenses).where(eq(expenses.id, id))
     revalidatePath('/expenses')
-    if (exp?.opportunity_id) revalidatePath(`/opportunities/${exp.opportunity_id}`)
-    const { redirect } = await import('next/navigation')
+    if (row?.opportunity_id) revalidatePath(`/opportunities/${row.opportunity_id}`)
     redirect('/expenses')
   }
 
@@ -109,7 +120,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           )}
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
-            <dd className="text-sm text-zinc-800">{new Date(expense.created_at).toLocaleDateString('ja-JP')}</dd>
+            <dd className="text-sm text-zinc-800">{expense.created_at ? new Date(expense.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
           </div>
         </dl>
         <div className="mt-4 pt-4 border-t border-zinc-100">

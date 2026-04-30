@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { tasks, accounts, contacts, opportunities } from '@/lib/schema'
+import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import TaskForm from '@/components/TaskForm'
@@ -7,11 +9,14 @@ import { updateTask } from '@/app/actions/tasks'
 export default async function EditTaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [{ data: task }, { data: accounts }, { data: contacts }, { data: opportunities }] = await Promise.all([
-    supabase.from('tasks').select('*').eq('id', id).single(),
-    supabase.from('accounts').select('id, name').eq('status', 'active').order('name'),
-    supabase.from('contacts').select('id, full_name').order('full_name'),
-    supabase.from('opportunities').select('id, name').order('name'),
+  const [task, accountsList, contactsList, opportunitiesList] = await Promise.all([
+    db.select().from(tasks).where(eq(tasks.id, id)).then((r) => r[0] ?? null),
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
+    db.select({ id: opportunities.id, name: opportunities.name })
+      .from(opportunities).orderBy(asc(opportunities.name)),
   ])
 
   if (!task) notFound()
@@ -20,9 +25,9 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
     'use server'
     try { await updateTask(id, formData); return null }
     catch (e) {
-    if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-    return (e as Error).message
-  }
+      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+      return (e as Error).message
+    }
   }
 
   return (
@@ -39,9 +44,9 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
         <TaskForm
           action={updateTaskAction}
           cancelHref={`/tasks/${id}`}
-          accounts={accounts ?? []}
-          contacts={contacts ?? []}
-          opportunities={opportunities ?? []}
+          accounts={accountsList}
+          contacts={contactsList}
+          opportunities={opportunitiesList}
           defaultValues={task}
         />
       </div>

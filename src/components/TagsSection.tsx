@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { taggables, tags } from '@/lib/schema'
+import { eq, and } from 'drizzle-orm'
 import { addTagToObject, removeTagFromObject } from '@/app/actions/tags'
 
 type Props = {
@@ -8,20 +10,28 @@ type Props = {
 }
 
 export default async function TagsSection({ objectType, objectId, revalidatePath: path }: Props) {
-  const [taggablesRes, allTagsRes] = await Promise.all([
-    supabase
-      .from('taggables')
-      .select('id, tag_id, tags(id, name, color)')
-      .eq('object_type', objectType)
-      .eq('object_id', objectId),
-    supabase.from('tags').select('id, name, color').order('name'),
+  const [appliedRows, allTags] = await Promise.all([
+    db.select({
+      id:      taggables.id,
+      tag_id:  taggables.tag_id,
+      tags: {
+        id:    tags.id,
+        name:  tags.name,
+        color: tags.color,
+      },
+    })
+      .from(taggables)
+      .innerJoin(tags, eq(taggables.tag_id, tags.id))
+      .where(and(
+        eq(taggables.object_type, objectType),
+        eq(taggables.object_id, objectId),
+      )),
+    db.select({ id: tags.id, name: tags.name, color: tags.color })
+      .from(tags)
+      .orderBy(tags.name),
   ])
 
-  const applied    = (taggablesRes.data ?? []) as unknown as {
-    id: string; tag_id: string; tags: { id: string; name: string; color: string }
-  }[]
-  const allTags    = allTagsRes.data ?? []
-  const appliedIds = new Set(applied.map((a) => a.tag_id))
+  const appliedIds = new Set(appliedRows.map((a) => a.tag_id))
   const remaining  = allTags.filter((t) => !appliedIds.has(t.id))
 
   async function handleAdd(formData: FormData) {
@@ -39,8 +49,7 @@ export default async function TagsSection({ objectType, objectId, revalidatePath
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* 付与済みタグ */}
-      {applied.map((a) => {
+      {appliedRows.map((a) => {
         const tag = a.tags
         return (
           <form key={a.id} action={handleRemove} className="inline-flex">
@@ -58,7 +67,6 @@ export default async function TagsSection({ objectType, objectId, revalidatePath
         )
       })}
 
-      {/* タグ追加 */}
       {remaining.length > 0 && (
         <form action={handleAdd} className="inline-flex items-center gap-1">
           <select
@@ -79,7 +87,7 @@ export default async function TagsSection({ objectType, objectId, revalidatePath
         </form>
       )}
 
-      {applied.length === 0 && remaining.length === 0 && (
+      {appliedRows.length === 0 && remaining.length === 0 && (
         <span className="text-xs text-zinc-400">タグがありません</span>
       )}
     </div>

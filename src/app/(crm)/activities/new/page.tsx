@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { accounts, contacts, opportunities } from '@/lib/schema'
+import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import ActivityForm from '@/components/ActivityForm'
 import { createActivity } from '@/app/actions/activities'
@@ -7,9 +9,9 @@ async function createActivityAction(_: string | null, formData: FormData): Promi
   'use server'
   try { await createActivity(formData); return null }
   catch (e) {
-  if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-  return (e as Error).message
-}
+    if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+    return (e as Error).message
+  }
 }
 
 export default async function NewActivityPage({
@@ -22,18 +24,23 @@ export default async function NewActivityPage({
   // contact_id / opportunity_id から account_id を補完する
   let resolvedAccountId = account_id ?? ''
   if (!resolvedAccountId && contact_id) {
-    const { data } = await supabase.from('contacts').select('account_id').eq('id', contact_id).single()
-    resolvedAccountId = data?.account_id ?? ''
+    const row = await db.select({ account_id: contacts.account_id })
+      .from(contacts).where(eq(contacts.id, contact_id)).then((r) => r[0] ?? null)
+    resolvedAccountId = row?.account_id ?? ''
   }
   if (!resolvedAccountId && opportunity_id) {
-    const { data } = await supabase.from('opportunities').select('account_id').eq('id', opportunity_id).single()
-    resolvedAccountId = data?.account_id ?? ''
+    const row = await db.select({ account_id: opportunities.account_id })
+      .from(opportunities).where(eq(opportunities.id, opportunity_id)).then((r) => r[0] ?? null)
+    resolvedAccountId = row?.account_id ?? ''
   }
 
-  const [{ data: accounts }, { data: contacts }, { data: opportunities }] = await Promise.all([
-    supabase.from('accounts').select('id, name').eq('status', 'active').order('name'),
-    supabase.from('contacts').select('id, full_name').order('full_name'),
-    supabase.from('opportunities').select('id, name').order('name'),
+  const [accountsList, contactsList, opportunitiesList] = await Promise.all([
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
+    db.select({ id: opportunities.id, name: opportunities.name })
+      .from(opportunities).orderBy(asc(opportunities.name)),
   ])
 
   const cancelHref = account_id
@@ -56,9 +63,9 @@ export default async function NewActivityPage({
         <ActivityForm
           action={createActivityAction}
           cancelHref={cancelHref}
-          accounts={accounts ?? []}
-          contacts={contacts ?? []}
-          opportunities={opportunities ?? []}
+          accounts={accountsList}
+          contacts={contactsList}
+          opportunities={opportunitiesList}
           defaultValues={{
             account_id: resolvedAccountId,
             contact_ids: contact_id ? [contact_id] : [],

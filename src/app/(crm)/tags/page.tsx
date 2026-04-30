@@ -1,22 +1,19 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { tags, taggables } from '@/lib/schema'
+import { desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { deleteTag } from '@/app/actions/tags'
-import { revalidatePath } from 'next/cache'
 import TagDeleteButton from '@/components/TagDeleteButton'
 
 export default async function TagsPage() {
-  // タグ一覧 + 使用数を取得
-  const { data: tags } = await supabase
-    .from('tags')
-    .select('id, name, color, created_at')
-    .order('name')
-
-  const { data: counts } = await supabase
-    .from('taggables')
-    .select('tag_id')
+  const [allTags, countRows] = await Promise.all([
+    db.select({ id: tags.id, name: tags.name, color: tags.color, created_at: tags.created_at })
+      .from(tags).orderBy(tags.name),
+    db.select({ tag_id: taggables.tag_id }).from(taggables),
+  ])
 
   const countMap: Record<string, number> = {}
-  for (const r of counts ?? []) {
+  for (const r of countRows) {
     countMap[r.tag_id] = (countMap[r.tag_id] ?? 0) + 1
   }
 
@@ -31,7 +28,7 @@ export default async function TagsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">タグ管理</h1>
-          <p className="text-sm text-zinc-500 mt-1">{(tags ?? []).length} 件</p>
+          <p className="text-sm text-zinc-500 mt-1">{allTags.length} 件</p>
         </div>
         <Link
           href="/tags/new"
@@ -41,7 +38,7 @@ export default async function TagsPage() {
         </Link>
       </div>
 
-      {!tags || tags.length === 0 ? (
+      {allTags.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">🏷️</p>
           <p className="text-lg font-medium">タグがまだありません</p>
@@ -58,7 +55,7 @@ export default async function TagsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {tags.map((tag) => (
+              {allTags.map((tag) => (
                 <tr key={tag.id} className="hover:bg-zinc-50 transition-colors">
                   <td className="px-4 py-3">
                     <span

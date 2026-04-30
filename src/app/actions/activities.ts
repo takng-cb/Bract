@@ -1,13 +1,14 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { activities, activity_contacts } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 
 async function syncActivityContacts(activityId: string, contactIds: string[]) {
-  // 既存の紐づけを全削除してから再挿入
-  await supabase.from('activity_contacts').delete().eq('activity_id', activityId)
+  await db.delete(activity_contacts).where(eq(activity_contacts.activity_id, activityId))
   if (contactIds.length > 0) {
-    await supabase.from('activity_contacts').insert(
+    await db.insert(activity_contacts).values(
       contactIds.map((contact_id) => ({ activity_id: activityId, contact_id }))
     )
   }
@@ -24,17 +25,15 @@ export async function updateActivity(id: string, formData: FormData) {
   const contactIds = formData.getAll('contact_ids') as string[]
   const primaryContactId = contactIds[0] ?? null
 
-  const { error } = await supabase.from('activities').update({
-    subject: subject.trim(),
+  await db.update(activities).set({
+    subject:        subject.trim(),
     type,
-    body: (formData.get('body') as string) || null,
-    occurred_at: occurred_at || new Date().toISOString(),
-    account_id: (formData.get('account_id') as string) || null,
-    contact_id: primaryContactId,
+    body:           (formData.get('body') as string) || null,
+    occurred_at:    occurred_at ? new Date(occurred_at) : new Date(),
+    account_id:     (formData.get('account_id') as string) || null,
+    contact_id:     primaryContactId,
     opportunity_id: (formData.get('opportunity_id') as string) || null,
-  }).eq('id', id)
-
-  if (error) throw new Error(error.message)
+  }).where(eq(activities.id, id))
 
   await syncActivityContacts(id, contactIds)
 
@@ -42,8 +41,7 @@ export async function updateActivity(id: string, formData: FormData) {
 }
 
 export async function deleteActivity(id: string) {
-  const { error } = await supabase.from('activities').delete().eq('id', id)
-  if (error) throw new Error(error.message)
+  await db.delete(activities).where(eq(activities.id, id))
   redirect('/activities')
 }
 
@@ -54,29 +52,26 @@ export async function createActivity(formData: FormData) {
   const type = formData.get('type') as string
   if (!type) throw new Error('種別は必須です')
 
-  const occurred_at = formData.get('occurred_at') as string
-  const account_id = formData.get('account_id') as string
+  const occurred_at    = formData.get('occurred_at') as string
+  const account_id     = formData.get('account_id') as string
   const opportunity_id = formData.get('opportunity_id') as string
-  const contactIds = formData.getAll('contact_ids') as string[]
+  const contactIds     = formData.getAll('contact_ids') as string[]
   const primaryContactId = contactIds[0] ?? null
 
-  const { data, error } = await supabase.from('activities').insert({
-    subject: subject.trim(),
+  const [row] = await db.insert(activities).values({
+    subject:        subject.trim(),
     type,
-    body: (formData.get('body') as string) || null,
-    occurred_at: occurred_at || new Date().toISOString(),
-    account_id: account_id || null,
-    contact_id: primaryContactId,
+    body:           (formData.get('body') as string) || null,
+    occurred_at:    occurred_at ? new Date(occurred_at) : new Date(),
+    account_id:     account_id || null,
+    contact_id:     primaryContactId,
     opportunity_id: opportunity_id || null,
-  }).select('id').single()
+  }).returning({ id: activities.id })
 
-  if (error) throw new Error(error.message)
+  await syncActivityContacts(row.id, contactIds)
 
-  await syncActivityContacts(data.id, contactIds)
-
-  // 戻り先を決定（関連するレコードの詳細ページへ）
-  if (account_id) redirect(`/accounts/${account_id}`)
-  if (primaryContactId) redirect(`/contacts/${primaryContactId}`)
-  if (opportunity_id) redirect(`/opportunities/${opportunity_id}`)
+  if (account_id)        redirect(`/accounts/${account_id}`)
+  if (primaryContactId)  redirect(`/contacts/${primaryContactId}`)
+  if (opportunity_id)    redirect(`/opportunities/${opportunity_id}`)
   redirect('/activities')
 }

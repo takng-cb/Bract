@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { tags } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { updateTag } from '@/app/actions/tags'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -10,7 +12,7 @@ const COLOR_PRESETS = [
 
 export default async function EditTagPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { data: tag } = await supabase.from('tags').select('*').eq('id', id).single()
+  const tag = await db.select().from(tags).where(eq(tags.id, id)).then((r) => r[0] ?? null)
   if (!tag) notFound()
 
   async function handleUpdate(formData: FormData) {

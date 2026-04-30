@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { activities, accounts, contacts, opportunities, activity_contacts } from '@/lib/schema'
+import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ActivityForm from '@/components/ActivityForm'
@@ -7,12 +9,16 @@ import { updateActivity } from '@/app/actions/activities'
 export default async function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [{ data: activity }, { data: accounts }, { data: contacts }, { data: opportunities }, { data: activityContacts }] = await Promise.all([
-    supabase.from('activities').select('*').eq('id', id).single(),
-    supabase.from('accounts').select('id, name').eq('status', 'active').order('name'),
-    supabase.from('contacts').select('id, full_name').order('full_name'),
-    supabase.from('opportunities').select('id, name').order('name'),
-    supabase.from('activity_contacts').select('contact_id').eq('activity_id', id),
+  const [activity, accountsList, contactsList, opportunitiesList, activityContactRows] = await Promise.all([
+    db.select().from(activities).where(eq(activities.id, id)).then((r) => r[0] ?? null),
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
+    db.select({ id: opportunities.id, name: opportunities.name })
+      .from(opportunities).orderBy(asc(opportunities.name)),
+    db.select({ contact_id: activity_contacts.contact_id })
+      .from(activity_contacts).where(eq(activity_contacts.activity_id, id)),
   ])
 
   if (!activity) notFound()
@@ -21,9 +27,9 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
     'use server'
     try { await updateActivity(id, formData); return null }
     catch (e) {
-    if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-    return (e as Error).message
-  }
+      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+      return (e as Error).message
+    }
   }
 
   return (
@@ -40,16 +46,18 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
         <ActivityForm
           action={updateActivityAction}
           cancelHref={`/activities/${id}`}
-          accounts={accounts ?? []}
-          contacts={contacts ?? []}
-          opportunities={opportunities ?? []}
+          accounts={accountsList}
+          contacts={contactsList}
+          opportunities={opportunitiesList}
           defaultValues={{
             type: activity.type,
             subject: activity.subject,
             body: activity.body,
-            occurred_at: activity.occurred_at,
+            occurred_at: activity.occurred_at
+              ? new Date(activity.occurred_at).toISOString().slice(0, 16)
+              : '',
             account_id: activity.account_id ?? '',
-            contact_ids: (activityContacts ?? []).map((ac) => ac.contact_id),
+            contact_ids: activityContactRows.map((ac) => ac.contact_id),
             opportunity_id: activity.opportunity_id ?? '',
           }}
         />

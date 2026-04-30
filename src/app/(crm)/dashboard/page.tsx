@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { accounts, contacts, opportunities, activities, tasks } from '@/lib/schema'
+import { eq, desc, asc, lte, gte, ne, count } from 'drizzle-orm'
 import Link from 'next/link'
 
 const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
@@ -24,56 +26,87 @@ const STAGE_CONFIG: Record<string, { label: string; color: string }> = {
 }
 
 export default async function DashboardPage() {
-  const now = new Date()
-  const year  = now.getFullYear()
-  const month = now.getMonth() + 1
+  const now       = new Date()
+  const year      = now.getFullYear()
+  const month     = now.getMonth() + 1
   const monthFrom = `${year}-${String(month).padStart(2, '0')}-01`
   const monthTo   = new Date(year, month, 0).toISOString().slice(0, 10)
   const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const today     = now.toISOString().slice(0, 10)
 
   const [
-    { count: accountCount },
-    { data: pendingTasks },
-    { data: opportunities },
-    { data: recentAccounts },
-    { data: recentContacts },
-    { data: recentOpportunities },
-    { data: recentActivities },
+    accountCountRows,
+    pendingTasks,
+    monthOpportunities,
+    recentAccounts,
+    recentContacts,
+    recentOpportunities,
+    recentActivities,
   ] = await Promise.all([
-    supabase.from('accounts').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-    supabase.from('tasks').select('*, accounts(id, name), opportunities(id, name)')
-      .eq('done', false)
-      .lte('due_date', weekLater)
-      .gte('due_date', today)
-      .order('due_date'),
-    supabase.from('opportunities').select('id, name, stage, amount, probability, close_date, accounts(name)')
-      .gte('close_date', monthFrom)
-      .lte('close_date', monthTo)
-      .not('stage', 'eq', 'closed_lost'),
-    supabase.from('accounts').select('id, name, industry, updated_at').order('updated_at', { ascending: false }).limit(4),
-    supabase.from('contacts').select('id, full_name, title, updated_at').order('updated_at', { ascending: false }).limit(4),
-    supabase.from('opportunities').select('id, name, stage, updated_at').order('updated_at', { ascending: false }).limit(4),
-    supabase.from('activities').select('id, type, subject, occurred_at, accounts(name)').order('occurred_at', { ascending: false }).limit(5),
+    db.select({ count: count() }).from(accounts).where(eq(accounts.status, 'active')),
+    db.select({
+      id: tasks.id, title: tasks.title, done: tasks.done,
+      priority: tasks.priority, due_date: tasks.due_date,
+      accounts:      { id: accounts.id, name: accounts.name },
+      opportunities: { id: opportunities.id, name: opportunities.name },
+    })
+      .from(tasks)
+      .leftJoin(accounts, eq(tasks.account_id, accounts.id))
+      .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
+      .where(eq(tasks.done, false))
+      .orderBy(asc(tasks.due_date)),
+    db.select({
+      id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
+      amount: opportunities.amount, probability: opportunities.probability,
+      close_date: opportunities.close_date,
+      accounts: { name: accounts.name },
+    })
+      .from(opportunities)
+      .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+      .where(ne(opportunities.stage, 'closed_lost'))
+      .orderBy(asc(opportunities.close_date)),
+    db.select({ id: accounts.id, name: accounts.name, industry: accounts.industry, updated_at: accounts.updated_at })
+      .from(accounts).orderBy(desc(accounts.updated_at)).limit(4),
+    db.select({ id: contacts.id, full_name: contacts.full_name, title: contacts.title, updated_at: contacts.updated_at })
+      .from(contacts).orderBy(desc(contacts.updated_at)).limit(4),
+    db.select({ id: opportunities.id, name: opportunities.name, stage: opportunities.stage, updated_at: opportunities.updated_at })
+      .from(opportunities).orderBy(desc(opportunities.updated_at)).limit(4),
+    db.select({
+      id: activities.id, type: activities.type, subject: activities.subject,
+      occurred_at: activities.occurred_at,
+      accounts: { name: accounts.name },
+    })
+      .from(activities)
+      .leftJoin(accounts, eq(activities.account_id, accounts.id))
+      .orderBy(desc(activities.occurred_at)).limit(5),
   ])
 
-  // 今月の想定売上
-  const forecast = (opportunities ?? []).reduce((sum, o) => {
+  // 今月分フィルタ（close_date で絞る）
+  const thisMonthOpps = monthOpportunities.filter(
+    (o) => o.close_date && o.close_date >= monthFrom && o.close_date <= monthTo
+  )
+
+  // 今週の期限タスク
+  const weekTasks = pendingTasks.filter(
+    (t) => t.due_date && t.due_date >= today && t.due_date <= weekLater
+  )
+
+  const accountCount = accountCountRows[0]?.count ?? 0
+
+  const forecast = thisMonthOpps.reduce((sum, o) => {
     return sum + Number(o.amount ?? 0) * (o.probability != null ? o.probability / 100 : 1)
   }, 0)
 
-  // 最近のレコードをマージ・ソート
   const recent = [
-    ...(recentAccounts ?? []).map((r) => ({ type: '取引先', icon: '🏢', href: `/accounts/${r.id}`, title: r.name, sub: r.industry ?? '', at: r.updated_at })),
-    ...(recentContacts ?? []).map((r) => ({ type: '担当者', icon: '👤', href: `/contacts/${r.id}`, title: r.full_name, sub: r.title ?? '', at: r.updated_at })),
-    ...(recentOpportunities ?? []).map((r) => ({ type: '商談', icon: '💼', href: `/opportunities/${r.id}`, title: r.name, sub: STAGE_CONFIG[r.stage]?.label ?? r.stage, at: r.updated_at })),
+    ...recentAccounts.map((r) => ({ type: '取引先', icon: '🏢', href: `/accounts/${r.id}`, title: r.name, sub: r.industry ?? '', at: r.updated_at })),
+    ...recentContacts.map((r) => ({ type: '担当者', icon: '👤', href: `/contacts/${r.id}`, title: r.full_name, sub: r.title ?? '', at: r.updated_at })),
+    ...recentOpportunities.map((r) => ({ type: '商談', icon: '💼', href: `/opportunities/${r.id}`, title: r.name, sub: STAGE_CONFIG[r.stage]?.label ?? r.stage, at: r.updated_at })),
   ]
-    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .sort((a, b) => new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime())
     .slice(0, 8)
 
   return (
     <div className="p-8 max-w-5xl">
-      {/* ヘッダー */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-zinc-900">ダッシュボード</h1>
         <p className="text-sm text-zinc-500 mt-1">
@@ -84,9 +117,9 @@ export default async function DashboardPage() {
       {/* KPIカード */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'アクティブな取引先', value: accountCount ?? 0, unit: '社', href: '/accounts', color: 'text-zinc-800' },
-          { label: '未完了のToDo', value: (pendingTasks ?? []).length, unit: '件', href: '/tasks', color: (pendingTasks ?? []).length > 0 ? 'text-orange-600' : 'text-zinc-800' },
-          { label: '今月完了予定の商談', value: (opportunities ?? []).length, unit: '件', href: '/opportunities', color: 'text-blue-600' },
+          { label: 'アクティブな取引先', value: accountCount, unit: '社', href: '/accounts', color: 'text-zinc-800' },
+          { label: '今週締切のToDo', value: weekTasks.length, unit: '件', href: '/tasks', color: weekTasks.length > 0 ? 'text-orange-600' : 'text-zinc-800' },
+          { label: '今月完了予定の商談', value: thisMonthOpps.length, unit: '件', href: '/opportunities', color: 'text-blue-600' },
           { label: '今月の想定売上', value: `¥${Math.round(forecast).toLocaleString()}`, unit: '', href: '/forecast', color: 'text-green-700' },
         ].map((k) => (
           <Link key={k.label} href={k.href} className="bg-white border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
@@ -108,11 +141,11 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-zinc-800">
                 今週締切のToDo
-                <span className="ml-2 text-zinc-400 font-normal text-sm">({(pendingTasks ?? []).length})</span>
+                <span className="ml-2 text-zinc-400 font-normal text-sm">({weekTasks.length})</span>
               </h2>
               <Link href="/tasks" className="text-xs text-blue-600 hover:text-blue-800">すべて見る →</Link>
             </div>
-            {(pendingTasks ?? []).length === 0 ? (
+            {weekTasks.length === 0 ? (
               <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
                 今週締切のToDoはありません 🎉
               </div>
@@ -129,9 +162,9 @@ export default async function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {(pendingTasks ?? []).map((t) => {
-                      const account     = t.accounts     as { id: string; name: string } | null
-                      const opportunity = t.opportunities as { id: string; name: string } | null
+                    {weekTasks.map((t) => {
+                      const account     = t.accounts?.id     ? t.accounts     : null
+                      const opportunity = t.opportunities?.id ? t.opportunities : null
                       const priority    = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
                       const isOverdue   = t.due_date && t.due_date < today
                       return (
@@ -175,11 +208,11 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-zinc-800">
                 今月完了予定の商談
-                <span className="ml-2 text-zinc-400 font-normal text-sm">({(opportunities ?? []).length})</span>
+                <span className="ml-2 text-zinc-400 font-normal text-sm">({thisMonthOpps.length})</span>
               </h2>
               <Link href="/forecast" className="text-xs text-blue-600 hover:text-blue-800">売上予測へ →</Link>
             </div>
-            {(opportunities ?? []).length === 0 ? (
+            {thisMonthOpps.length === 0 ? (
               <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
                 今月完了予定の商談がありません
               </div>
@@ -196,11 +229,11 @@ export default async function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {(opportunities ?? []).slice(0, 5).map((o) => {
+                    {thisMonthOpps.slice(0, 5).map((o) => {
                       const base     = Number(o.amount ?? 0)
                       const prob     = o.probability != null ? o.probability / 100 : 1
                       const weighted = Math.round(base * prob)
-                      const account  = o.accounts as unknown as { name: string } | null
+                      const account  = o.accounts?.name ? o.accounts : null
                       const stage    = STAGE_CONFIG[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
                       return (
                         <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
@@ -208,9 +241,7 @@ export default async function DashboardPage() {
                             <Link href={`/opportunities/${o.id}`} className="hover:text-blue-600 block truncate max-w-[14rem]">
                               {o.name}
                             </Link>
-                            {account?.name && (
-                              <p className="text-xs text-zinc-400 mt-0.5">{account.name}</p>
-                            )}
+                            {account && <p className="text-xs text-zinc-400 mt-0.5">{account.name}</p>}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${stage.color}`}>
@@ -246,7 +277,7 @@ export default async function DashboardPage() {
               <h2 className="font-semibold text-zinc-800">最近の活動</h2>
               <Link href="/activities" className="text-xs text-blue-600 hover:text-blue-800">すべて見る →</Link>
             </div>
-            {(recentActivities ?? []).length === 0 ? (
+            {recentActivities.length === 0 ? (
               <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">活動がありません</div>
             ) : (
               <div className="bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
@@ -259,8 +290,8 @@ export default async function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {(recentActivities ?? []).map((a) => {
-                      const account = a.accounts as unknown as { name: string } | null
+                    {recentActivities.map((a) => {
+                      const account = a.accounts?.name ? a.accounts : null
                       const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
                       return (
                         <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
@@ -273,12 +304,10 @@ export default async function DashboardPage() {
                             <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-[10rem]">
                               {a.subject}
                             </Link>
-                            {account?.name && (
-                              <p className="text-xs text-zinc-400 mt-0.5 truncate">{account.name}</p>
-                            )}
+                            {account && <p className="text-xs text-zinc-400 mt-0.5 truncate">{account.name}</p>}
                           </td>
                           <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">
-                            {new Date(a.occurred_at).toLocaleDateString('ja-JP')}
+                            {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
                           </td>
                         </tr>
                       )
@@ -315,9 +344,7 @@ export default async function DashboardPage() {
                           <Link href={r.href} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-[12rem]">
                             {r.title}
                           </Link>
-                          {r.sub && (
-                            <p className="text-xs text-zinc-400 mt-0.5 truncate">{r.sub}</p>
-                          )}
+                          {r.sub && <p className="text-xs text-zinc-400 mt-0.5 truncate">{r.sub}</p>}
                         </td>
                       </tr>
                     ))}

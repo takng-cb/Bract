@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { contacts, accounts, tags, taggables } from '@/lib/schema'
+import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
@@ -14,23 +16,32 @@ export default async function ContactsPage({
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
-  const [{ data: raw, error }, { data: tags }, { data: taggables }] = await Promise.all([
-    supabase
-      .from('contacts')
-      .select('id, full_name, email, phone, title, department, account_id, accounts(id, name)')
-      .order('created_at', { ascending: false }),
-    supabase.from('tags').select('id, name, color').order('name'),
+  const [raw, allTags, taggableRows] = await Promise.all([
+    db.select({
+      id:         contacts.id,
+      full_name:  contacts.full_name,
+      email:      contacts.email,
+      phone:      contacts.phone,
+      title:      contacts.title,
+      department: contacts.department,
+      account_id: contacts.account_id,
+      accounts: {
+        id:   accounts.id,
+        name: accounts.name,
+      },
+    })
+      .from(contacts)
+      .leftJoin(accounts, eq(contacts.account_id, accounts.id))
+      .orderBy(desc(contacts.created_at)),
+    db.select({ id: tags.id, name: tags.name, color: tags.color }).from(tags).orderBy(tags.name),
     tagConditions.length > 0
-      ? supabase.from('taggables').select('tag_id, object_id').eq('object_type', 'contact')
-      : Promise.resolve({ data: [] }),
+      ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
+          .from(taggables).where(eq(taggables.object_type, 'contact'))
+      : Promise.resolve([]),
   ])
 
-  if (error) {
-    return <div className="p-8 text-red-600">データの取得に失敗しました: {error.message}</div>
-  }
-
   const taggedIdsByTagId = new Map<string, Set<string>>()
-  for (const t of taggables ?? []) {
+  for (const t of taggableRows) {
     if (!taggedIdsByTagId.has(t.tag_id)) taggedIdsByTagId.set(t.tag_id, new Set())
     taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
   }
@@ -43,13 +54,13 @@ export default async function ContactsPage({
     { value: 'accounts.name', label: '取引先', type: 'text' },
     {
       value: 'tag', label: 'タグ', type: 'select',
-      options: (tags ?? []).map((t) => ({ value: t.id, label: t.name })),
+      options: allTags.map((t) => ({ value: t.id, label: t.name })),
     },
   ]
 
-  let contacts = applyFilters(raw as Record<string, unknown>[], otherConditions)
-  contacts     = applyTagFilter(contacts, tagConditions, taggedIdsByTagId)
-  const hasFilter = conditions.length > 0
+  let contactsList = applyFilters(raw as Record<string, unknown>[], otherConditions)
+  contactsList     = applyTagFilter(contactsList, tagConditions, taggedIdsByTagId)
+  const hasFilter  = conditions.length > 0
 
   return (
     <div className="p-8">
@@ -57,7 +68,7 @@ export default async function ContactsPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">担当者</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {contacts.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {contactsList.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -81,8 +92,7 @@ export default async function ContactsPage({
         basePath="/contacts"
       />
 
-
-      {contacts.length === 0 ? (
+      {contactsList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">👤</p>
           <p className="text-lg font-medium">
@@ -107,8 +117,8 @@ export default async function ContactsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {(contacts as typeof raw).map((c) => {
-                const account = c.accounts as unknown as { id: string; name: string } | null
+              {(contactsList as typeof raw).map((c) => {
+                const account = c.accounts?.id ? c.accounts : null
                 return (
                   <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-zinc-900">

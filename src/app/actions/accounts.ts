@@ -1,19 +1,19 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { accounts } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
 
 export async function updateAccountStatus(id: string, status: string) {
-  const { data: before } = await supabase
-    .from('accounts').select('status').eq('id', id).single()
+  const [before] = await db.select({ status: accounts.status })
+    .from(accounts).where(eq(accounts.id, id))
 
-  const { error } = await supabase
-    .from('accounts')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw new Error(error.message)
+  await db.update(accounts)
+    .set({ status, updated_at: new Date() })
+    .where(eq(accounts.id, id))
 
   await logChanges('account', id,
     { status: { label: 'ステータス', value: before?.status } },
@@ -29,21 +29,20 @@ export async function createAccount(formData: FormData) {
   const annual_revenue = formData.get('annual_revenue') as string
   const employee_count = formData.get('employee_count') as string
 
-  const { data, error } = await supabase.from('accounts').insert({
+  const [row] = await db.insert(accounts).values({
     name:           name.trim(),
     type:           (formData.get('type') as string) || null,
     industry:       (formData.get('industry') as string) || null,
     phone:          (formData.get('phone') as string) || null,
     website:        (formData.get('website') as string) || null,
     address:        (formData.get('address') as string) || null,
-    annual_revenue: annual_revenue ? Number(annual_revenue) : null,
+    annual_revenue: annual_revenue ? String(Number(annual_revenue)) : null,
     employee_count: employee_count ? Number(employee_count) : null,
     description:    (formData.get('description') as string) || null,
     status:         (formData.get('status') as string) || 'active',
-  }).select('id').single()
+  }).returning({ id: accounts.id })
 
-  if (error) throw new Error(error.message)
-  redirect(`/accounts/${data.id}`)
+  redirect(`/accounts/${row.id}`)
 }
 
 export async function updateAccount(id: string, formData: FormData) {
@@ -55,27 +54,25 @@ export async function updateAccount(id: string, formData: FormData) {
   const status         = (formData.get('status') as string) || 'active'
   const type           = (formData.get('type') as string) || null
 
-  const { data: before } = await supabase
-    .from('accounts')
-    .select('name, status, type, industry, annual_revenue, employee_count')
-    .eq('id', id)
-    .single()
+  const [before] = await db.select({
+    name: accounts.name, status: accounts.status, type: accounts.type,
+    industry: accounts.industry, annual_revenue: accounts.annual_revenue,
+    employee_count: accounts.employee_count,
+  }).from(accounts).where(eq(accounts.id, id))
 
-  const { error } = await supabase.from('accounts').update({
+  await db.update(accounts).set({
     name:           name.trim(),
     type,
     industry:       (formData.get('industry') as string) || null,
     phone:          (formData.get('phone') as string) || null,
     website:        (formData.get('website') as string) || null,
     address:        (formData.get('address') as string) || null,
-    annual_revenue: annual_revenue ? Number(annual_revenue) : null,
+    annual_revenue: annual_revenue ? String(Number(annual_revenue)) : null,
     employee_count: employee_count ? Number(employee_count) : null,
     description:    (formData.get('description') as string) || null,
     status,
-    updated_at:     new Date().toISOString(),
-  }).eq('id', id)
-
-  if (error) throw new Error(error.message)
+    updated_at:     new Date(),
+  }).where(eq(accounts.id, id))
 
   if (before) {
     await logChanges('account', id,
@@ -102,7 +99,6 @@ export async function updateAccount(id: string, formData: FormData) {
 }
 
 export async function deleteAccount(id: string) {
-  const { error } = await supabase.from('accounts').delete().eq('id', id)
-  if (error) throw new Error(error.message)
+  await db.delete(accounts).where(eq(accounts.id, id))
   redirect('/accounts')
 }

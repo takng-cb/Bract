@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { opportunities, accounts } from '@/lib/schema'
 import { NextRequest, NextResponse } from 'next/server'
 
 function parseCsv(text: string): string[][] {
@@ -39,8 +40,8 @@ export async function POST(req: NextRequest) {
 
   const dataRows = rows.slice(1)
 
-  const { data: accountsData } = await supabase.from('accounts').select('id, name')
-  const accountMap = new Map((accountsData ?? []).map((a) => [a.name, a.id]))
+  const accountsData = await db.select({ id: accounts.id, name: accounts.name }).from(accounts)
+  const accountMap = new Map(accountsData.map((a) => [a.name, a.id]))
 
   const records = dataRows.map((cols) => {
     const stageLabelOrKey = cols[1]?.trim()
@@ -49,20 +50,22 @@ export async function POST(req: NextRequest) {
     return {
       name:        cols[0]?.trim() || null,
       stage,
-      amount:      cols[2]?.trim() ? Number(cols[2]) : null,
+      amount:      cols[2]?.trim() ? String(Number(cols[2])) : null,
       close_date:  cols[3]?.trim() || null,
       probability: cols[4]?.trim() ? Number(cols[4]) : null,
       account_id:  accountName ? (accountMap.get(accountName) ?? null) : null,
       description: cols[6]?.trim() || null,
     }
-  }).filter((r) => r.name)
+  }).filter((r): r is typeof r & { name: string } => !!r.name)
 
   if (records.length === 0) {
     return NextResponse.json({ error: '有効なデータ行がありません（商談名が必須）' }, { status: 400 })
   }
 
-  const { error, count } = await supabase.from('opportunities').insert(records, { count: 'exact' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ imported: count ?? records.length })
+  try {
+    await db.insert(opportunities).values(records)
+    return NextResponse.json({ imported: records.length })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 })
+  }
 }

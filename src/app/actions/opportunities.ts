@@ -1,23 +1,19 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { opportunities } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
 
 export async function updateOpportunityStage(id: string, stage: string) {
-  // 変更前の値を取得
-  const { data: before } = await supabase
-    .from('opportunities')
-    .select('stage')
-    .eq('id', id)
-    .single()
+  const [before] = await db.select({ stage: opportunities.stage })
+    .from(opportunities).where(eq(opportunities.id, id))
 
-  const { error } = await supabase
-    .from('opportunities')
-    .update({ stage, updated_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw new Error(error.message)
+  await db.update(opportunities)
+    .set({ stage, updated_at: new Date() })
+    .where(eq(opportunities.id, id))
 
   await logChanges('opportunity', id,
     { stage: { label: 'ステージ', value: before?.stage } },
@@ -35,18 +31,17 @@ export async function createOpportunity(formData: FormData) {
   const close_date  = formData.get('close_date') as string
   const probability = formData.get('probability') as string
 
-  const { data, error } = await supabase.from('opportunities').insert({
+  const [row] = await db.insert(opportunities).values({
     name:        name.trim(),
     account_id:  (formData.get('account_id') as string) || null,
     stage:       (formData.get('stage') as string) || 'prospecting',
-    amount:      amount ? Number(amount) : null,
+    amount:      amount ? String(Number(amount)) : null,
     close_date:  close_date || null,
     probability: probability ? Number(probability) : null,
     description: (formData.get('description') as string) || null,
-  }).select('id').single()
+  }).returning({ id: opportunities.id })
 
-  if (error) throw new Error(error.message)
-  redirect(`/opportunities/${data.id}`)
+  redirect(`/opportunities/${row.id}`)
 }
 
 export async function updateOpportunity(id: string, formData: FormData) {
@@ -58,25 +53,22 @@ export async function updateOpportunity(id: string, formData: FormData) {
   const probability = formData.get('probability') as string
   const stage       = (formData.get('stage') as string) || 'prospecting'
 
-  // 変更前の値を取得
-  const { data: before } = await supabase
-    .from('opportunities')
-    .select('name, stage, amount, close_date, probability')
-    .eq('id', id)
-    .single()
+  const [before] = await db.select({
+    name: opportunities.name, stage: opportunities.stage,
+    amount: opportunities.amount, close_date: opportunities.close_date,
+    probability: opportunities.probability,
+  }).from(opportunities).where(eq(opportunities.id, id))
 
-  const { error } = await supabase.from('opportunities').update({
+  await db.update(opportunities).set({
     name:        name.trim(),
     account_id:  (formData.get('account_id') as string) || null,
     stage,
-    amount:      amount ? Number(amount) : null,
+    amount:      amount ? String(Number(amount)) : null,
     close_date:  close_date || null,
     probability: probability ? Number(probability) : null,
     description: (formData.get('description') as string) || null,
-    updated_at:  new Date().toISOString(),
-  }).eq('id', id)
-
-  if (error) throw new Error(error.message)
+    updated_at:  new Date(),
+  }).where(eq(opportunities.id, id))
 
   if (before) {
     await logChanges('opportunity', id,
@@ -101,7 +93,6 @@ export async function updateOpportunity(id: string, formData: FormData) {
 }
 
 export async function deleteOpportunity(id: string) {
-  const { error } = await supabase.from('opportunities').delete().eq('id', id)
-  if (error) throw new Error(error.message)
+  await db.delete(opportunities).where(eq(opportunities.id, id))
   redirect('/opportunities')
 }

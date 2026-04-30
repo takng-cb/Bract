@@ -1,6 +1,8 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { contacts } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { logChanges } from '@/lib/changeLog'
 
@@ -8,7 +10,7 @@ export async function createContact(formData: FormData) {
   const full_name = formData.get('full_name') as string
   if (!full_name?.trim()) throw new Error('氏名は必須です')
 
-  const { data, error } = await supabase.from('contacts').insert({
+  const [row] = await db.insert(contacts).values({
     full_name:   full_name.trim(),
     email:       (formData.get('email') as string) || null,
     phone:       (formData.get('phone') as string) || null,
@@ -17,23 +19,21 @@ export async function createContact(formData: FormData) {
     birthday:    (formData.get('birthday') as string) || null,
     description: (formData.get('description') as string) || null,
     account_id:  (formData.get('account_id') as string) || null,
-  }).select('id').single()
+  }).returning({ id: contacts.id })
 
-  if (error) throw new Error(error.message)
-  redirect(`/contacts/${data.id}`)
+  redirect(`/contacts/${row.id}`)
 }
 
 export async function updateContact(id: string, formData: FormData) {
   const full_name = formData.get('full_name') as string
   if (!full_name?.trim()) throw new Error('氏名は必須です')
 
-  const { data: before } = await supabase
-    .from('contacts')
-    .select('full_name, title, department, email, phone')
-    .eq('id', id)
-    .single()
+  const [before] = await db.select({
+    full_name: contacts.full_name, title: contacts.title,
+    department: contacts.department, email: contacts.email, phone: contacts.phone,
+  }).from(contacts).where(eq(contacts.id, id))
 
-  const { error } = await supabase.from('contacts').update({
+  await db.update(contacts).set({
     full_name:   full_name.trim(),
     email:       (formData.get('email') as string) || null,
     phone:       (formData.get('phone') as string) || null,
@@ -42,10 +42,8 @@ export async function updateContact(id: string, formData: FormData) {
     birthday:    (formData.get('birthday') as string) || null,
     description: (formData.get('description') as string) || null,
     account_id:  (formData.get('account_id') as string) || null,
-    updated_at:  new Date().toISOString(),
-  }).eq('id', id)
-
-  if (error) throw new Error(error.message)
+    updated_at:  new Date(),
+  }).where(eq(contacts.id, id))
 
   if (before) {
     await logChanges('contact', id,
@@ -70,7 +68,6 @@ export async function updateContact(id: string, formData: FormData) {
 }
 
 export async function deleteContact(id: string) {
-  const { error } = await supabase.from('contacts').delete().eq('id', id)
-  if (error) throw new Error(error.message)
+  await db.delete(contacts).where(eq(contacts.id, id))
   redirect('/contacts')
 }

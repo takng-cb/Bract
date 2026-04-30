@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { contacts, accounts } from '@/lib/schema'
 import { NextRequest, NextResponse } from 'next/server'
 
 function parseCsv(text: string): string[][] {
@@ -35,8 +36,8 @@ export async function POST(req: NextRequest) {
   const dataRows = rows.slice(1)
 
   // 取引先名→IDのマップを取得
-  const { data: accountsData } = await supabase.from('accounts').select('id, name')
-  const accountMap = new Map((accountsData ?? []).map((a) => [a.name, a.id]))
+  const accountsData = await db.select({ id: accounts.id, name: accounts.name }).from(accounts)
+  const accountMap = new Map(accountsData.map((a) => [a.name, a.id]))
 
   const records = dataRows.map((cols) => {
     const accountName = cols[6]?.trim()
@@ -50,14 +51,16 @@ export async function POST(req: NextRequest) {
       account_id:  accountName ? (accountMap.get(accountName) ?? null) : null,
       description: cols[7]?.trim() || null,
     }
-  }).filter((r) => r.full_name)
+  }).filter((r): r is typeof r & { full_name: string } => !!r.full_name)
 
   if (records.length === 0) {
     return NextResponse.json({ error: '有効なデータ行がありません（氏名が必須）' }, { status: 400 })
   }
 
-  const { error, count } = await supabase.from('contacts').insert(records, { count: 'exact' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ imported: count ?? records.length })
+  try {
+    await db.insert(contacts).values(records)
+    return NextResponse.json({ imported: records.length })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 })
+  }
 }

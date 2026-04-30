@@ -1,8 +1,10 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { tasks, accounts, opportunities } from '@/lib/schema'
+import { asc, desc, eq, sql } from 'drizzle-orm'
 import Link from 'next/link'
-import { revalidatePath } from 'next/cache'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import { toggleTaskDone } from '@/app/actions/tasks'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -40,35 +42,42 @@ export default async function TasksPage({
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const conditions = parseFilterParams(filterRaw)
 
-  const { data: raw, error } = await supabase
-    .from('tasks')
-    .select('*, accounts(id, name), opportunities(id, name)')
-    .order('done', { ascending: true })
-    .order('due_date', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: false })
+  const raw = await db.select({
+    id:          tasks.id,
+    title:       tasks.title,
+    done:        tasks.done,
+    priority:    tasks.priority,
+    due_date:    tasks.due_date,
+    account_id:  tasks.account_id,
+    accounts: {
+      id:   accounts.id,
+      name: accounts.name,
+    },
+    opportunities: {
+      id:   opportunities.id,
+      name: opportunities.name,
+    },
+  })
+    .from(tasks)
+    .leftJoin(accounts, eq(tasks.account_id, accounts.id))
+    .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
+    .orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
 
-  if (error) {
-    return <div className="p-8 text-red-600">データの取得に失敗しました: {error.message}</div>
-  }
-
-  const tasks     = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
+  const tasksList = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
   const hasFilter = conditions.length > 0
-  const pending   = tasks.filter((t) => !t.done)
-  const done      = tasks.filter((t) =>  t.done)
+  const today     = new Date().toISOString().slice(0, 10)
+  const pending   = tasksList.filter((t) => !t.done)
+  const done      = tasksList.filter((t) =>  t.done)
 
   async function toggleDone(formData: FormData) {
     'use server'
     const id   = formData.get('id') as string
-    const done = formData.get('done') === 'true'
-    await supabase.from('tasks').update({ done, updated_at: new Date().toISOString() }).eq('id', id)
-    revalidatePath('/tasks')
+    const doneVal = formData.get('done') === 'true'
+    await toggleTaskDone(id, doneVal, '/tasks')
   }
 
-  const today = new Date().toISOString().slice(0, 10)
-
-  const TaskTable = ({ rows, label }: { rows: typeof tasks; label: string }) => (
+  const TaskTable = ({ rows, label }: { rows: typeof tasksList; label: string }) => (
     <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
-      {/* セクションヘッダー */}
       <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200">
         <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
           {label} ({rows.length})
@@ -92,14 +101,13 @@ export default async function TasksPage({
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {rows.map((task) => {
-              const account     = task.accounts     as { id: string; name: string } | null
-              const opportunity = task.opportunities as { id: string; name: string } | null
+              const account     = task.accounts?.id     ? task.accounts     : null
+              const opportunity = task.opportunities?.id ? task.opportunities : null
               const priority    = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
               const isOverdue   = !task.done && task.due_date && task.due_date < today
 
               return (
                 <tr key={task.id} className={`hover:bg-zinc-50 transition-colors ${task.done ? 'opacity-50' : ''}`}>
-                  {/* チェックボックス */}
                   <td className="px-4 py-3 text-center">
                     <form action={toggleDone}>
                       <input type="hidden" name="id" value={task.id} />
@@ -117,8 +125,6 @@ export default async function TasksPage({
                       </button>
                     </form>
                   </td>
-
-                  {/* タイトル */}
                   <td className="px-4 py-3 font-medium">
                     <Link
                       href={`/tasks/${task.id}`}
@@ -127,15 +133,11 @@ export default async function TasksPage({
                       {task.title}
                     </Link>
                   </td>
-
-                  {/* 優先度 */}
                   <td className="px-4 py-3">
                     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>
                       {priority.label}
                     </span>
                   </td>
-
-                  {/* 期限日 */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     {task.due_date ? (
                       <span className={`text-sm ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-500'}`}>
@@ -146,24 +148,18 @@ export default async function TasksPage({
                       <span className="text-zinc-300">—</span>
                     )}
                   </td>
-
-                  {/* 取引先 */}
                   <td className="px-4 py-3 text-zinc-600">
                     {account
                       ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link>
                       : <span className="text-zinc-300">—</span>
                     }
                   </td>
-
-                  {/* 商談 */}
                   <td className="px-4 py-3 text-zinc-600">
                     {opportunity
                       ? <Link href={`/opportunities/${opportunity.id}`} className="hover:text-blue-600 text-xs">{opportunity.name}</Link>
                       : <span className="text-zinc-300">—</span>
                     }
                   </td>
-
-                  {/* 編集 */}
                   <td className="px-4 py-3 text-right">
                     <Link href={`/tasks/${task.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700">
                       編集
@@ -198,7 +194,7 @@ export default async function TasksPage({
 
       <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/tasks" />
 
-      {tasks.length === 0 ? (
+      {tasksList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">✅</p>
           <p className="text-lg font-medium">

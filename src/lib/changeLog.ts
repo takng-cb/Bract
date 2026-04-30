@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { change_logs } from '@/lib/schema'
 
 export type FieldSpec = {
   label: string
@@ -14,12 +15,12 @@ export async function logChanges(
   before: FieldMap,
   after: FieldMap,
 ) {
-  const entries = []
+  const entries: (typeof change_logs.$inferInsert)[] = []
 
   for (const [key, { label, value: newVal }] of Object.entries(after)) {
-    const oldVal   = before[key]?.value
-    const newStr   = newVal  != null ? String(newVal)  : null
-    const oldStr   = oldVal != null ? String(oldVal) : null
+    const oldVal  = before[key]?.value
+    const newStr  = newVal != null ? String(newVal)  : null
+    const oldStr  = oldVal != null ? String(oldVal) : null
     if (newStr === oldStr) continue
 
     entries.push({
@@ -29,12 +30,11 @@ export async function logChanges(
       field_label: label,
       old_value:   oldStr,
       new_value:   newStr,
-      changed_at:  new Date().toISOString(),
     })
   }
 
   if (entries.length > 0) {
-    await supabase.from('change_logs').insert(entries)
+    await db.insert(change_logs).values(entries)
   }
 }
 
