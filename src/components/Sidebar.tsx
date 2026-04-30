@@ -17,8 +17,9 @@ const navItems = [
 ]
 
 const bottomItems = [
-  { href: '/tags',  label: 'タグ管理', icon: '🏷️' },
-  { href: '/about', label: '使い方',   icon: '💡' },
+  { href: '/tags',      label: 'タグ管理', icon: '🏷️' },
+  { href: '/settings',  label: '設定',     icon: '⚙️' },
+  { href: '/about',     label: '使い方',   icon: '💡' },
 ]
 
 export default function Sidebar() {
