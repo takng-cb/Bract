@@ -27,7 +27,7 @@ export default async function NewContactPage({
   const cancelHref = account_id ? `/accounts/${account_id}` : '/contacts'
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/contacts" className="hover:text-zinc-600">担当者</Link>
         <span className="mx-2">/</span>

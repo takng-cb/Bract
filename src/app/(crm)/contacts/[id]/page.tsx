@@ -83,7 +83,7 @@ export default async function ContactDetailPage({
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/contacts" className="hover:text-zinc-600">担当者</Link>
         <span className="mx-2">/</span>
@@ -106,7 +106,7 @@ export default async function ContactDetailPage({
       {/* 基本情報 */}
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">基本情報</h2>
-        <dl className="grid grid-cols-2 gap-4">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
             <dd className="text-sm text-zinc-800">

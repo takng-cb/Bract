@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const errorMsg  = state?.startsWith('error:') ? state.slice(6) : null
 
   return (
-    <div className="p-8 max-w-lg">
+    <div className="p-4 md:p-8 max-w-lg">
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">ユーザー設定</h1>
 
       {/* パスワード変更 */}

@@ -26,7 +26,7 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-56 shrink-0 bg-zinc-900 text-white flex flex-col min-h-screen">
+    <aside className="hidden md:flex md:flex-col w-56 shrink-0 bg-zinc-900 text-white min-h-screen">
       {/* ロゴ */}
       <div className="px-6 py-5 border-b border-zinc-700">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">

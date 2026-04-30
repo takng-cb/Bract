@@ -46,7 +46,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
   }
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/activities" className="hover:text-zinc-600">活動履歴</Link>
         <span className="mx-2">/</span>
@@ -83,7 +83,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
 
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">関連情報</h2>
-        <dl className="grid grid-cols-2 gap-4">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {account && (
             <div>
               <dt className="text-xs text-zinc-400 mb-1">取引先</dt>

@@ -27,7 +27,7 @@ export default async function NewOpportunityPage({
   const cancelHref = account_id ? `/accounts/${account_id}` : '/opportunities'
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/opportunities" className="hover:text-zinc-600">商談</Link>
         <span className="mx-2">/</span>

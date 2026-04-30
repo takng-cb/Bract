@@ -52,7 +52,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/expenses" className="hover:text-zinc-600">経費管理</Link>
         <span className="mx-2">/</span>
@@ -85,7 +85,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
 
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">詳細情報</h2>
-        <dl className="grid grid-cols-2 gap-4">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-zinc-400 mb-1">日付</dt>
             <dd className="text-sm text-zinc-800">{expense.expense_date}</dd>

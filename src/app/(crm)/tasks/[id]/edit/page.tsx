@@ -31,7 +31,7 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/tasks" className="hover:text-zinc-600">ToDo</Link>
         <span className="mx-2">/</span>

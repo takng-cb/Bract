@@ -8,7 +8,7 @@ const COLOR_PRESETS = [
 
 export default function NewTagPage() {
   return (
-    <div className="p-8 max-w-lg">
+    <div className="p-4 md:p-8 max-w-lg">
       <div className="mb-6">
         <Link href="/tags" className="text-sm text-zinc-400 hover:text-zinc-600">← タグ管理</Link>
         <h1 className="text-2xl font-bold text-zinc-900 mt-2">タグを作成</h1>

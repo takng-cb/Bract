@@ -100,7 +100,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/opportunities" className="hover:text-zinc-600">商談</Link>
         <span className="mx-2">/</span>
@@ -125,7 +125,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       {/* 商談情報 */}
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">商談情報</h2>
-        <dl className="grid grid-cols-2 gap-4">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-zinc-400 mb-1">ステージ</dt>
             <dd className="text-sm font-medium text-zinc-800">{STAGE_LABEL[opportunity.stage] ?? opportunity.stage}</dd>

@@ -90,7 +90,7 @@ export default async function AccountDetailPage({
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/accounts" className="hover:text-zinc-600">取引先</Link>
         <span className="mx-2">/</span>
@@ -117,7 +117,7 @@ export default async function AccountDetailPage({
       {/* 基本情報 */}
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">基本情報</h2>
-        <dl className="grid grid-cols-2 gap-4">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
             { label: '電話番号', value: account.phone },
             { label: 'Webサイト', value: account.website, isLink: true },

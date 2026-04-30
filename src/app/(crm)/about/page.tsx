@@ -1,6 +1,6 @@
 export default function AboutPage() {
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl">
       {/* ヒーロー */}
       <div className="mb-12">
         <h1 className="text-4xl font-bold text-zinc-900 tracking-tight mb-3">Bract</h1>
