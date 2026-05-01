@@ -17,11 +17,10 @@ type Props = {
 }
 
 function buildItems(order: string[] | null): NavItem[] {
-  const map     = new Map(ALL_NAV_ITEMS.map((i) => [i.href, i]))
-  const ordered = (order ?? ALL_NAV_ITEMS.map((i) => i.href))
-    .filter((h) => map.has(h))
-    .map((h) => map.get(h)!)
-  const missing = ALL_NAV_ITEMS.filter((i) => !(order ?? []).includes(i.href))
+  const map           = new Map(ALL_NAV_ITEMS.map((i) => [i.href, i]))
+  const effectiveOrder = order ?? ALL_NAV_ITEMS.map((i) => i.href)
+  const ordered       = effectiveOrder.filter((h) => map.has(h)).map((h) => map.get(h)!)
+  const missing       = ALL_NAV_ITEMS.filter((i) => !effectiveOrder.includes(i.href))
   return [...ordered, ...missing]
 }
 
