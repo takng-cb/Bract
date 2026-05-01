@@ -97,17 +97,17 @@ export default async function AccountDetailPage({
         <span className="text-zinc-700">{account.name}</span>
       </div>
 
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{account.name}</h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            {[account.type, account.industry].filter(Boolean).join(' · ') || '業種未設定'}
-          </p>
+      <div className="mb-4">
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{account.name}</h1>
+          <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <Link href={`/accounts/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+            <DeleteButton action={handleDelete} confirmMessage="この取引先を削除しますか？&#10;関連する担当者・商談・活動・ToDoも削除されます。" />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={`/accounts/${id}/edit`} className="px-4 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
-          <DeleteButton action={handleDelete} confirmMessage="この取引先を削除しますか？&#10;関連する担当者・商談・活動・ToDoも削除されます。" />
-        </div>
+        <p className="text-zinc-500 text-sm mt-1">
+          {[account.type, account.industry].filter(Boolean).join(' · ') || '業種未設定'}
+        </p>
       </div>
 
       <div className="mb-6 max-w-xs">
@@ -153,28 +153,44 @@ export default async function AccountDetailPage({
           <Link href={`/contacts/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
         </div>
         {contactsList.length > 0 ? (
-          <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">氏名</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">役職・部署</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">メール</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">電話</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {contactsList.map((c) => (
-                  <tr key={c.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2 font-medium"><Link href={`/contacts/${c.id}`} className="hover:text-blue-600">{c.full_name}</Link></td>
-                    <td className="px-4 py-2 text-zinc-500">{[c.title, c.department].filter(Boolean).join(' / ') || '—'}</td>
-                    <td className="px-4 py-2 text-zinc-500">{c.email ?? '—'}</td>
-                    <td className="px-4 py-2 text-zinc-500">{c.phone ?? '—'}</td>
+          <>
+            {/* PC: テーブル */}
+            <div className="hidden md:block bg-white border border-zinc-200 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50 border-b border-zinc-200">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">氏名</th>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">役職・部署</th>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">メール</th>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">電話</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {contactsList.map((c) => (
+                    <tr key={c.id} className="hover:bg-zinc-50">
+                      <td className="px-4 py-2 font-medium"><Link href={`/contacts/${c.id}`} className="hover:text-blue-600">{c.full_name}</Link></td>
+                      <td className="px-4 py-2 text-zinc-500">{[c.title, c.department].filter(Boolean).join(' / ') || '—'}</td>
+                      <td className="px-4 py-2 text-zinc-500">{c.email ?? '—'}</td>
+                      <td className="px-4 py-2 text-zinc-500">{c.phone ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* モバイル: カード */}
+            <div className="md:hidden space-y-2">
+              {contactsList.map((c) => (
+                <Link key={c.id} href={`/contacts/${c.id}`} className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                  <p className="font-semibold text-zinc-900 text-sm">👤 {c.full_name}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-500">
+                    {(c.title || c.department) && <span>{[c.title, c.department].filter(Boolean).join(' / ')}</span>}
+                    {c.email && <span>✉️ {c.email}</span>}
+                    {c.phone && <span>📞 {c.phone}</span>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
         ) : (
           <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center">担当者がいません</p>
         )}
@@ -187,30 +203,51 @@ export default async function AccountDetailPage({
           <Link href={`/opportunities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
         </div>
         {opportunitiesList.length > 0 ? (
-          <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">商談名</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">ステージ</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">金額</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">確度</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">完了予定</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {opportunitiesList.map((o) => (
-                  <tr key={o.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2 font-medium"><Link href={`/opportunities/${o.id}`} className="hover:text-blue-600">{o.name}</Link></td>
-                    <td className="px-4 py-2 text-zinc-500">{OPPORTUNITY_STAGE_LABELS[o.stage] ?? o.stage}</td>
-                    <td className="px-4 py-2 text-zinc-500">{o.amount ? `¥${Number(o.amount).toLocaleString()}` : '—'}</td>
-                    <td className="px-4 py-2 text-zinc-500">{o.probability != null ? `${o.probability}%` : '—'}</td>
-                    <td className="px-4 py-2 text-zinc-500">{o.close_date ?? '—'}</td>
+          <>
+            {/* PC: テーブル */}
+            <div className="hidden md:block bg-white border border-zinc-200 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50 border-b border-zinc-200">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">商談名</th>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">ステージ</th>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">金額</th>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">確度</th>
+                    <th className="text-left px-4 py-2 font-medium text-zinc-600">完了予定</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {opportunitiesList.map((o) => (
+                    <tr key={o.id} className="hover:bg-zinc-50">
+                      <td className="px-4 py-2 font-medium"><Link href={`/opportunities/${o.id}`} className="hover:text-blue-600">{o.name}</Link></td>
+                      <td className="px-4 py-2 text-zinc-500">{OPPORTUNITY_STAGE_LABELS[o.stage] ?? o.stage}</td>
+                      <td className="px-4 py-2 text-zinc-500">{o.amount ? `¥${Number(o.amount).toLocaleString()}` : '—'}</td>
+                      <td className="px-4 py-2 text-zinc-500">{o.probability != null ? `${o.probability}%` : '—'}</td>
+                      <td className="px-4 py-2 text-zinc-500">{o.close_date ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* モバイル: カード */}
+            <div className="md:hidden space-y-2">
+              {opportunitiesList.map((o) => (
+                <Link key={o.id} href={`/opportunities/${o.id}`} className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{o.name}</span>
+                    <span className="shrink-0 text-xs text-zinc-500">{OPPORTUNITY_STAGE_LABELS[o.stage] ?? o.stage}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
+                    <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
+                    <div>
+                      {o.amount && <span className="font-semibold text-zinc-700">¥{Number(o.amount).toLocaleString()}</span>}
+                      {o.probability != null && <span className="ml-2">確度{o.probability}%</span>}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
         ) : (
           <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center">商談がありません</p>
         )}

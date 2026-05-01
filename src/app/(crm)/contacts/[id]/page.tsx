@@ -90,17 +90,17 @@ export default async function ContactDetailPage({
         <span className="text-zinc-700">{contact.full_name}</span>
       </div>
 
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{contact.full_name}</h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            {[contact.title, contact.department].filter(Boolean).join(' · ') || '役職未設定'}
-          </p>
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{contact.full_name}</h1>
+          <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <Link href={`/contacts/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+            <DeleteButton action={handleDelete} confirmMessage="この担当者を削除しますか？" />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={`/contacts/${id}/edit`} className="px-4 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
-          <DeleteButton action={handleDelete} confirmMessage="この担当者を削除しますか？" />
-        </div>
+        <p className="text-zinc-500 text-sm mt-1">
+          {[contact.title, contact.department].filter(Boolean).join(' · ') || '役職未設定'}
+        </p>
       </div>
 
       {/* 基本情報 */}

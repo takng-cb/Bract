@@ -107,15 +107,15 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         <span className="text-zinc-700">{opportunity.name}</span>
       </div>
 
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{opportunity.name}</h1>
-          {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
+      <div className="mb-4">
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{opportunity.name}</h1>
+          <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <Link href={`/opportunities/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+            <DeleteButton action={handleDelete} confirmMessage="この商談を削除しますか？" />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={`/opportunities/${id}/edit`} className="px-4 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
-          <DeleteButton action={handleDelete} confirmMessage="この商談を削除しますか？" />
-        </div>
+        {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
       </div>
 
       <div className="mb-6">
