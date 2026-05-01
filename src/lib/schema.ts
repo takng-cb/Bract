@@ -146,6 +146,28 @@ export const expenses = pgTable('expenses', {
 })
 
 // ----------------------------------------------------------------
+// properties（不動産物件）
+// ----------------------------------------------------------------
+export const properties = pgTable('properties', {
+  id:               uuid('id').primaryKey().defaultRandom(),
+  name:             text('name').notNull(),
+  property_type:    text('property_type').notNull().default('その他'),
+  transaction_type: text('transaction_type').notNull().default('売買'),
+  status:           text('status').notNull().default('募集中'),
+  address:          text('address'),
+  area:             numeric('area'),
+  price:            numeric('price'),
+  floor:            integer('floor'),
+  total_floors:     integer('total_floors'),
+  built_year:       integer('built_year'),
+  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  description:      text('description'),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
 // tags（タグマスタ）
 // ----------------------------------------------------------------
 export const tags = pgTable('tags', {
@@ -242,6 +264,11 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
   accounts:      one(accounts, { fields: [expenses.account_id], references: [accounts.id] }),
   contacts:      one(contacts, { fields: [expenses.contact_id], references: [contacts.id] }),
   opportunities: one(opportunities, { fields: [expenses.opportunity_id], references: [opportunities.id] }),
+}))
+
+export const propertiesRelations = relations(properties, ({ one }) => ({
+  accounts: one(accounts, { fields: [properties.account_id], references: [accounts.id] }),
+  contacts: one(contacts, { fields: [properties.contact_id], references: [contacts.id] }),
 }))
 
 export const taggablesRelations = relations(taggables, ({ one }) => ({
