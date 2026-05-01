@@ -25,7 +25,7 @@ export default async function NewPropertyPage() {
   return (
     <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/properties" className="hover:text-zinc-600">不動産物件</Link>
+        <Link href="/properties" className="hover:text-zinc-600">物件・商品</Link>
         <span className="mx-2">/</span>
         <span className="text-zinc-700">新規登録</span>
       </div>

@@ -116,6 +116,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </div>
         </div>
         {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
+        <div className="mt-2">
+          <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
+        </div>
       </div>
 
       <div className="mb-6">
@@ -303,14 +306,6 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             <input type="file" name="file" className="flex-1 text-sm text-zinc-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200" />
             <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors shrink-0">アップロード</button>
           </form>
-        </div>
-      </section>
-
-      {/* タグ */}
-      <section className="mb-6">
-        <h2 className="text-base font-semibold text-zinc-800 mb-3">タグ</h2>
-        <div className="bg-white border border-zinc-200 rounded-lg px-4 py-3">
-          <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
         </div>
       </section>
 

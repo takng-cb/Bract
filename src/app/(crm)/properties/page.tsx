@@ -71,7 +71,7 @@ export default async function PropertiesPage({
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">不動産物件</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">物件・商品</h1>
           <p className="text-sm text-zinc-500 mt-1">
             {list.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>

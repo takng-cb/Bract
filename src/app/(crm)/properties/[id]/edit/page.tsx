@@ -31,7 +31,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
   return (
     <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/properties" className="hover:text-zinc-600">不動産物件</Link>
+        <Link href="/properties" className="hover:text-zinc-600">物件・商品</Link>
         <span className="mx-2">/</span>
         <Link href={`/properties/${id}`} className="hover:text-zinc-600 line-clamp-1">{property.name}</Link>
         <span className="mx-2">/</span>

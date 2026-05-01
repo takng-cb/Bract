@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { deleteProperty } from '@/app/actions/properties'
 import DeleteButton from '@/components/DeleteButton'
+import TagsSection from '@/components/TagsSection'
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -71,7 +72,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   return (
     <div className="p-4 md:p-8 max-w-3xl">
       <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/properties" className="hover:text-zinc-600">不動産物件</Link>
+        <Link href="/properties" className="hover:text-zinc-600">物件・商品</Link>
         <span className="mx-2">/</span>
         <span className="text-zinc-700 line-clamp-1">{row.name}</span>
       </div>
@@ -83,6 +84,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
             <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
             <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
           </div>
+        </div>
+        <div className="mt-2 mb-3">
+          <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[row.status] ?? 'bg-zinc-100 text-zinc-600'}`}>

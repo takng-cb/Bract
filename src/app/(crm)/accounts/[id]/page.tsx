@@ -108,6 +108,9 @@ export default async function AccountDetailPage({
         <p className="text-zinc-500 text-sm mt-1">
           {[account.type, account.industry].filter(Boolean).join(' · ') || '業種未設定'}
         </p>
+        <div className="mt-2">
+          <TagsSection objectType="account" objectId={id} revalidatePath={`/accounts/${id}`} />
+        </div>
       </div>
 
       <div className="mb-6 max-w-xs">
@@ -343,14 +346,6 @@ export default async function AccountDetailPage({
             <input type="file" name="file" className="flex-1 text-sm text-zinc-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200" />
             <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors shrink-0">アップロード</button>
           </form>
-        </div>
-      </section>
-
-      {/* タグ */}
-      <section className="mb-6">
-        <h2 className="text-base font-semibold text-zinc-800 mb-3">タグ</h2>
-        <div className="bg-white border border-zinc-200 rounded-lg px-4 py-3">
-          <TagsSection objectType="account" objectId={id} revalidatePath={`/accounts/${id}`} />
         </div>
       </section>
 

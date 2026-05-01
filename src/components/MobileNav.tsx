@@ -15,7 +15,7 @@ const navItems = [
   { href: '/activities',    label: '活動履歴',      icon: '📋' },
   { href: '/tasks',         label: 'ToDo',          icon: '✅' },
   { href: '/expenses',      label: '経費管理',      icon: '💰' },
-  { href: '/properties',    label: '不動産物件',    icon: '🏠' },
+  { href: '/properties',    label: '物件・商品',    icon: '🏠' },
   { href: '/tags',          label: 'タグ管理',      icon: '🏷️' },
   { href: '/settings',      label: '設定',          icon: '⚙️' },
   { href: '/about',         label: '使い方',        icon: '💡' },
