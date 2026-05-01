@@ -3,9 +3,13 @@
 import { useActionState } from 'react'
 import { signIn } from '@/app/actions/auth'
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function LoginPage() {
+function LoginForm() {
   const [error, formAction, pending] = useActionState(signIn, null)
+  const searchParams = useSearchParams()
+  const reason = searchParams.get('reason')
 
   return (
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
@@ -19,6 +23,13 @@ export default function LoginPage() {
           <p className="text-sm text-zinc-500">ログインしてください</p>
         </div>
 
+        {/* タイムアウト通知 */}
+        {reason === 'timeout' && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-md mb-4 text-center">
+            ⏱ 一定時間操作がなかったため、自動的にログアウトしました
+          </div>
+        )}
+
         {/* フォーム */}
         <form action={formAction} className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm space-y-4">
           {error && (
@@ -28,9 +39,7 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              メールアドレス
-            </label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">メールアドレス</label>
             <input
               type="email"
               name="email"
@@ -41,9 +50,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              パスワード
-            </label>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">パスワード</label>
             <input
               type="password"
               name="password"
@@ -63,5 +70,13 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

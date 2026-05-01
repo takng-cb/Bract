@@ -257,6 +257,69 @@ async function seed() {
   ])
 
   console.log('  ✅ 経費 3件')
+
+  // ----------------------------------------------------------------
+  // 物件・商品
+  // ----------------------------------------------------------------
+  await db.insert(schema.properties).values([
+    {
+      name: 'アーバンレジデンス渋谷 503号室',
+      property_type: 'マンション',
+      transaction_type: '賃貸',
+      status: '募集中',
+      address: '東京都渋谷区神宮前2-10-5',
+      area: '62.3',
+      price: '265000',
+      floor: 5,
+      total_floors: 10,
+      built_year: 2019,
+      account_id: acc1.id,
+      description: '渋谷駅徒歩7分。フルリノベーション済。オートロック・宅配ボックスあり。',
+    },
+    {
+      name: '赤坂ビジネスタワー 8F',
+      property_type: 'ビル',
+      transaction_type: '賃貸',
+      status: '管理中',
+      address: '東京都港区赤坂2-4-9',
+      area: '210.0',
+      price: '980000',
+      floor: 8,
+      total_floors: 15,
+      built_year: 2012,
+      account_id: acc2.id,
+      description: '赤坂駅直結。大会議室・サーバールーム完備。光回線引込み済み。',
+    },
+    {
+      name: '梅田 駅前戸建て',
+      property_type: '戸建て',
+      transaction_type: '売買',
+      status: '交渉中',
+      address: '大阪府大阪市北区梅田4-2-1',
+      area: '98.5',
+      price: '54800000',
+      floor: null,
+      total_floors: 2,
+      built_year: 2008,
+      account_id: acc3.id,
+      description: '梅田駅徒歩5分。南向き角地。駐車場1台。リフォーム歴あり。',
+    },
+    {
+      name: '渋谷 路面店舗 1F',
+      property_type: '店舗',
+      transaction_type: '賃貸',
+      status: '成約',
+      address: '東京都渋谷区神宮前1-8-3',
+      area: '45.2',
+      price: '380000',
+      floor: 1,
+      total_floors: 6,
+      built_year: 2016,
+      description: '神宮前交差点近く。飲食・物販可。スケルトン渡し。',
+    },
+  ])
+
+  console.log('  ✅ 物件・商品 4件')
   console.log('\n🎉 テストデータの投入が完了しました！')
 }
 

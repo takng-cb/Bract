@@ -7,10 +7,12 @@ import SignOutButton from '@/components/SignOutButton'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
 type Props = {
-  mainItems: NavItem[]
+  mainItems:   NavItem[]
+  companyName: string
+  displayName: string | null
 }
 
-export default function Sidebar({ mainItems }: Props) {
+export default function Sidebar({ mainItems, companyName, displayName }: Props) {
   const pathname = usePathname()
 
   return (
@@ -18,13 +20,13 @@ export default function Sidebar({ mainItems }: Props) {
       {/* ロゴ */}
       <div className="px-6 py-5 border-b border-zinc-700">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Image src="/icon.png" alt="Bract" width={24} height={24} className="shrink-0" unoptimized />
-          <span className="text-lg font-bold tracking-wide">Bract</span>
+          <Image src="/icon.png" alt={companyName} width={24} height={24} className="shrink-0" unoptimized />
+          <span className="text-lg font-bold tracking-wide truncate">{companyName}</span>
         </Link>
       </div>
 
       {/* メインナビゲーション */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {mainItems.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
@@ -63,6 +65,13 @@ export default function Sidebar({ mainItems }: Props) {
             </Link>
           )
         })}
+
+        {/* ユーザー名表示 */}
+        {displayName && (
+          <div className="px-3 py-2 mt-1">
+            <p className="text-xs text-zinc-500 truncate" title={displayName}>👤 {displayName}</p>
+          </div>
+        )}
         <SignOutButton />
       </div>
     </aside>

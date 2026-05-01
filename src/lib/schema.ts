@@ -283,11 +283,12 @@ export const tagsRelations = relations(tags, ({ many }) => ({
 // user_preferences（ユーザー個別設定）
 // ----------------------------------------------------------------
 export const user_preferences = pgTable('user_preferences', {
-  id:        uuid('id').primaryKey().defaultRandom(),
-  user_id:   text('user_id').notNull().unique(), // Supabase Auth UID
-  nav_order: text('nav_order'),                  // JSON: string[] of hrefs
-  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:           uuid('id').primaryKey().defaultRandom(),
+  user_id:      text('user_id').notNull().unique(), // Supabase Auth UID
+  nav_order:    text('nav_order'),                  // JSON: string[] of hrefs
+  display_name: text('display_name'),               // サイドバー表示名
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:   timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------

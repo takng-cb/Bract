@@ -8,10 +8,11 @@ import { signOut } from '@/app/actions/auth'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
 type Props = {
-  mainItems: NavItem[]
+  mainItems:   NavItem[]
+  companyName: string
 }
 
-export default function MobileNav({ mainItems }: Props) {
+export default function MobileNav({ mainItems, companyName }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -33,8 +34,8 @@ export default function MobileNav({ mainItems }: Props) {
           </div>
         </button>
         <div className="flex items-center gap-2">
-          <Image src="/icon.png" alt="Bract" width={20} height={20} unoptimized />
-          <span className="font-bold text-sm tracking-wide">Bract CRM</span>
+          <Image src="/icon.png" alt={companyName} width={20} height={20} unoptimized />
+          <span className="font-bold text-sm tracking-wide">{companyName}</span>
         </div>
       </header>
 
@@ -53,8 +54,8 @@ export default function MobileNav({ mainItems }: Props) {
         }`}
       >
         <div className="flex items-center gap-2 px-6 py-5 border-b border-zinc-700 shrink-0">
-          <Image src="/icon.png" alt="Bract" width={24} height={24} unoptimized />
-          <span className="text-lg font-bold tracking-wide">Bract CRM</span>
+          <Image src="/icon.png" alt={companyName} width={24} height={24} unoptimized />
+          <span className="text-lg font-bold tracking-wide truncate">{companyName}</span>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">

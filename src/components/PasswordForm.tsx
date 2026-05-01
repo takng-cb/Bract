@@ -3,7 +3,11 @@
 import { useActionState } from 'react'
 import { updatePassword } from '@/app/actions/settings'
 
-export default function PasswordForm() {
+type Props = {
+  passwordMinLength?: number
+}
+
+export default function PasswordForm({ passwordMinLength = 8 }: Props) {
   const [state, formAction, pending] = useActionState(updatePassword, null)
 
   const isSuccess = state === 'success'
@@ -26,29 +30,25 @@ export default function PasswordForm() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">
-            新しいパスワード
-          </label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">新しいパスワード</label>
           <input
             type="password"
             name="password"
             required
-            minLength={6}
+            minLength={passwordMinLength}
             autoComplete="new-password"
-            placeholder="6文字以上"
+            placeholder={`${passwordMinLength}文字以上`}
             className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">
-            パスワード（確認）
-          </label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">パスワード（確認）</label>
           <input
             type="password"
             name="confirm"
             required
-            minLength={6}
+            minLength={passwordMinLength}
             autoComplete="new-password"
             placeholder="もう一度入力してください"
             className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
