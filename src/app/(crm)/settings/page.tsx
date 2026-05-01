@@ -1,73 +1,19 @@
-'use client'
+import PasswordForm from '@/components/PasswordForm'
+import NavOrderEditor from '@/components/NavOrderEditor'
+import { getNavOrderSettings } from '@/app/actions/navSettings'
 
-import { useActionState } from 'react'
-import { updatePassword } from '@/app/actions/settings'
-
-export default function SettingsPage() {
-  const [state, formAction, pending] = useActionState(updatePassword, null)
-
-  const isSuccess = state === 'success'
-  const errorMsg  = state?.startsWith('error:') ? state.slice(6) : null
+export default async function SettingsPage() {
+  const { userOrder, systemOrder } = await getNavOrderSettings()
 
   return (
-    <div className="p-4 md:p-8 max-w-lg">
-      <h1 className="text-2xl font-bold text-zinc-900 mb-6">ユーザー設定</h1>
+    <div className="p-4 md:p-8 max-w-lg space-y-6">
+      <h1 className="text-2xl font-bold text-zinc-900">ユーザー設定</h1>
+
+      {/* ナビゲーション順序 */}
+      <NavOrderEditor userOrder={userOrder} systemOrder={systemOrder} />
 
       {/* パスワード変更 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-5">パスワード変更</h2>
-
-        <form action={formAction} className="space-y-4">
-          {isSuccess && (
-            <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md">
-              ✅ パスワードを更新しました
-            </div>
-          )}
-          {errorMsg && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">
-              {errorMsg}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              新しいパスワード
-            </label>
-            <input
-              type="password"
-              name="password"
-              required
-              minLength={6}
-              autoComplete="new-password"
-              placeholder="6文字以上"
-              className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              パスワード（確認）
-            </label>
-            <input
-              type="password"
-              name="confirm"
-              required
-              minLength={6}
-              autoComplete="new-password"
-              placeholder="もう一度入力してください"
-              className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {pending ? '更新中...' : 'パスワードを変更'}
-          </button>
-        </form>
-      </div>
+      <PasswordForm />
     </div>
   )
 }

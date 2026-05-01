@@ -4,26 +4,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import SignOutButton from '@/components/SignOutButton'
+import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
-const navItems = [
-  { href: '/dashboard',    label: 'ダッシュボード', icon: '🏠' },
-  { href: '/accounts',     label: '取引先',        icon: '🏢' },
-  { href: '/contacts',     label: '担当者',        icon: '👤' },
-  { href: '/opportunities',label: '商談',          icon: '💼' },
-  { href: '/forecast',     label: '売上予測',      icon: '📊' },
-  { href: '/activities',   label: '活動履歴',      icon: '📋' },
-  { href: '/tasks',        label: 'ToDo',          icon: '✅' },
-  { href: '/expenses',     label: '経費管理',      icon: '💰' },
-  { href: '/properties',   label: '物件・商品',    icon: '🏠' },
-]
+type Props = {
+  mainItems: NavItem[]
+}
 
-const bottomItems = [
-  { href: '/tags',      label: 'タグ管理', icon: '🏷️' },
-  { href: '/settings',  label: '設定',     icon: '⚙️' },
-  { href: '/about',     label: '使い方',   icon: '💡' },
-]
-
-export default function Sidebar() {
+export default function Sidebar({ mainItems }: Props) {
   const pathname = usePathname()
 
   return (
@@ -38,7 +25,7 @@ export default function Sidebar() {
 
       {/* メインナビゲーション */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
+        {mainItems.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link
@@ -57,9 +44,9 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* ボトムナビ */}
+      {/* ボトムナビ（固定） */}
       <div className="px-3 pb-4 border-t border-zinc-800 pt-3">
-        {bottomItems.map((item) => {
+        {BOTTOM_NAV_ITEMS.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link

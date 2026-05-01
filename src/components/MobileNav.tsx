@@ -5,25 +5,17 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { signOut } from '@/app/actions/auth'
+import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
-const navItems = [
-  { href: '/dashboard',     label: 'ダッシュボード', icon: '🏠' },
-  { href: '/accounts',      label: '取引先',        icon: '🏢' },
-  { href: '/contacts',      label: '担当者',        icon: '👤' },
-  { href: '/opportunities', label: '商談',          icon: '💼' },
-  { href: '/forecast',      label: '売上予測',      icon: '📊' },
-  { href: '/activities',    label: '活動履歴',      icon: '📋' },
-  { href: '/tasks',         label: 'ToDo',          icon: '✅' },
-  { href: '/expenses',      label: '経費管理',      icon: '💰' },
-  { href: '/properties',    label: '物件・商品',    icon: '🏠' },
-  { href: '/tags',          label: 'タグ管理',      icon: '🏷️' },
-  { href: '/settings',      label: '設定',          icon: '⚙️' },
-  { href: '/about',         label: '使い方',        icon: '💡' },
-]
+type Props = {
+  mainItems: NavItem[]
+}
 
-export default function MobileNav() {
+export default function MobileNav({ mainItems }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+
+  const allItems = [...mainItems, ...BOTTOM_NAV_ITEMS]
 
   return (
     <>
@@ -66,7 +58,7 @@ export default function MobileNav() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {navItems.map((item) => {
+          {allItems.map((item) => {
             const isActive = pathname.startsWith(item.href)
             return (
               <Link

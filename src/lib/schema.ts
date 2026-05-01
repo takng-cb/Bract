@@ -278,3 +278,23 @@ export const taggablesRelations = relations(taggables, ({ one }) => ({
 export const tagsRelations = relations(tags, ({ many }) => ({
   taggables: many(taggables),
 }))
+
+// ----------------------------------------------------------------
+// user_preferences（ユーザー個別設定）
+// ----------------------------------------------------------------
+export const user_preferences = pgTable('user_preferences', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  user_id:   text('user_id').notNull().unique(), // Supabase Auth UID
+  nav_order: text('nav_order'),                  // JSON: string[] of hrefs
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// system_settings（システム全体設定）
+// ----------------------------------------------------------------
+export const system_settings = pgTable('system_settings', {
+  key:        text('key').primaryKey(),
+  value:      text('value').notNull(), // JSON value
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
