@@ -280,6 +280,16 @@ export const tagsRelations = relations(tags, ({ many }) => ({
 }))
 
 // ----------------------------------------------------------------
+// users（アプリユーザー・Supabase Auth と連携）
+// ----------------------------------------------------------------
+export const users = pgTable('users', {
+  id:         uuid('id').primaryKey(),           // Supabase Auth UID
+  email:      text('email').notNull(),
+  role:       text('role').notNull().default('member'), // 'admin' | 'member'
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
 // user_preferences（ユーザー個別設定）
 // ----------------------------------------------------------------
 export const user_preferences = pgTable('user_preferences', {

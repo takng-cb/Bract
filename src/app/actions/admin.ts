@@ -6,13 +6,7 @@ import {
   accounts, contacts, opportunities, activities, activity_contacts,
   tasks, expenses, properties, taggables, change_logs, attachments,
 } from '@/lib/schema'
-
-/** t_noguchi のメールアドレスかどうか確認 */
-function isAdmin(email: string | undefined): boolean {
-  if (!email) return false
-  const username = email.split('@')[0].toLowerCase()
-  return username === 't_noguchi'
-}
+import { isAdminUser } from '@/lib/userRole'
 
 /**
  * 全ビジネスデータを削除する（管理者専用）
@@ -22,7 +16,7 @@ export async function deleteAllData(): Promise<{ error?: string }> {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || !isAdmin(user.email)) {
+  if (!user || !(await isAdminUser(user.id))) {
     return { error: '管理者権限がありません' }
   }
 

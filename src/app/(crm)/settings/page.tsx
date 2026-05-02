@@ -9,17 +9,13 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { db } from '@/lib/db'
 import { user_preferences } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-
-function isAdmin(email: string | undefined): boolean {
-  if (!email) return false
-  return email.split('@')[0].toLowerCase() === 't_noguchi'
-}
+import { isAdminUser } from '@/lib/userRole'
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ userOrder, systemOrder }, systemSettings, userPref] = await Promise.all([
+  const [{ userOrder, systemOrder }, systemSettings, userPref, adminFlag] = await Promise.all([
     getNavOrderSettings(),
     getSystemSettings([
       'company_name', 'password_min_length',
@@ -31,6 +27,7 @@ export default async function SettingsPage() {
           .where(eq(user_preferences.user_id, user.id))
           .then((r) => r[0] ?? null)
       : null,
+    user ? isAdminUser(user.id) : Promise.resolve(false),
   ])
 
   const passwordMinLen = parseInt(
@@ -65,7 +62,7 @@ export default async function SettingsPage() {
       />
 
       {/* 管理者専用：危険ゾーン */}
-      {isAdmin(user?.email) && <DangerZone />}
+      {adminFlag && <DangerZone />}
     </div>
   )
 }

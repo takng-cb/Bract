@@ -4,15 +4,21 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getSystemSetting } from '@/lib/systemSettings'
+import { provisionUser } from '@/lib/userRole'
 
 export async function signIn(_: string | null, formData: FormData): Promise<string | null> {
   const email    = formData.get('email') as string
   const password = formData.get('password') as string
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) return 'メールアドレスまたはパスワードが正しくありません'
+
+  // users テーブルへの自動プロビジョニング（初回ログインのみ）
+  if (data.user) {
+    await provisionUser(data.user.id, data.user.email ?? email)
+  }
 
   // セッションタイムアウト設定をCookieに保存（ミドルウェアが参照する）
   const timeoutMins = await getSystemSetting('session_timeout_minutes')
