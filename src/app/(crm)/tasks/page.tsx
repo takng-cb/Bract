@@ -5,6 +5,9 @@ import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import { toggleTaskDone } from '@/app/actions/tasks'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 20
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -36,10 +39,11 @@ const FIELDS: FieldDef[] = [
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[] }>
+  searchParams: Promise<{ f?: string | string[]; page?: string }>
 }) {
   const sp = await searchParams
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -63,11 +67,14 @@ export default async function TasksPage({
     .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
     .orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
 
-  const tasksList = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
-  const hasFilter = conditions.length > 0
-  const today     = new Date().toISOString().slice(0, 10)
-  const pending   = tasksList.filter((t) => !t.done)
-  const done      = tasksList.filter((t) =>  t.done)
+  const tasksList  = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
+  const hasFilter  = conditions.length > 0
+  const totalCount = tasksList.length
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const pagedList  = tasksList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+  const today      = new Date().toISOString().slice(0, 10)
+  const pending    = pagedList.filter((t) => !t.done)
+  const done       = pagedList.filter((t) =>  t.done)
 
   async function toggleDone(formData: FormData) {
     'use server'
@@ -201,7 +208,7 @@ export default async function TasksPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">ToDo</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            未完了 {pending.length} 件 / 完了済み {done.length} 件
+            全 {totalCount} 件（未完了 {tasksList.filter((t) => !t.done).length} 件）
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
@@ -215,7 +222,7 @@ export default async function TasksPage({
 
       <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/tasks" />
 
-      {tasksList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">✅</p>
           <p className="text-lg font-medium">
@@ -232,6 +239,7 @@ export default async function TasksPage({
           {done.length > 0 && <TaskTable rows={done} label="完了済み" />}
         </div>
       )}
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/tasks" filterParams={filterRaw} />
     </div>
   )
 }

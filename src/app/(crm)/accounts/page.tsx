@@ -5,14 +5,18 @@ import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 20
 
 export default async function AccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[] }>
+  searchParams: Promise<{ f?: string | string[]; page?: string }>
 }) {
   const sp = await searchParams
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
@@ -62,6 +66,9 @@ export default async function AccountsPage({
   let accountsList = applyFilters(raw as Record<string, unknown>[], otherConditions)
   accountsList     = applyTagFilter(accountsList, tagConditions, taggedIdsByTagId)
   const hasFilter  = conditions.length > 0
+  const totalCount = accountsList.length
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const pagedList  = accountsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="p-4 md:p-8">
@@ -69,7 +76,7 @@ export default async function AccountsPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">取引先</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {accountsList.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -120,7 +127,7 @@ export default async function AccountsPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {(accountsList as typeof raw).map((account) => (
+                {(pagedList as typeof raw).map((account) => (
                   <tr key={account.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-zinc-900">
                       <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link>
@@ -143,7 +150,7 @@ export default async function AccountsPage({
           </div>
           {/* モバイル: カード */}
           <div className="md:hidden space-y-2">
-            {(accountsList as typeof raw).map((account) => (
+            {(pagedList as typeof raw).map((account) => (
               <Link key={account.id} href={`/accounts/${account.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-semibold text-zinc-900 text-sm leading-snug">{account.name}</span>
@@ -161,6 +168,7 @@ export default async function AccountsPage({
           </div>
         </>
       )}
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/accounts" filterParams={filterRaw} />
     </div>
   )
 }

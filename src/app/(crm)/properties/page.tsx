@@ -4,6 +4,9 @@ import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 20
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -40,10 +43,11 @@ const FIELDS: FieldDef[] = [
 export default async function PropertiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[] }>
+  searchParams: Promise<{ f?: string | string[]; page?: string }>
 }) {
   const sp = await searchParams
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -64,8 +68,11 @@ export default async function PropertiesPage({
     .leftJoin(contacts, eq(properties.contact_id, contacts.id))
     .orderBy(desc(properties.created_at))
 
-  const list      = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
-  const hasFilter = conditions.length > 0
+  const list       = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
+  const hasFilter  = conditions.length > 0
+  const totalCount = list.length
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const pagedList  = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
 
   return (
     <div className="p-4 md:p-8">
@@ -73,7 +80,7 @@ export default async function PropertiesPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">物件・商品</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {list.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
         <Link
@@ -86,7 +93,7 @@ export default async function PropertiesPage({
 
       <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/properties" />
 
-      {list.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">🏠</p>
           <p className="text-lg font-medium">
@@ -114,7 +121,7 @@ export default async function PropertiesPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {list.map((p) => {
+                {pagedList.map((p) => {
                   const account = p.accounts?.id ? p.accounts : null
                   return (
                     <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
@@ -152,7 +159,7 @@ export default async function PropertiesPage({
 
           {/* モバイル: カード */}
           <div className="md:hidden space-y-2">
-            {list.map((p) => {
+            {pagedList.map((p) => {
               const account = p.accounts?.id ? p.accounts : null
               return (
                 <Link key={p.id} href={`/properties/${p.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
@@ -178,6 +185,7 @@ export default async function PropertiesPage({
           </div>
         </>
       )}
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/properties" filterParams={filterRaw} />
     </div>
   )
 }

@@ -4,6 +4,9 @@ import { desc, eq, gte, lte } from 'drizzle-orm'
 import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 20
 
 const CATEGORY_COLORS: Record<string, string> = {
   交通費:   'bg-blue-50 text-blue-700',
@@ -38,7 +41,7 @@ const FIELDS: FieldDef[] = [
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[] }>
+  searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string }>
 }) {
   const sp  = await searchParams
   const now = new Date()
@@ -52,6 +55,7 @@ export default async function ExpensesPage({
   const to   = new Date(toYear, toMonth, 0).toISOString().slice(0, 10)
 
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
+  const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -81,6 +85,10 @@ export default async function ExpensesPage({
   const expensesList = applyFilters(filtered as Record<string, unknown>[], conditions) as typeof raw
   const total        = expensesList.reduce((s, e) => s + Number(e.amount), 0)
   const hasFilter    = conditions.length > 0
+  const totalCount   = expensesList.length
+  const totalPages   = Math.ceil(totalCount / PAGE_SIZE)
+  const pagedList    = expensesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+  const pagedTotal   = pagedList.reduce((s, e) => s + Number(e.amount), 0)
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
   const yearOptions  = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i)
@@ -101,7 +109,7 @@ export default async function ExpensesPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">経費管理</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {periodLabel} — {expensesList.length} 件 合計{' '}
+            {periodLabel} — 全 {totalCount} 件 合計{' '}
             <span className="font-semibold text-zinc-800">¥{total.toLocaleString()}</span>
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
@@ -150,7 +158,7 @@ export default async function ExpensesPage({
         persistParams={persistParams}
       />
 
-      {expensesList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">💰</p>
           <p className="text-lg font-medium">
@@ -179,7 +187,7 @@ export default async function ExpensesPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {expensesList.map((e) => {
+                {pagedList.map((e) => {
                   const account     = e.accounts?.id     ? e.accounts     : null
                   const opportunity = e.opportunities?.id ? e.opportunities : null
                   const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
@@ -206,8 +214,8 @@ export default async function ExpensesPage({
               </tbody>
               <tfoot className="border-t-2 border-zinc-200 bg-zinc-50">
                 <tr>
-                  <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-zinc-700">合計</td>
-                  <td className="px-4 py-2 text-right font-bold text-zinc-900">¥{total.toLocaleString()}</td>
+                  <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-zinc-700">小計</td>
+                  <td className="px-4 py-2 text-right font-bold text-zinc-900">¥{pagedTotal.toLocaleString()}</td>
                   <td colSpan={2} />
                 </tr>
               </tfoot>
@@ -215,7 +223,7 @@ export default async function ExpensesPage({
           </div>
           {/* モバイル: カード */}
           <div className="md:hidden space-y-2">
-            {expensesList.map((e) => {
+            {pagedList.map((e) => {
               const account     = e.accounts?.id     ? e.accounts     : null
               const opportunity = e.opportunities?.id ? e.opportunities : null
               const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
@@ -239,12 +247,19 @@ export default async function ExpensesPage({
               )
             })}
             <div className="bg-zinc-100 rounded-lg px-4 py-3 flex items-center justify-between">
-              <span className="text-sm font-semibold text-zinc-700">合計</span>
-              <span className="font-bold text-zinc-900">¥{total.toLocaleString()}</span>
+              <span className="text-sm font-semibold text-zinc-700">小計</span>
+              <span className="font-bold text-zinc-900">¥{pagedTotal.toLocaleString()}</span>
             </div>
           </div>
         </>
       )}
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        basePath="/expenses"
+        filterParams={filterRaw}
+        extraParams={persistParams}
+      />
     </div>
   )
 }

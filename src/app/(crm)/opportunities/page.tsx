@@ -5,6 +5,9 @@ import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 20
 
 const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   prospecting:   { label: '見込み',   color: 'bg-zinc-100 text-zinc-600' },
@@ -18,10 +21,11 @@ const STAGE_LABELS: Record<string, { label: string; color: string }> = {
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[] }>
+  searchParams: Promise<{ f?: string | string[]; page?: string }>
 }) {
   const sp = await searchParams
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
@@ -81,6 +85,9 @@ export default async function OpportunitiesPage({
   let opportunitiesList = applyFilters(raw as Record<string, unknown>[], otherConditions)
   opportunitiesList     = applyTagFilter(opportunitiesList, tagConditions, taggedIdsByTagId)
   const hasFilter       = conditions.length > 0
+  const totalCount      = opportunitiesList.length
+  const totalPages      = Math.ceil(totalCount / PAGE_SIZE)
+  const pagedList       = opportunitiesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="p-4 md:p-8">
@@ -88,7 +95,7 @@ export default async function OpportunitiesPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">商談</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {opportunitiesList.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -112,7 +119,7 @@ export default async function OpportunitiesPage({
         basePath="/opportunities"
       />
 
-      {opportunitiesList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">💼</p>
           <p className="text-lg font-medium">
@@ -140,7 +147,7 @@ export default async function OpportunitiesPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {(opportunitiesList as typeof raw).map((o) => {
+                {(pagedList as typeof raw).map((o) => {
                   const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
                   const account   = o.accounts?.id ? o.accounts : null
                   return (
@@ -172,7 +179,7 @@ export default async function OpportunitiesPage({
           </div>
           {/* モバイル: カード */}
           <div className="md:hidden space-y-2">
-            {(opportunitiesList as typeof raw).map((o) => {
+            {(pagedList as typeof raw).map((o) => {
               const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
               const account   = o.accounts?.id ? o.accounts : null
               return (
@@ -195,6 +202,7 @@ export default async function OpportunitiesPage({
           </div>
         </>
       )}
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/opportunities" filterParams={filterRaw} />
     </div>
   )
 }

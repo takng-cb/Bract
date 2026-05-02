@@ -4,6 +4,9 @@ import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 20
 
 const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700' },
@@ -31,10 +34,11 @@ const FIELDS: FieldDef[] = [
 export default async function ActivitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[] }>
+  searchParams: Promise<{ f?: string | string[]; page?: string }>
 }) {
   const sp = await searchParams
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -55,6 +59,9 @@ export default async function ActivitiesPage({
 
   const activitiesList = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
   const hasFilter      = conditions.length > 0
+  const totalCount     = activitiesList.length
+  const totalPages     = Math.ceil(totalCount / PAGE_SIZE)
+  const pagedList      = activitiesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
 
   return (
     <div className="p-4 md:p-8">
@@ -62,7 +69,7 @@ export default async function ActivitiesPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">活動履歴</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {activitiesList.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
         <Link
@@ -75,7 +82,7 @@ export default async function ActivitiesPage({
 
       <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/activities" />
 
-      {activitiesList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">📋</p>
           <p className="text-lg font-medium">
@@ -101,7 +108,7 @@ export default async function ActivitiesPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {activitiesList.map((a) => {
+                {pagedList.map((a) => {
                   const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
                   const account = a.accounts?.id ? a.accounts : null
                   return (
@@ -132,7 +139,7 @@ export default async function ActivitiesPage({
           </div>
           {/* モバイル: カード */}
           <div className="md:hidden space-y-2">
-            {activitiesList.map((a) => {
+            {pagedList.map((a) => {
               const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
               const account = a.accounts?.id ? a.accounts : null
               return (
@@ -152,6 +159,7 @@ export default async function ActivitiesPage({
           </div>
         </>
       )}
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/activities" filterParams={filterRaw} />
     </div>
   )
 }

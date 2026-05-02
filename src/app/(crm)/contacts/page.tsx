@@ -5,14 +5,18 @@ import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 20
 
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[] }>
+  searchParams: Promise<{ f?: string | string[]; page?: string }>
 }) {
   const sp = await searchParams
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
+  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
@@ -61,6 +65,9 @@ export default async function ContactsPage({
   let contactsList = applyFilters(raw as Record<string, unknown>[], otherConditions)
   contactsList     = applyTagFilter(contactsList, tagConditions, taggedIdsByTagId)
   const hasFilter  = conditions.length > 0
+  const totalCount = contactsList.length
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const pagedList  = contactsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="p-4 md:p-8">
@@ -68,7 +75,7 @@ export default async function ContactsPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">担当者</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {contactsList.length} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -92,7 +99,7 @@ export default async function ContactsPage({
         basePath="/contacts"
       />
 
-      {contactsList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">👤</p>
           <p className="text-lg font-medium">
@@ -119,7 +126,7 @@ export default async function ContactsPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {(contactsList as typeof raw).map((c) => {
+                {(pagedList as typeof raw).map((c) => {
                   const account = c.accounts?.id ? c.accounts : null
                   return (
                     <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
@@ -146,7 +153,7 @@ export default async function ContactsPage({
           </div>
           {/* モバイル: カード */}
           <div className="md:hidden space-y-2">
-            {(contactsList as typeof raw).map((c) => {
+            {(pagedList as typeof raw).map((c) => {
               const account = c.accounts?.id ? c.accounts : null
               return (
                 <Link key={c.id} href={`/contacts/${c.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
@@ -166,6 +173,7 @@ export default async function ContactsPage({
           </div>
         </>
       )}
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/contacts" filterParams={filterRaw} />
     </div>
   )
 }
