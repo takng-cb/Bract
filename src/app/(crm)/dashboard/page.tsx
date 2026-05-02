@@ -108,7 +108,7 @@ export default async function DashboardPage() {
     .slice(0, 8)
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-zinc-900">ダッシュボード</h1>
         <p className="text-sm text-zinc-500 mt-1">
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
                         return (
                           <tr key={t.id} className="hover:bg-zinc-50 transition-colors">
                             <td className="px-4 py-3 font-medium text-zinc-900">
-                              <Link href={`/tasks/${t.id}`} className="hover:text-blue-600 block truncate max-w-[14rem]">{t.title}</Link>
+                              <Link href={`/tasks/${t.id}`} className="hover:text-blue-600 block truncate max-w-xs">{t.title}</Link>
                               {opportunity && <p className="text-xs text-zinc-400 mt-0.5 truncate">💼 {opportunity.name}</p>}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
@@ -184,7 +184,7 @@ export default async function DashboardPage() {
                               {t.due_date ?? '—'}{isOverdue ? ' ⚠️' : ''}
                             </td>
                             <td className="px-4 py-3 text-zinc-600 text-sm">
-                              {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600 truncate block max-w-[8rem]">{account.name}</Link> : <span className="text-zinc-300">—</span>}
+                              {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600 truncate block max-w-[12rem]">{account.name}</Link> : <span className="text-zinc-300">—</span>}
                             </td>
                             <td className="px-4 py-3 text-right">
                               <Link href={`/tasks/${t.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
@@ -337,7 +337,7 @@ export default async function DashboardPage() {
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}>{type.icon} {type.label}</span>
                             </td>
                             <td className="px-4 py-3 min-w-0">
-                              <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-[10rem]">{a.subject}</Link>
+                              <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-xs">{a.subject}</Link>
                               {account && <p className="text-xs text-zinc-400 mt-0.5 truncate">{account.name}</p>}
                             </td>
                             <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">
@@ -393,7 +393,7 @@ export default async function DashboardPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 min-w-0">
-                          <Link href={r.href} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-[12rem]">
+                          <Link href={r.href} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-sm">
                             {r.title}
                           </Link>
                           {r.sub && <p className="text-xs text-zinc-400 mt-0.5 truncate">{r.sub}</p>}

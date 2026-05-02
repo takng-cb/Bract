@@ -104,7 +104,7 @@ export default async function ExpensesPage({
   const clearUrl = `/expenses?${new URLSearchParams(persistParams).toString()}`
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">経費管理</h1>
