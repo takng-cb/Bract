@@ -9,6 +9,7 @@ import { toggleTaskDone } from '@/app/actions/tasks'
 import TagsSection from '@/components/TagsSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
+import RecordId from '@/components/RecordId'
 
 const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   call: '📞 電話', email: '✉️ メール', meeting: '🤝 打合せ', note: '📝 メモ',
@@ -263,6 +264,9 @@ export default async function ContactDetailPage({
           <ChangeLogSection objectType="contact" objectId={id} />
         </div>
       </section>
+      <div className="text-right">
+        <RecordId id={id} />
+      </div>
     </div>
   )
 }

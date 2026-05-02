@@ -3,6 +3,7 @@ import { expenses, accounts, contacts, opportunities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import RecordId from '@/components/RecordId'
 import { revalidatePath } from 'next/cache'
 import DeleteButton from '@/components/DeleteButton'
 
@@ -131,6 +132,9 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
             {expense.notes ?? <span className="text-zinc-300">—</span>}
           </dd>
         </div>
+      </div>
+      <div className="mt-4 text-right">
+        <RecordId id={id} />
       </div>
     </div>
   )

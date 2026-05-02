@@ -4,6 +4,7 @@ import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 
 const PAGE_SIZE = 20
@@ -106,12 +107,19 @@ export default async function PropertiesPage({
             全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
-        <Link
-          href={newHref}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          ＋ 新規登録
-        </Link>
+        <div className="flex items-center gap-3">
+          <CsvToolbar
+            exportUrl="/api/export/properties"
+            importUrl="/api/import/properties"
+            label="物件・商品"
+          />
+          <Link
+            href={newHref}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            ＋ 新規登録
+          </Link>
+        </div>
       </div>
 
       {/* タブ */}

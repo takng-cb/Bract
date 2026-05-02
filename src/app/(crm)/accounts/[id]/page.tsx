@@ -10,6 +10,7 @@ import { toggleTaskDone } from '@/app/actions/tasks'
 import TagsSection from '@/components/TagsSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
+import RecordId from '@/components/RecordId'
 
 const ACCOUNT_STAGES: StageConfig[] = [
   { value: 'prospect', label: '見込み', activeColor: '#2563eb', pastColor: '#93c5fd' },
@@ -357,6 +358,9 @@ export default async function AccountDetailPage({
           <ChangeLogSection objectType="account" objectId={id} />
         </div>
       </section>
+      <div className="text-right">
+        <RecordId id={id} />
+      </div>
     </div>
   )
 }

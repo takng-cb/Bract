@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { deleteActivity } from '@/app/actions/activities'
 import DeleteButton from '@/components/DeleteButton'
+import RecordId from '@/components/RecordId'
 
 const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -119,6 +120,9 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
             <dd className="text-sm text-zinc-800">{activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
           </div>
         </dl>
+      </div>
+      <div className="mt-4 text-right">
+        <RecordId id={id} />
       </div>
     </div>
   )

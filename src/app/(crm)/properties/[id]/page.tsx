@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { deleteProperty } from '@/app/actions/properties'
 import DeleteButton from '@/components/DeleteButton'
 import TagsSection from '@/components/TagsSection'
+import RecordId from '@/components/RecordId'
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -144,6 +145,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         <Link href={`/properties?view=${viewParam}`} className="px-4 py-2 border border-zinc-300 text-sm rounded-md hover:bg-zinc-50 transition-colors">
           一覧に戻る
         </Link>
+      </div>
+      <div className="mt-6 text-right">
+        <RecordId id={id} />
       </div>
     </div>
   )

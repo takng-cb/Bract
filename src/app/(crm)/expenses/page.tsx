@@ -4,6 +4,7 @@ import { desc, eq, gte, lte } from 'drizzle-orm'
 import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 
 const PAGE_SIZE = 20
@@ -114,12 +115,19 @@ export default async function ExpensesPage({
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
-        <Link
-          href="/expenses/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          ＋ 新規作成
-        </Link>
+        <div className="flex items-center gap-3">
+          <CsvToolbar
+            exportUrl="/api/export/expenses"
+            importUrl="/api/import/expenses"
+            label="経費"
+          />
+          <Link
+            href="/expenses/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            ＋ 新規作成
+          </Link>
+        </div>
       </div>
 
       {/* 期間セレクター */}

@@ -3,6 +3,7 @@ import { tasks, accounts, contacts, opportunities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import RecordId from '@/components/RecordId'
 import { deleteTask, toggleTaskDone } from '@/app/actions/tasks'
 import DeleteButton from '@/components/DeleteButton'
 
@@ -122,6 +123,9 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
             <dd className="text-sm text-zinc-800">{task.created_at ? new Date(task.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
           </div>
         </dl>
+      </div>
+      <div className="mt-4 text-right">
+        <RecordId id={id} />
       </div>
     </div>
   )

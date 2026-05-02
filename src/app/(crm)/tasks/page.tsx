@@ -5,6 +5,7 @@ import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import { toggleTaskDone } from '@/app/actions/tasks'
+import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 
 const PAGE_SIZE = 20
@@ -212,12 +213,19 @@ export default async function TasksPage({
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
           </p>
         </div>
-        <Link
-          href="/tasks/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          ＋ 新規作成
-        </Link>
+        <div className="flex items-center gap-3">
+          <CsvToolbar
+            exportUrl="/api/export/tasks"
+            importUrl="/api/import/tasks"
+            label="タスク"
+          />
+          <Link
+            href="/tasks/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            ＋ 新規作成
+          </Link>
+        </div>
       </div>
 
       <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/tasks" />

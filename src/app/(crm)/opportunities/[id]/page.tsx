@@ -10,6 +10,7 @@ import { toggleTaskDone } from '@/app/actions/tasks'
 import TagsSection from '@/components/TagsSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
+import RecordId from '@/components/RecordId'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -316,6 +317,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           <ChangeLogSection objectType="opportunity" objectId={id} />
         </div>
       </section>
+      <div className="text-right">
+        <RecordId id={id} />
+      </div>
     </div>
   )
 }
