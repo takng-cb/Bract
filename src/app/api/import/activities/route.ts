@@ -10,6 +10,16 @@ const TYPE_MAP: Record<string, string> = {
   'メモ': 'note', 'note': 'note',
 }
 
+type ActivityRecord = {
+  occurred_at:    Date
+  type:           string
+  subject:        string
+  body:           string | null
+  account_id:     string | null
+  contact_id:     string | null
+  opportunity_id: string | null
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -30,12 +40,12 @@ export async function POST(req: NextRequest) {
 
   // ヘッダ: 実施日時, 種別, 件名, 内容, 取引先名, 担当者名, 商談名
   const dataRows = rows.slice(1)
-  const records = dataRows.map((cols) => {
+  const records: ActivityRecord[] = dataRows.flatMap((cols) => {
     const subject = cols[2]?.trim()
-    if (!subject) return null
+    if (!subject) return []
     const rawType  = cols[1]?.trim() ?? ''
     const occurred = cols[0]?.trim()
-    return {
+    return [{
       occurred_at:    occurred ? new Date(occurred) : new Date(),
       type:           TYPE_MAP[rawType] ?? 'note',
       subject,
@@ -43,8 +53,8 @@ export async function POST(req: NextRequest) {
       account_id:     cols[4]?.trim() ? (accountMap.get(cols[4].trim()) ?? null) : null,
       contact_id:     cols[5]?.trim() ? (contactMap.get(cols[5].trim()) ?? null) : null,
       opportunity_id: cols[6]?.trim() ? (oppsMap.get(cols[6].trim())    ?? null) : null,
-    }
-  }).filter(Boolean) as NonNullable<ReturnType<typeof records[0]>>[]
+    }]
+  })
 
   if (records.length === 0) {
     return NextResponse.json({ error: '有効なデータ行がありません（件名が必須）' }, { status: 400 })

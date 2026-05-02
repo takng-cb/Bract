@@ -9,6 +9,16 @@ const PRIORITY_MAP: Record<string, string> = {
   '低': 'low', 'low': 'low',
 }
 
+type TaskRecord = {
+  title:          string
+  due_date:       string | null
+  priority:       string
+  done:           boolean
+  account_id:     string | null
+  contact_id:     string | null
+  opportunity_id: string | null
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -29,12 +39,12 @@ export async function POST(req: NextRequest) {
 
   // ヘッダ: タイトル, 期日, 優先度, 完了, 取引先名, 担当者名, 商談名
   const dataRows = rows.slice(1)
-  const records = dataRows.map((cols) => {
+  const records: TaskRecord[] = dataRows.flatMap((cols) => {
     const title = cols[0]?.trim()
-    if (!title) return null
+    if (!title) return []
     const rawPriority = cols[2]?.trim() ?? ''
     const rawDone     = cols[3]?.trim() ?? ''
-    return {
+    return [{
       title,
       due_date:       cols[1]?.trim() || null,
       priority:       PRIORITY_MAP[rawPriority] ?? 'medium',
@@ -42,8 +52,8 @@ export async function POST(req: NextRequest) {
       account_id:     cols[4]?.trim() ? (accountMap.get(cols[4].trim()) ?? null) : null,
       contact_id:     cols[5]?.trim() ? (contactMap.get(cols[5].trim()) ?? null) : null,
       opportunity_id: cols[6]?.trim() ? (oppsMap.get(cols[6].trim())    ?? null) : null,
-    }
-  }).filter(Boolean) as NonNullable<ReturnType<typeof records[0]>>[]
+    }]
+  })
 
   if (records.length === 0) {
     return NextResponse.json({ error: '有効なデータ行がありません（タイトルが必須）' }, { status: 400 })

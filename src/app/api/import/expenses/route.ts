@@ -5,6 +5,16 @@ import { parseCsv } from '@/lib/csvUtils'
 
 const VALID_CATEGORIES = ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他']
 
+type ExpenseRecord = {
+  title:          string
+  amount:         string
+  category:       string
+  expense_date:   string
+  account_id:     string | null
+  opportunity_id: string | null
+  notes:          string | null
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -23,13 +33,13 @@ export async function POST(req: NextRequest) {
 
   // ヘッダ: 件名, 金額, カテゴリ, 日付, 取引先名, 商談名, 備考
   const dataRows = rows.slice(1)
-  const records = dataRows.map((cols) => {
+  const records: ExpenseRecord[] = dataRows.flatMap((cols) => {
     const title  = cols[0]?.trim()
     const amount = cols[1]?.trim()
     const date   = cols[3]?.trim()
-    if (!title || !amount || !date) return null
-    const cat = cols[2]?.trim()
-    return {
+    if (!title || !amount || !date) return []
+    const cat = cols[2]?.trim() ?? ''
+    return [{
       title,
       amount:         String(Number(amount)),
       category:       VALID_CATEGORIES.includes(cat) ? cat : 'その他',
@@ -37,8 +47,8 @@ export async function POST(req: NextRequest) {
       account_id:     cols[4]?.trim() ? (accountMap.get(cols[4].trim()) ?? null) : null,
       opportunity_id: cols[5]?.trim() ? (oppsMap.get(cols[5].trim())    ?? null) : null,
       notes:          cols[6]?.trim() || null,
-    }
-  }).filter(Boolean) as NonNullable<ReturnType<typeof records[0]>>[]
+    }]
+  })
 
   if (records.length === 0) {
     return NextResponse.json({ error: '有効なデータ行がありません（件名・金額・日付が必須）' }, { status: 400 })

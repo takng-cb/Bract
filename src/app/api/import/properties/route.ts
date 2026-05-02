@@ -3,6 +3,23 @@ import { properties, accounts, contacts } from '@/lib/schema'
 import { NextRequest, NextResponse } from 'next/server'
 import { parseCsv } from '@/lib/csvUtils'
 
+type PropertyRecord = {
+  product_category: string
+  name:             string
+  property_type:    string
+  transaction_type: string
+  status:           string
+  address:          string | null
+  area:             string | null
+  price:            string | null
+  floor:            number | null
+  total_floors:     number | null
+  built_year:       number | null
+  account_id:       string | null
+  contact_id:       string | null
+  description:      string | null
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -22,12 +39,12 @@ export async function POST(req: NextRequest) {
   // ヘッダ: カテゴリ, 件名, 物件種別, 取引種別, ステータス,
   //         所在地, 面積, 価格, 所在階, 総階数, 築年, 取引先名, 担当者名, 備考
   const dataRows = rows.slice(1)
-  const records = dataRows.map((cols) => {
+  const records: PropertyRecord[] = dataRows.flatMap((cols) => {
     const name = cols[1]?.trim()
-    if (!name) return null
+    if (!name) return []
     const rawCat = cols[0]?.trim() ?? ''
     const isRE   = rawCat !== 'その他商品' && rawCat !== 'other'
-    return {
+    return [{
       product_category: isRE ? 'real_estate' : 'other',
       name,
       property_type:    cols[2]?.trim() || 'その他',
@@ -42,8 +59,8 @@ export async function POST(req: NextRequest) {
       account_id:       cols[11]?.trim() ? (accountMap.get(cols[11].trim()) ?? null) : null,
       contact_id:       cols[12]?.trim() ? (contactMap.get(cols[12].trim()) ?? null) : null,
       description:      cols[13]?.trim() || null,
-    }
-  }).filter(Boolean) as NonNullable<ReturnType<typeof records[0]>>[]
+    }]
+  })
 
   if (records.length === 0) {
     return NextResponse.json({ error: '有効なデータ行がありません（件名が必須）' }, { status: 400 })
