@@ -8,7 +8,7 @@ export type NavItem = {
 export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard',     label: 'ダッシュボード', icon: '🏠' },
   { href: '/accounts',      label: '取引先',        icon: '🏢' },
-  { href: '/contacts',      label: '担当者',        icon: '👤' },
+  { href: '/contacts',      label: '人物',          icon: '👤' },
   { href: '/opportunities', label: '商談',          icon: '💼' },
   { href: '/forecast',      label: '売上予測',      icon: '📊' },
   { href: '/activities',    label: '活動履歴',      icon: '📋' },

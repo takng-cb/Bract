@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { properties, accounts, contacts } from '@/lib/schema'
-import { eq, asc, ne } from 'drizzle-orm'
+import { eq, asc, ne, and } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import PropertyForm from '@/components/PropertyForm'
@@ -9,12 +9,21 @@ import { updateProperty } from '@/app/actions/properties'
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [property, accountsList, contactsList] = await Promise.all([
+  const [property, accountsList, contactsList, scrivenerAccounts, scrivenerContacts] = await Promise.all([
     db.select().from(properties).where(eq(properties.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts)
+      .where(and(eq(accounts.industry, '司法書士'), ne(accounts.status, 'inactive')))
+      .orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts)
+      .innerJoin(accounts, eq(contacts.account_id, accounts.id))
+      .where(and(eq(contacts.contact_type, 'business'), eq(accounts.industry, '司法書士')))
+      .orderBy(asc(contacts.full_name)),
   ])
 
   if (!property) notFound()
@@ -48,6 +57,8 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
           cancelHref={`/properties/${id}`}
           accounts={accountsList}
           contacts={contactsList}
+          scrivenerAccounts={scrivenerAccounts}
+          scrivenerContacts={scrivenerContacts}
           defaultValues={{
             ...property,
             area:  property.area  !== null ? Number(property.area)  : null,

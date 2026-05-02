@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { accounts, contacts } from '@/lib/schema'
-import { ne, asc } from 'drizzle-orm'
+import { ne, eq, and, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import PropertyForm from '@/components/PropertyForm'
 import { createProperty } from '@/app/actions/properties'
@@ -22,11 +22,22 @@ export default async function NewPropertyPage({
   const { view } = await searchParams
   const category = view === 'other' ? 'other' : 'real_estate'
 
-  const [accountsList, contactsList] = await Promise.all([
+  const [accountsList, contactsList, scrivenerAccounts, scrivenerContacts] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
+    // 業種=司法書士の取引先
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts)
+      .where(and(eq(accounts.industry, '司法書士'), ne(accounts.status, 'inactive')))
+      .orderBy(asc(accounts.name)),
+    // 業種=司法書士の取引先に紐づくToBの担当者
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts)
+      .innerJoin(accounts, eq(contacts.account_id, accounts.id))
+      .where(and(eq(contacts.contact_type, 'business'), eq(accounts.industry, '司法書士')))
+      .orderBy(asc(contacts.full_name)),
   ])
 
   return (
@@ -45,6 +56,8 @@ export default async function NewPropertyPage({
           cancelHref={`/properties?view=${category}`}
           accounts={accountsList}
           contacts={contactsList}
+          scrivenerAccounts={scrivenerAccounts}
+          scrivenerContacts={scrivenerContacts}
           defaultValues={{ product_category: category }}
         />
       </div>

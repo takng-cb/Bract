@@ -164,6 +164,12 @@ export const properties = pgTable('properties', {
   built_year:       integer('built_year'),
   account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
   contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  // 不動産：売り方司法書士
+  seller_scrivener_account_id: uuid('seller_scrivener_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  seller_scrivener_contact_id: uuid('seller_scrivener_contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  // 不動産：買い方司法書士
+  buyer_scrivener_account_id:  uuid('buyer_scrivener_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  buyer_scrivener_contact_id:  uuid('buyer_scrivener_contact_id').references(() => contacts.id, { onDelete: 'set null' }),
   description:      text('description'),
   created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),

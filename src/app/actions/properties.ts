@@ -24,6 +24,10 @@ function parseForm(formData: FormData) {
     built_year:       isRE && raw('built_year') ? Number(raw('built_year')) : null,
     account_id:       raw('account_id') || null,
     contact_id:       raw('contact_id') || null,
+    seller_scrivener_account_id: isRE ? (raw('seller_scrivener_account_id') || null) : null,
+    seller_scrivener_contact_id: isRE ? (raw('seller_scrivener_contact_id') || null) : null,
+    buyer_scrivener_account_id:  isRE ? (raw('buyer_scrivener_account_id')  || null) : null,
+    buyer_scrivener_contact_id:  isRE ? (raw('buyer_scrivener_contact_id')  || null) : null,
     description:      raw('description') || null,
   }
 }

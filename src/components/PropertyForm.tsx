@@ -13,31 +13,40 @@ type Account  = { id: string; name: string }
 type Contact  = { id: string; full_name: string }
 
 interface DefaultValues {
-  product_category?: string
-  name?:             string
-  property_type?:    string
-  transaction_type?: string
-  status?:           string
-  address?:          string | null
-  area?:             number | null
-  price?:            number | null
-  floor?:            number | null
-  total_floors?:     number | null
-  built_year?:       number | null
-  account_id?:       string | null
-  contact_id?:       string | null
-  description?:      string | null
+  product_category?:           string
+  name?:                       string
+  property_type?:              string
+  transaction_type?:           string
+  status?:                     string
+  address?:                    string | null
+  area?:                       number | null
+  price?:                      number | null
+  floor?:                      number | null
+  total_floors?:               number | null
+  built_year?:                 number | null
+  account_id?:                 string | null
+  contact_id?:                 string | null
+  seller_scrivener_account_id?: string | null
+  seller_scrivener_contact_id?: string | null
+  buyer_scrivener_account_id?:  string | null
+  buyer_scrivener_contact_id?:  string | null
+  description?:                string | null
 }
 
 interface Props {
-  action:         (_: string | null, formData: FormData) => Promise<string | null>
-  cancelHref:     string
-  accounts:       Account[]
-  contacts:       Contact[]
-  defaultValues?: DefaultValues
+  action:              (_: string | null, formData: FormData) => Promise<string | null>
+  cancelHref:          string
+  accounts:            Account[]
+  contacts:            Contact[]
+  scrivenerAccounts:   Account[]
+  scrivenerContacts:   Contact[]
+  defaultValues?:      DefaultValues
 }
 
-export default function PropertyForm({ action, cancelHref, accounts, contacts, defaultValues = {} }: Props) {
+export default function PropertyForm({
+  action, cancelHref, accounts, contacts,
+  scrivenerAccounts, scrivenerContacts, defaultValues = {},
+}: Props) {
   const [error, formAction, pending] = useActionState(action, null)
   const [category, setCategory] = useState<string>(defaultValues.product_category ?? 'real_estate')
   const d = defaultValues
@@ -173,7 +182,7 @@ export default function PropertyForm({ action, cancelHref, accounts, contacts, d
         </div>
       )}
 
-      {/* 共通: 関連取引先 / 関連担当者 */}
+      {/* 共通: 関連取引先 / 関連人物 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className={lbl}>関連取引先</label>
@@ -190,6 +199,64 @@ export default function PropertyForm({ action, cancelHref, accounts, contacts, d
           </select>
         </div>
       </div>
+
+      {/* 不動産のみ: 司法書士情報 */}
+      {isRE && (
+        <div className="border border-zinc-200 rounded-lg p-4 space-y-4 bg-zinc-50">
+          <h3 className="text-sm font-semibold text-zinc-700">⚖️ 司法書士情報</h3>
+
+          {scrivenerAccounts.length === 0 ? (
+            <p className="text-xs text-zinc-400">
+              業種「司法書士」の取引先が登録されていません。
+              <a href="/accounts/new" className="text-blue-600 hover:underline ml-1" target="_blank" rel="noopener">取引先を追加</a>
+            </p>
+          ) : (
+            <>
+              {/* 売り方 */}
+              <div>
+                <p className="text-xs font-medium text-zinc-500 mb-2">売り方司法書士</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={lbl}>事務所（取引先）</label>
+                    <select name="seller_scrivener_account_id" defaultValue={d.seller_scrivener_account_id ?? ''} className={`${field} bg-white`}>
+                      <option value="">— 選択しない —</option>
+                      {scrivenerAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>担当者</label>
+                    <select name="seller_scrivener_contact_id" defaultValue={d.seller_scrivener_contact_id ?? ''} className={`${field} bg-white`}>
+                      <option value="">— 選択しない —</option>
+                      {scrivenerContacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 買い方 */}
+              <div>
+                <p className="text-xs font-medium text-zinc-500 mb-2">買い方司法書士</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={lbl}>事務所（取引先）</label>
+                    <select name="buyer_scrivener_account_id" defaultValue={d.buyer_scrivener_account_id ?? ''} className={`${field} bg-white`}>
+                      <option value="">— 選択しない —</option>
+                      {scrivenerAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>担当者</label>
+                    <select name="buyer_scrivener_contact_id" defaultValue={d.buyer_scrivener_contact_id ?? ''} className={`${field} bg-white`}>
+                      <option value="">— 選択しない —</option>
+                      {scrivenerContacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* 共通: 備考 */}
       <div>

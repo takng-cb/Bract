@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { properties, accounts, contacts } from '@/lib/schema'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { deleteProperty } from '@/app/actions/properties'
@@ -10,6 +10,7 @@ import RecordId from '@/components/RecordId'
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
+  '提案中': 'bg-blue-100 text-blue-700',
   '交渉中': 'bg-yellow-100 text-yellow-700',
   '成約':   'bg-green-100 text-green-700',
   '管理中': 'bg-purple-100 text-purple-700',
@@ -23,6 +24,7 @@ const TX_COLORS: Record<string, string> = {
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
+  // 基本情報取得
   const row = await db.select({
     id:               properties.id,
     product_category: properties.product_category,
@@ -38,6 +40,12 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     built_year:       properties.built_year,
     description:      properties.description,
     created_at:       properties.created_at,
+    account_id:                  properties.account_id,
+    contact_id:                  properties.contact_id,
+    seller_scrivener_account_id: properties.seller_scrivener_account_id,
+    seller_scrivener_contact_id: properties.seller_scrivener_contact_id,
+    buyer_scrivener_account_id:  properties.buyer_scrivener_account_id,
+    buyer_scrivener_contact_id:  properties.buyer_scrivener_contact_id,
     accounts: { id: accounts.id, name: accounts.name },
     contacts: { id: contacts.id, full_name: contacts.full_name },
   })
@@ -49,10 +57,38 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   if (!row) notFound()
 
-  const account  = row.accounts?.id ? row.accounts : null
-  const contact  = row.contacts?.id ? row.contacts : null
-  const isRE     = row.product_category !== 'other'
+  const isRE      = row.product_category !== 'other'
   const viewParam = isRE ? 'real_estate' : 'other'
+  const account   = row.accounts?.id ? row.accounts : null
+  const contact   = row.contacts?.id ? row.contacts : null
+
+  // 司法書士の名前を別途取得（不動産のみ）
+  let sellerScrivenerAccount: { id: string; name: string } | null = null
+  let sellerScrivenerContact: { id: string; full_name: string } | null = null
+  let buyerScrivenerAccount:  { id: string; name: string } | null = null
+  let buyerScrivenerContact:  { id: string; full_name: string } | null = null
+
+  if (isRE) {
+    const accountIds = [row.seller_scrivener_account_id, row.buyer_scrivener_account_id].filter(Boolean) as string[]
+    const contactIds = [row.seller_scrivener_contact_id, row.buyer_scrivener_contact_id].filter(Boolean) as string[]
+
+    const [scrAccounts, scrContacts] = await Promise.all([
+      accountIds.length > 0
+        ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(inArray(accounts.id, accountIds))
+        : Promise.resolve([]),
+      contactIds.length > 0
+        ? db.select({ id: contacts.id, full_name: contacts.full_name }).from(contacts).where(inArray(contacts.id, contactIds))
+        : Promise.resolve([]),
+    ])
+
+    const accMap = new Map(scrAccounts.map((a) => [a.id, a]))
+    const conMap = new Map(scrContacts.map((c) => [c.id, c]))
+
+    if (row.seller_scrivener_account_id) sellerScrivenerAccount = accMap.get(row.seller_scrivener_account_id) ?? null
+    if (row.seller_scrivener_contact_id) sellerScrivenerContact = conMap.get(row.seller_scrivener_contact_id) ?? null
+    if (row.buyer_scrivener_account_id)  buyerScrivenerAccount  = accMap.get(row.buyer_scrivener_account_id)  ?? null
+    if (row.buyer_scrivener_contact_id)  buyerScrivenerContact  = conMap.get(row.buyer_scrivener_contact_id)  ?? null
+  }
 
   async function handleDelete() {
     'use server'
@@ -105,7 +141,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${TX_COLORS[row.transaction_type] ?? 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
             {row.transaction_type}
           </span>
-          <span className="text-xs text-zinc-500">{row.property_type}</span>
+          {isRE && <span className="text-xs text-zinc-500">{row.property_type}</span>}
         </div>
       </div>
 
@@ -136,6 +172,55 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           </dd>
         </div>
       </div>
+
+      {/* 不動産：司法書士情報 */}
+      {isRE && (
+        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">⚖️ 司法書士情報</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* 売り方 */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">売り方</p>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">事務所</dt>
+                <dd className="text-sm text-zinc-800">
+                  {sellerScrivenerAccount
+                    ? <Link href={`/accounts/${sellerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{sellerScrivenerAccount.name}</Link>
+                    : <span className="text-zinc-300">—</span>}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+                <dd className="text-sm text-zinc-800">
+                  {sellerScrivenerContact
+                    ? <Link href={`/contacts/${sellerScrivenerContact.id}`} className="text-blue-600 hover:underline">{sellerScrivenerContact.full_name}</Link>
+                    : <span className="text-zinc-300">—</span>}
+                </dd>
+              </div>
+            </div>
+            {/* 買い方 */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">買い方</p>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">事務所</dt>
+                <dd className="text-sm text-zinc-800">
+                  {buyerScrivenerAccount
+                    ? <Link href={`/accounts/${buyerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{buyerScrivenerAccount.name}</Link>
+                    : <span className="text-zinc-300">—</span>}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+                <dd className="text-sm text-zinc-800">
+                  {buyerScrivenerContact
+                    ? <Link href={`/contacts/${buyerScrivenerContact.id}`} className="text-blue-600 hover:underline">{buyerScrivenerContact.full_name}</Link>
+                    : <span className="text-zinc-300">—</span>}
+                </dd>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 編集リンク */}
       <div className="flex gap-3">
