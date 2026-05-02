@@ -340,7 +340,7 @@ export default async function DashboardPage() {
                               <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-xs">{a.subject}</Link>
                               {account && <p className="text-xs text-zinc-400 mt-0.5 truncate">{account.name}</p>}
                             </td>
-                            <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">
+                            <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-sm">
                               {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
                             </td>
                           </tr>
