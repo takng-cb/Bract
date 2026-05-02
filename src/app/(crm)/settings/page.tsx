@@ -2,12 +2,18 @@ import PasswordForm from '@/components/PasswordForm'
 import NavOrderEditor from '@/components/NavOrderEditor'
 import ProfileForm from '@/components/ProfileForm'
 import SystemSettingsForm from '@/components/SystemSettingsForm'
+import DangerZone from '@/components/DangerZone'
 import { getNavOrderSettings } from '@/app/actions/navSettings'
 import { getSystemSettings, SYSTEM_DEFAULTS } from '@/lib/systemSettings'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { db } from '@/lib/db'
 import { user_preferences } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+
+function isAdmin(email: string | undefined): boolean {
+  if (!email) return false
+  return email.split('@')[0].toLowerCase() === 't_noguchi'
+}
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
@@ -57,6 +63,9 @@ export default async function SettingsPage() {
           fiscal_year_start:       systemSettings.fiscal_year_start,
         }}
       />
+
+      {/* 管理者専用：危険ゾーン */}
+      {isAdmin(user?.email) && <DangerZone />}
     </div>
   )
 }
