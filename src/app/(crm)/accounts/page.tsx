@@ -51,6 +51,7 @@ export default async function AccountsPage({
     {
       value: 'status', label: 'ステータス', type: 'select',
       options: [
+        { value: 'prospect', label: '見込み' },
         { value: 'active',   label: '有効' },
         { value: 'inactive', label: '無効' },
       ],
@@ -136,8 +137,12 @@ export default async function AccountsPage({
                     <td className="px-4 py-3 text-zinc-600">{account.type ?? '—'}</td>
                     <td className="px-4 py-3 text-zinc-600">{account.phone ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${account.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                        {account.status === 'active' ? '有効' : '無効'}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        account.status === 'active'   ? 'bg-green-100 text-green-700' :
+                        account.status === 'prospect' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-zinc-100 text-zinc-500'
+                      }`}>
+                        {account.status === 'active' ? '有効' : account.status === 'prospect' ? '見込み' : '無効'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -154,8 +159,12 @@ export default async function AccountsPage({
               <Link key={account.id} href={`/accounts/${account.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-semibold text-zinc-900 text-sm leading-snug">{account.name}</span>
-                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${account.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                    {account.status === 'active' ? '有効' : '無効'}
+                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
+                    account.status === 'active'   ? 'bg-green-100 text-green-700' :
+                    account.status === 'prospect' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-zinc-100 text-zinc-500'
+                  }`}>
+                    {account.status === 'active' ? '有効' : account.status === 'prospect' ? '見込み' : '無効'}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">

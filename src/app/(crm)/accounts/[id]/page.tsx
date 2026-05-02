@@ -12,8 +12,9 @@ import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
 
 const ACCOUNT_STAGES: StageConfig[] = [
-  { value: 'active',   label: '有効', activeColor: '#16a34a', pastColor: '#86efac' },
-  { value: 'inactive', label: '無効', activeColor: '#71717a', pastColor: '#d4d4d8' },
+  { value: 'prospect', label: '見込み', activeColor: '#2563eb', pastColor: '#93c5fd' },
+  { value: 'active',   label: '有効',   activeColor: '#16a34a', pastColor: '#86efac' },
+  { value: 'inactive', label: '無効',   activeColor: '#71717a', pastColor: '#d4d4d8' },
 ]
 
 const OPPORTUNITY_STAGE_LABELS: Record<string, string> = {

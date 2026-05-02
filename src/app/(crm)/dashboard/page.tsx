@@ -45,7 +45,7 @@ export default async function DashboardPage() {
     recentOpportunities,
     recentActivities,
   ] = await Promise.all([
-    db.select({ count: count() }).from(accounts).where(eq(accounts.status, 'active')),
+    db.select({ count: count() }).from(accounts).where(ne(accounts.status, 'inactive')),
     db.select({
       id: tasks.id, title: tasks.title, done: tasks.done,
       priority: tasks.priority, due_date: tasks.due_date,

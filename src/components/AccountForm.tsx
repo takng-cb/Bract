@@ -150,6 +150,7 @@ export default function AccountForm({ action, cancelHref, defaultValues = {} }: 
           defaultValue={defaultValues.status ?? 'active'}
           className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
+          <option value="prospect">見込み</option>
           <option value="active">有効</option>
           <option value="inactive">無効</option>
         </select>
