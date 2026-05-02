@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { properties, accounts, contacts } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import { eq, asc, ne } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import PropertyForm from '@/components/PropertyForm'
@@ -12,7 +12,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
   const [property, accountsList, contactsList] = await Promise.all([
     db.select().from(properties).where(eq(properties.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
-      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+      .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
   ])
@@ -28,16 +28,20 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
     }
   }
 
+  const viewParam = property.product_category === 'other' ? 'other' : 'real_estate'
+
   return (
     <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/properties" className="hover:text-zinc-600">物件・商品</Link>
+        <Link href={`/properties?view=${viewParam}`} className="hover:text-zinc-600">物件・商品</Link>
         <span className="mx-2">/</span>
         <Link href={`/properties/${id}`} className="hover:text-zinc-600 line-clamp-1">{property.name}</Link>
         <span className="mx-2">/</span>
         <span className="text-zinc-700">編集</span>
       </div>
-      <h1 className="text-2xl font-bold text-zinc-900 mb-6">物件を編集</h1>
+      <h1 className="text-2xl font-bold text-zinc-900 mb-6">
+        {viewParam === 'real_estate' ? '物件を編集' : '商品を編集'}
+      </h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <PropertyForm
           action={updatePropertyAction}

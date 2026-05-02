@@ -37,18 +37,19 @@ export const accounts = pgTable('accounts', {
 // contacts（担当者）
 // ----------------------------------------------------------------
 export const contacts = pgTable('contacts', {
-  id:          uuid('id').primaryKey().defaultRandom(),
-  account_id:  uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
-  full_name:   text('full_name').notNull(),
-  email:       text('email'),
-  phone:       text('phone'),
-  title:       text('title'),
-  department:  text('department'),
-  birthday:    date('birthday'),
-  description: text('description'),
-  owner_id:    uuid('owner_id'),
-  created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:           uuid('id').primaryKey().defaultRandom(),
+  account_id:   uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  contact_type: text('contact_type').notNull().default('business'), // 'business' | 'consumer'
+  full_name:    text('full_name').notNull(),
+  email:        text('email'),
+  phone:        text('phone'),
+  title:        text('title'),
+  department:   text('department'),
+  birthday:     date('birthday'),
+  description:  text('description'),
+  owner_id:     uuid('owner_id'),
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:   timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------
@@ -150,6 +151,7 @@ export const expenses = pgTable('expenses', {
 // ----------------------------------------------------------------
 export const properties = pgTable('properties', {
   id:               uuid('id').primaryKey().defaultRandom(),
+  product_category: text('product_category').notNull().default('real_estate'), // 'real_estate' | 'other'
   name:             text('name').notNull(),
   property_type:    text('property_type').notNull().default('その他'),
   transaction_type: text('transaction_type').notNull().default('売買'),

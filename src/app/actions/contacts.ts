@@ -7,25 +7,28 @@ import { redirect } from 'next/navigation'
 import { logChanges } from '@/lib/changeLog'
 
 export async function createContact(formData: FormData) {
-  const full_name = formData.get('full_name') as string
+  const full_name    = formData.get('full_name') as string
+  const contact_type = (formData.get('contact_type') as string) || 'business'
   if (!full_name?.trim()) throw new Error('氏名は必須です')
 
   const [row] = await db.insert(contacts).values({
+    contact_type,
     full_name:   full_name.trim(),
     email:       (formData.get('email') as string) || null,
     phone:       (formData.get('phone') as string) || null,
-    title:       (formData.get('title') as string) || null,
-    department:  (formData.get('department') as string) || null,
+    title:       contact_type === 'business' ? ((formData.get('title') as string) || null) : null,
+    department:  contact_type === 'business' ? ((formData.get('department') as string) || null) : null,
     birthday:    (formData.get('birthday') as string) || null,
     description: (formData.get('description') as string) || null,
-    account_id:  (formData.get('account_id') as string) || null,
+    account_id:  contact_type === 'business' ? ((formData.get('account_id') as string) || null) : null,
   }).returning({ id: contacts.id })
 
   redirect(`/contacts/${row.id}`)
 }
 
 export async function updateContact(id: string, formData: FormData) {
-  const full_name = formData.get('full_name') as string
+  const full_name    = formData.get('full_name') as string
+  const contact_type = (formData.get('contact_type') as string) || 'business'
   if (!full_name?.trim()) throw new Error('氏名は必須です')
 
   const [before] = await db.select({
@@ -34,14 +37,15 @@ export async function updateContact(id: string, formData: FormData) {
   }).from(contacts).where(eq(contacts.id, id))
 
   await db.update(contacts).set({
+    contact_type,
     full_name:   full_name.trim(),
     email:       (formData.get('email') as string) || null,
     phone:       (formData.get('phone') as string) || null,
-    title:       (formData.get('title') as string) || null,
-    department:  (formData.get('department') as string) || null,
+    title:       contact_type === 'business' ? ((formData.get('title') as string) || null) : null,
+    department:  contact_type === 'business' ? ((formData.get('department') as string) || null) : null,
     birthday:    (formData.get('birthday') as string) || null,
     description: (formData.get('description') as string) || null,
-    account_id:  (formData.get('account_id') as string) || null,
+    account_id:  contact_type === 'business' ? ((formData.get('account_id') as string) || null) : null,
     updated_at:  new Date(),
   }).where(eq(contacts.id, id))
 

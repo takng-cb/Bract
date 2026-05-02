@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { accounts, contacts } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import { ne, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import PropertyForm from '@/components/PropertyForm'
 import { createProperty } from '@/app/actions/properties'
@@ -14,10 +14,17 @@ async function createPropertyAction(_: string | null, formData: FormData): Promi
   }
 }
 
-export default async function NewPropertyPage() {
+export default async function NewPropertyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>
+}) {
+  const { view } = await searchParams
+  const category = view === 'other' ? 'other' : 'real_estate'
+
   const [accountsList, contactsList] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
-      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+      .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
   ])
@@ -25,17 +32,20 @@ export default async function NewPropertyPage() {
   return (
     <div className="p-4 md:p-8 max-w-2xl">
       <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/properties" className="hover:text-zinc-600">物件・商品</Link>
+        <Link href={`/properties?view=${category}`} className="hover:text-zinc-600">物件・商品</Link>
         <span className="mx-2">/</span>
         <span className="text-zinc-700">新規登録</span>
       </div>
-      <h1 className="text-2xl font-bold text-zinc-900 mb-6">物件を登録</h1>
+      <h1 className="text-2xl font-bold text-zinc-900 mb-6">
+        {category === 'real_estate' ? '物件を登録' : '商品を登録'}
+      </h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <PropertyForm
           action={createPropertyAction}
-          cancelHref="/properties"
+          cancelHref={`/properties?view=${category}`}
           accounts={accountsList}
           contacts={contactsList}
+          defaultValues={{ product_category: category }}
         />
       </div>
     </div>

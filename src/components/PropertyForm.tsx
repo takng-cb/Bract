@@ -1,16 +1,19 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 
-const PROPERTY_TYPES = ['マンション', '戸建て', '土地', 'ビル', '店舗', '倉庫', 'その他']
-const TRANSACTION_TYPES = ['売買', '賃貸']
-const STATUSES = ['募集中', '交渉中', '成約', '管理中', '終了']
+const PROPERTY_TYPES   = ['マンション', '戸建て', '土地', 'ビル', '店舗', '倉庫', 'その他']
+const STATUSES_RE      = ['募集中', '交渉中', '成約', '管理中', '終了']
+const STATUSES_OTHER   = ['提案中', '交渉中', '成約', '終了']
+const TX_TYPES_RE      = ['売買', '賃貸']
+const TX_TYPES_OTHER   = ['売買', '賃貸', 'サービス提供', 'その他']
 
 type Account  = { id: string; name: string }
 type Contact  = { id: string; full_name: string }
 
 interface DefaultValues {
+  product_category?: string
   name?:             string
   property_type?:    string
   transaction_type?: string
@@ -27,19 +30,24 @@ interface DefaultValues {
 }
 
 interface Props {
-  action:        (_: string | null, formData: FormData) => Promise<string | null>
-  cancelHref:    string
-  accounts:      Account[]
-  contacts:      Contact[]
+  action:         (_: string | null, formData: FormData) => Promise<string | null>
+  cancelHref:     string
+  accounts:       Account[]
+  contacts:       Contact[]
   defaultValues?: DefaultValues
 }
 
 export default function PropertyForm({ action, cancelHref, accounts, contacts, defaultValues = {} }: Props) {
   const [error, formAction, pending] = useActionState(action, null)
+  const [category, setCategory] = useState<string>(defaultValues.product_category ?? 'real_estate')
   const d = defaultValues
 
   const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-  const label = 'block text-sm font-medium text-zinc-700 mb-1'
+  const lbl   = 'block text-sm font-medium text-zinc-700 mb-1'
+
+  const isRE     = category === 'real_estate'
+  const statuses = isRE ? STATUSES_RE : STATUSES_OTHER
+  const txTypes  = isRE ? TX_TYPES_RE : TX_TYPES_OTHER
 
   return (
     <form action={formAction} className="space-y-5">
@@ -47,92 +55,152 @@ export default function PropertyForm({ action, cancelHref, accounts, contacts, d
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
 
-      {/* 物件名 */}
+      {/* カテゴリ切り替え */}
       <div>
-        <label className={label}>物件名 <span className="text-red-500">*</span></label>
-        <input type="text" name="name" required defaultValue={d.name ?? ''} placeholder="例：○○マンション301号室" className={field} />
+        <label className={lbl}>カテゴリ</label>
+        <div className="flex gap-0 rounded-md border border-zinc-300 overflow-hidden w-fit">
+          {[
+            { value: 'real_estate', label: '🏠 不動産' },
+            { value: 'other',       label: '📦 その他商品' },
+          ].map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setCategory(value)}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                category === value
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <input type="hidden" name="product_category" value={category} />
       </div>
 
-      {/* 種別 / 取引種別 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className={label}>物件種別</label>
-          <select name="property_type" defaultValue={d.property_type ?? 'その他'} className={field}>
-            {PROPERTY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className={label}>取引種別</label>
-          <select name="transaction_type" defaultValue={d.transaction_type ?? '売買'} className={field}>
-            {TRANSACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
+      {/* 件名 / 物件名 */}
+      <div>
+        <label className={lbl}>{isRE ? '物件名' : '件名'} <span className="text-red-500">*</span></label>
+        <input
+          type="text"
+          name="name"
+          required
+          defaultValue={d.name ?? ''}
+          placeholder={isRE ? '例：○○マンション301号室' : '例：コンサルティング契約'}
+          className={field}
+        />
       </div>
+
+      {/* 不動産のみ: 物件種別 */}
+      {isRE && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={lbl}>物件種別</label>
+            <select name="property_type" defaultValue={d.property_type ?? 'その他'} className={`${field} bg-white`}>
+              {PROPERTY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>取引種別</label>
+            <select name="transaction_type" defaultValue={d.transaction_type ?? '売買'} className={`${field} bg-white`}>
+              {txTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* その他: 取引種別のみ */}
+      {!isRE && (
+        <div>
+          <label className={lbl}>取引種別</label>
+          <select name="transaction_type" defaultValue={d.transaction_type ?? 'その他'} className={`${field} bg-white`}>
+            {txTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+      )}
 
       {/* ステータス */}
       <div>
-        <label className={label}>ステータス</label>
-        <select name="status" defaultValue={d.status ?? '募集中'} className={field}>
-          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        <label className={lbl}>ステータス</label>
+        <select
+          name="status"
+          defaultValue={d.status ?? (isRE ? '募集中' : '提案中')}
+          className={`${field} bg-white`}
+        >
+          {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
-      {/* 所在地 */}
-      <div>
-        <label className={label}>所在地</label>
-        <input type="text" name="address" defaultValue={d.address ?? ''} placeholder="例：東京都渋谷区○○1-2-3" className={field} />
-      </div>
-
-      {/* 面積 / 価格 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* 不動産のみ: 所在地 */}
+      {isRE && (
         <div>
-          <label className={label}>面積（㎡）</label>
-          <input type="number" name="area" defaultValue={d.area ?? ''} min="0" step="0.01" placeholder="例：65.5" className={field} />
+          <label className={lbl}>所在地</label>
+          <input type="text" name="address" defaultValue={d.address ?? ''} placeholder="例：東京都渋谷区○○1-2-3" className={field} />
         </div>
+      )}
+
+      {/* 金額 */}
+      <div className={isRE ? 'grid grid-cols-1 sm:grid-cols-2 gap-4' : ''}>
+        {isRE && (
+          <div>
+            <label className={lbl}>面積（㎡）</label>
+            <input type="number" name="area" defaultValue={d.area ?? ''} min="0" step="0.01" placeholder="例：65.5" className={field} />
+          </div>
+        )}
         <div>
-          <label className={label}>価格 / 賃料（円）</label>
+          <label className={lbl}>{isRE ? '価格 / 賃料（円）' : '金額（円）'}</label>
           <input type="number" name="price" defaultValue={d.price ?? ''} min="0" placeholder="例：50000000" className={field} />
         </div>
       </div>
 
-      {/* 所在階 / 総階数 / 築年 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label className={label}>所在階</label>
-          <input type="number" name="floor" defaultValue={d.floor ?? ''} min="1" placeholder="例：3" className={field} />
+      {/* 不動産のみ: 階数・築年 */}
+      {isRE && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className={lbl}>所在階</label>
+            <input type="number" name="floor" defaultValue={d.floor ?? ''} min="1" placeholder="例：3" className={field} />
+          </div>
+          <div>
+            <label className={lbl}>総階数</label>
+            <input type="number" name="total_floors" defaultValue={d.total_floors ?? ''} min="1" placeholder="例：10" className={field} />
+          </div>
+          <div>
+            <label className={lbl}>築年（西暦）</label>
+            <input type="number" name="built_year" defaultValue={d.built_year ?? ''} min="1900" max={new Date().getFullYear()} placeholder="例：2005" className={field} />
+          </div>
         </div>
-        <div>
-          <label className={label}>総階数</label>
-          <input type="number" name="total_floors" defaultValue={d.total_floors ?? ''} min="1" placeholder="例：10" className={field} />
-        </div>
-        <div>
-          <label className={label}>築年（西暦）</label>
-          <input type="number" name="built_year" defaultValue={d.built_year ?? ''} min="1900" max={new Date().getFullYear()} placeholder="例：2005" className={field} />
-        </div>
-      </div>
+      )}
 
-      {/* 関連取引先 / 関連担当者 */}
+      {/* 共通: 関連取引先 / 関連担当者 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={label}>関連取引先</label>
-          <select name="account_id" defaultValue={d.account_id ?? ''} className={field}>
+          <label className={lbl}>関連取引先</label>
+          <select name="account_id" defaultValue={d.account_id ?? ''} className={`${field} bg-white`}>
             <option value="">— 選択しない —</option>
             {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </div>
         <div>
-          <label className={label}>関連担当者</label>
-          <select name="contact_id" defaultValue={d.contact_id ?? ''} className={field}>
+          <label className={lbl}>関連人物</label>
+          <select name="contact_id" defaultValue={d.contact_id ?? ''} className={`${field} bg-white`}>
             <option value="">— 選択しない —</option>
             {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
           </select>
         </div>
       </div>
 
-      {/* 備考 */}
+      {/* 共通: 備考 */}
       <div>
-        <label className={label}>備考</label>
-        <textarea name="description" rows={4} defaultValue={d.description ?? ''} placeholder="物件の詳細情報、特記事項など" className={`${field} resize-none`} />
+        <label className={lbl}>備考</label>
+        <textarea
+          name="description"
+          rows={4}
+          defaultValue={d.description ?? ''}
+          placeholder={isRE ? '物件の詳細情報、特記事項など' : '商品・サービスの詳細情報など'}
+          className={`${field} resize-none`}
+        />
       </div>
 
       <div className="flex gap-3 pt-2">

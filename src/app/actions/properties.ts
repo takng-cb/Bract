@@ -7,18 +7,21 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 function parseForm(formData: FormData) {
-  const raw = (k: string) => (formData.get(k) as string | null) ?? ''
+  const raw      = (k: string) => (formData.get(k) as string | null) ?? ''
+  const category = raw('product_category') || 'real_estate'
+  const isRE     = category === 'real_estate'
   return {
+    product_category: category,
     name:             raw('name'),
-    property_type:    raw('property_type') || 'その他',
-    transaction_type: raw('transaction_type') || '売買',
-    status:           raw('status') || '募集中',
-    address:          raw('address') || null,
-    area:             raw('area') ? String(Number(raw('area'))) : null,
+    property_type:    isRE ? (raw('property_type') || 'その他') : 'その他',
+    transaction_type: raw('transaction_type') || (isRE ? '売買' : 'その他'),
+    status:           raw('status') || (isRE ? '募集中' : '提案中'),
+    address:          isRE ? (raw('address') || null) : null,
+    area:             isRE && raw('area') ? String(Number(raw('area'))) : null,
     price:            raw('price') ? String(Number(raw('price'))) : null,
-    floor:            raw('floor') ? Number(raw('floor')) : null,
-    total_floors:     raw('total_floors') ? Number(raw('total_floors')) : null,
-    built_year:       raw('built_year') ? Number(raw('built_year')) : null,
+    floor:            isRE && raw('floor') ? Number(raw('floor')) : null,
+    total_floors:     isRE && raw('total_floors') ? Number(raw('total_floors')) : null,
+    built_year:       isRE && raw('built_year') ? Number(raw('built_year')) : null,
     account_id:       raw('account_id') || null,
     contact_id:       raw('contact_id') || null,
     description:      raw('description') || null,

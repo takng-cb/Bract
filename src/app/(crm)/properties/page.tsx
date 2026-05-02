@@ -10,6 +10,7 @@ const PAGE_SIZE = 20
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
+  '提案中': 'bg-blue-100 text-blue-700',
   '交渉中': 'bg-yellow-100 text-yellow-700',
   '成約':   'bg-green-100 text-green-700',
   '管理中': 'bg-purple-100 text-purple-700',
@@ -17,13 +18,15 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const TX_COLORS: Record<string, string> = {
-  '売買': 'bg-orange-50 text-orange-700',
-  '賃貸': 'bg-cyan-50 text-cyan-700',
+  '売買':       'bg-orange-50 text-orange-700',
+  '賃貸':       'bg-cyan-50 text-cyan-700',
+  'サービス提供': 'bg-purple-50 text-purple-700',
+  'その他':     'bg-zinc-100 text-zinc-600',
 }
 
-const FIELDS: FieldDef[] = [
-  { value: 'name',        label: '物件名',   type: 'text' },
-  { value: 'address',     label: '所在地',   type: 'text' },
+const FIELDS_RE: FieldDef[] = [
+  { value: 'name',    label: '物件名',   type: 'text' },
+  { value: 'address', label: '所在地',   type: 'text' },
   {
     value: 'property_type', label: '物件種別', type: 'select',
     options: ['マンション','戸建て','土地','ビル','店舗','倉庫','その他'].map((v) => ({ value: v, label: v })),
@@ -40,18 +43,33 @@ const FIELDS: FieldDef[] = [
   { value: 'area',  label: '面積（㎡）', type: 'number' },
 ]
 
+const FIELDS_OTHER: FieldDef[] = [
+  { value: 'name', label: '件名', type: 'text' },
+  {
+    value: 'transaction_type', label: '取引種別', type: 'select',
+    options: ['売買','賃貸','サービス提供','その他'].map((v) => ({ value: v, label: v })),
+  },
+  {
+    value: 'status', label: 'ステータス', type: 'select',
+    options: ['提案中','交渉中','成約','終了'].map((v) => ({ value: v, label: v })),
+  },
+  { value: 'price', label: '金額（円）', type: 'number' },
+]
+
 export default async function PropertiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string }>
 }) {
   const sp = await searchParams
-  const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
-  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const view      = sp.view === 'other' ? 'other' : 'real_estate'
+  const filterRaw = [sp.f].flat().filter(Boolean) as string[]
+  const page      = Math.max(1, parseInt(sp.page ?? '1', 10))
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
     id:               properties.id,
+    product_category: properties.product_category,
     name:             properties.name,
     property_type:    properties.property_type,
     transaction_type: properties.transaction_type,
@@ -66,6 +84,7 @@ export default async function PropertiesPage({
     .from(properties)
     .leftJoin(accounts, eq(properties.account_id, accounts.id))
     .leftJoin(contacts, eq(properties.contact_id, contacts.id))
+    .where(eq(properties.product_category, view))
     .orderBy(desc(properties.created_at))
 
   const list       = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
@@ -73,6 +92,10 @@ export default async function PropertiesPage({
   const totalCount = list.length
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
   const pagedList  = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+
+  const isRE    = view === 'real_estate'
+  const FIELDS  = isRE ? FIELDS_RE : FIELDS_OTHER
+  const newHref = `/properties/new?view=${view}`
 
   return (
     <div className="p-4 md:p-8">
@@ -84,23 +107,45 @@ export default async function PropertiesPage({
           </p>
         </div>
         <Link
-          href="/properties/new"
+          href={newHref}
           className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
         >
           ＋ 新規登録
         </Link>
       </div>
 
-      <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/properties" />
+      {/* タブ */}
+      <div className="flex gap-1 mb-4 border-b border-zinc-200">
+        {[
+          { value: 'real_estate', label: '🏠 不動産' },
+          { value: 'other',       label: '📦 その他商品' },
+        ].map(({ value, label }) => (
+          <Link
+            key={value}
+            href={`/properties?view=${value}`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              view === value
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-zinc-500 hover:text-zinc-700'
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+
+      <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/properties" persistParams={{ view }} />
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">🏠</p>
+          <p className="text-4xl mb-4">{isRE ? '🏠' : '📦'}</p>
           <p className="text-lg font-medium">
-            {hasFilter ? '条件に一致する物件がありません' : '物件がまだありません'}
+            {hasFilter
+              ? `条件に一致する${isRE ? '物件' : '商品'}がありません`
+              : `${isRE ? '物件' : '商品'}がまだありません`}
           </p>
           {hasFilter
-            ? <Link href="/properties" className="text-sm text-blue-600 hover:underline mt-1 block">絞り込みをクリア</Link>
+            ? <Link href={`/properties?view=${view}`} className="text-sm text-blue-600 hover:underline mt-1 block">絞り込みをクリア</Link>
             : <p className="text-sm mt-1">「新規登録」ボタンから追加してください</p>
           }
         </div>
@@ -111,11 +156,11 @@ export default async function PropertiesPage({
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 border-b border-zinc-200">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">物件名</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">所在地</th>
-                  <th className="text-right px-4 py-3 font-medium text-zinc-600">面積</th>
-                  <th className="text-right px-4 py-3 font-medium text-zinc-600">価格 / 賃料</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">{isRE ? '物件名' : '件名'}</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">{isRE ? '種別' : '取引種別'}</th>
+                  {isRE && <th className="text-left px-4 py-3 font-medium text-zinc-600">所在地</th>}
+                  {isRE && <th className="text-right px-4 py-3 font-medium text-zinc-600">面積</th>}
+                  <th className="text-right px-4 py-3 font-medium text-zinc-600">{isRE ? '価格 / 賃料' : '金額'}</th>
                   <th className="text-left px-4 py-3 font-medium text-zinc-600">ステータス</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -123,22 +168,30 @@ export default async function PropertiesPage({
               <tbody className="divide-y divide-zinc-100">
                 {pagedList.map((p) => {
                   const account = p.accounts?.id ? p.accounts : null
+                  const contact = p.contacts?.id ? p.contacts : null
                   return (
                     <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
                       <td className="px-4 py-3 font-medium text-zinc-900">
                         <Link href={`/properties/${p.id}`} className="hover:text-blue-600">{p.name}</Link>
                         {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
+                        {!isRE && contact && <p className="text-xs text-zinc-400 mt-0.5">👤 {contact.full_name}</p>}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-zinc-600 text-xs">{p.property_type}</span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium w-fit ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
-                        </div>
+                        {isRE ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-zinc-600 text-xs">{p.property_type}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium w-fit ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
+                          </div>
+                        ) : (
+                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-zinc-500 text-xs max-w-[12rem] truncate">{p.address ?? '—'}</td>
-                      <td className="px-4 py-3 text-right text-zinc-600 whitespace-nowrap">
-                        {p.area ? `${Number(p.area).toLocaleString()} ㎡` : '—'}
-                      </td>
+                      {isRE && <td className="px-4 py-3 text-zinc-500 text-xs max-w-[12rem] truncate">{p.address ?? '—'}</td>}
+                      {isRE && (
+                        <td className="px-4 py-3 text-right text-zinc-600 whitespace-nowrap">
+                          {p.area ? `${Number(p.area).toLocaleString()} ㎡` : '—'}
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-right font-medium text-zinc-800 whitespace-nowrap">
                         {p.price ? `¥${Number(p.price).toLocaleString()}` : '—'}
                       </td>
@@ -170,13 +223,13 @@ export default async function PropertiesPage({
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
-                    <span className="text-xs text-zinc-500">{p.property_type}</span>
+                    {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
                     <span className={`text-xs px-1.5 py-0 rounded font-medium ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
                   </div>
-                  {p.address && <p className="text-xs text-zinc-400 mt-1 truncate">📍 {p.address}</p>}
+                  {isRE && p.address && <p className="text-xs text-zinc-400 mt-1 truncate">📍 {p.address}</p>}
                   {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
                   <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                    <span>{p.area ? `${Number(p.area).toLocaleString()} ㎡` : ''}</span>
+                    <span>{isRE && p.area ? `${Number(p.area).toLocaleString()} ㎡` : ''}</span>
                     {p.price && <span className="font-semibold text-zinc-800">¥{Number(p.price).toLocaleString()}</span>}
                   </div>
                 </Link>
@@ -185,7 +238,13 @@ export default async function PropertiesPage({
           </div>
         </>
       )}
-      <Pagination currentPage={page} totalPages={totalPages} basePath="/properties" filterParams={filterRaw} />
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        basePath="/properties"
+        filterParams={filterRaw}
+        extraParams={{ view }}
+      />
     </div>
   )
 }

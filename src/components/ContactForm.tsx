@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 
 type Account = { id: string; name: string }
@@ -10,6 +10,7 @@ type ContactFormProps = {
   cancelHref: string
   accounts: Account[]
   defaultValues?: {
+    contact_type?: string | null
     full_name?: string
     email?: string | null
     phone?: string | null
@@ -23,6 +24,10 @@ type ContactFormProps = {
 
 export default function ContactForm({ action, cancelHref, accounts, defaultValues = {} }: ContactFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
+  const [contactType, setContactType] = useState<string>(defaultValues.contact_type ?? 'business')
+
+  const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+  const lbl   = 'block text-sm font-medium text-zinc-700 mb-1'
 
   return (
     <form action={formAction} className="space-y-5">
@@ -30,92 +35,120 @@ export default function ContactForm({ action, cancelHref, accounts, defaultValue
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
 
+      {/* 人物タイプ */}
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">
-          氏名 <span className="text-red-500">*</span>
-        </label>
+        <label className={lbl}>人物タイプ</label>
+        <div className="flex gap-0 rounded-md border border-zinc-300 overflow-hidden w-fit">
+          {[
+            { value: 'business', label: '法人担当（ToB）' },
+            { value: 'consumer', label: '個人顧客（ToC）' },
+          ].map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setContactType(value)}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                contactType === value
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <input type="hidden" name="contact_type" value={contactType} />
+      </div>
+
+      {/* 氏名 */}
+      <div>
+        <label className={lbl}>氏名 <span className="text-red-500">*</span></label>
         <input
           name="full_name"
           defaultValue={defaultValues.full_name ?? ''}
           required
-          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={field}
           placeholder="例: 田中 太郎"
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">取引先</label>
-        <select
-          name="account_id"
-          defaultValue={defaultValues.account_id ?? ''}
-          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">選択してください</option>
-          {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-      </div>
+      {/* 法人担当のみ: 取引先・役職・部署 */}
+      {contactType === 'business' && (
+        <>
+          <div>
+            <label className={lbl}>取引先</label>
+            <select name="account_id" defaultValue={defaultValues.account_id ?? ''} className={`${field} bg-white`}>
+              <option value="">選択してください</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={lbl}>役職</label>
+              <input
+                name="title"
+                defaultValue={defaultValues.title ?? ''}
+                className={field}
+                placeholder="例: 営業部長"
+              />
+            </div>
+            <div>
+              <label className={lbl}>部署</label>
+              <input
+                name="department"
+                defaultValue={defaultValues.department ?? ''}
+                className={field}
+                placeholder="例: 営業部"
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 共通: メール・電話 */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">役職</label>
-          <input
-            name="title"
-            defaultValue={defaultValues.title ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="例: 営業部長"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">部署</label>
-          <input
-            name="department"
-            defaultValue={defaultValues.department ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="例: 営業部"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">メールアドレス</label>
+          <label className={lbl}>メールアドレス</label>
           <input
             name="email"
             type="email"
             defaultValue={defaultValues.email ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={field}
             placeholder="例: tanaka@example.com"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">電話番号</label>
+          <label className={lbl}>電話番号</label>
           <input
             name="phone"
             defaultValue={defaultValues.phone ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="例: 03-1234-5678"
+            className={field}
+            placeholder="例: 090-1234-5678"
           />
         </div>
       </div>
 
+      {/* 共通: 誕生日 */}
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">誕生日</label>
+        <label className={lbl}>誕生日</label>
         <input
           name="birthday"
           type="date"
           defaultValue={defaultValues.birthday ?? ''}
-          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={field}
         />
       </div>
 
+      {/* 共通: メモ */}
       <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">メモ</label>
+        <label className={lbl}>メモ</label>
         <textarea
           name="description"
           rows={3}
           defaultValue={defaultValues.description ?? ''}
-          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          placeholder="担当者に関するメモを記入してください..."
+          className={`${field} resize-none`}
+          placeholder="メモを記入してください..."
         />
       </div>
 

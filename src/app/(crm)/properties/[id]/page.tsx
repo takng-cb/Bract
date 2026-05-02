@@ -24,6 +24,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   const row = await db.select({
     id:               properties.id,
+    product_category: properties.product_category,
     name:             properties.name,
     property_type:    properties.property_type,
     transaction_type: properties.transaction_type,
@@ -47,15 +48,17 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   if (!row) notFound()
 
-  const account = row.accounts?.id ? row.accounts : null
-  const contact = row.contacts?.id ? row.contacts : null
+  const account  = row.accounts?.id ? row.accounts : null
+  const contact  = row.contacts?.id ? row.contacts : null
+  const isRE     = row.product_category !== 'other'
+  const viewParam = isRE ? 'real_estate' : 'other'
 
   async function handleDelete() {
     'use server'
     await deleteProperty(id)
   }
 
-  const detailItems = [
+  const detailItems = isRE ? [
     { label: '物件種別',   value: row.property_type },
     { label: '取引種別',   value: row.transaction_type },
     { label: '所在地',     value: row.address },
@@ -65,14 +68,20 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     { label: '総階数',     value: row.total_floors ? `${row.total_floors}階建て` : null },
     { label: '築年',       value: row.built_year   ? `${row.built_year}年` : null },
     { label: '関連取引先', value: account ? account.name : null, href: account ? `/accounts/${account.id}` : undefined },
-    { label: '関連担当者', value: contact ? contact.full_name : null, href: contact ? `/contacts/${contact.id}` : undefined },
+    { label: '関連人物',   value: contact ? contact.full_name : null, href: contact ? `/contacts/${contact.id}` : undefined },
+    { label: '登録日',     value: row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : null },
+  ] : [
+    { label: '取引種別',   value: row.transaction_type },
+    { label: '金額',       value: row.price ? `¥${Number(row.price).toLocaleString()}` : null },
+    { label: '関連取引先', value: account ? account.name : null, href: account ? `/accounts/${account.id}` : undefined },
+    { label: '関連人物',   value: contact ? contact.full_name : null, href: contact ? `/contacts/${contact.id}` : undefined },
     { label: '登録日',     value: row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : null },
   ]
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
       <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/properties" className="hover:text-zinc-600">物件・商品</Link>
+        <Link href={`/properties?view=${viewParam}`} className="hover:text-zinc-600">物件・商品</Link>
         <span className="mx-2">/</span>
         <span className="text-zinc-700 line-clamp-1">{row.name}</span>
       </div>
@@ -99,9 +108,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      {/* 物件情報 */}
+      {/* 物件・商品情報 */}
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">物件情報</h2>
+        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">{isRE ? '物件情報' : '商品情報'}</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {detailItems.map(({ label, value, href }) => (
             <div key={label}>
@@ -132,7 +141,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         <Link href={`/properties/${id}/edit`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
           編集する
         </Link>
-        <Link href="/properties" className="px-4 py-2 border border-zinc-300 text-sm rounded-md hover:bg-zinc-50 transition-colors">
+        <Link href={`/properties?view=${viewParam}`} className="px-4 py-2 border border-zinc-300 text-sm rounded-md hover:bg-zinc-50 transition-colors">
           一覧に戻る
         </Link>
       </div>

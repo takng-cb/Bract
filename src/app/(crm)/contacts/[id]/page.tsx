@@ -36,7 +36,7 @@ export default async function ContactDetailPage({
 
   const [contact, activitiesList, tasksList, attachmentsList] = await Promise.all([
     db.select({
-      id: contacts.id, full_name: contacts.full_name, email: contacts.email,
+      id: contacts.id, contact_type: contacts.contact_type, full_name: contacts.full_name, email: contacts.email,
       phone: contacts.phone, title: contacts.title, department: contacts.department,
       birthday: contacts.birthday, description: contacts.description,
       created_at: contacts.created_at,
@@ -52,7 +52,9 @@ export default async function ContactDetailPage({
   ])
 
   if (!contact) notFound()
-  const account = contact.accounts?.id ? contact.accounts : null
+  const account   = contact.accounts?.id ? contact.accounts : null
+  const view      = contact.contact_type === 'consumer' ? 'consumer' : 'business'
+  const isBiz     = view === 'business'
 
   async function handleDelete() {
     'use server'
@@ -85,7 +87,7 @@ export default async function ContactDetailPage({
   return (
     <div className="p-4 md:p-8 max-w-3xl">
       <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/contacts" className="hover:text-zinc-600">担当者</Link>
+        <Link href={`/contacts?view=${view}`} className="hover:text-zinc-600">人物</Link>
         <span className="mx-2">/</span>
         <span className="text-zinc-700">{contact.full_name}</span>
       </div>
@@ -95,11 +97,13 @@ export default async function ContactDetailPage({
           <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{contact.full_name}</h1>
           <div className="flex items-center gap-2 shrink-0 mt-0.5">
             <Link href={`/contacts/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
-            <DeleteButton action={handleDelete} confirmMessage="この担当者を削除しますか？" />
+            <DeleteButton action={handleDelete} confirmMessage="この人物を削除しますか？" />
           </div>
         </div>
         <p className="text-zinc-500 text-sm mt-1">
-          {[contact.title, contact.department].filter(Boolean).join(' · ') || '役職未設定'}
+          {isBiz
+            ? [contact.title, contact.department].filter(Boolean).join(' · ') || '役職未設定'
+            : '個人顧客'}
         </p>
         <div className="mt-2">
           <TagsSection objectType="contact" objectId={id} revalidatePath={`/contacts/${id}`} />
@@ -110,20 +114,26 @@ export default async function ContactDetailPage({
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">基本情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
-            <dd className="text-sm text-zinc-800">
-              {account ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name}</Link> : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">役職</dt>
-            <dd className="text-sm text-zinc-800">{contact.title ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">部署</dt>
-            <dd className="text-sm text-zinc-800">{contact.department ?? '—'}</dd>
-          </div>
+          {isBiz && (
+            <div>
+              <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
+              <dd className="text-sm text-zinc-800">
+                {account ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name}</Link> : '—'}
+              </dd>
+            </div>
+          )}
+          {isBiz && (
+            <div>
+              <dt className="text-xs text-zinc-400 mb-1">役職</dt>
+              <dd className="text-sm text-zinc-800">{contact.title ?? '—'}</dd>
+            </div>
+          )}
+          {isBiz && (
+            <div>
+              <dt className="text-xs text-zinc-400 mb-1">部署</dt>
+              <dd className="text-sm text-zinc-800">{contact.department ?? '—'}</dd>
+            </div>
+          )}
           <div>
             <dt className="text-xs text-zinc-400 mb-1">誕生日</dt>
             <dd className="text-sm text-zinc-800">
