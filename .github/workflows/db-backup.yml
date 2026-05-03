@@ -1,0 +1,55 @@
+name: DB Backup to Google Drive
+
+on:
+  schedule:
+    # 毎週月曜 6:00 JST（= 日曜 21:00 UTC）
+    - cron: '0 21 * * 0'
+  workflow_dispatch:
+    # GitHub Actions画面から手動実行も可能
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          FILENAME="crm_backup_$(date +%Y%m%d_%H%M%S).sql"
+          pg_dump "$DATABASE_URL" \
+            --no-owner \
+            --no-acl \
+            --format=plain \
+            > "$FILENAME"
+          gzip "$FILENAME"
+          echo "BACKUP_FILE=${FILENAME}.gz" >> $GITHUB_ENV
+          echo "Backup created: ${FILENAME}.gz ($(du -sh ${FILENAME}.gz | cut -f1))"
+
+      - name: Install rclone
+        run: curl https://rclone.org/install.sh | sudo bash
+
+      - name: Configure rclone
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+
+      - name: Upload to Google Drive
+        run: |
+          rclone copy "${{ env.BACKUP_FILE }}" gdrive:CRM_Backup/
+          echo "Uploaded to Google Drive: CRM_Backup/${{ env.BACKUP_FILE }}"
+
+      - name: Delete backups older than 90 days
+        run: |
+          rclone delete --min-age 90d gdrive:CRM_Backup/
+          echo "Old backups cleaned up (>90 days)"
+
+      - name: List current backups
+        run: |
+          echo "=== Current backups in Google Drive ==="
+          rclone ls gdrive:CRM_Backup/
