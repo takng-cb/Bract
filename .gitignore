@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backup scripts (DB URL が含まれるためgit管理外)
+/scripts/backup.ps1
