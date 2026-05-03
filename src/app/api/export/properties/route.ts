@@ -18,6 +18,9 @@ export async function GET() {
       floor:            properties.floor,
       total_floors:     properties.total_floors,
       built_year:       properties.built_year,
+      chimoku:          properties.chimoku,
+      structure:        properties.structure,
+      rights_status:    properties.rights_status,
       description:      properties.description,
       accounts:         { name: accounts.name },
       contacts:         { full_name: contacts.full_name },
@@ -30,7 +33,7 @@ export async function GET() {
     const headers = [
       'カテゴリ', '件名', '物件種別', '取引種別', 'ステータス',
       '所在地', '面積(㎡)', '価格(円)', '所在階', '総階数', '築年',
-      '取引先名', '担当者名', '備考',
+      '取引先名', '担当者名', '地目', '構造', '権利状況', '備考',
     ]
     const rows = data.map((r) => [
       r.product_category === 'other' ? 'その他商品' : '不動産',
@@ -46,6 +49,9 @@ export async function GET() {
       r.built_year     ?? '',
       r.accounts?.name      ?? '',
       r.contacts?.full_name ?? '',
+      r.chimoku        ?? '',
+      r.structure      ?? '',
+      r.rights_status  ?? '',
       r.description    ?? '',
     ])
 
