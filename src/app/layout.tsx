@@ -15,7 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Bract CRM",
   description: "社内CRMシステム",
-  icons: { icon: '/icon.png' },
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',   // iOS「ホーム画面に追加」用
+  },
 };
 
 export default function RootLayout({
