@@ -30,6 +30,9 @@ interface DefaultValues {
   seller_scrivener_contact_id?: string | null
   buyer_scrivener_account_id?:  string | null
   buyer_scrivener_contact_id?:  string | null
+  chimoku?:                    string | null
+  structure?:                  string | null
+  rights_status?:              string | null
   description?:                string | null
 }
 
@@ -178,6 +181,24 @@ export default function PropertyForm({
           <div>
             <label className={lbl}>築年（西暦）</label>
             <input type="number" name="built_year" defaultValue={d.built_year ?? ''} min="1900" max={new Date().getFullYear()} placeholder="例：2005" className={field} />
+          </div>
+        </div>
+      )}
+
+      {/* 不動産のみ: 地目・構造・権利状況 */}
+      {isRE && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className={lbl}>地目</label>
+            <input type="text" name="chimoku" defaultValue={d.chimoku ?? ''} placeholder="例：宅地、農地、山林" className={field} />
+          </div>
+          <div>
+            <label className={lbl}>構造</label>
+            <input type="text" name="structure" defaultValue={d.structure ?? ''} placeholder="例：RC造、木造、鉄骨造" className={field} />
+          </div>
+          <div>
+            <label className={lbl}>権利状況</label>
+            <input type="text" name="rights_status" defaultValue={d.rights_status ?? ''} placeholder="例：所有権、借地権、地上権" className={field} />
           </div>
         </div>
       )}

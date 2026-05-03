@@ -28,6 +28,9 @@ function parseForm(formData: FormData) {
     seller_scrivener_contact_id: isRE ? (raw('seller_scrivener_contact_id') || null) : null,
     buyer_scrivener_account_id:  isRE ? (raw('buyer_scrivener_account_id')  || null) : null,
     buyer_scrivener_contact_id:  isRE ? (raw('buyer_scrivener_contact_id')  || null) : null,
+    chimoku:       isRE ? (raw('chimoku')       || null) : null,
+    structure:     isRE ? (raw('structure')     || null) : null,
+    rights_status: isRE ? (raw('rights_status') || null) : null,
     description:      raw('description') || null,
   }
 }
