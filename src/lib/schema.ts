@@ -297,7 +297,7 @@ export const tagsRelations = relations(tags, ({ many }) => ({
 export const users = pgTable('users', {
   id:         uuid('id').primaryKey(),           // Supabase Auth UID
   email:      text('email').notNull(),
-  role:       text('role').notNull().default('member'), // 'admin' | 'member'
+  role:       text('role').notNull().default('viewer'), // 'admin' | 'editor' | 'viewer'
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 

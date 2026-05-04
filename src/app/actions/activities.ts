@@ -1,5 +1,7 @@
 'use server'
 
+import { requireEditor } from '@/lib/auth'
+
 import { db } from '@/lib/db'
 import { activities, activity_contacts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
@@ -15,6 +17,7 @@ async function syncActivityContacts(activityId: string, contactIds: string[]) {
 }
 
 export async function updateActivity(id: string, formData: FormData) {
+  await requireEditor()
   const subject = formData.get('subject') as string
   if (!subject?.trim()) throw new Error('件名は必須です')
 
@@ -41,11 +44,13 @@ export async function updateActivity(id: string, formData: FormData) {
 }
 
 export async function deleteActivity(id: string) {
+  await requireEditor()
   await db.delete(activities).where(eq(activities.id, id))
   redirect('/activities')
 }
 
 export async function createActivity(formData: FormData) {
+  await requireEditor()
   const subject = formData.get('subject') as string
   if (!subject?.trim()) throw new Error('件名は必須です')
 

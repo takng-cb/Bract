@@ -1,5 +1,7 @@
 'use server'
 
+import { requireEditor } from '@/lib/auth'
+
 import { db } from '@/lib/db'
 import { tasks } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
@@ -7,6 +9,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 export async function createTask(formData: FormData) {
+  await requireEditor()
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('タイトルは必須です')
 
@@ -30,6 +33,7 @@ export async function createTask(formData: FormData) {
 }
 
 export async function updateTask(id: string, formData: FormData) {
+  await requireEditor()
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('タイトルは必須です')
 
@@ -47,11 +51,13 @@ export async function updateTask(id: string, formData: FormData) {
 }
 
 export async function deleteTask(id: string) {
+  await requireEditor()
   await db.delete(tasks).where(eq(tasks.id, id))
   redirect('/tasks')
 }
 
 export async function toggleTaskDone(id: string, done: boolean, revalidate: string) {
+  await requireEditor()
   await db.update(tasks)
     .set({ done, updated_at: new Date() })
     .where(eq(tasks.id, id))

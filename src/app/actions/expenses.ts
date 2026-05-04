@@ -1,5 +1,7 @@
 'use server'
 
+import { requireEditor } from '@/lib/auth'
+
 import { db } from '@/lib/db'
 import { expenses } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
@@ -7,6 +9,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 export async function createExpense(formData: FormData) {
+  await requireEditor()
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('件名は必須です')
   const amount = formData.get('amount') as string
@@ -34,6 +37,7 @@ export async function createExpense(formData: FormData) {
 }
 
 export async function updateExpense(id: string, formData: FormData) {
+  await requireEditor()
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('件名は必須です')
   const amount = formData.get('amount') as string
@@ -55,6 +59,7 @@ export async function updateExpense(id: string, formData: FormData) {
 }
 
 export async function deleteExpense(id: string, revalidate: string) {
+  await requireEditor()
   await db.delete(expenses).where(eq(expenses.id, id))
   revalidatePath(revalidate)
   revalidatePath('/expenses')

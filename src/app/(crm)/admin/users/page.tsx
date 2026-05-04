@@ -1,0 +1,80 @@
+import { db } from '@/lib/db'
+import { users } from '@/lib/schema'
+import { requireAdmin } from '@/lib/auth'
+import { updateUserRole } from '@/app/actions/admin'
+import { asc } from 'drizzle-orm'
+
+const ROLE_LABELS: Record<string, string> = {
+  admin:  '管理者',
+  editor: '編集者',
+  viewer: '閲覧者',
+}
+const ROLE_COLORS: Record<string, string> = {
+  admin:  'bg-red-100 text-red-700',
+  editor: 'bg-blue-100 text-blue-700',
+  viewer: 'bg-zinc-100 text-zinc-600',
+}
+
+export default async function AdminUsersPage() {
+  await requireAdmin()
+
+  const allUsers = await db
+    .select()
+    .from(users)
+    .orderBy(asc(users.created_at))
+
+  return (
+    <div className="p-4 md:p-8 max-w-3xl">
+      <h1 className="text-2xl font-bold text-zinc-900 mb-1">ユーザー管理</h1>
+      <p className="text-sm text-zinc-500 mb-6">ログインユーザーの権限を設定します</p>
+
+      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-zinc-50 border-b border-zinc-200">
+            <tr>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500">メールアドレス</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500">現在の権限</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500">変更</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {allUsers.map((u) => (
+              <tr key={u.id} className="hover:bg-zinc-50">
+                <td className="px-4 py-3 text-zinc-800">{u.email}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${ROLE_COLORS[u.role] ?? ''}`}>
+                    {ROLE_LABELS[u.role] ?? u.role}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <form action={updateUserRole}>
+                    <input type="hidden" name="userId" value={u.id} />
+                    <select
+                      name="role"
+                      defaultValue={u.role}
+                      onChange={(e) => (e.target.form as HTMLFormElement).requestSubmit()}
+                      className="border border-zinc-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="admin">管理者</option>
+                      <option value="editor">編集者</option>
+                      <option value="viewer">閲覧者</option>
+                    </select>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {allUsers.length === 0 && (
+          <p className="text-center text-zinc-400 text-sm py-8">ユーザーがいません</p>
+        )}
+      </div>
+
+      <div className="mt-6 bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-xs text-zinc-500 space-y-1">
+        <p><span className="font-semibold text-red-600">管理者</span>：全操作 ＋ ユーザー管理</p>
+        <p><span className="font-semibold text-blue-600">編集者</span>：データの登録・編集・削除</p>
+        <p><span className="font-semibold text-zinc-600">閲覧者</span>：データの閲覧のみ</p>
+      </div>
+    </div>
+  )
+}

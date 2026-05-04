@@ -1,5 +1,7 @@
 'use server'
 
+import { requireEditor } from '@/lib/auth'
+
 import { db } from '@/lib/db'
 import { properties } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
@@ -36,6 +38,7 @@ function parseForm(formData: FormData) {
 }
 
 export async function createProperty(formData: FormData) {
+  await requireEditor()
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
   const [row] = await db.insert(properties).values(data).returning({ id: properties.id })
@@ -44,6 +47,7 @@ export async function createProperty(formData: FormData) {
 }
 
 export async function updateProperty(id: string, formData: FormData) {
+  await requireEditor()
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
   await db.update(properties).set({ ...data, updated_at: new Date() }).where(eq(properties.id, id))
@@ -53,6 +57,7 @@ export async function updateProperty(id: string, formData: FormData) {
 }
 
 export async function deleteProperty(id: string) {
+  await requireEditor()
   await db.delete(properties).where(eq(properties.id, id))
   revalidatePath('/properties')
   redirect('/properties')

@@ -1,5 +1,7 @@
 'use server'
 
+import { requireEditor } from '@/lib/auth'
+
 import { db } from '@/lib/db'
 import { opportunities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
@@ -8,6 +10,7 @@ import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
 
 export async function updateOpportunityStage(id: string, stage: string) {
+  await requireEditor()
   const [before] = await db.select({ stage: opportunities.stage })
     .from(opportunities).where(eq(opportunities.id, id))
 
@@ -24,6 +27,7 @@ export async function updateOpportunityStage(id: string, stage: string) {
 }
 
 export async function createOpportunity(formData: FormData) {
+  await requireEditor()
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('商談名は必須です')
 
@@ -45,6 +49,7 @@ export async function createOpportunity(formData: FormData) {
 }
 
 export async function updateOpportunity(id: string, formData: FormData) {
+  await requireEditor()
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('商談名は必須です')
 
@@ -93,6 +98,7 @@ export async function updateOpportunity(id: string, formData: FormData) {
 }
 
 export async function deleteOpportunity(id: string) {
+  await requireEditor()
   await db.delete(opportunities).where(eq(opportunities.id, id))
   redirect('/opportunities')
 }

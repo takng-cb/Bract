@@ -1,9 +1,5 @@
-/**
- * Magic Link / OAuth コールバックルート
- * Supabase が認証後に ?code=xxx でリダイレクトしてくるのを受け取り、
- * セッションに交換してアプリ内ページへ転送する。
- */
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { provisionUser } from '@/lib/userRole'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -13,7 +9,12 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createSupabaseServerClient()
-    await supabase.auth.exchangeCodeForSession(code)
+    const { data } = await supabase.auth.exchangeCodeForSession(code)
+
+    // Google OAuth 経由のログイン後もプロビジョニング
+    if (data.user) {
+      await provisionUser(data.user.id, data.user.email ?? '')
+    }
   }
 
   return NextResponse.redirect(`${origin}${next}`)

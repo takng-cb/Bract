@@ -1,5 +1,7 @@
 'use server'
 
+import { requireEditor } from '@/lib/auth'
+
 import { db } from '@/lib/db'
 import { accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
@@ -8,6 +10,7 @@ import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
 
 export async function updateAccountStatus(id: string, status: string) {
+  await requireEditor()
   const [before] = await db.select({ status: accounts.status })
     .from(accounts).where(eq(accounts.id, id))
 
@@ -23,6 +26,7 @@ export async function updateAccountStatus(id: string, status: string) {
 }
 
 export async function createAccount(formData: FormData) {
+  await requireEditor()
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('会社名は必須です')
 
@@ -46,6 +50,7 @@ export async function createAccount(formData: FormData) {
 }
 
 export async function updateAccount(id: string, formData: FormData) {
+  await requireEditor()
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('会社名は必須です')
 
@@ -99,6 +104,7 @@ export async function updateAccount(id: string, formData: FormData) {
 }
 
 export async function deleteAccount(id: string) {
+  await requireEditor()
   await db.delete(accounts).where(eq(accounts.id, id))
   redirect('/accounts')
 }
