@@ -6,6 +6,7 @@ import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
+import { canEdit } from '@/lib/auth'
 
 const PAGE_SIZE = 20
 
@@ -14,7 +15,7 @@ export default async function ContactsPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; view?: string }>
 }) {
-  const sp = await searchParams
+  const [sp, edit] = await Promise.all([searchParams, canEdit()])
   const view       = (sp.view === 'consumer') ? 'consumer' : 'business'
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
@@ -94,13 +95,16 @@ export default async function ContactsPage({
             exportUrl="/api/export/contacts"
             importUrl="/api/import/contacts"
             label="人物"
+            showImport={edit}
           />
-          <Link
-            href={newHref}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-          >
-            ＋ 新規作成
-          </Link>
+          {edit && (
+            <Link
+              href={newHref}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              ＋ 新規作成
+            </Link>
+          )}
         </div>
       </div>
 

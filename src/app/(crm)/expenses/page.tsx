@@ -6,6 +6,7 @@ import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
+import { canEdit } from '@/lib/auth'
 
 const PAGE_SIZE = 20
 
@@ -44,7 +45,7 @@ export default async function ExpensesPage({
 }: {
   searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string }>
 }) {
-  const sp  = await searchParams
+  const [sp, edit] = await Promise.all([searchParams, canEdit()])
   const now = new Date()
 
   const fromYear  = Number(sp.from_year  ?? now.getFullYear())
@@ -120,13 +121,16 @@ export default async function ExpensesPage({
             exportUrl="/api/export/expenses"
             importUrl="/api/import/expenses"
             label="経費"
+            showImport={edit}
           />
-          <Link
-            href="/expenses/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-          >
-            ＋ 新規作成
-          </Link>
+          {edit && (
+            <Link
+              href="/expenses/new"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              ＋ 新規作成
+            </Link>
+          )}
         </div>
       </div>
 

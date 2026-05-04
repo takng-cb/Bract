@@ -11,6 +11,7 @@ import TagsSection from '@/components/TagsSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
+import AuthGuard from '@/components/AuthGuard'
 
 const ACCOUNT_STAGES: StageConfig[] = [
   { value: 'prospect', label: '見込み', activeColor: '#2563eb', pastColor: '#93c5fd' },
@@ -102,10 +103,12 @@ export default async function AccountDetailPage({
       <div className="mb-4">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{account.name}</h1>
-          <div className="flex items-center gap-2 shrink-0 mt-0.5">
-            <Link href={`/accounts/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
-            <DeleteButton action={handleDelete} confirmMessage="この取引先を削除しますか？&#10;関連する担当者・商談・活動・ToDoも削除されます。" />
-          </div>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+              <Link href={`/accounts/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="この取引先を削除しますか？&#10;関連する担当者・商談・活動・ToDoも削除されます。" />
+            </div>
+          </AuthGuard>
         </div>
         <p className="text-zinc-500 text-sm mt-1">
           {[account.type, account.industry].filter(Boolean).join(' · ') || '業種未設定'}
@@ -155,7 +158,7 @@ export default async function AccountDetailPage({
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">担当者 <span className="text-zinc-400 font-normal text-sm">({contactsList.length})</span></h2>
-          <Link href={`/contacts/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+          <AuthGuard minRole="editor"><Link href={`/contacts/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
         </div>
         {contactsList.length > 0 ? (
           <>
@@ -205,7 +208,7 @@ export default async function AccountDetailPage({
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">商談 <span className="text-zinc-400 font-normal text-sm">({opportunitiesList.length})</span></h2>
-          <Link href={`/opportunities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+          <AuthGuard minRole="editor"><Link href={`/opportunities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
         </div>
         {opportunitiesList.length > 0 ? (
           <>
@@ -262,7 +265,7 @@ export default async function AccountDetailPage({
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">ToDo <span className="text-zinc-400 font-normal text-sm">({tasksList.length})</span></h2>
-          <Link href={`/tasks/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+          <AuthGuard minRole="editor"><Link href={`/tasks/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
         </div>
         {tasksList.length > 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
@@ -271,13 +274,15 @@ export default async function AccountDetailPage({
               const isOverdue = !t.done && t.due_date && new Date(t.due_date) < new Date()
               return (
                 <div key={t.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 ${t.done ? 'opacity-60' : ''}`}>
-                  <form action={toggleTask} className="shrink-0">
-                    <input type="hidden" name="task_id" value={t.id} />
-                    <input type="hidden" name="done" value={(!t.done).toString()} />
-                    <button type="submit" className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${t.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
-                      {t.done && <span className="text-xs leading-none">✓</span>}
-                    </button>
-                  </form>
+                  <AuthGuard minRole="editor">
+                    <form action={toggleTask} className="shrink-0">
+                      <input type="hidden" name="task_id" value={t.id} />
+                      <input type="hidden" name="done" value={(!t.done).toString()} />
+                      <button type="submit" className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${t.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
+                        {t.done && <span className="text-xs leading-none">✓</span>}
+                      </button>
+                    </form>
+                  </AuthGuard>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
@@ -285,7 +290,9 @@ export default async function AccountDetailPage({
                     </div>
                     {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
                   </div>
-                  <Link href={`/tasks/${t.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700 shrink-0">編集</Link>
+                  <AuthGuard minRole="editor">
+                    <Link href={`/tasks/${t.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700 shrink-0">編集</Link>
+                  </AuthGuard>
                 </div>
               )
             })}
@@ -299,7 +306,7 @@ export default async function AccountDetailPage({
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
-          <Link href={`/activities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+          <AuthGuard minRole="editor"><Link href={`/activities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
         </div>
         {activitiesList.length > 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
@@ -335,19 +342,23 @@ export default async function AccountDetailPage({
                     <a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">{f.file_name}</a>
                     <p className="text-xs text-zinc-400">{formatFileSize(f.file_size)} · {f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</p>
                   </div>
-                  <form action={deleteFile}>
-                    <input type="hidden" name="attach_id" value={f.id} />
-                    <input type="hidden" name="storage_path" value={f.storage_path} />
-                    <button type="submit" className="text-xs text-red-400 hover:text-red-600 shrink-0">削除</button>
-                  </form>
+                  <AuthGuard minRole="editor">
+                    <form action={deleteFile}>
+                      <input type="hidden" name="attach_id" value={f.id} />
+                      <input type="hidden" name="storage_path" value={f.storage_path} />
+                      <button type="submit" className="text-xs text-red-400 hover:text-red-600 shrink-0">削除</button>
+                    </form>
+                  </AuthGuard>
                 </div>
               ))}
             </div>
           )}
-          <form action={uploadFile} className="px-4 py-3 border-t border-zinc-100 flex items-center gap-3">
-            <input type="file" name="file" className="flex-1 text-sm text-zinc-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200" />
-            <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors shrink-0">アップロード</button>
-          </form>
+          <AuthGuard minRole="editor">
+            <form action={uploadFile} className="px-4 py-3 border-t border-zinc-100 flex items-center gap-3">
+              <input type="file" name="file" className="flex-1 text-sm text-zinc-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200" />
+              <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors shrink-0">アップロード</button>
+            </form>
+          </AuthGuard>
         </div>
       </section>
 

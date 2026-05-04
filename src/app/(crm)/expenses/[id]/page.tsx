@@ -6,6 +6,7 @@ import { notFound, redirect } from 'next/navigation'
 import RecordId from '@/components/RecordId'
 import { revalidatePath } from 'next/cache'
 import DeleteButton from '@/components/DeleteButton'
+import AuthGuard from '@/components/AuthGuard'
 
 const CATEGORY_COLORS: Record<string, string> = {
   交通費:  'bg-blue-50 text-blue-700 border-blue-200',
@@ -71,18 +72,20 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
             <h1 className="text-2xl font-bold text-zinc-900 break-words">{expense.title}</h1>
             <p className="text-2xl font-bold text-blue-600 mt-1">¥{Number(expense.amount).toLocaleString()}</p>
           </div>
-          <div className="flex gap-2 shrink-0 mt-0.5">
-            <Link
-              href={`/expenses/${id}/edit`}
-              className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors"
-            >
-              編集
-            </Link>
-            <DeleteButton
-              action={deleteAction}
-              confirmMessage="この経費を削除しますか？"
-            />
-          </div>
+          <AuthGuard minRole="editor">
+            <div className="flex gap-2 shrink-0 mt-0.5">
+              <Link
+                href={`/expenses/${id}/edit`}
+                className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors"
+              >
+                編集
+              </Link>
+              <DeleteButton
+                action={deleteAction}
+                confirmMessage="この経費を削除しますか？"
+              />
+            </div>
+          </AuthGuard>
         </div>
       </div>
 

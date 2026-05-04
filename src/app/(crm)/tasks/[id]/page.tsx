@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import RecordId from '@/components/RecordId'
 import { deleteTask, toggleTaskDone } from '@/app/actions/tasks'
 import DeleteButton from '@/components/DeleteButton'
+import AuthGuard from '@/components/AuthGuard'
 
 const PRIORITY_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   high:   { label: '高', bg: 'bg-red-100',    text: 'text-red-700' },
@@ -59,22 +60,26 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
       <div className="mb-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
-            <form action={toggleDone} className="mt-1 shrink-0">
-              <input type="hidden" name="done" value={(!task.done).toString()} />
-              <button
-                type="submit"
-                title={task.done ? '未完了に戻す' : '完了にする'}
-                className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}
-              >
-                {task.done && <span className="text-sm leading-none">✓</span>}
-              </button>
-            </form>
+            <AuthGuard minRole="editor">
+              <form action={toggleDone} className="mt-1 shrink-0">
+                <input type="hidden" name="done" value={(!task.done).toString()} />
+                <button
+                  type="submit"
+                  title={task.done ? '未完了に戻す' : '完了にする'}
+                  className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}
+                >
+                  {task.done && <span className="text-sm leading-none">✓</span>}
+                </button>
+              </form>
+            </AuthGuard>
             <h1 className={`text-2xl font-bold min-w-0 break-words ${task.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>{task.title}</h1>
           </div>
-          <div className="flex items-center gap-2 shrink-0 mt-0.5">
-            <Link href={`/tasks/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
-            <DeleteButton action={handleDelete} confirmMessage="このToDoを削除しますか？" />
-          </div>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+              <Link href={`/tasks/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="このToDoを削除しますか？" />
+            </div>
+          </AuthGuard>
         </div>
         <div className="flex items-center gap-2 mt-2 ml-9">
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priority.bg} ${priority.text}`}>優先度: {priority.label}</span>

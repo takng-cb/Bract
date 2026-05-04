@@ -7,6 +7,7 @@ import { deleteProperty } from '@/app/actions/properties'
 import DeleteButton from '@/components/DeleteButton'
 import TagsSection from '@/components/TagsSection'
 import RecordId from '@/components/RecordId'
+import AuthGuard from '@/components/AuthGuard'
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -132,10 +133,12 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       <div className="mb-6">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{row.name}</h1>
-          <div className="flex items-center gap-2 shrink-0 mt-0.5">
-            <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
-            <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
-          </div>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+              <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
+            </div>
+          </AuthGuard>
         </div>
         <div className="mt-2 mb-3">
           <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
@@ -230,9 +233,11 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
       {/* 編集リンク */}
       <div className="flex gap-3">
-        <Link href={`/properties/${id}/edit`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
-          編集する
-        </Link>
+        <AuthGuard minRole="editor">
+          <Link href={`/properties/${id}/edit`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+            編集する
+          </Link>
+        </AuthGuard>
         <Link href={`/properties?view=${viewParam}`} className="px-4 py-2 border border-zinc-300 text-sm rounded-md hover:bg-zinc-50 transition-colors">
           一覧に戻る
         </Link>

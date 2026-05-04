@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { deleteActivity } from '@/app/actions/activities'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
+import AuthGuard from '@/components/AuthGuard'
 
 const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -70,10 +71,12 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
               }) : '—'}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 mt-0.5">
-            <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
-            <DeleteButton action={handleDelete} confirmMessage="この活動履歴を削除しますか？" />
-          </div>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="この活動履歴を削除しますか？" />
+            </div>
+          </AuthGuard>
         </div>
       </div>
 

@@ -7,9 +7,10 @@ type Props = {
   exportUrl: string
   importUrl: string
   label: string
+  showImport?: boolean
 }
 
-export default function CsvToolbar({ exportUrl, importUrl, label }: Props) {
+export default function CsvToolbar({ exportUrl, importUrl, label, showImport = true }: Props) {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
@@ -51,16 +52,18 @@ export default function CsvToolbar({ exportUrl, importUrl, label }: Props) {
       >
         ↓ CSV出力
       </a>
-      <label className={`px-3 py-1.5 border border-zinc-300 text-zinc-600 text-xs font-medium rounded-md hover:bg-zinc-50 transition-colors cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-        {importing ? '取込中...' : '↑ CSV取込'}
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".csv"
-          className="hidden"
-          onChange={handleImport}
-        />
-      </label>
+      {showImport && (
+        <label className={`px-3 py-1.5 border border-zinc-300 text-zinc-600 text-xs font-medium rounded-md hover:bg-zinc-50 transition-colors cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+          {importing ? '取込中...' : '↑ CSV取込'}
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleImport}
+          />
+        </label>
+      )}
     </div>
   )
 }

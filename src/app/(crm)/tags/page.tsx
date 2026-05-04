@@ -6,6 +6,7 @@ import { desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { deleteTag } from '@/app/actions/tags'
 import TagDeleteButton from '@/components/TagDeleteButton'
+import AuthGuard from '@/components/AuthGuard'
 
 export default async function TagsPage() {
   const [allTags, countRows] = await Promise.all([
@@ -32,12 +33,14 @@ export default async function TagsPage() {
           <h1 className="text-2xl font-bold text-zinc-900">タグ管理</h1>
           <p className="text-sm text-zinc-500 mt-1">{allTags.length} 件</p>
         </div>
-        <Link
-          href="/tags/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          ＋ 新規作成
-        </Link>
+        <AuthGuard minRole="editor">
+          <Link
+            href="/tags/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            ＋ 新規作成
+          </Link>
+        </AuthGuard>
       </div>
 
       {allTags.length === 0 ? (
@@ -71,19 +74,21 @@ export default async function TagsPage() {
                     {countMap[tag.id] ?? 0} 件
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <Link
-                        href={`/tags/${tag.id}/edit`}
-                        className="text-xs text-zinc-400 hover:text-zinc-700"
-                      >
-                        編集
-                      </Link>
-                      <TagDeleteButton
-                        tagId={tag.id}
-                        tagName={tag.name}
-                        action={handleDelete}
-                      />
-                    </div>
+                    <AuthGuard minRole="editor">
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/tags/${tag.id}/edit`}
+                          className="text-xs text-zinc-400 hover:text-zinc-700"
+                        >
+                          編集
+                        </Link>
+                        <TagDeleteButton
+                          tagId={tag.id}
+                          tagName={tag.name}
+                          action={handleDelete}
+                        />
+                      </div>
+                    </AuthGuard>
                   </td>
                 </tr>
               ))}
