@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   title: "Bract CRM",
   description: "社内CRMシステム",
   icons: {
-    icon: '/favicon.svg',   // タブ表示用（正方形SVG）
-    apple: '/apple-touch-icon.png', // iOS「ホーム画面に追加」用
+    icon: '/icon.png',
+    apple: '/apple-touch-icon.png',
   },
 };
 
