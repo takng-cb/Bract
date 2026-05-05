@@ -220,6 +220,10 @@ export default async function TasksPage({
             importUrl="/api/import/tasks"
             label="タスク"
             csvFormat="ID,タイトル,期日,優先度,完了,取引先名,担当者名,商談名"
+            fieldOptions={{
+              '優先度': ['高', '中', '低'],
+              '完了': ['完了（済みの場合）', '空（未完了の場合）'],
+            }}
             showImport={edit}
           />
           {edit && (

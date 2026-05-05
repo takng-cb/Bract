@@ -3,11 +3,12 @@
 import TextImportModal from './TextImportModal'
 
 type Props = {
-  exportUrl:    string
-  importUrl:    string
-  label:        string
-  csvFormat:    string   // インポートモーダル内に表示するフォーマット文字列
-  showImport?:  boolean
+  exportUrl:     string
+  importUrl:     string
+  label:         string
+  csvFormat:     string   // インポートモーダル内に表示するフォーマット文字列
+  fieldOptions?: Record<string, string[]>  // 選択リスト項目の選択肢
+  showImport?:   boolean
 }
 
 export default function CsvToolbar({
@@ -15,6 +16,7 @@ export default function CsvToolbar({
   importUrl,
   label,
   csvFormat,
+  fieldOptions,
   showImport = true,
 }: Props) {
   return (
@@ -34,6 +36,7 @@ export default function CsvToolbar({
           importUrl={importUrl}
           title={`${label}をインポート`}
           csvFormat={csvFormat}
+          fieldOptions={fieldOptions}
         />
       )}
     </div>

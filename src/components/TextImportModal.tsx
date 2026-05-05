@@ -8,6 +8,8 @@ type Props = {
   title: string
   /** CSV フォーマットの説明（モーダル内に表示） */
   csvFormat: string
+  /** 選択リスト項目の選択肢（ヘッダー名 → 使用可能な値の配列） */
+  fieldOptions?: Record<string, string[]>
   /** レコードページからの呼び出し時に自動設定されるフィールド（例: { account_id: 'xxx' }） */
   defaultContext?: Record<string, string>
   /** ボタンに表示するラベル */
@@ -39,21 +41,45 @@ export default function TextImportModal({
   importUrl,
   title,
   csvFormat,
+  fieldOptions,
   defaultContext,
   buttonLabel = 'インポート',
 }: Props) {
-  const [open, setOpen]       = useState(false)
-  const [tab, setTab]         = useState<Tab>('file')
-  const [text, setText]       = useState('')
-  const [file, setFile]       = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
-  const [copied, setCopied]   = useState(false)
+  const [open, setOpen]               = useState(false)
+  const [tab, setTab]                 = useState<Tab>('file')
+  const [text, setText]               = useState('')
+  const [file, setFile]               = useState<File | null>(null)
+  const [loading, setLoading]         = useState(false)
+  const [message, setMessage]         = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [copied, setCopied]           = useState(false)
+  const [copiedPrompt, setCopiedPrompt] = useState(false)
 
   function copyFormat() {
     navigator.clipboard.writeText(csvFormat)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  function copyPrompt() {
+    const selectLines = Object.entries(fieldOptions ?? {})
+      .map(([header, opts]) => `・${header}：${opts.join(' / ')}`)
+    const selectSection = selectLines.length > 0
+      ? `\n■ 選択リスト項目（以下の値のみ使用可能）\n${selectLines.join('\n')}\n`
+      : ''
+    const prompt = `添付のPDFを解析し、以下のCSVフォーマットに従って情報を抽出してください。
+
+■ CSVフォーマット（1行目：ヘッダー行）
+${csvFormat}
+${selectSection}
+■ 出力ルール
+・1行目はヘッダー行をそのまま出力すること
+・2行目以降にデータを1行ずつ出力すること
+・値にカンマが含まれる場合はダブルクォート（"）で囲むこと
+・不明・該当なしの項目は空欄にすること
+・選択リスト項目は指定された値以外を使用しないこと`
+    navigator.clipboard.writeText(prompt)
+    setCopiedPrompt(true)
+    setTimeout(() => setCopiedPrompt(false), 2000)
   }
   const fileRef = useRef<HTMLInputElement>(null)
   const router  = useRouter()
@@ -76,24 +102,15 @@ export default function TextImportModal({
     const lines = raw.trim().split(/\r?\n/).filter((l) => l.trim())
     if (lines.length === 0) return 'テキストが空です'
 
-    const expectedCols = csvFormat.split(',').length
+    // ヘッダー行＋データ行の2行が必須
+    if (lines.length < 2) return 'ヘッダー行とデータ行の2行以上を入力してください。'
 
-    // ヘッダー行の有無を判定（先頭行に csvFormat のヘッダーが含まれるか）
-    const firstLineCols = detectColumnCount(lines[0])
-    const firstLineHeaders = lines[0].split(',').map((s) => s.trim())
-    const formatHeaders    = csvFormat.split(',').map((s) => s.trim())
-    const matchCount = firstLineHeaders.filter((h) => formatHeaders.includes(h)).length
-    const hasHeader  = matchCount >= Math.ceil(formatHeaders.length / 2)
-
-    const dataLine = hasHeader && lines.length >= 2 ? lines[1] : lines[0]
-    const actualCols = detectColumnCount(dataLine)
-
-    if (actualCols === 1 && expectedCols > 1) {
-      return `列が 1 つしか検出されませんでした（期待: ${expectedCols} 列）。カンマ区切りで入力されているか確認してください。`
+    // カンマ区切りチェック（ヘッダーが1列だけならセパレータ不正の可能性）
+    const headerCols = detectColumnCount(lines[0])
+    if (headerCols === 1 && csvFormat.includes(',')) {
+      return '列が 1 つしか検出されませんでした。カンマ区切りで入力されているか確認してください。'
     }
-    if (actualCols < Math.ceil(expectedCols / 2)) {
-      return `列数が少なすぎます（期待: ${expectedCols} 列、検出: ${actualCols} 列）。フォーマットを確認してください。`
-    }
+
     return null
   }
 
@@ -203,16 +220,36 @@ export default function TextImportModal({
               <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-semibold text-zinc-500">CSVフォーマット（1行目はヘッダー行・カンマ区切り）</p>
-                  <button
-                    type="button"
-                    onClick={copyFormat}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    {copied ? '✓ コピー済み' : 'コピー'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={copyFormat}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      {copied ? '✓ コピー済み' : 'ヘッダーコピー'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copyPrompt}
+                      className="text-xs font-medium text-violet-600 hover:text-violet-800 transition-colors"
+                    >
+                      {copiedPrompt ? '✓ コピー済み' : 'プロンプトコピー'}
+                    </button>
+                  </div>
                 </div>
                 <code className="text-xs text-zinc-700 break-all">{csvFormat}</code>
+                {fieldOptions && Object.keys(fieldOptions).length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-zinc-200 space-y-0.5">
+                    <p className="text-xs font-semibold text-zinc-500 mb-1">選択リスト項目</p>
+                    {Object.entries(fieldOptions).map(([label, opts]) => (
+                      <p key={label} className="text-xs text-zinc-500 leading-relaxed">
+                        <span className="font-medium text-zinc-600">{label}：</span>{opts.join(' / ')}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 <p className="text-xs text-zinc-400 mt-2">
+                  ・1行目はヘッダー行必須。省略した列は無視されます。<br />
                   ・<span className="font-medium">ID あり</span> → 既存レコードを更新<br />
                   ・<span className="font-medium">ID なし（空）</span> → 新規追加
                   {defaultContext && Object.keys(defaultContext).length > 0 && (

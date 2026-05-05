@@ -52,6 +52,7 @@ export default function ContactForm({ action, cancelHref, accounts, defaultValue
             '氏名': 'full_name', '役職': 'title', '部署': 'department',
             'メール': 'email', '電話番号': 'phone', '誕生日': 'birthday', 'メモ': 'description',
           }}
+          customFields={customFields}
         />
       </div>
 

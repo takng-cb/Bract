@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import type { FieldDef } from '@/lib/objectMetadata'
+import { parseFieldOptions } from '@/lib/fieldUtils'
 
 type Props = {
   /** モーダル内に表示するフォーマット文字列（ヘッダー行） */
@@ -13,6 +15,8 @@ type Props = {
   formRef: React.RefObject<HTMLFormElement | null>
   /** Reactステートを持つフィールド（ラジオ以外）の更新コールバック */
   onFill?: (data: Record<string, string>) => void
+  /** カスタムフィールド定義（渡すと csvFormat・fieldMap に自動追加） */
+  customFields?: FieldDef[]
   buttonLabel?: string
 }
 
@@ -58,17 +62,96 @@ export default function FormFillModal({
   valueMap = {},
   formRef,
   onFill,
+  customFields = [],
   buttonLabel = 'テキストから入力',
 }: Props) {
-  const [open, setOpen]     = useState(false)
-  const [text, setText]     = useState('')
-  const [msg, setMsg]       = useState<{ ok: boolean; text: string } | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [open, setOpen]           = useState(false)
+  const [text, setText]           = useState('')
+  const [msg, setMsg]             = useState<{ ok: boolean; text: string } | null>(null)
+  const [copied, setCopied]       = useState(false)
+  const [copiedPrompt, setCopiedPrompt] = useState(false)
+
+  // カスタムフィールド（section・boolean 除く）を標準フィールドにマージ
+  const mergedCsvFormat = useMemo(() => {
+    const fillable = customFields.filter(
+      (f) => f.is_visible && f.field_type !== 'section' && f.field_type !== 'boolean'
+    )
+    if (fillable.length === 0) return csvFormat
+    return csvFormat + ',' + fillable.map((f) => f.label).join(',')
+  }, [csvFormat, customFields])
+
+  const mergedFieldMap = useMemo(() => {
+    const fillable = customFields.filter(
+      (f) => f.is_visible && f.field_type !== 'section' && f.field_type !== 'boolean'
+    )
+    if (fillable.length === 0) return fieldMap
+    return {
+      ...fieldMap,
+      ...Object.fromEntries(fillable.map((f) => [f.label, `cf_${f.api_name}`])),
+    }
+  }, [fieldMap, customFields])
+
+  // 選択リスト項目（valueMap + カスタムフィールドの select）
+  const selectLines = useMemo(() => {
+    const nameToLabel: Record<string, string> = {}
+    for (const [label, name] of Object.entries(mergedFieldMap)) {
+      nameToLabel[name] = label
+    }
+    const lines: { label: string; opts: string[] }[] = []
+    for (const [fieldName, optionMap] of Object.entries(valueMap)) {
+      const label = nameToLabel[fieldName]
+      if (!label) continue
+      lines.push({ label, opts: Object.keys(optionMap) })
+    }
+    for (const cf of customFields) {
+      if (!cf.is_visible || cf.field_type !== 'select') continue
+      const opts = parseFieldOptions(cf.options)
+      if (opts.length > 0) lines.push({ label: cf.label, opts })
+    }
+    return lines
+  }, [mergedFieldMap, valueMap, customFields])
 
   function copyFormat() {
-    navigator.clipboard.writeText(csvFormat)
+    navigator.clipboard.writeText(mergedCsvFormat)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  function copyPrompt() {
+    // valueMap から「ヘッダーラベル → 選択肢一覧」を構築
+    const nameToLabel: Record<string, string> = {}
+    for (const [label, name] of Object.entries(mergedFieldMap)) {
+      nameToLabel[name] = label
+    }
+    const selectLines: string[] = []
+    for (const [fieldName, optionMap] of Object.entries(valueMap)) {
+      const label = nameToLabel[fieldName]
+      if (!label) continue
+      selectLines.push(`・${label}：${Object.keys(optionMap).join(' / ')}`)
+    }
+    // カスタムフィールドの select オプション
+    for (const cf of customFields) {
+      if (!cf.is_visible || cf.field_type !== 'select') continue
+      const opts = parseFieldOptions(cf.options)
+      if (opts.length > 0) selectLines.push(`・${cf.label}：${opts.join(' / ')}`)
+    }
+    const selectSection = selectLines.length > 0
+      ? `\n■ 選択リスト項目（以下の値のみ使用可能）\n${selectLines.join('\n')}\n`
+      : ''
+    const prompt = `添付のPDFを解析し、以下のCSVフォーマットに従って情報を抽出してください。
+
+■ CSVフォーマット（1行目：ヘッダー行）
+${mergedCsvFormat}
+${selectSection}
+■ 出力ルール
+・1行目はヘッダー行をそのまま出力すること
+・2行目にデータを出力すること（複数レコードがある場合は行を追加）
+・値にカンマが含まれる場合はダブルクォート（"）で囲むこと
+・不明・該当なしの項目は空欄にすること
+・選択リスト項目は指定された値以外を使用しないこと`
+    navigator.clipboard.writeText(prompt)
+    setCopiedPrompt(true)
+    setTimeout(() => setCopiedPrompt(false), 2000)
   }
 
   function close() {
@@ -79,45 +162,29 @@ export default function FormFillModal({
 
   function fill() {
     const lines = text.trim().split(/\r?\n/).filter((l) => l.trim())
-    if (!lines.length) return
 
-    const formatHeaders = csvFormat.split(',').map((h) => h.trim())
-
-    // ── ヘッダー行の検出（過半数のカラムが一致する場合のみヘッダーと判断）
-    const firstCols   = parseRow(lines[0])
-    const matchCount  = firstCols.filter((c) => formatHeaders.includes(c)).length
-    const hasHeader   = matchCount >= Math.ceil(formatHeaders.length / 2)
-
-    let data: Record<string, string>
-    let actualCols: string[]
-    let expectedCount: number
-
-    if (hasHeader && lines.length >= 2) {
-      // ヘッダー行あり → 2行目をデータとして動的マッピング
-      const dynHeaders = parseRow(lines[0])
-      actualCols   = parseRow(lines[1])
-      expectedCount = dynHeaders.length
-      data = Object.fromEntries(dynHeaders.map((h, i) => [h, actualCols[i] ?? '']))
-    } else {
-      // ヘッダー行なし → 定義順でマッピング
-      actualCols   = parseRow(lines[0])
-      expectedCount = formatHeaders.length
-      data = Object.fromEntries(formatHeaders.map((h, i) => [h, actualCols[i] ?? '']))
+    // ── ヘッダー行＋データ行の2行が必須
+    if (lines.length < 2) {
+      setMsg({ ok: false, text: 'ヘッダー行とデータ行の2行を入力してください。' })
+      return
     }
 
-    // ── 列数チェック
-    if (actualCols.length === 1 && expectedCount > 1) {
-      // 列が1つしか取れていない → 区切り文字が違う可能性
+    const headers  = parseRow(lines[0])
+    const dataCols = parseRow(lines[1])
+
+    // ── カンマ区切りチェック（ヘッダーが1列だけの場合は区切り文字が違う可能性）
+    if (headers.length === 1 && mergedCsvFormat.includes(',')) {
       setMsg({
         ok: false,
-        text: `列が 1 つしか検出されませんでした（期待: ${expectedCount} 列）。カンマ区切りで入力されているか確認してください。`,
+        text: '列が 1 つしか検出されませんでした。カンマ区切りで入力されているか確認してください。',
       })
       return
     }
-    if (actualCols.length < expectedCount) {
-      // 列不足でも続行するが警告を先出し（後で入力済み件数も表示）
-      // → 入力できたものは入力し、警告メッセージに含める
-    }
+
+    // ヘッダー名をキー、値を対応するデータとするマップを構築（省略列は単純に存在しない）
+    const data: Record<string, string> = Object.fromEntries(
+      headers.map((h, i) => [h, dataCols[i] ?? ''])
+    )
 
     const form = formRef.current
     if (!form) {
@@ -126,34 +193,21 @@ export default function FormFillModal({
     }
 
     let n = 0
-    for (const [csvHeader, fieldName] of Object.entries(fieldMap)) {
+    for (const [csvHeader, fieldName] of Object.entries(mergedFieldMap)) {
       const raw = data[csvHeader]
       if (!raw) continue
       applyField(form, fieldName, valueMap[fieldName]?.[raw] ?? raw)
       n++
     }
 
-    // Reactステート管理フィールドへのコールバック
     onFill?.(data)
 
-    // ── 結果メッセージ
     if (n === 0) {
-      setMsg({
-        ok: false,
-        text: '入力できる項目がありませんでした。フォーマットを確認してください。',
-      })
+      setMsg({ ok: false, text: '入力できる項目がありませんでした。ヘッダー名がフォーマットと一致しているか確認してください。' })
       return
     }
 
-    const missingCount = expectedCount - actualCols.length
-    if (missingCount > 0) {
-      setMsg({
-        ok: true,
-        text: `${n} 項目を入力しました（列数が ${missingCount} 個不足しているため、末尾の項目は空のままです）`,
-      })
-    } else {
-      setMsg({ ok: true, text: `${n} 項目を入力しました` })
-    }
+    setMsg({ ok: true, text: `${n} 項目を入力しました` })
   }
 
   return (
@@ -183,25 +237,44 @@ export default function FormFillModal({
             <div className="px-6 py-4 flex flex-col gap-3 overflow-y-auto">
               <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-semibold text-zinc-500">フォーマット（ヘッダー行は省略可・カンマ区切り）</p>
-                  <button
-                    type="button"
-                    onClick={copyFormat}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    {copied ? '✓ コピー済み' : 'コピー'}
-                  </button>
+                  <p className="text-xs font-semibold text-zinc-500">フォーマット（1行目ヘッダー必須・省略列は無視）</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={copyFormat}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      {copied ? '✓ コピー済み' : 'ヘッダーコピー'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copyPrompt}
+                      className="text-xs font-medium text-violet-600 hover:text-violet-800 transition-colors"
+                    >
+                      {copiedPrompt ? '✓ コピー済み' : 'プロンプトコピー'}
+                    </button>
+                  </div>
                 </div>
-                <code className="text-xs text-zinc-700 break-all">{csvFormat}</code>
-                <p className="text-xs text-zinc-400 mt-1">データを1行貼り付けてください。入力後は通常通り「保存」で確定します。</p>
+                <code className="text-xs text-zinc-700 break-all">{mergedCsvFormat}</code>
+                {selectLines.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-zinc-200 space-y-0.5">
+                    <p className="text-xs font-semibold text-zinc-500 mb-1">選択リスト項目</p>
+                    {selectLines.map(({ label, opts }) => (
+                      <p key={label} className="text-xs text-zinc-500 leading-relaxed">
+                        <span className="font-medium text-zinc-600">{label}：</span>{opts.join(' / ')}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-zinc-400 mt-2">1行目ヘッダー＋2行目データの2行を貼り付けてください。省略した列は無視されます。入力後は「保存」で確定します。</p>
               </div>
 
               <textarea
                 value={text}
                 onChange={(e) => { setText(e.target.value); setMsg(null) }}
                 placeholder={
-                  csvFormat + '\n' +
-                  csvFormat.split(',').map((h) => `(${h.trim()})`).join(',')
+                  mergedCsvFormat + '\n' +
+                  mergedCsvFormat.split(',').map((h) => `(${h.trim()})`).join(',')
                 }
                 rows={5}
                 className="w-full border border-zinc-300 rounded-md px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"

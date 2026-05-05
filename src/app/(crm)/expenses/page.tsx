@@ -122,6 +122,9 @@ export default async function ExpensesPage({
             importUrl="/api/import/expenses"
             label="経費"
             csvFormat="ID,件名,金額,カテゴリ,日付,取引先名,商談名,備考"
+            fieldOptions={{
+              'カテゴリ': ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他'],
+            }}
             showImport={edit}
           />
           {edit && (

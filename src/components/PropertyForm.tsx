@@ -112,11 +112,33 @@ export default function PropertyForm({
         <div className="flex-1 h-px bg-zinc-200" />
         <FormFillModal
           formRef={formRef}
-          csvFormat="件名,物件種別,取引種別,ステータス,価格(円)"
+          csvFormat="件名,物件種別,取引種別,ステータス,価格(円),土地不動産番号,土地所在,地番,地目,地積(㎡),原因及びその日付,土地現所有者名,土地所有者住所,土地所有権取得原因,土地所有権取得日,土地直近差押解除日,建物不動産番号,建物所在,家屋番号,種類,構造,床面積1階(㎡),床面積2階(㎡),床面積3階(㎡),新築年月日,建物現所有者名,建物所有者住所,建物所有権取得原因,建物所有権取得日,建物直近差押解除日,登記種別,権利者名,債権額(円),損害金率(%),共同担保目録番号,備考"
           fieldMap={{
-            '件名': 'name', '物件種別': 'property_type',
-            '取引種別': 'transaction_type', 'ステータス': 'status', '価格(円)': 'price',
+            '件名': 'name', '物件種別': 'property_type', '取引種別': 'transaction_type',
+            'ステータス': 'status', '価格(円)': 'price',
+            '土地不動産番号': 'land_fudosan_number', '土地所在': 'address',
+            '地番': 'land_chiban', '地目': 'chimoku', '地積(㎡)': 'area',
+            '原因及びその日付': 'land_cause',
+            '土地現所有者名': 'land_owner_name', '土地所有者住所': 'land_owner_address',
+            '土地所有権取得原因': 'land_acquisition_reason', '土地所有権取得日': 'land_acquisition_date',
+            '土地直近差押解除日': 'land_seizure_release_date',
+            '建物不動産番号': 'building_fudosan_number', '建物所在': 'building_location',
+            '家屋番号': 'building_kaoku_number', '種類': 'building_shurui', '構造': 'structure',
+            '床面積1階(㎡)': 'building_floor_area_1f', '床面積2階(㎡)': 'building_floor_area_2f',
+            '床面積3階(㎡)': 'building_floor_area_3f', '新築年月日': 'building_new_construction_date',
+            '建物現所有者名': 'building_owner_name', '建物所有者住所': 'building_owner_address',
+            '建物所有権取得原因': 'building_acquisition_reason', '建物所有権取得日': 'building_acquisition_date',
+            '建物直近差押解除日': 'building_seizure_release_date',
+            '登記種別': 'building_lien_type', '権利者名': 'building_lien_holder',
+            '債権額(円)': 'building_debt_amount', '損害金率(%)': 'building_damage_rate',
+            '共同担保目録番号': 'building_joint_collateral_number', '備考': 'description',
           }}
+          valueMap={{
+            property_type:    { '土地・建物': '土地・建物', '建物のみ': '建物のみ', '土地のみ': '土地のみ', 'その他': 'その他' },
+            transaction_type: { '売買': '売買', '賃貸': '賃貸', 'サービス提供': 'サービス提供', 'その他': 'その他' },
+            status:           { '募集中': '募集中', '交渉中': '交渉中', '成約': '成約', '管理中': '管理中', '終了': '終了', '提案中': '提案中' },
+          }}
+          customFields={customFields}
         />
       </div>
 

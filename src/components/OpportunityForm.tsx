@@ -61,6 +61,7 @@ export default function OpportunityForm({ action, cancelHref, accounts, defaultV
               '交渉': 'negotiation', '受注': 'closed_won', '失注': 'closed_lost',
             },
           }}
+          customFields={customFields}
         />
       </div>
 

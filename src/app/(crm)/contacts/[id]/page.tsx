@@ -189,7 +189,7 @@ export default async function ContactDetailPage({
           <h2 className="text-base font-semibold text-zinc-800">ToDo <span className="text-zinc-400 font-normal text-sm">({tasksList.length})</span></h2>
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <TextImportModal importUrl="/api/import/tasks" title="ToDoインポート" csvFormat="ID,タイトル,期日,優先度,完了,担当者名" />
+              <TextImportModal importUrl="/api/import/tasks" title="ToDoインポート" csvFormat="ID,タイトル,期日,優先度,完了,担当者名" fieldOptions={{ '優先度': ['高','中','低'], '完了': ['完了（済みの場合）','空（未完了の場合）'] }} />
               <Link href={`/tasks/new?contact_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
             </div>
           </AuthGuard>
@@ -235,7 +235,7 @@ export default async function ContactDetailPage({
           <h2 className="text-base font-semibold text-zinc-800">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <TextImportModal importUrl="/api/import/activities" title="活動履歴インポート" csvFormat="ID,実施日時,種別,件名,内容,担当者名,取引先名" />
+              <TextImportModal importUrl="/api/import/activities" title="活動履歴インポート" csvFormat="ID,実施日時,種別,件名,内容,担当者名,取引先名" fieldOptions={{ '種別': ['電話','メール','打ち合わせ','メモ'] }} />
               <Link href={`/activities/new?contact_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
             </div>
           </AuthGuard>

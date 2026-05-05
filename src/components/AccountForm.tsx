@@ -58,6 +58,7 @@ export default function AccountForm({ action, cancelHref, defaultValues = {}, cu
             '従業員数': 'employee_count', 'ステータス': 'status', 'メモ': 'description',
           }}
           valueMap={{ status: { '見込み': 'prospect', '有効': 'active', '無効': 'inactive' } }}
+          customFields={customFields}
         />
       </div>
 
