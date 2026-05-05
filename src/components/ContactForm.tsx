@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useState, useRef } from 'react'
 import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
+import FormFillModal from '@/components/FormFillModal'
 
 type Account = { id: string; name: string }
 
@@ -29,12 +30,13 @@ type ContactFormProps = {
 export default function ContactForm({ action, cancelHref, accounts, defaultValues = {}, customFields = [], customValues = {} }: ContactFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const [contactType, setContactType] = useState<string>(defaultValues.contact_type ?? 'business')
+  const formRef = useRef<HTMLFormElement>(null)
 
   const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
   const lbl   = 'block text-sm font-medium text-zinc-700 mb-1'
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-5">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
@@ -43,6 +45,14 @@ export default function ContactForm({ action, cancelHref, accounts, defaultValue
         <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
         <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
         <div className="flex-1 h-px bg-zinc-200" />
+        <FormFillModal
+          formRef={formRef}
+          csvFormat="氏名,役職,部署,メール,電話番号,誕生日,メモ"
+          fieldMap={{
+            '氏名': 'full_name', '役職': 'title', '部署': 'department',
+            'メール': 'email', '電話番号': 'phone', '誕生日': 'birthday', 'メモ': 'description',
+          }}
+        />
       </div>
 
       {/* 人物タイプ */}

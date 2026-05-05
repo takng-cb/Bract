@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
+import FormFillModal from '@/components/FormFillModal'
 
 type Account = { id: string; name: string }
 type Contact = { id: string; full_name: string }
@@ -31,12 +32,22 @@ const PRIORITIES = [
 
 export default function TaskForm({ action, cancelHref, accounts, contacts, opportunities, defaultValues = {} }: TaskFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-5">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
+
+      <div className="flex justify-end">
+        <FormFillModal
+          formRef={formRef}
+          csvFormat="タイトル,期日,優先度"
+          fieldMap={{ 'タイトル': 'title', '期日': 'due_date', '優先度': 'priority' }}
+          valueMap={{ priority: { '高': 'high', '中': 'medium', '低': 'low' } }}
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">

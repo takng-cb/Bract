@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
+import FormFillModal from '@/components/FormFillModal'
 
 type Account = { id: string; name: string }
 
@@ -35,9 +36,10 @@ const STAGES = [
 
 export default function OpportunityForm({ action, cancelHref, accounts, defaultValues = {}, customFields = [], customValues = {} }: OpportunityFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-5">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
@@ -46,6 +48,20 @@ export default function OpportunityForm({ action, cancelHref, accounts, defaultV
         <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
         <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
         <div className="flex-1 h-px bg-zinc-200" />
+        <FormFillModal
+          formRef={formRef}
+          csvFormat="商談名,ステージ,金額,完了予定日,確度(%),説明"
+          fieldMap={{
+            '商談名': 'name', 'ステージ': 'stage', '金額': 'amount',
+            '完了予定日': 'close_date', '確度(%)': 'probability', '説明': 'description',
+          }}
+          valueMap={{
+            stage: {
+              '見込み': 'prospecting', '要件確認': 'qualification', '提案': 'proposal',
+              '交渉': 'negotiation', '受注': 'closed_won', '失注': 'closed_lost',
+            },
+          }}
+        />
       </div>
 
       <div>

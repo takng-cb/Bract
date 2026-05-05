@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
+import FormFillModal from '@/components/FormFillModal'
 
 type AccountFormProps = {
   action: (prevState: string | null, formData: FormData) => Promise<string | null>
@@ -34,9 +35,10 @@ const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他�
 
 export default function AccountForm({ action, cancelHref, defaultValues = {}, customFields = [], customValues = {} }: AccountFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-5">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">
           {error}
@@ -47,6 +49,16 @@ export default function AccountForm({ action, cancelHref, defaultValues = {}, cu
         <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
         <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
         <div className="flex-1 h-px bg-zinc-200" />
+        <FormFillModal
+          formRef={formRef}
+          csvFormat="会社名,種別,業種,電話番号,Webサイト,住所,年間売上,従業員数,ステータス,メモ"
+          fieldMap={{
+            '会社名': 'name', '種別': 'type', '業種': 'industry', '電話番号': 'phone',
+            'Webサイト': 'website', '住所': 'address', '年間売上': 'annual_revenue',
+            '従業員数': 'employee_count', 'ステータス': 'status', 'メモ': 'description',
+          }}
+          valueMap={{ status: { '見込み': 'prospect', '有効': 'active', '無効': 'inactive' } }}
+        />
       </div>
 
       <div>

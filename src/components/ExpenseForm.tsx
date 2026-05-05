@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
+import FormFillModal from '@/components/FormFillModal'
 
 type Account = { id: string; name: string }
 type Contact = { id: string; full_name: string }
@@ -31,14 +32,23 @@ export default function ExpenseForm({
   action, cancelHref, accounts, contacts, opportunities, defaultValues = {}
 }: ExpenseFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   const today = new Date().toISOString().slice(0, 10)
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-5">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
+
+      <div className="flex justify-end">
+        <FormFillModal
+          formRef={formRef}
+          csvFormat="件名,金額,カテゴリ,日付,備考"
+          fieldMap={{ '件名': 'title', '金額': 'amount', 'カテゴリ': 'category', '日付': 'expense_date', '備考': 'notes' }}
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">
