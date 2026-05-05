@@ -61,9 +61,13 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
           scrivenerContacts={scrivenerContacts}
           defaultValues={{
             ...property,
-            area:               property.area               !== null ? Number(property.area)               : null,
-            price:              property.price              !== null ? Number(property.price)              : null,
-            building_floor_area: property.building_floor_area !== null ? Number(property.building_floor_area) : null,
+            area:                    property.area                    != null ? Number(property.area)                    : null,
+            price:                   property.price                   != null ? Number(property.price)                   : null,
+            building_floor_area_1f:  property.building_floor_area_1f  != null ? Number(property.building_floor_area_1f)  : null,
+            building_floor_area_2f:  property.building_floor_area_2f  != null ? Number(property.building_floor_area_2f)  : null,
+            building_floor_area_3f:  property.building_floor_area_3f  != null ? Number(property.building_floor_area_3f)  : null,
+            building_damage_rate:    property.building_damage_rate     != null ? Number(property.building_damage_rate)    : null,
+            building_debt_amount:    property.building_debt_amount     != null ? Number(property.building_debt_amount)    : null,
           }}
         />
       </div>

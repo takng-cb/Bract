@@ -31,7 +31,7 @@ const FIELDS_RE: FieldDef[] = [
   { value: 'address', label: '所在地',   type: 'text' },
   {
     value: 'property_type', label: '物件種別', type: 'select',
-    options: ['マンション','戸建て','土地','ビル','店舗','倉庫','その他'].map((v) => ({ value: v, label: v })),
+    options: ['土地・建物','建物のみ','土地のみ','その他'].map((v) => ({ value: v, label: v })),
   },
   {
     value: 'transaction_type', label: '取引種別', type: 'select',
@@ -79,7 +79,6 @@ export default async function PropertiesPage({
     address:          properties.address,
     area:             properties.area,
     price:            properties.price,
-    built_year:       properties.built_year,
     accounts: { id: accounts.id, name: accounts.name },
     contacts: { id: contacts.id, full_name: contacts.full_name },
   })

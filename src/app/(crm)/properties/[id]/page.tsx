@@ -22,42 +22,36 @@ const TX_COLORS: Record<string, string> = {
   '賃貸': 'bg-cyan-50 text-cyan-700 border-cyan-200',
 }
 
+type DlItem = { label: string; value: string | null | undefined }
+
+function Dl({ items }: { items: DlItem[] }) {
+  return (
+    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {items.map(({ label, value }) => (
+        <div key={label}>
+          <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
+          <dd className="text-sm text-zinc-800">
+            {value ? value : <span className="text-zinc-300">—</span>}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">{title}</h2>
+      {children}
+    </div>
+  )
+}
+
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  // 基本情報取得
-  const row = await db.select({
-    id:               properties.id,
-    product_category: properties.product_category,
-    name:             properties.name,
-    property_type:    properties.property_type,
-    transaction_type: properties.transaction_type,
-    status:           properties.status,
-    address:          properties.address,
-    area:             properties.area,
-    price:            properties.price,
-    floor:            properties.floor,
-    total_floors:     properties.total_floors,
-    built_year:       properties.built_year,
-    chimoku:          properties.chimoku,
-    land_chiban:      properties.land_chiban,
-    rights_status:    properties.rights_status,
-    structure:        properties.structure,
-    building_kaoku_number: properties.building_kaoku_number,
-    building_shurui:       properties.building_shurui,
-    building_floor_area:   properties.building_floor_area,
-    description:      properties.description,
-    created_at:       properties.created_at,
-    account_id:                  properties.account_id,
-    contact_id:                  properties.contact_id,
-    seller_scrivener_account_id: properties.seller_scrivener_account_id,
-    seller_scrivener_contact_id: properties.seller_scrivener_contact_id,
-    buyer_scrivener_account_id:  properties.buyer_scrivener_account_id,
-    buyer_scrivener_contact_id:  properties.buyer_scrivener_contact_id,
-    accounts: { id: accounts.id, name: accounts.name },
-    contacts: { id: contacts.id, full_name: contacts.full_name },
-  })
-    .from(properties)
+  const row = await db.select().from(properties)
     .leftJoin(accounts, eq(properties.account_id, accounts.id))
     .leftJoin(contacts, eq(properties.contact_id, contacts.id))
     .where(eq(properties.id, id))
@@ -65,10 +59,11 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   if (!row) notFound()
 
-  const isRE      = row.product_category !== 'other'
+  const p        = row.properties
+  const account  = row.accounts?.id ? row.accounts : null
+  const contact  = row.contacts?.id ? row.contacts : null
+  const isRE     = p.product_category !== 'other'
   const viewParam = isRE ? 'real_estate' : 'other'
-  const account   = row.accounts?.id ? row.accounts : null
-  const contact   = row.contacts?.id ? row.contacts : null
 
   // 司法書士の名前を別途取得（不動産のみ）
   let sellerScrivenerAccount: { id: string; name: string } | null = null
@@ -77,8 +72,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   let buyerScrivenerContact:  { id: string; full_name: string } | null = null
 
   if (isRE) {
-    const accountIds = [row.seller_scrivener_account_id, row.buyer_scrivener_account_id].filter(Boolean) as string[]
-    const contactIds = [row.seller_scrivener_contact_id, row.buyer_scrivener_contact_id].filter(Boolean) as string[]
+    const accountIds = [p.seller_scrivener_account_id, p.buyer_scrivener_account_id].filter(Boolean) as string[]
+    const contactIds = [p.seller_scrivener_contact_id, p.buyer_scrivener_contact_id].filter(Boolean) as string[]
 
     const [scrAccounts, scrContacts] = await Promise.all([
       accountIds.length > 0
@@ -92,10 +87,10 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     const accMap = new Map(scrAccounts.map((a) => [a.id, a]))
     const conMap = new Map(scrContacts.map((c) => [c.id, c]))
 
-    if (row.seller_scrivener_account_id) sellerScrivenerAccount = accMap.get(row.seller_scrivener_account_id) ?? null
-    if (row.seller_scrivener_contact_id) sellerScrivenerContact = conMap.get(row.seller_scrivener_contact_id) ?? null
-    if (row.buyer_scrivener_account_id)  buyerScrivenerAccount  = accMap.get(row.buyer_scrivener_account_id)  ?? null
-    if (row.buyer_scrivener_contact_id)  buyerScrivenerContact  = conMap.get(row.buyer_scrivener_contact_id)  ?? null
+    if (p.seller_scrivener_account_id) sellerScrivenerAccount = accMap.get(p.seller_scrivener_account_id) ?? null
+    if (p.seller_scrivener_contact_id) sellerScrivenerContact = conMap.get(p.seller_scrivener_contact_id) ?? null
+    if (p.buyer_scrivener_account_id)  buyerScrivenerAccount  = accMap.get(p.buyer_scrivener_account_id)  ?? null
+    if (p.buyer_scrivener_contact_id)  buyerScrivenerContact  = conMap.get(p.buyer_scrivener_contact_id)  ?? null
   }
 
   async function handleDelete() {
@@ -103,56 +98,28 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     await deleteProperty(id)
   }
 
-  // 非不動産用のフラットリスト
-  const otherItems = [
-    { label: '取引種別',   value: row.transaction_type },
-    { label: '金額',       value: row.price ? `¥${Number(row.price).toLocaleString()}` : null },
-    { label: '関連取引先', value: account ? account.name : null, href: account ? `/accounts/${account.id}` : undefined },
-    { label: '関連人物',   value: contact ? contact.full_name : null, href: contact ? `/contacts/${contact.id}` : undefined },
-    { label: '登録日',     value: row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : null },
-  ]
-
-  // 不動産：土地の登記
-  const landItems = [
-    { label: '所在',     value: row.address       ?? null },
-    { label: '地番',     value: row.land_chiban   ?? null },
-    { label: '地目',     value: row.chimoku        ?? null },
-    { label: '地積',     value: row.area           ? `${Number(row.area).toLocaleString()} ㎡` : null },
-    { label: '権利状況', value: row.rights_status  ?? null },
-  ]
-
-  // 不動産：建物の登記
-  const buildingItems = [
-    { label: '家屋番号', value: row.building_kaoku_number ?? null },
-    { label: '種類',     value: row.building_shurui       ?? null },
-    { label: '構造',     value: row.structure              ?? null },
-    { label: '床面積',   value: row.building_floor_area    ? `${Number(row.building_floor_area).toLocaleString()} ㎡` : null },
-    { label: '所在階',   value: row.floor        ? `${row.floor}階` : null },
-    { label: '総階数',   value: row.total_floors ? `${row.total_floors}階建て` : null },
-    { label: '築年',     value: row.built_year   ? `${row.built_year}年` : null },
-  ]
-
-  // 不動産：取引情報（共通）
-  const reCommonItems = [
-    { label: '物件種別',   value: row.property_type },
-    { label: '取引種別',   value: row.transaction_type },
-    { label: '価格 / 賃料', value: row.price ? `¥${Number(row.price).toLocaleString()}` : null },
-    { label: '関連取引先', value: account ? account.name : null, href: account ? `/accounts/${account.id}` : undefined },
-    { label: '関連人物',   value: contact ? contact.full_name : null, href: contact ? `/contacts/${contact.id}` : undefined },
-    { label: '登録日',     value: row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : null },
-  ]
+  const fmt = {
+    price:   (v: string | null) => v ? `¥${Number(v).toLocaleString()}` : null,
+    area:    (v: string | null) => v ? `${Number(v).toLocaleString()} ㎡` : null,
+    debt:    (v: number | null) => v ? `¥${v.toLocaleString()}` : null,
+    rate:    (v: string | null) => v ? `${Number(v)}%` : null,
+    bool:    (v: boolean | null) => v === true ? '✓ あり' : v === false ? 'なし' : null,
+    date:    (v: string | null) => v ? new Date(v).toLocaleDateString('ja-JP') : null,
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
+      {/* パンくず */}
       <div className="text-sm text-zinc-400 mb-4">
         <Link href={`/properties?view=${viewParam}`} className="hover:text-zinc-600">物件・商品</Link>
         <span className="mx-2">/</span>
-        <span className="text-zinc-700 line-clamp-1">{row.name}</span>
+        <span className="text-zinc-700 line-clamp-1">{p.name}</span>
       </div>
 
+      {/* ヘッダ */}
       <div className="mb-6">
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{row.name}</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{p.name}</h1>
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2 shrink-0 mt-0.5">
               <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
@@ -164,155 +131,160 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[row.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-            {row.status}
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+            {p.status}
           </span>
-          <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${TX_COLORS[row.transaction_type] ?? 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
-            {row.transaction_type}
+          <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${TX_COLORS[p.transaction_type] ?? 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
+            {p.transaction_type}
           </span>
-          {isRE && <span className="text-xs text-zinc-500">{row.property_type}</span>}
+          {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
         </div>
       </div>
 
-      {/* 物件・商品情報 */}
-      {isRE ? (
-        <>
-          {/* 取引情報 */}
-          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">物件情報</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {reCommonItems.map(({ label, value, href }) => (
-                <div key={label}>
-                  <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
-                  <dd className="text-sm text-zinc-800">
-                    {value
-                      ? href
-                        ? <Link href={href} className="text-blue-600 hover:underline">{value}</Link>
-                        : value
-                      : <span className="text-zinc-300">—</span>
-                    }
-                  </dd>
-                </div>
-              ))}
-            </dl>
+      {/* 物件情報（共通） */}
+      <Section title={isRE ? '物件情報' : '商品情報'}>
+        <Dl items={isRE ? [
+          { label: '物件種別',   value: p.property_type },
+          { label: '取引種別',   value: p.transaction_type },
+          { label: '価格 / 賃料', value: fmt.price(p.price) },
+          { label: '関連取引先', value: account?.name ?? null },
+          { label: '関連人物',   value: contact?.full_name ?? null },
+          { label: '登録日',     value: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : null },
+        ] : [
+          { label: '取引種別',   value: p.transaction_type },
+          { label: '金額',       value: fmt.price(p.price) },
+          { label: '関連取引先', value: account?.name ?? null },
+          { label: '関連人物',   value: contact?.full_name ?? null },
+          { label: '登録日',     value: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : null },
+        ]} />
+        {/* 関連リンク */}
+        {(account || contact) && (
+          <div className="mt-3 flex gap-4 text-sm">
+            {account && <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name} →</Link>}
+            {contact && <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">{contact.full_name} →</Link>}
           </div>
-
-          {/* 土地の登記 */}
-          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">🗺️ 土地の登記</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {landItems.map(({ label, value }) => (
-                <div key={label}>
-                  <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
-                  <dd className="text-sm text-zinc-800">
-                    {value ?? <span className="text-zinc-300">—</span>}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-
-          {/* 建物の登記 */}
-          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">🏠 建物の登記</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {buildingItems.map(({ label, value }) => (
-                <div key={label}>
-                  <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
-                  <dd className="text-sm text-zinc-800">
-                    {value ?? <span className="text-zinc-300">—</span>}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-
-          {/* 備考 */}
-          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">備考</h2>
-            <p className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
-              {row.description ?? <span className="text-zinc-300">—</span>}
-            </p>
-          </div>
-        </>
-      ) : (
-        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">商品情報</h2>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {otherItems.map(({ label, value, href }) => (
-              <div key={label}>
-                <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
-                <dd className="text-sm text-zinc-800">
-                  {value
-                    ? href
-                      ? <Link href={href} className="text-blue-600 hover:underline">{value}</Link>
-                      : value
-                    : <span className="text-zinc-300">—</span>
-                  }
-                </dd>
-              </div>
-            ))}
-          </dl>
-          {/* 備考 */}
+        )}
+        {!isRE && p.description && (
           <div className="mt-4 pt-4 border-t border-zinc-100">
             <dt className="text-xs text-zinc-400 mb-1">備考</dt>
-            <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
-              {row.description ?? <span className="text-zinc-300">—</span>}
-            </dd>
+            <dd className="text-sm text-zinc-800 whitespace-pre-wrap">{p.description}</dd>
           </div>
-        </div>
-      )}
+        )}
+      </Section>
 
-      {/* 不動産：司法書士情報 */}
+      {/* ── 不動産のみ ── */}
       {isRE && (
-        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">⚖️ 司法書士情報</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* 売り方 */}
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">売り方</p>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">事務所</dt>
-                <dd className="text-sm text-zinc-800">
-                  {sellerScrivenerAccount
-                    ? <Link href={`/accounts/${sellerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{sellerScrivenerAccount.name}</Link>
-                    : <span className="text-zinc-300">—</span>}
-                </dd>
+        <>
+          {/* 土地の登記 */}
+          <Section title="🗺️ 土地の登記">
+            <p className="text-xs font-semibold text-zinc-500 mb-3">表題部</p>
+            <Dl items={[
+              { label: '不動産番号',     value: p.land_fudosan_number },
+              { label: '所在',           value: p.address },
+              { label: '地番',           value: p.land_chiban },
+              { label: '地目',           value: p.chimoku },
+              { label: '地積',           value: fmt.area(p.area) },
+              { label: '原因及びその日付', value: p.land_cause },
+            ]} />
+            <p className="text-xs font-semibold text-zinc-500 mt-5 mb-3 border-t border-zinc-100 pt-4">権利部（甲区）</p>
+            <Dl items={[
+              { label: '現所有者名',       value: p.land_owner_name },
+              { label: '所有者住所',       value: p.land_owner_address },
+              { label: '所有権取得原因',   value: p.land_acquisition_reason },
+              { label: '所有権取得日',     value: fmt.date(p.land_acquisition_date) },
+              { label: '差押有無',         value: fmt.bool(p.land_seizure) },
+              { label: '直近差押解除日',   value: fmt.date(p.land_seizure_release_date) },
+            ]} />
+          </Section>
+
+          {/* 建物の登記 */}
+          <Section title="🏠 建物の登記">
+            <p className="text-xs font-semibold text-zinc-500 mb-3">表題部</p>
+            <Dl items={[
+              { label: '不動産番号', value: p.building_fudosan_number },
+              { label: '所在',       value: p.building_location },
+              { label: '家屋番号',   value: p.building_kaoku_number },
+              { label: '種類',       value: p.building_shurui },
+              { label: '構造',       value: p.structure },
+              { label: '新築年月日', value: fmt.date(p.building_new_construction_date) },
+              { label: '床面積・1階', value: fmt.area(p.building_floor_area_1f) },
+              { label: '床面積・2階', value: fmt.area(p.building_floor_area_2f) },
+              { label: '床面積・3階', value: fmt.area(p.building_floor_area_3f) },
+            ]} />
+            <p className="text-xs font-semibold text-zinc-500 mt-5 mb-3 border-t border-zinc-100 pt-4">所有権・権利状態（甲区）</p>
+            <Dl items={[
+              { label: '現所有者名',     value: p.building_owner_name },
+              { label: '所有者住所',     value: p.building_owner_address },
+              { label: '所有権取得原因', value: p.building_acquisition_reason },
+              { label: '所有権取得日',   value: fmt.date(p.building_acquisition_date) },
+              { label: '差押有無',       value: fmt.bool(p.building_seizure) },
+              { label: '直近差押解除日', value: fmt.date(p.building_seizure_release_date) },
+            ]} />
+            <p className="text-xs font-semibold text-zinc-500 mt-5 mb-3 border-t border-zinc-100 pt-4">担保・権利制限（乙区）</p>
+            <Dl items={[
+              { label: '登記種別',       value: p.building_lien_type },
+              { label: '権利者名',       value: p.building_lien_holder },
+              { label: '債権額',         value: fmt.debt(p.building_debt_amount) },
+              { label: '損害金率',       value: fmt.rate(p.building_damage_rate) },
+              { label: '共同担保目録番号', value: p.building_joint_collateral_number },
+            ]} />
+          </Section>
+
+          {/* 司法書士情報 */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">⚖️ 司法書士情報</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">売り方</p>
+                <div>
+                  <dt className="text-xs text-zinc-400 mb-1">事務所</dt>
+                  <dd className="text-sm text-zinc-800">
+                    {sellerScrivenerAccount
+                      ? <Link href={`/accounts/${sellerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{sellerScrivenerAccount.name}</Link>
+                      : <span className="text-zinc-300">—</span>}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+                  <dd className="text-sm text-zinc-800">
+                    {sellerScrivenerContact
+                      ? <Link href={`/contacts/${sellerScrivenerContact.id}`} className="text-blue-600 hover:underline">{sellerScrivenerContact.full_name}</Link>
+                      : <span className="text-zinc-300">—</span>}
+                  </dd>
+                </div>
               </div>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
-                <dd className="text-sm text-zinc-800">
-                  {sellerScrivenerContact
-                    ? <Link href={`/contacts/${sellerScrivenerContact.id}`} className="text-blue-600 hover:underline">{sellerScrivenerContact.full_name}</Link>
-                    : <span className="text-zinc-300">—</span>}
-                </dd>
-              </div>
-            </div>
-            {/* 買い方 */}
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">買い方</p>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">事務所</dt>
-                <dd className="text-sm text-zinc-800">
-                  {buyerScrivenerAccount
-                    ? <Link href={`/accounts/${buyerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{buyerScrivenerAccount.name}</Link>
-                    : <span className="text-zinc-300">—</span>}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
-                <dd className="text-sm text-zinc-800">
-                  {buyerScrivenerContact
-                    ? <Link href={`/contacts/${buyerScrivenerContact.id}`} className="text-blue-600 hover:underline">{buyerScrivenerContact.full_name}</Link>
-                    : <span className="text-zinc-300">—</span>}
-                </dd>
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">買い方</p>
+                <div>
+                  <dt className="text-xs text-zinc-400 mb-1">事務所</dt>
+                  <dd className="text-sm text-zinc-800">
+                    {buyerScrivenerAccount
+                      ? <Link href={`/accounts/${buyerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{buyerScrivenerAccount.name}</Link>
+                      : <span className="text-zinc-300">—</span>}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+                  <dd className="text-sm text-zinc-800">
+                    {buyerScrivenerContact
+                      ? <Link href={`/contacts/${buyerScrivenerContact.id}`} className="text-blue-600 hover:underline">{buyerScrivenerContact.full_name}</Link>
+                      : <span className="text-zinc-300">—</span>}
+                  </dd>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+
+          {/* 備考 */}
+          {p.description && (
+            <Section title="備考">
+              <p className="text-sm text-zinc-800 whitespace-pre-wrap">{p.description}</p>
+            </Section>
+          )}
+        </>
       )}
 
-      {/* 編集リンク */}
+      {/* フッタ */}
       <div className="flex gap-3">
         <AuthGuard minRole="editor">
           <Link href={`/properties/${id}/edit`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">

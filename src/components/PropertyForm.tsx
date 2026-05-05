@@ -9,49 +9,70 @@ const STATUSES_OTHER  = ['提案中', '交渉中', '成約', '終了']
 const TX_TYPES_RE     = ['売買', '賃貸']
 const TX_TYPES_OTHER  = ['売買', '賃貸', 'サービス提供', 'その他']
 
-
 type Account = { id: string; name: string }
 type Contact = { id: string; full_name: string }
 
 interface DefaultValues {
-  product_category?:           string
-  name?:                       string
-  property_type?:              string
-  transaction_type?:           string
-  status?:                     string
-  // 土地の登記
-  address?:                    string | null
-  land_chiban?:                string | null
-  chimoku?:                    string | null
-  area?:                       number | null   // 地積
-  rights_status?:              string | null
-  // 建物の登記
-  building_kaoku_number?:      string | null
-  building_shurui?:            string | null
-  structure?:                  string | null
-  building_floor_area?:        number | null  // 床面積
-  floor?:                      number | null
-  total_floors?:               number | null
-  built_year?:                 number | null
-  // 価格・関連
-  price?:                      number | null
-  account_id?:                 string | null
-  contact_id?:                 string | null
+  product_category?:  string
+  name?:              string
+  property_type?:     string
+  transaction_type?:  string
+  status?:            string
+  price?:             number | null
+  account_id?:        string | null
+  contact_id?:        string | null
   seller_scrivener_account_id?: string | null
   seller_scrivener_contact_id?: string | null
   buyer_scrivener_account_id?:  string | null
   buyer_scrivener_contact_id?:  string | null
-  description?:                string | null
+  // 土地 表題部
+  land_fudosan_number?: string | null
+  address?:             string | null
+  land_chiban?:         string | null
+  chimoku?:             string | null
+  area?:                number | null
+  land_cause?:          string | null
+  // 土地 甲区
+  land_owner_name?:           string | null
+  land_owner_address?:        string | null
+  land_acquisition_reason?:   string | null
+  land_acquisition_date?:     string | null
+  land_seizure?:              boolean | null
+  land_seizure_release_date?: string | null
+  // 建物 表題部
+  building_fudosan_number?:        string | null
+  building_location?:              string | null
+  building_kaoku_number?:          string | null
+  building_shurui?:                string | null
+  structure?:                      string | null
+  building_floor_area_1f?:         number | null
+  building_floor_area_2f?:         number | null
+  building_floor_area_3f?:         number | null
+  building_new_construction_date?: string | null
+  // 建物 甲区
+  building_owner_name?:           string | null
+  building_owner_address?:        string | null
+  building_acquisition_reason?:   string | null
+  building_acquisition_date?:     string | null
+  building_seizure?:              boolean | null
+  building_seizure_release_date?: string | null
+  // 建物 乙区
+  building_lien_type?:               string | null
+  building_lien_holder?:             string | null
+  building_debt_amount?:             number | null
+  building_damage_rate?:             number | null
+  building_joint_collateral_number?: string | null
+  description?: string | null
 }
 
 interface Props {
-  action:             (_: string | null, formData: FormData) => Promise<string | null>
-  cancelHref:         string
-  accounts:           Account[]
-  contacts:           Contact[]
-  scrivenerAccounts:  Account[]
-  scrivenerContacts:  Contact[]
-  defaultValues?:     DefaultValues
+  action:            (_: string | null, formData: FormData) => Promise<string | null>
+  cancelHref:        string
+  accounts:          Account[]
+  contacts:          Contact[]
+  scrivenerAccounts: Account[]
+  scrivenerContacts: Contact[]
+  defaultValues?:    DefaultValues
 }
 
 export default function PropertyForm({
@@ -64,6 +85,9 @@ export default function PropertyForm({
 
   const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
   const lbl   = 'block text-sm font-medium text-zinc-700 mb-1'
+  const sec   = 'border border-zinc-200 rounded-lg p-5 space-y-4 bg-zinc-50'
+  const secH  = 'text-sm font-semibold text-zinc-700'
+  const subH  = 'text-xs font-semibold text-zinc-500 border-b border-zinc-200 pb-1 mb-3'
 
   const isRE     = category === 'real_estate'
   const statuses = isRE ? STATUSES_RE : STATUSES_OTHER
@@ -118,7 +142,7 @@ export default function PropertyForm({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className={lbl}>物件種別</label>
-            <select name="property_type" defaultValue={d.property_type ?? 'その他'} className={`${field} bg-white`}>
+            <select name="property_type" defaultValue={d.property_type ?? '土地・建物'} className={`${field} bg-white`}>
               {PROPERTY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
@@ -158,149 +182,239 @@ export default function PropertyForm({
         <input type="number" name="price" defaultValue={d.price ?? ''} min="0" placeholder="例：50000000" className={field} />
       </div>
 
-      {/* ═══════════════════════════════════════════
+      {/* ════════════════════════════════════════════════
           不動産のみ：土地の登記
-      ═══════════════════════════════════════════ */}
+      ════════════════════════════════════════════════ */}
       {isRE && (
-        <div className="border border-zinc-200 rounded-lg p-5 space-y-4 bg-zinc-50">
-          <h3 className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5">
-            🗺️ 土地の登記
-          </h3>
+        <div className={sec}>
+          <h3 className={secH}>🗺️ 土地の登記</h3>
 
+          {/* 表題部 */}
+          <p className={subH}>表題部（土地の表示）</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={lbl}>所在</label>
-              <input
-                type="text" name="address"
-                defaultValue={d.address ?? ''}
-                placeholder="例：東京都渋谷区○○一丁目"
-                className={field}
-              />
+              <label className={lbl}>不動産番号</label>
+              <input type="text" name="land_fudosan_number"
+                defaultValue={d.land_fudosan_number ?? ''}
+                placeholder="例：1234567890123" maxLength={13} className={field} />
             </div>
             <div>
-              <label className={lbl}>地番</label>
-              <input
-                type="text" name="land_chiban"
-                defaultValue={d.land_chiban ?? ''}
-                placeholder="例：123番4"
-                className={field}
-              />
+              <label className={lbl}>所在</label>
+              <input type="text" name="address"
+                defaultValue={d.address ?? ''}
+                placeholder="例：東京都渋谷区○○一丁目" className={field} />
             </div>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
+              <label className={lbl}>地番</label>
+              <input type="text" name="land_chiban"
+                defaultValue={d.land_chiban ?? ''}
+                placeholder="例：123番4" className={field} />
+            </div>
+            <div>
               <label className={lbl}>地目</label>
-              <input
-                type="text" name="chimoku"
+              <input type="text" name="chimoku"
                 defaultValue={d.chimoku ?? ''}
-                placeholder="例：宅地、農地、山林"
-                className={field}
-              />
+                placeholder="例：宅地" className={field} />
             </div>
             <div>
               <label className={lbl}>地積（㎡）</label>
-              <input
-                type="number" name="area"
+              <input type="number" name="area"
                 defaultValue={d.area ?? ''}
-                min="0" step="0.01"
-                placeholder="例：165.00"
-                className={field}
-              />
+                min="0" step="0.01" placeholder="例：165.00" className={field} />
+            </div>
+          </div>
+          <div>
+            <label className={lbl}>原因及びその日付</label>
+            <input type="text" name="land_cause"
+              defaultValue={d.land_cause ?? ''}
+              placeholder="例：令和○年○月○日売買" className={field} />
+          </div>
+
+          {/* 甲区 */}
+          <p className={`${subH} mt-2`}>権利部（甲区）</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={lbl}>現所有者名</label>
+              <input type="text" name="land_owner_name"
+                defaultValue={d.land_owner_name ?? ''} className={field} />
             </div>
             <div>
-              <label className={lbl}>権利状況</label>
-              <input
-                type="text" name="rights_status"
-                defaultValue={d.rights_status ?? ''}
-                placeholder="例：所有権、借地権"
-                className={field}
-              />
+              <label className={lbl}>所有者住所</label>
+              <input type="text" name="land_owner_address"
+                defaultValue={d.land_owner_address ?? ''} className={field} />
             </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className={lbl}>所有権取得原因</label>
+              <input type="text" name="land_acquisition_reason"
+                defaultValue={d.land_acquisition_reason ?? ''}
+                placeholder="例：売買、相続" className={field} />
+            </div>
+            <div>
+              <label className={lbl}>所有権取得日</label>
+              <input type="date" name="land_acquisition_date"
+                defaultValue={d.land_acquisition_date ?? ''} className={field} />
+            </div>
+            <div>
+              <label className={lbl}>直近差押解除日</label>
+              <input type="date" name="land_seizure_release_date"
+                defaultValue={d.land_seizure_release_date ?? ''} className={field} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" name="land_seizure" id="land_seizure"
+              defaultChecked={d.land_seizure ?? false}
+              className="w-4 h-4 rounded border-zinc-300 text-blue-600" />
+            <label htmlFor="land_seizure" className="text-sm text-zinc-700">差押あり</label>
           </div>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════
+      {/* ════════════════════════════════════════════════
           不動産のみ：建物の登記
-      ═══════════════════════════════════════════ */}
+      ════════════════════════════════════════════════ */}
       {isRE && (
-        <div className="border border-zinc-200 rounded-lg p-5 space-y-4 bg-zinc-50">
-          <h3 className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5">
-            🏠 建物の登記
-          </h3>
+        <div className={sec}>
+          <h3 className={secH}>🏠 建物の登記</h3>
 
+          {/* 表題部 */}
+          <p className={subH}>表題部（建物の表示）</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={lbl}>不動産番号</label>
+              <input type="text" name="building_fudosan_number"
+                defaultValue={d.building_fudosan_number ?? ''}
+                placeholder="例：1234567890123" maxLength={13} className={field} />
+            </div>
+            <div>
+              <label className={lbl}>所在</label>
+              <input type="text" name="building_location"
+                defaultValue={d.building_location ?? ''}
+                placeholder="例：東京都渋谷区○○一丁目123番地4" className={field} />
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={lbl}>家屋番号</label>
-              <input
-                type="text" name="building_kaoku_number"
+              <input type="text" name="building_kaoku_number"
                 defaultValue={d.building_kaoku_number ?? ''}
-                placeholder="例：123番4の301"
-                className={field}
-              />
+                placeholder="例：123番4の301" className={field} />
             </div>
             <div>
               <label className={lbl}>種類</label>
-              <input
-                type="text" name="building_shurui"
+              <input type="text" name="building_shurui"
                 defaultValue={d.building_shurui ?? ''}
-                placeholder="例：居宅、共同住宅、店舗"
-                className={field}
-              />
+                placeholder="例：居宅、共同住宅" className={field} />
             </div>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={lbl}>構造</label>
-              <input
-                type="text" name="structure"
+              <input type="text" name="structure"
                 defaultValue={d.structure ?? ''}
-                placeholder="例：鉄筋コンクリート造、木造"
-                className={field}
-              />
+                placeholder="例：鉄筋コンクリート造" className={field} />
             </div>
             <div>
-              <label className={lbl}>床面積（㎡）</label>
-              <input
-                type="number" name="building_floor_area"
-                defaultValue={d.building_floor_area ?? ''}
-                min="0" step="0.01"
-                placeholder="例：65.50"
-                className={field}
-              />
+              <label className={lbl}>新築年月日</label>
+              <input type="date" name="building_new_construction_date"
+                defaultValue={d.building_new_construction_date ?? ''} className={field} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className={lbl}>床面積・1階（㎡）</label>
+              <input type="number" name="building_floor_area_1f"
+                defaultValue={d.building_floor_area_1f ?? ''}
+                min="0" step="0.01" placeholder="例：65.50" className={field} />
+            </div>
+            <div>
+              <label className={lbl}>床面積・2階（㎡）</label>
+              <input type="number" name="building_floor_area_2f"
+                defaultValue={d.building_floor_area_2f ?? ''}
+                min="0" step="0.01" placeholder="例：60.00" className={field} />
+            </div>
+            <div>
+              <label className={lbl}>床面積・3階（㎡）</label>
+              <input type="number" name="building_floor_area_3f"
+                defaultValue={d.building_floor_area_3f ?? ''}
+                min="0" step="0.01" placeholder="例：55.00" className={field} />
             </div>
           </div>
 
+          {/* 甲区 */}
+          <p className={`${subH} mt-2`}>所有権・権利状態（甲区）</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={lbl}>現所有者名</label>
+              <input type="text" name="building_owner_name"
+                defaultValue={d.building_owner_name ?? ''} className={field} />
+            </div>
+            <div>
+              <label className={lbl}>所有者住所</label>
+              <input type="text" name="building_owner_address"
+                defaultValue={d.building_owner_address ?? ''} className={field} />
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className={lbl}>所在階</label>
-              <input
-                type="number" name="floor"
-                defaultValue={d.floor ?? ''}
-                min="1" placeholder="例：3"
-                className={field}
-              />
+              <label className={lbl}>所有権取得原因</label>
+              <input type="text" name="building_acquisition_reason"
+                defaultValue={d.building_acquisition_reason ?? ''}
+                placeholder="例：売買、相続" className={field} />
             </div>
             <div>
-              <label className={lbl}>総階数</label>
-              <input
-                type="number" name="total_floors"
-                defaultValue={d.total_floors ?? ''}
-                min="1" placeholder="例：10"
-                className={field}
-              />
+              <label className={lbl}>所有権取得日</label>
+              <input type="date" name="building_acquisition_date"
+                defaultValue={d.building_acquisition_date ?? ''} className={field} />
             </div>
             <div>
-              <label className={lbl}>築年（西暦）</label>
-              <input
-                type="number" name="built_year"
-                defaultValue={d.built_year ?? ''}
-                min="1900" max={new Date().getFullYear()}
-                placeholder="例：2005"
-                className={field}
-              />
+              <label className={lbl}>直近差押解除日</label>
+              <input type="date" name="building_seizure_release_date"
+                defaultValue={d.building_seizure_release_date ?? ''} className={field} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" name="building_seizure" id="building_seizure"
+              defaultChecked={d.building_seizure ?? false}
+              className="w-4 h-4 rounded border-zinc-300 text-blue-600" />
+            <label htmlFor="building_seizure" className="text-sm text-zinc-700">差押あり</label>
+          </div>
+
+          {/* 乙区 */}
+          <p className={`${subH} mt-2`}>担保・権利制限（乙区）</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={lbl}>登記種別</label>
+              <input type="text" name="building_lien_type"
+                defaultValue={d.building_lien_type ?? ''}
+                placeholder="例：抵当権設定" className={field} />
+            </div>
+            <div>
+              <label className={lbl}>権利者名</label>
+              <input type="text" name="building_lien_holder"
+                defaultValue={d.building_lien_holder ?? ''} className={field} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className={lbl}>債権額（円）</label>
+              <input type="number" name="building_debt_amount"
+                defaultValue={d.building_debt_amount ?? ''}
+                min="0" placeholder="例：30000000" className={field} />
+            </div>
+            <div>
+              <label className={lbl}>損害金率（%）</label>
+              <input type="number" name="building_damage_rate"
+                defaultValue={d.building_damage_rate ?? ''}
+                min="0" step="0.01" placeholder="例：14.6" className={field} />
+            </div>
+            <div>
+              <label className={lbl}>共同担保目録番号</label>
+              <input type="text" name="building_joint_collateral_number"
+                defaultValue={d.building_joint_collateral_number ?? ''} className={field} />
             </div>
           </div>
         </div>
