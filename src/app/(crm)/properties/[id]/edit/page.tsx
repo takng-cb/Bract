@@ -61,8 +61,9 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
           scrivenerContacts={scrivenerContacts}
           defaultValues={{
             ...property,
-            area:  property.area  !== null ? Number(property.area)  : null,
-            price: property.price !== null ? Number(property.price) : null,
+            area:               property.area               !== null ? Number(property.area)               : null,
+            price:              property.price              !== null ? Number(property.price)              : null,
+            building_floor_area: property.building_floor_area !== null ? Number(property.building_floor_area) : null,
           }}
         />
       </div>

@@ -30,9 +30,15 @@ function parseForm(formData: FormData) {
     seller_scrivener_contact_id: isRE ? (raw('seller_scrivener_contact_id') || null) : null,
     buyer_scrivener_account_id:  isRE ? (raw('buyer_scrivener_account_id')  || null) : null,
     buyer_scrivener_contact_id:  isRE ? (raw('buyer_scrivener_contact_id')  || null) : null,
+    // 土地の登記
     chimoku:       isRE ? (raw('chimoku')       || null) : null,
-    structure:     isRE ? (raw('structure')     || null) : null,
+    land_chiban:   isRE ? (raw('land_chiban')   || null) : null,
     rights_status: isRE ? (raw('rights_status') || null) : null,
+    // 建物の登記
+    structure:              isRE ? (raw('structure')              || null) : null,
+    building_kaoku_number:  isRE ? (raw('building_kaoku_number')  || null) : null,
+    building_shurui:        isRE ? (raw('building_shurui')        || null) : null,
+    building_floor_area:    isRE && raw('building_floor_area') ? String(Number(raw('building_floor_area'))) : null,
     description:      raw('description') || null,
   }
 }

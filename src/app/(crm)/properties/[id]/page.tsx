@@ -40,8 +40,12 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     total_floors:     properties.total_floors,
     built_year:       properties.built_year,
     chimoku:          properties.chimoku,
-    structure:        properties.structure,
+    land_chiban:      properties.land_chiban,
     rights_status:    properties.rights_status,
+    structure:        properties.structure,
+    building_kaoku_number: properties.building_kaoku_number,
+    building_shurui:       properties.building_shurui,
+    building_floor_area:   properties.building_floor_area,
     description:      properties.description,
     created_at:       properties.created_at,
     account_id:                  properties.account_id,
@@ -99,24 +103,40 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     await deleteProperty(id)
   }
 
-  const detailItems = isRE ? [
-    { label: '物件種別',   value: row.property_type },
+  // 非不動産用のフラットリスト
+  const otherItems = [
     { label: '取引種別',   value: row.transaction_type },
-    { label: '所在地',     value: row.address },
-    { label: '面積',       value: row.area   ? `${Number(row.area).toLocaleString()} ㎡` : null },
-    { label: '価格 / 賃料', value: row.price  ? `¥${Number(row.price).toLocaleString()}` : null },
-    { label: '所在階',     value: row.floor        ? `${row.floor}階` : null },
-    { label: '総階数',     value: row.total_floors ? `${row.total_floors}階建て` : null },
-    { label: '築年',       value: row.built_year   ? `${row.built_year}年` : null },
-    { label: '地目',       value: row.chimoku       ?? null },
-    { label: '構造',       value: row.structure     ?? null },
-    { label: '権利状況',   value: row.rights_status ?? null },
+    { label: '金額',       value: row.price ? `¥${Number(row.price).toLocaleString()}` : null },
     { label: '関連取引先', value: account ? account.name : null, href: account ? `/accounts/${account.id}` : undefined },
     { label: '関連人物',   value: contact ? contact.full_name : null, href: contact ? `/contacts/${contact.id}` : undefined },
     { label: '登録日',     value: row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : null },
-  ] : [
+  ]
+
+  // 不動産：土地の登記
+  const landItems = [
+    { label: '所在',     value: row.address       ?? null },
+    { label: '地番',     value: row.land_chiban   ?? null },
+    { label: '地目',     value: row.chimoku        ?? null },
+    { label: '地積',     value: row.area           ? `${Number(row.area).toLocaleString()} ㎡` : null },
+    { label: '権利状況', value: row.rights_status  ?? null },
+  ]
+
+  // 不動産：建物の登記
+  const buildingItems = [
+    { label: '家屋番号', value: row.building_kaoku_number ?? null },
+    { label: '種類',     value: row.building_shurui       ?? null },
+    { label: '構造',     value: row.structure              ?? null },
+    { label: '床面積',   value: row.building_floor_area    ? `${Number(row.building_floor_area).toLocaleString()} ㎡` : null },
+    { label: '所在階',   value: row.floor        ? `${row.floor}階` : null },
+    { label: '総階数',   value: row.total_floors ? `${row.total_floors}階建て` : null },
+    { label: '築年',     value: row.built_year   ? `${row.built_year}年` : null },
+  ]
+
+  // 不動産：取引情報（共通）
+  const reCommonItems = [
+    { label: '物件種別',   value: row.property_type },
     { label: '取引種別',   value: row.transaction_type },
-    { label: '金額',       value: row.price ? `¥${Number(row.price).toLocaleString()}` : null },
+    { label: '価格 / 賃料', value: row.price ? `¥${Number(row.price).toLocaleString()}` : null },
     { label: '関連取引先', value: account ? account.name : null, href: account ? `/accounts/${account.id}` : undefined },
     { label: '関連人物',   value: contact ? contact.full_name : null, href: contact ? `/contacts/${contact.id}` : undefined },
     { label: '登録日',     value: row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : null },
@@ -155,32 +175,93 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       </div>
 
       {/* 物件・商品情報 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">{isRE ? '物件情報' : '商品情報'}</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {detailItems.map(({ label, value, href }) => (
-            <div key={label}>
-              <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
-              <dd className="text-sm text-zinc-800">
-                {value
-                  ? href
-                    ? <Link href={href} className="text-blue-600 hover:underline">{value}</Link>
-                    : value
-                  : <span className="text-zinc-300">—</span>
-                }
-              </dd>
-            </div>
-          ))}
-        </dl>
+      {isRE ? (
+        <>
+          {/* 取引情報 */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">物件情報</h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {reCommonItems.map(({ label, value, href }) => (
+                <div key={label}>
+                  <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
+                  <dd className="text-sm text-zinc-800">
+                    {value
+                      ? href
+                        ? <Link href={href} className="text-blue-600 hover:underline">{value}</Link>
+                        : value
+                      : <span className="text-zinc-300">—</span>
+                    }
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
 
-        {/* 備考 */}
-        <div className="mt-4 pt-4 border-t border-zinc-100">
-          <dt className="text-xs text-zinc-400 mb-1">備考</dt>
-          <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
-            {row.description ?? <span className="text-zinc-300">—</span>}
-          </dd>
+          {/* 土地の登記 */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">🗺️ 土地の登記</h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {landItems.map(({ label, value }) => (
+                <div key={label}>
+                  <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
+                  <dd className="text-sm text-zinc-800">
+                    {value ?? <span className="text-zinc-300">—</span>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          {/* 建物の登記 */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">🏠 建物の登記</h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {buildingItems.map(({ label, value }) => (
+                <div key={label}>
+                  <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
+                  <dd className="text-sm text-zinc-800">
+                    {value ?? <span className="text-zinc-300">—</span>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          {/* 備考 */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">備考</h2>
+            <p className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
+              {row.description ?? <span className="text-zinc-300">—</span>}
+            </p>
+          </div>
+        </>
+      ) : (
+        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">商品情報</h2>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {otherItems.map(({ label, value, href }) => (
+              <div key={label}>
+                <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
+                <dd className="text-sm text-zinc-800">
+                  {value
+                    ? href
+                      ? <Link href={href} className="text-blue-600 hover:underline">{value}</Link>
+                      : value
+                    : <span className="text-zinc-300">—</span>
+                  }
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {/* 備考 */}
+          <div className="mt-4 pt-4 border-t border-zinc-100">
+            <dt className="text-xs text-zinc-400 mb-1">備考</dt>
+            <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
+              {row.description ?? <span className="text-zinc-300">—</span>}
+            </dd>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 不動産：司法書士情報 */}
       {isRE && (

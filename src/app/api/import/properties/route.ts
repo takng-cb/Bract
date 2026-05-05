@@ -31,10 +31,14 @@ type PropertyRecord = {
   built_year:       number | null
   account_id:       string | null
   contact_id:       string | null
-  chimoku:          string | null
-  structure:        string | null
-  rights_status:    string | null
-  description:      string | null
+  chimoku:               string | null
+  land_chiban:           string | null
+  rights_status:         string | null
+  structure:             string | null
+  building_kaoku_number: string | null
+  building_shurui:       string | null
+  building_floor_area:   string | null
+  description:           string | null
 }
 
 export async function POST(req: NextRequest) {
@@ -55,7 +59,10 @@ export async function POST(req: NextRequest) {
 
   // ヘッダ: カテゴリ(0), 件名(1), 物件種別(2), 取引種別(3), ステータス(4),
   //         所在地(5), 面積(6), 価格(7), 所在階(8), 総階数(9), 築年(10),
-  //         取引先名(11), 担当者名(12), 地目(13), 構造(14), 権利状況(15), 備考(16)
+  //         取引先名(11), 担当者名(12),
+  //         地目(13), 地番(14), 権利状況(15),
+  //         構造(16), 家屋番号(17), 建物種類(18), 床面積(19),
+  //         備考(20)
   const dataRows = rows.slice(1)
   const records: PropertyRecord[] = dataRows.flatMap((cols, i) => {
     const name = cols[1]?.trim()
@@ -70,7 +77,7 @@ export async function POST(req: NextRequest) {
       property_type:    cols[2]?.trim() || 'その他',
       transaction_type: cols[3]?.trim() || (isRE ? '売買' : 'その他'),
       status:           cols[4]?.trim() || (isRE ? '募集中' : '提案中'),
-      address:          isRE ? (cols[5]?.trim() || null) : null,
+      address:          isRE ? (cols[5]?.trim()  || null) : null,
       area:             isRE ? safeNumStr(cols[6]) : null,
       price:            safeNumStr(cols[7]),
       floor:            isRE ? safeNum(cols[8]) : null,
@@ -78,10 +85,14 @@ export async function POST(req: NextRequest) {
       built_year:       isRE ? safeNum(cols[10]) : null,
       account_id:       cols[11]?.trim() ? (accountMap.get(cols[11].trim()) ?? null) : null,
       contact_id:       cols[12]?.trim() ? (contactMap.get(cols[12].trim()) ?? null) : null,
-      chimoku:          isRE ? (cols[13]?.trim() || null) : null,
-      structure:        isRE ? (cols[14]?.trim() || null) : null,
-      rights_status:    isRE ? (cols[15]?.trim() || null) : null,
-      description:      cols[16]?.trim() || null,
+      chimoku:               isRE ? (cols[13]?.trim() || null) : null,
+      land_chiban:           isRE ? (cols[14]?.trim() || null) : null,
+      rights_status:         isRE ? (cols[15]?.trim() || null) : null,
+      structure:             isRE ? (cols[16]?.trim() || null) : null,
+      building_kaoku_number: isRE ? (cols[17]?.trim() || null) : null,
+      building_shurui:       isRE ? (cols[18]?.trim() || null) : null,
+      building_floor_area:   isRE ? safeNumStr(cols[19]) : null,
+      description:           cols[20]?.trim() || null,
     }]
   })
 

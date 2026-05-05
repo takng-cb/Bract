@@ -170,10 +170,15 @@ export const properties = pgTable('properties', {
   // 不動産：買い方司法書士
   buyer_scrivener_account_id:  uuid('buyer_scrivener_account_id').references(() => accounts.id, { onDelete: 'set null' }),
   buyer_scrivener_contact_id:  uuid('buyer_scrivener_contact_id').references(() => contacts.id, { onDelete: 'set null' }),
-  // 不動産：追加属性
-  chimoku:          text('chimoku'),      // 地目
-  structure:        text('structure'),    // 構造
+  // 不動産：土地の登記
+  chimoku:          text('chimoku'),       // 地目
+  land_chiban:      text('land_chiban'),   // 地番
   rights_status:    text('rights_status'), // 権利状況
+  // 不動産：建物の登記
+  structure:            text('structure'),             // 構造
+  building_kaoku_number: text('building_kaoku_number'), // 家屋番号
+  building_shurui:       text('building_shurui'),       // 建物種類（種類）
+  building_floor_area:   numeric('building_floor_area'), // 床面積
   description:      text('description'),
   created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
