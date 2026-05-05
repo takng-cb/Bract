@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 type Props = {
@@ -14,33 +14,50 @@ type Props = {
   buttonLabel?: string
 }
 
+type Tab = 'file' | 'text'
+
 export default function TextImportModal({
   importUrl,
   title,
   csvFormat,
   defaultContext,
-  buttonLabel = '📋 テキスト',
+  buttonLabel = 'インポート',
 }: Props) {
   const [open, setOpen]       = useState(false)
+  const [tab, setTab]         = useState<Tab>('file')
   const [text, setText]       = useState('')
+  const [file, setFile]       = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
-  const router = useRouter()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const router  = useRouter()
 
   function handleClose() {
     setOpen(false)
     setMessage(null)
     setText('')
+    setFile(null)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  function switchTab(next: Tab) {
+    setTab(next)
+    setMessage(null)
   }
 
   async function handleSubmit() {
-    const trimmed = text.trim()
-    if (!trimmed) return
     setLoading(true)
     setMessage(null)
     try {
       const fd = new FormData()
-      fd.append('text', trimmed)
+      if (tab === 'file') {
+        if (!file) return
+        fd.append('file', file)
+      } else {
+        const trimmed = text.trim()
+        if (!trimmed) return
+        fd.append('text', trimmed)
+      }
       for (const [k, v] of Object.entries(defaultContext ?? {})) {
         fd.append(k, v)
       }
@@ -61,6 +78,8 @@ export default function TextImportModal({
     }
   }
 
+  const canSubmit = tab === 'file' ? !!file : !!text.trim()
+
   return (
     <>
       {/* トリガーボタン */}
@@ -78,14 +97,40 @@ export default function TextImportModal({
           onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
         >
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 flex flex-col max-h-[90vh]">
+
             {/* ヘッダー */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 shrink-0">
               <h2 className="text-base font-bold text-zinc-900">{title}</h2>
               <button onClick={handleClose} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">×</button>
             </div>
 
+            {/* タブ切り替え */}
+            <div className="flex border-b border-zinc-200 shrink-0">
+              <button
+                onClick={() => switchTab('file')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'file'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                📁 ファイル
+              </button>
+              <button
+                onClick={() => switchTab('text')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  tab === 'text'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                📋 テキスト
+              </button>
+            </div>
+
             {/* 本文 */}
             <div className="px-6 py-4 flex flex-col gap-3 overflow-y-auto">
+
               {/* フォーマット説明 */}
               <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3">
                 <p className="text-xs font-semibold text-zinc-500 mb-1">CSVフォーマット（1行目はヘッダー行）</p>
@@ -99,14 +144,31 @@ export default function TextImportModal({
                 </p>
               </div>
 
-              {/* テキストエリア */}
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={csvFormat + '\nデータ行1\nデータ行2'}
-                rows={10}
-                className="w-full border border-zinc-300 rounded-md px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {/* ファイル選択 */}
+              {tab === 'file' && (
+                <div className="border border-zinc-200 rounded-md p-4">
+                  <label className="block text-xs text-zinc-500 mb-2">CSVファイルを選択</label>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    className="w-full text-sm text-zinc-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200"
+                  />
+                  {file && <p className="text-xs text-zinc-400 mt-2">選択中: {file.name}</p>}
+                </div>
+              )}
+
+              {/* テキスト入力 */}
+              {tab === 'text' && (
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={csvFormat + '\nデータ行1\nデータ行2'}
+                  rows={10}
+                  className="w-full border border-zinc-300 rounded-md px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
 
               {/* 結果メッセージ */}
               {message && (
@@ -130,7 +192,7 @@ export default function TextImportModal({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={loading || !text.trim()}
+                disabled={loading || !canSubmit}
                 className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
                 {loading ? 'インポート中...' : 'インポート実行'}
