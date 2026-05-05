@@ -20,10 +20,11 @@ type Tab = 'file' | 'text'
 
 /** サーバーAPIのレスポンス型 */
 type ImportResult = {
-  imported?: number
-  updated?:  number
-  error?:    string   // 致命的エラー（400/500）
-  errors?:   string[] // 行単位のスキップ理由
+  imported?:       number
+  updated?:        number
+  accountsCreated?: number  // 名刺インポート時: 新規作成した取引先数
+  error?:          string   // 致命的エラー（400/500）
+  errors?:         string[] // 行単位のスキップ理由
 }
 
 /** テキストの列数を簡易チェック（クォートを考慮した最大列数） */
@@ -141,8 +142,9 @@ ${selectSection}
 
       // ── 結果サマリーを構築
       const parts: string[] = []
-      if (json.imported) parts.push(`${json.imported} 件追加`)
-      if (json.updated)  parts.push(`${json.updated} 件更新`)
+      if (json.imported)        parts.push(`${json.imported} 件追加`)
+      if (json.updated)         parts.push(`${json.updated} 件更新`)
+      if (json.accountsCreated) parts.push(`取引先 ${json.accountsCreated} 件新規作成`)
       const summary = parts.length > 0 ? parts.join('、') + 'しました' : '変更なし'
 
       if (json.errors && json.errors.length > 0) {

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
+import TextImportModal from '@/components/TextImportModal'
 import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
 
@@ -98,6 +99,18 @@ export default async function ContactsPage({
             csvFormat="ID,氏名,役職,部署,メール,電話番号,誕生日,取引先名,メモ"
             showImport={edit}
           />
+          {edit && (
+            <TextImportModal
+              importUrl="/api/import/business-cards"
+              title="名刺インポート"
+              buttonLabel="名刺インポート"
+              csvFormat="会社名,種別,業種,電話番号(会社),Webサイト,住所,氏名,役職,部署,メール,電話番号(個人)"
+              fieldOptions={{
+                '種別': ['顧客', '見込み客', 'パートナー', '競合他社', 'その他'],
+                '業種': ['IT・ソフトウェア', '製造業', '商社', '金融・保険', '医療・ヘルスケア', '広告・マーケティング', '小売・EC', '食品・飲料', 'エネルギー', '教育', '不動産', '弁護士', '司法書士', '税理士', '行政書士', 'その他'],
+              }}
+            />
+          )}
           {edit && (
             <Link
               href={newHref}
