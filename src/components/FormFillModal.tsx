@@ -183,7 +183,10 @@ export default function FormFillModal({
               <textarea
                 value={text}
                 onChange={(e) => { setText(e.target.value); setMsg(null) }}
-                placeholder={csvFormat + '\n値1,値2,...'}
+                placeholder={
+                  csvFormat + '\n' +
+                  csvFormat.split(',').map((h) => `(${h.trim()})`).join(',')
+                }
                 rows={5}
                 className="w-full border border-zinc-300 rounded-md px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
