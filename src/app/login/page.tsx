@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { signIn } from '@/app/actions/auth'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
@@ -13,14 +13,15 @@ function LoginForm() {
   const reason = searchParams.get('reason')
 
   const handleGoogleLogin = async () => {
-    const supabase = createBrowserClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     )
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
+    if (error) alert(`Google ログインエラー: ${error.message}`)
   }
 
   return (
