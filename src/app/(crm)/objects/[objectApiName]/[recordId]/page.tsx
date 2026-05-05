@@ -54,9 +54,9 @@ export default async function CustomRecordDetailPage({
             <div className="flex gap-2">
               <Link
                 href={`/objects/${objectApiName}/${recordId}/edit`}
-                className="px-4 py-2 border border-zinc-300 text-zinc-700 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors"
+                className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
               >
-                編集
+                ✏️ 編集
               </Link>
               <DeleteButton
                 action={handleDelete}

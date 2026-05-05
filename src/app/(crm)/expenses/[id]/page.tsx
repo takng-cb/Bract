@@ -76,9 +76,9 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
             <div className="flex gap-2 shrink-0 mt-0.5">
               <Link
                 href={`/expenses/${id}/edit`}
-                className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors"
+                className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
               >
-                編集
+                ✏️ 編集
               </Link>
               <DeleteButton
                 action={deleteAction}

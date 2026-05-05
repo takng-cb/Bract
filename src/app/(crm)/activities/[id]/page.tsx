@@ -73,7 +73,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
           </div>
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2 shrink-0 mt-0.5">
-              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この活動履歴を削除しますか？" />
             </div>
           </AuthGuard>

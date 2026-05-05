@@ -130,7 +130,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{p.name}</h1>
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2 shrink-0 mt-0.5">
-              <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">編集</Link>
+              <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
             </div>
           </AuthGuard>

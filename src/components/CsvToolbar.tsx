@@ -39,7 +39,7 @@ export default function CsvToolbar({ exportUrl, importUrl, label, showImport = t
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="hidden md:flex items-center gap-2">
       {message && (
         <span className={`text-xs px-2 py-1 rounded ${message.type === 'ok' ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'}`}>
           {message.text}
