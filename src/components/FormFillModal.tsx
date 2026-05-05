@@ -39,7 +39,6 @@ function parseRow(line: string): string[] {
 function applyField(form: HTMLFormElement, name: string, value: string) {
   const el = form.elements.namedItem(name)
   if (!el) return
-  // ラジオグループは RadioNodeList の .value セッターで一括変更
   if (el instanceof RadioNodeList) {
     el.value = value
     return
@@ -77,20 +76,40 @@ export default function FormFillModal({
 
     const formatHeaders = csvFormat.split(',').map((h) => h.trim())
 
-    // ヘッダー行の有無を判定（先頭行がフォーマット定義のいずれかのヘッダーを含む場合）
-    const firstCols = parseRow(lines[0])
-    const hasHeader  = firstCols.some((c) => formatHeaders.includes(c))
+    // ── ヘッダー行の検出（過半数のカラムが一致する場合のみヘッダーと判断）
+    const firstCols   = parseRow(lines[0])
+    const matchCount  = firstCols.filter((c) => formatHeaders.includes(c)).length
+    const hasHeader   = matchCount >= Math.ceil(formatHeaders.length / 2)
 
     let data: Record<string, string>
+    let actualCols: string[]
+    let expectedCount: number
+
     if (hasHeader && lines.length >= 2) {
       // ヘッダー行あり → 2行目をデータとして動的マッピング
       const dynHeaders = parseRow(lines[0])
-      const vals = parseRow(lines[1])
-      data = Object.fromEntries(dynHeaders.map((h, i) => [h, vals[i] ?? '']))
+      actualCols   = parseRow(lines[1])
+      expectedCount = dynHeaders.length
+      data = Object.fromEntries(dynHeaders.map((h, i) => [h, actualCols[i] ?? '']))
     } else {
       // ヘッダー行なし → 定義順でマッピング
-      const vals = parseRow(lines[0])
-      data = Object.fromEntries(formatHeaders.map((h, i) => [h, vals[i] ?? '']))
+      actualCols   = parseRow(lines[0])
+      expectedCount = formatHeaders.length
+      data = Object.fromEntries(formatHeaders.map((h, i) => [h, actualCols[i] ?? '']))
+    }
+
+    // ── 列数チェック
+    if (actualCols.length === 1 && expectedCount > 1) {
+      // 列が1つしか取れていない → 区切り文字が違う可能性
+      setMsg({
+        ok: false,
+        text: `列が 1 つしか検出されませんでした（期待: ${expectedCount} 列）。カンマ区切りで入力されているか確認してください。`,
+      })
+      return
+    }
+    if (actualCols.length < expectedCount) {
+      // 列不足でも続行するが警告を先出し（後で入力済み件数も表示）
+      // → 入力できたものは入力し、警告メッセージに含める
     }
 
     const form = formRef.current
@@ -103,7 +122,6 @@ export default function FormFillModal({
     for (const [csvHeader, fieldName] of Object.entries(fieldMap)) {
       const raw = data[csvHeader]
       if (!raw) continue
-      // valueMap があれば変換、なければそのまま使用
       applyField(form, fieldName, valueMap[fieldName]?.[raw] ?? raw)
       n++
     }
@@ -111,7 +129,24 @@ export default function FormFillModal({
     // Reactステート管理フィールドへのコールバック
     onFill?.(data)
 
-    setMsg({ ok: true, text: `${n} 項目を入力しました` })
+    // ── 結果メッセージ
+    if (n === 0) {
+      setMsg({
+        ok: false,
+        text: '入力できる項目がありませんでした。フォーマットを確認してください。',
+      })
+      return
+    }
+
+    const missingCount = expectedCount - actualCols.length
+    if (missingCount > 0) {
+      setMsg({
+        ok: true,
+        text: `${n} 項目を入力しました（列数が ${missingCount} 個不足しているため、末尾の項目は空のままです）`,
+      })
+    } else {
+      setMsg({ ok: true, text: `${n} 項目を入力しました` })
+    }
   }
 
   return (
@@ -140,7 +175,7 @@ export default function FormFillModal({
             {/* 本文 */}
             <div className="px-6 py-4 flex flex-col gap-3 overflow-y-auto">
               <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3">
-                <p className="text-xs font-semibold text-zinc-500 mb-1">フォーマット（ヘッダー行は省略可）</p>
+                <p className="text-xs font-semibold text-zinc-500 mb-1">フォーマット（ヘッダー行は省略可・カンマ区切り）</p>
                 <code className="text-xs text-zinc-700 break-all">{csvFormat}</code>
                 <p className="text-xs text-zinc-400 mt-1">データを1行貼り付けてください。入力後は通常通り「保存」で確定します。</p>
               </div>
@@ -154,7 +189,7 @@ export default function FormFillModal({
               />
 
               {msg && (
-                <p className={`text-sm px-3 py-2 rounded-md border ${
+                <p className={`text-sm px-3 py-2 rounded-md border whitespace-pre-wrap ${
                   msg.ok
                     ? 'bg-green-50 text-green-700 border-green-200'
                     : 'bg-red-50 text-red-600 border-red-200'

@@ -16,6 +16,25 @@ type Props = {
 
 type Tab = 'file' | 'text'
 
+/** サーバーAPIのレスポンス型 */
+type ImportResult = {
+  imported?: number
+  updated?:  number
+  error?:    string   // 致命的エラー（400/500）
+  errors?:   string[] // 行単位のスキップ理由
+}
+
+/** テキストの列数を簡易チェック（クォートを考慮した最大列数） */
+function detectColumnCount(line: string): number {
+  let count = 1
+  let inQ = false
+  for (const ch of line) {
+    if (ch === '"') inQ = !inQ
+    else if (ch === ',' && !inQ) count++
+  }
+  return count
+}
+
 export default function TextImportModal({
   importUrl,
   title,
@@ -45,7 +64,39 @@ export default function TextImportModal({
     setMessage(null)
   }
 
+  /** テキスト入力の書式を事前チェック（送信前） */
+  function validateText(raw: string): string | null {
+    const lines = raw.trim().split(/\r?\n/).filter((l) => l.trim())
+    if (lines.length === 0) return 'テキストが空です'
+
+    const expectedCols = csvFormat.split(',').length
+
+    // ヘッダー行の有無を判定（先頭行に csvFormat のヘッダーが含まれるか）
+    const firstLineCols = detectColumnCount(lines[0])
+    const firstLineHeaders = lines[0].split(',').map((s) => s.trim())
+    const formatHeaders    = csvFormat.split(',').map((s) => s.trim())
+    const matchCount = firstLineHeaders.filter((h) => formatHeaders.includes(h)).length
+    const hasHeader  = matchCount >= Math.ceil(formatHeaders.length / 2)
+
+    const dataLine = hasHeader && lines.length >= 2 ? lines[1] : lines[0]
+    const actualCols = detectColumnCount(dataLine)
+
+    if (actualCols === 1 && expectedCols > 1) {
+      return `列が 1 つしか検出されませんでした（期待: ${expectedCols} 列）。カンマ区切りで入力されているか確認してください。`
+    }
+    if (actualCols < Math.ceil(expectedCols / 2)) {
+      return `列数が少なすぎます（期待: ${expectedCols} 列、検出: ${actualCols} 列）。フォーマットを確認してください。`
+    }
+    return null
+  }
+
   async function handleSubmit() {
+    // テキストタブの書式事前チェック
+    if (tab === 'text') {
+      const err = validateText(text)
+      if (err) { setMessage({ type: 'err', text: err }); return }
+    }
+
     setLoading(true)
     setMessage(null)
     try {
@@ -54,25 +105,35 @@ export default function TextImportModal({
         if (!file) return
         fd.append('file', file)
       } else {
-        const trimmed = text.trim()
-        if (!trimmed) return
-        fd.append('text', trimmed)
+        fd.append('text', text.trim())
       }
       for (const [k, v] of Object.entries(defaultContext ?? {})) {
         fd.append(k, v)
       }
       const res  = await fetch(importUrl, { method: 'POST', body: fd })
-      const json = await res.json() as { imported?: number; updated?: number; error?: string }
+      const json = await res.json() as ImportResult
       if (!res.ok) throw new Error(json.error ?? 'エラーが発生しました')
 
+      // ── 結果サマリーを構築
       const parts: string[] = []
       if (json.imported) parts.push(`${json.imported} 件追加`)
       if (json.updated)  parts.push(`${json.updated} 件更新`)
-      setMessage({ type: 'ok', text: parts.length > 0 ? parts.join('、') + 'しました' : '変更なし' })
+      const summary = parts.length > 0 ? parts.join('、') + 'しました' : '変更なし'
+
+      if (json.errors && json.errors.length > 0) {
+        // 部分成功＋スキップあり
+        const shown   = json.errors.slice(0, 5)
+        const andMore = json.errors.length > 5 ? `\n他 ${json.errors.length - 5} 件` : ''
+        setMessage({
+          type: 'err',
+          text: `${summary}\n\nスキップ・エラー (${json.errors.length} 件):\n${shown.join('\n')}${andMore}`,
+        })
+      } else {
+        setMessage({ type: 'ok', text: summary })
+      }
       router.refresh()
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setMessage({ type: 'err', text: msg })
+      setMessage({ type: 'err', text: err instanceof Error ? err.message : String(err) })
     } finally {
       setLoading(false)
     }
@@ -133,7 +194,7 @@ export default function TextImportModal({
 
               {/* フォーマット説明 */}
               <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3">
-                <p className="text-xs font-semibold text-zinc-500 mb-1">CSVフォーマット（1行目はヘッダー行）</p>
+                <p className="text-xs font-semibold text-zinc-500 mb-1">CSVフォーマット（1行目はヘッダー行・カンマ区切り）</p>
                 <code className="text-xs text-zinc-700 break-all">{csvFormat}</code>
                 <p className="text-xs text-zinc-400 mt-2">
                   ・<span className="font-medium">ID あり</span> → 既存レコードを更新<br />
@@ -163,7 +224,7 @@ export default function TextImportModal({
               {tab === 'text' && (
                 <textarea
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => { setText(e.target.value); setMessage(null) }}
                   placeholder={csvFormat + '\nデータ行1\nデータ行2'}
                   rows={10}
                   className="w-full border border-zinc-300 rounded-md px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -172,7 +233,7 @@ export default function TextImportModal({
 
               {/* 結果メッセージ */}
               {message && (
-                <p className={`text-sm px-3 py-2 rounded-md ${
+                <p className={`text-sm px-3 py-2 rounded-md whitespace-pre-wrap ${
                   message.type === 'ok'
                     ? 'bg-green-50 text-green-700 border border-green-200'
                     : 'bg-red-50 text-red-600 border border-red-200'
