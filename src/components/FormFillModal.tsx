@@ -10,7 +10,7 @@ type Props = {
   /** フィールド値の変換マップ（日本語ラベル → select/radio の value 値） */
   valueMap?: Record<string, Record<string, string>>
   /** フォーム要素への ref */
-  formRef: React.RefObject<HTMLFormElement>
+  formRef: React.RefObject<HTMLFormElement | null>
   /** Reactステートを持つフィールド（ラジオ以外）の更新コールバック */
   onFill?: (data: Record<string, string>) => void
   buttonLabel?: string
