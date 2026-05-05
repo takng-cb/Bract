@@ -9,8 +9,6 @@ const STATUSES_OTHER  = ['提案中', '交渉中', '成約', '終了']
 const TX_TYPES_RE     = ['売買', '賃貸']
 const TX_TYPES_OTHER  = ['売買', '賃貸', 'サービス提供', 'その他']
 
-// 建物種類（登記上の種類）
-const BUILDING_SHURUI = ['居宅', '共同住宅', '店舗', '事務所', '倉庫', '工場', '車庫', 'その他']
 
 type Account = { id: string; name: string }
 type Contact = { id: string; full_name: string }
@@ -244,10 +242,12 @@ export default function PropertyForm({
             </div>
             <div>
               <label className={lbl}>種類</label>
-              <select name="building_shurui" defaultValue={d.building_shurui ?? ''} className={`${field} bg-white`}>
-                <option value="">— 選択しない —</option>
-                {BUILDING_SHURUI.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <input
+                type="text" name="building_shurui"
+                defaultValue={d.building_shurui ?? ''}
+                placeholder="例：居宅、共同住宅、店舗"
+                className={field}
+              />
             </div>
           </div>
 
