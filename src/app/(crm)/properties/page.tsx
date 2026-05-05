@@ -112,6 +112,7 @@ export default async function PropertiesPage({
             exportUrl="/api/export/properties"
             importUrl="/api/import/properties"
             label="物件・商品"
+            csvFormat="ID,カテゴリ,件名,物件種別,取引種別,ステータス,価格,取引先名,担当者名"
             showImport={edit}
           />
           {edit && (

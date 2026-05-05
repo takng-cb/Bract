@@ -30,3 +30,20 @@ export function toCsvRow(cells: (string | number | null | undefined)[]): string 
 export function buildCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
   return '﻿' + [headers, ...rows].map(toCsvRow).join('\n')
 }
+
+/**
+ * ヘッダー行付き CSV をパースして Record 配列を返す。
+ * BOM を自動除去。各セルの前後スペースをトリムする。
+ */
+export function parseCsvWithHeaders(text: string): Record<string, string>[] {
+  // BOM 除去
+  const cleaned = text.replace(/^﻿/, '')
+  const rows = parseCsv(cleaned)
+  if (rows.length < 1) return []
+  const headers = rows[0].map((h) => h.trim())
+  return rows.slice(1).map((cols) => {
+    const record: Record<string, string> = {}
+    headers.forEach((h, i) => { record[h] = cols[i]?.trim() ?? '' })
+    return record
+  }).filter((r) => Object.values(r).some((v) => v !== ''))
+}

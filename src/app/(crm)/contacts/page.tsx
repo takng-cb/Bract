@@ -95,6 +95,7 @@ export default async function ContactsPage({
             exportUrl="/api/export/contacts"
             importUrl="/api/import/contacts"
             label="人物"
+            csvFormat="ID,氏名,役職,部署,メール,電話番号,誕生日,取引先名,メモ"
             showImport={edit}
           />
           {edit && (

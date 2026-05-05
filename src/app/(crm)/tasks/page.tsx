@@ -219,6 +219,7 @@ export default async function TasksPage({
             exportUrl="/api/export/tasks"
             importUrl="/api/import/tasks"
             label="タスク"
+            csvFormat="ID,タイトル,期日,優先度,完了,取引先名,担当者名,商談名"
             showImport={edit}
           />
           {edit && (

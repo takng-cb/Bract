@@ -1,28 +1,29 @@
 import { db } from '@/lib/db'
 import { expenses, accounts, opportunities } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
-import { parseCsv } from '@/lib/csvUtils'
+import { parseCsvWithHeaders } from '@/lib/csvUtils'
 
 const VALID_CATEGORIES = ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他']
 
-type ExpenseRecord = {
-  title:          string
-  amount:         string
-  category:       string
-  expense_date:   string
-  account_id:     string | null
-  opportunity_id: string | null
-  notes:          string | null
-}
-
 export async function POST(req: NextRequest) {
-  const formData = await req.formData()
-  const file = formData.get('file') as File | null
-  if (!file) return NextResponse.json({ error: 'ファイルがありません' }, { status: 400 })
+  const formData  = await req.formData()
+  const file      = formData.get('file') as File | null
+  const textInput = formData.get('text') as string | null
+  const ctxAccountId     = formData.get('account_id')     as string | null
+  const ctxOpportunityId = formData.get('opportunity_id') as string | null
 
-  const text = await file.text()
-  const rows = parseCsv(text)
-  if (rows.length < 2) return NextResponse.json({ error: 'データがありません' }, { status: 400 })
+  let text: string
+  if (file) {
+    text = await file.text()
+  } else if (textInput) {
+    text = textInput
+  } else {
+    return NextResponse.json({ error: 'ファイルまたはテキストが必要です' }, { status: 400 })
+  }
+
+  const rows = parseCsvWithHeaders(text)
+  if (rows.length === 0) return NextResponse.json({ error: 'データがありません' }, { status: 400 })
 
   const [accountsData, oppsData] = await Promise.all([
     db.select({ id: accounts.id,      name: accounts.name      }).from(accounts),
@@ -31,33 +32,60 @@ export async function POST(req: NextRequest) {
   const accountMap = new Map(accountsData.map((a) => [a.name, a.id]))
   const oppsMap    = new Map(oppsData.map((o) => [o.name, o.id]))
 
-  // ヘッダ: 件名, 金額, カテゴリ, 日付, 取引先名, 商談名, 備考
-  const dataRows = rows.slice(1)
-  const records: ExpenseRecord[] = dataRows.flatMap((cols) => {
-    const title  = cols[0]?.trim()
-    const amount = cols[1]?.trim()
-    const date   = cols[3]?.trim()
-    if (!title || !amount || !date) return []
-    const cat = cols[2]?.trim() ?? ''
-    return [{
-      title,
-      amount:         String(Number(amount)),
-      category:       VALID_CATEGORIES.includes(cat) ? cat : 'その他',
-      expense_date:   date,
-      account_id:     cols[4]?.trim() ? (accountMap.get(cols[4].trim()) ?? null) : null,
-      opportunity_id: cols[5]?.trim() ? (oppsMap.get(cols[5].trim())    ?? null) : null,
-      notes:          cols[6]?.trim() || null,
-    }]
-  })
+  let inserted = 0
+  let updated  = 0
+  const errors: string[] = []
 
-  if (records.length === 0) {
-    return NextResponse.json({ error: '有効なデータ行がありません（件名・金額・日付が必須）' }, { status: 400 })
+  for (const row of rows) {
+    const id    = row['ID']?.trim()
+    const title = row['件名']?.trim()
+    if (!id && !title) continue
+
+    const accountName = row['取引先名']?.trim()
+    const oppsName    = row['商談名']?.trim()
+    const cat         = row['カテゴリ']?.trim() ?? ''
+
+    const record = {
+      title:          title || undefined,
+      amount:         row['金額'] ? String(Number(row['金額'])) : undefined,
+      category:       VALID_CATEGORIES.includes(cat) ? cat : undefined,
+      expense_date:   row['日付'] || undefined,
+      account_id:     accountName ? (accountMap.get(accountName) ?? null) : (ctxAccountId ?? null),
+      opportunity_id: oppsName    ? (oppsMap.get(oppsName) ?? null) : (ctxOpportunityId ?? null),
+      notes:          row['備考'] || null,
+    }
+
+    try {
+      if (id) {
+        const { title: _t, amount: _a, category: _c, expense_date: _d, ...rest } = record
+        await db.update(expenses)
+          .set({
+            ...rest,
+            ...(record.title        ? { title: record.title }               : {}),
+            ...(record.amount       ? { amount: record.amount }             : {}),
+            ...(record.category     ? { category: record.category }         : {}),
+            ...(record.expense_date ? { expense_date: record.expense_date } : {}),
+          })
+          .where(eq(expenses.id, id))
+        updated++
+      } else {
+        if (!record.title || !record.amount || !record.expense_date) {
+          errors.push('件名・金額・日付のいずれかが空の行をスキップしました')
+          continue
+        }
+        await db.insert(expenses).values({
+          ...record,
+          title:        record.title,
+          amount:       record.amount,
+          category:     record.category ?? 'その他',
+          expense_date: record.expense_date,
+        })
+        inserted++
+      }
+    } catch (e) {
+      errors.push((e as Error).message)
+    }
   }
 
-  try {
-    await db.insert(expenses).values(records)
-    return NextResponse.json({ imported: records.length })
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 })
-  }
+  return NextResponse.json({ imported: inserted, updated, errors })
 }

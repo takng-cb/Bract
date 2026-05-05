@@ -1,7 +1,15 @@
 import { db } from '@/lib/db'
 import { properties, accounts, contacts } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
-import { parseCsv } from '@/lib/csvUtils'
+import { parseCsvWithHeaders } from '@/lib/csvUtils'
+
+function safeNumStr(v: string | undefined): string | null {
+  const s = v?.trim()
+  if (!s) return null
+  const n = Number(s)
+  return isFinite(n) ? String(n) : null
+}
 
 function safeNum(v: string | undefined): number | null {
   const s = v?.trim()
@@ -10,13 +18,9 @@ function safeNum(v: string | undefined): number | null {
   return isFinite(n) ? n : null
 }
 
-function safeNumStr(v: string | undefined): string | null {
-  const n = safeNum(v)
-  return n !== null ? String(n) : null
-}
-
-function safeBool(v: string | undefined): boolean {
-  return v?.trim() === '1' || v?.trim().toLowerCase() === 'true'
+function safeBool(v: string | undefined): boolean | undefined {
+  if (v === undefined || v.trim() === '') return undefined
+  return v.trim() === '1' || v.trim().toLowerCase() === 'true'
 }
 
 function safeDate(v: string | undefined): string | null {
@@ -25,13 +29,22 @@ function safeDate(v: string | undefined): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const formData = await req.formData()
-  const file = formData.get('file') as File | null
-  if (!file) return NextResponse.json({ error: 'ファイルがありません' }, { status: 400 })
+  const formData  = await req.formData()
+  const file      = formData.get('file') as File | null
+  const textInput = formData.get('text') as string | null
+  const ctxAccountId = formData.get('account_id') as string | null
 
-  const text = await file.text()
-  const rows = parseCsv(text)
-  if (rows.length < 2) return NextResponse.json({ error: 'データがありません' }, { status: 400 })
+  let text: string
+  if (file) {
+    text = await file.text()
+  } else if (textInput) {
+    text = textInput
+  } else {
+    return NextResponse.json({ error: 'ファイルまたはテキストが必要です' }, { status: 400 })
+  }
+
+  const rows = parseCsvWithHeaders(text)
+  if (rows.length === 0) return NextResponse.json({ error: 'データがありません' }, { status: 400 })
 
   const [accountsData, contactsData] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name      }).from(accounts),
@@ -40,93 +53,101 @@ export async function POST(req: NextRequest) {
   const accountMap = new Map(accountsData.map((a) => [a.name, a.id]))
   const contactMap = new Map(contactsData.map((c) => [c.name, c.id]))
 
-  // ヘッダ列番号:
-  // 基本: カテゴリ(0), 件名(1), 物件種別(2), 取引種別(3), ステータス(4), 価格(5), 取引先名(6), 担当者名(7)
-  // 土地表題部: 土地不動産番号(8), 土地所在(9), 地番(10), 地目(11), 地積(12), 原因及びその日付(13)
-  // 土地甲区: 土地現所有者名(14), 土地所有者住所(15), 土地所有権取得原因(16), 土地所有権取得日(17), 土地差押有無(18), 土地直近差押解除日(19)
-  // 建物表題部: 建物不動産番号(20), 建物所在(21), 家屋番号(22), 種類(23), 構造(24), 床面積1階(25), 床面積2階(26), 床面積3階(27), 新築年月日(28)
-  // 建物甲区: 建物現所有者名(29), 建物所有者住所(30), 建物所有権取得原因(31), 建物所有権取得日(32), 建物差押有無(33), 建物直近差押解除日(34)
-  // 建物乙区: 登記種別(35), 権利者名(36), 債権額(37), 損害金率(38), 共同担保目録番号(39)
-  // 備考(40)
+  let inserted = 0
+  let updated  = 0
+  const errors: string[] = []
 
-  const dataRows = rows.slice(1)
-  const records = dataRows.flatMap((cols) => {
-    const name = cols[1]?.trim()
-    if (!name) return []
-    const rawCat = cols[0]?.trim() ?? ''
-    const isRE   = rawCat !== 'その他商品' && rawCat !== 'other'
+  for (const row of rows) {
+    const id   = row['ID']?.trim()
+    const name = row['件名']?.trim()
+    if (!id && !name) continue
 
-    return [{
-      product_category: isRE ? 'real_estate' : 'other',
-      name,
-      property_type:    cols[2]?.trim() || (isRE ? '土地・建物' : 'その他'),
-      transaction_type: cols[3]?.trim() || (isRE ? '売買' : 'その他'),
-      status:           cols[4]?.trim() || (isRE ? '募集中' : '提案中'),
-      price:            safeNumStr(cols[5]),
-      account_id:       cols[6]?.trim() ? (accountMap.get(cols[6].trim()) ?? null) : null,
-      contact_id:       cols[7]?.trim() ? (contactMap.get(cols[7].trim()) ?? null) : null,
+    const rawCat     = row['カテゴリ']?.trim() ?? ''
+    const isRE       = rawCat !== 'その他商品' && rawCat !== 'other'
+    const accountName = row['取引先名']?.trim()
+    const contactName = row['担当者名']?.trim()
+
+    const record = {
+      name:             name || undefined,
+      product_category: rawCat ? (isRE ? 'real_estate' : 'other') : undefined,
+      property_type:    row['物件種別']?.trim() || undefined,
+      transaction_type: row['取引種別']?.trim() || undefined,
+      status:           row['ステータス']?.trim() || undefined,
+      price:            safeNumStr(row['価格(円)']),
+      account_id:       accountName ? (accountMap.get(accountName) ?? null) : (ctxAccountId ?? null),
+      contact_id:       contactName ? (contactMap.get(contactName) ?? null) : null,
       // 土地 表題部
-      land_fudosan_number: isRE ? (cols[8]?.trim()  || null) : null,
-      address:             isRE ? (cols[9]?.trim()  || null) : null,
-      land_chiban:         isRE ? (cols[10]?.trim() || null) : null,
-      chimoku:             isRE ? (cols[11]?.trim() || null) : null,
-      area:                isRE ? safeNumStr(cols[12]) : null,
-      land_cause:          isRE ? (cols[13]?.trim() || null) : null,
+      land_fudosan_number: row['土地不動産番号']?.trim() || null,
+      address:             row['土地所在']?.trim() || null,
+      land_chiban:         row['地番']?.trim() || null,
+      chimoku:             row['地目']?.trim() || null,
+      area:                safeNumStr(row['地積(㎡)']),
+      land_cause:          row['原因及びその日付']?.trim() || null,
       // 土地 甲区
-      land_owner_name:           isRE ? (cols[14]?.trim() || null) : null,
-      land_owner_address:        isRE ? (cols[15]?.trim() || null) : null,
-      land_acquisition_reason:   isRE ? (cols[16]?.trim() || null) : null,
-      land_acquisition_date:     isRE ? safeDate(cols[17]) : null,
-      land_seizure:              isRE ? safeBool(cols[18]) : false,
-      land_seizure_release_date: isRE ? safeDate(cols[19]) : null,
+      land_owner_name:           row['土地現所有者名']?.trim() || null,
+      land_owner_address:        row['土地所有者住所']?.trim() || null,
+      land_acquisition_reason:   row['土地所有権取得原因']?.trim() || null,
+      land_acquisition_date:     safeDate(row['土地所有権取得日']),
+      land_seizure:              safeBool(row['土地差押有無']),
+      land_seizure_release_date: safeDate(row['土地直近差押解除日']),
       // 建物 表題部
-      building_fudosan_number:        isRE ? (cols[20]?.trim() || null) : null,
-      building_location:              isRE ? (cols[21]?.trim() || null) : null,
-      building_kaoku_number:          isRE ? (cols[22]?.trim() || null) : null,
-      building_shurui:                isRE ? (cols[23]?.trim() || null) : null,
-      structure:                      isRE ? (cols[24]?.trim() || null) : null,
-      building_floor_area_1f:         isRE ? safeNumStr(cols[25]) : null,
-      building_floor_area_2f:         isRE ? safeNumStr(cols[26]) : null,
-      building_floor_area_3f:         isRE ? safeNumStr(cols[27]) : null,
-      building_new_construction_date: isRE ? safeDate(cols[28]) : null,
+      building_fudosan_number:        row['建物不動産番号']?.trim() || null,
+      building_location:              row['建物所在']?.trim() || null,
+      building_kaoku_number:          row['家屋番号']?.trim() || null,
+      building_shurui:                row['種類']?.trim() || null,
+      structure:                      row['構造']?.trim() || null,
+      building_floor_area_1f:         safeNumStr(row['床面積1階(㎡)']),
+      building_floor_area_2f:         safeNumStr(row['床面積2階(㎡)']),
+      building_floor_area_3f:         safeNumStr(row['床面積3階(㎡)']),
+      building_new_construction_date: safeDate(row['新築年月日']),
       // 建物 甲区
-      building_owner_name:           isRE ? (cols[29]?.trim() || null) : null,
-      building_owner_address:        isRE ? (cols[30]?.trim() || null) : null,
-      building_acquisition_reason:   isRE ? (cols[31]?.trim() || null) : null,
-      building_acquisition_date:     isRE ? safeDate(cols[32]) : null,
-      building_seizure:              isRE ? safeBool(cols[33]) : false,
-      building_seizure_release_date: isRE ? safeDate(cols[34]) : null,
+      building_owner_name:           row['建物現所有者名']?.trim() || null,
+      building_owner_address:        row['建物所有者住所']?.trim() || null,
+      building_acquisition_reason:   row['建物所有権取得原因']?.trim() || null,
+      building_acquisition_date:     safeDate(row['建物所有権取得日']),
+      building_seizure:              safeBool(row['建物差押有無']),
+      building_seizure_release_date: safeDate(row['建物直近差押解除日']),
       // 建物 乙区
-      building_lien_type:               isRE ? (cols[35]?.trim() || null) : null,
-      building_lien_holder:             isRE ? (cols[36]?.trim() || null) : null,
-      building_debt_amount:             isRE ? safeNum(cols[37]) : null,
-      building_damage_rate:             isRE ? safeNumStr(cols[38]) : null,
-      building_joint_collateral_number: isRE ? (cols[39]?.trim() || null) : null,
-      description: cols[40]?.trim() || null,
-    }]
-  })
+      building_lien_type:               row['登記種別']?.trim() || null,
+      building_lien_holder:             row['権利者名']?.trim() || null,
+      building_debt_amount:             safeNum(row['債権額(円)']),
+      building_damage_rate:             safeNumStr(row['損害金率(%)']),
+      building_joint_collateral_number: row['共同担保目録番号']?.trim() || null,
+      description:                      row['備考']?.trim() || null,
+    }
 
-  if (records.length === 0) {
-    return NextResponse.json({ error: '有効なデータ行がありません（件名が必須）' }, { status: 400 })
+    try {
+      if (id) {
+        const { name: _n, product_category: _pc, property_type: _pt, transaction_type: _tt, status: _s, ...rest } = record
+        await db.update(properties)
+          .set({
+            ...rest,
+            ...(record.name             ? { name: record.name }                         : {}),
+            ...(record.product_category ? { product_category: record.product_category } : {}),
+            ...(record.property_type    ? { property_type: record.property_type }       : {}),
+            ...(record.transaction_type ? { transaction_type: record.transaction_type } : {}),
+            ...(record.status           ? { status: record.status }                     : {}),
+          })
+          .where(eq(properties.id, id))
+        updated++
+      } else {
+        if (!record.name) { errors.push('件名が空の行をスキップしました'); continue }
+        await db.insert(properties).values({
+          ...record,
+          name:             record.name,
+          product_category: record.product_category ?? 'real_estate',
+          property_type:    record.property_type    ?? '土地・建物',
+          transaction_type: record.transaction_type ?? '売買',
+          status:           record.status           ?? '募集中',
+          land_seizure:     record.land_seizure     ?? false,
+          building_seizure: record.building_seizure ?? false,
+        })
+        inserted++
+      }
+    } catch (e) {
+      errors.push((e as Error).message)
+    }
   }
 
-  try {
-    await db.insert(properties).values(records)
-    return NextResponse.json({ imported: records.length })
-  } catch (e) {
-    const msg = (e as Error).message ?? ''
-    if (msg.includes('invalid input syntax for type numeric')) {
-      return NextResponse.json(
-        { error: '数値列（地積・価格・床面積・損害金率）に数値以外の値が含まれています。CSVを確認してください。' },
-        { status: 400 },
-      )
-    }
-    if (msg.includes('violates foreign key constraint')) {
-      return NextResponse.json(
-        { error: '関連レコードが見つかりません。取引先名・担当者名がCRM上の名前と一致しているか確認してください。' },
-        { status: 400 },
-      )
-    }
-    return NextResponse.json({ error: `インポートに失敗しました: ${msg}` }, { status: 500 })
-  }
+  return NextResponse.json({ imported: inserted, updated, errors })
 }

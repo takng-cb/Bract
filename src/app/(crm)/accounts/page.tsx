@@ -86,6 +86,7 @@ export default async function AccountsPage({
             exportUrl="/api/export/accounts"
             importUrl="/api/import/accounts"
             label="取引先"
+            csvFormat="ID,会社名,種別,業種,電話番号,Webサイト,住所,年間売上,従業員数,ステータス,メモ"
             showImport={edit}
           />
           {edit && (

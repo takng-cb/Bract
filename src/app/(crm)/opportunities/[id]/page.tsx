@@ -15,6 +15,7 @@ import AuthGuard from '@/components/AuthGuard'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { canEdit } from '@/lib/auth'
+import TextImportModal from '@/components/TextImportModal'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -212,7 +213,12 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">ToDo <span className="text-zinc-400 font-normal text-sm">({tasksList.length})</span></h2>
-          <AuthGuard minRole="editor"><Link href={`/tasks/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <TextImportModal importUrl="/api/import/tasks" title="ToDoインポート" csvFormat="ID,タイトル,期日,優先度,完了,担当者名" defaultContext={{ opportunity_id: id }} />
+              <Link href={`/tasks/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </div>
+          </AuthGuard>
         </div>
         {tasksList.length > 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
@@ -253,7 +259,12 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">経費 <span className="text-zinc-400 font-normal text-sm">({expensesList.length})</span></h2>
-          <AuthGuard minRole="editor"><Link href={`/expenses/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <TextImportModal importUrl="/api/import/expenses" title="経費インポート" csvFormat="ID,件名,金額,カテゴリ,日付,備考" defaultContext={{ opportunity_id: id }} />
+              <Link href={`/expenses/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </div>
+          </AuthGuard>
         </div>
         {expensesList.length > 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
@@ -280,7 +291,12 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
-          <AuthGuard minRole="editor"><Link href={`/activities/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <TextImportModal importUrl="/api/import/activities" title="活動履歴インポート" csvFormat="ID,実施日時,種別,件名,内容,担当者名" defaultContext={{ opportunity_id: id }} />
+              <Link href={`/activities/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </div>
+          </AuthGuard>
         </div>
         {activitiesList.length > 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">

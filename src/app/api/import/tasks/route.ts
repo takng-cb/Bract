@@ -1,7 +1,8 @@
 import { db } from '@/lib/db'
 import { tasks, accounts, contacts, opportunities } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
-import { parseCsv } from '@/lib/csvUtils'
+import { parseCsvWithHeaders } from '@/lib/csvUtils'
 
 const PRIORITY_MAP: Record<string, string> = {
   '高': 'high', 'high': 'high',
@@ -9,24 +10,24 @@ const PRIORITY_MAP: Record<string, string> = {
   '低': 'low', 'low': 'low',
 }
 
-type TaskRecord = {
-  title:          string
-  due_date:       string | null
-  priority:       string
-  done:           boolean
-  account_id:     string | null
-  contact_id:     string | null
-  opportunity_id: string | null
-}
-
 export async function POST(req: NextRequest) {
-  const formData = await req.formData()
-  const file = formData.get('file') as File | null
-  if (!file) return NextResponse.json({ error: 'ファイルがありません' }, { status: 400 })
+  const formData  = await req.formData()
+  const file      = formData.get('file') as File | null
+  const textInput = formData.get('text') as string | null
+  const ctxAccountId     = formData.get('account_id')     as string | null
+  const ctxOpportunityId = formData.get('opportunity_id') as string | null
 
-  const text = await file.text()
-  const rows = parseCsv(text)
-  if (rows.length < 2) return NextResponse.json({ error: 'データがありません' }, { status: 400 })
+  let text: string
+  if (file) {
+    text = await file.text()
+  } else if (textInput) {
+    text = textInput
+  } else {
+    return NextResponse.json({ error: 'ファイルまたはテキストが必要です' }, { status: 400 })
+  }
+
+  const rows = parseCsvWithHeaders(text)
+  if (rows.length === 0) return NextResponse.json({ error: 'データがありません' }, { status: 400 })
 
   const [accountsData, contactsData, oppsData] = await Promise.all([
     db.select({ id: accounts.id,      name: accounts.name      }).from(accounts),
@@ -37,32 +38,51 @@ export async function POST(req: NextRequest) {
   const contactMap = new Map(contactsData.map((c) => [c.name, c.id]))
   const oppsMap    = new Map(oppsData.map((o) => [o.name, o.id]))
 
-  // ヘッダ: タイトル, 期日, 優先度, 完了, 取引先名, 担当者名, 商談名
-  const dataRows = rows.slice(1)
-  const records: TaskRecord[] = dataRows.flatMap((cols) => {
-    const title = cols[0]?.trim()
-    if (!title) return []
-    const rawPriority = cols[2]?.trim() ?? ''
-    const rawDone     = cols[3]?.trim() ?? ''
-    return [{
-      title,
-      due_date:       cols[1]?.trim() || null,
-      priority:       PRIORITY_MAP[rawPriority] ?? 'medium',
-      done:           rawDone === '完了' || rawDone.toLowerCase() === 'true',
-      account_id:     cols[4]?.trim() ? (accountMap.get(cols[4].trim()) ?? null) : null,
-      contact_id:     cols[5]?.trim() ? (contactMap.get(cols[5].trim()) ?? null) : null,
-      opportunity_id: cols[6]?.trim() ? (oppsMap.get(cols[6].trim())    ?? null) : null,
-    }]
-  })
+  let inserted = 0
+  let updated  = 0
+  const errors: string[] = []
 
-  if (records.length === 0) {
-    return NextResponse.json({ error: '有効なデータ行がありません（タイトルが必須）' }, { status: 400 })
+  for (const row of rows) {
+    const id    = row['ID']?.trim()
+    const title = row['タイトル']?.trim()
+    if (!id && !title) continue
+
+    const accountName = row['取引先名']?.trim()
+    const contactName = row['担当者名']?.trim()
+    const oppsName    = row['商談名']?.trim()
+    const rawDone     = row['完了']?.trim() ?? ''
+
+    const record = {
+      title:          title || undefined,
+      due_date:       row['期日'] || null,
+      priority:       PRIORITY_MAP[row['優先度']?.trim() ?? ''] ?? undefined,
+      done:           rawDone === '完了' || rawDone.toLowerCase() === 'true' ? true : undefined,
+      account_id:     accountName ? (accountMap.get(accountName) ?? null) : (ctxAccountId ?? null),
+      contact_id:     contactName ? (contactMap.get(contactName) ?? null) : null,
+      opportunity_id: oppsName    ? (oppsMap.get(oppsName) ?? null) : (ctxOpportunityId ?? null),
+    }
+
+    try {
+      if (id) {
+        const { title: _t, ...rest } = record
+        await db.update(tasks)
+          .set({ ...rest, ...(record.title ? { title: record.title } : {}) })
+          .where(eq(tasks.id, id))
+        updated++
+      } else {
+        if (!record.title) { errors.push('タイトルが空の行をスキップしました'); continue }
+        await db.insert(tasks).values({
+          ...record,
+          title:    record.title,
+          priority: record.priority ?? 'medium',
+          done:     record.done ?? false,
+        })
+        inserted++
+      }
+    } catch (e) {
+      errors.push((e as Error).message)
+    }
   }
 
-  try {
-    await db.insert(tasks).values(records)
-    return NextResponse.json({ imported: records.length })
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 })
-  }
+  return NextResponse.json({ imported: inserted, updated, errors })
 }

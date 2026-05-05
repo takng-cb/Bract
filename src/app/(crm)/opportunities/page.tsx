@@ -104,6 +104,7 @@ export default async function OpportunitiesPage({
             exportUrl="/api/export/opportunities"
             importUrl="/api/import/opportunities"
             label="商談"
+            csvFormat="ID,商談名,ステージ,金額,完了予定日,確度(%),取引先名,説明"
             showImport={edit}
           />
           {edit && (

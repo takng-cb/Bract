@@ -79,6 +79,7 @@ export default async function ActivitiesPage({
             exportUrl="/api/export/activities"
             importUrl="/api/import/activities"
             label="活動履歴"
+            csvFormat="ID,実施日時,種別,件名,内容,取引先名,担当者名,商談名"
             showImport={edit}
           />
           {edit && (

@@ -121,6 +121,7 @@ export default async function ExpensesPage({
             exportUrl="/api/export/expenses"
             importUrl="/api/import/expenses"
             label="経費"
+            csvFormat="ID,件名,金額,カテゴリ,日付,取引先名,商談名,備考"
             showImport={edit}
           />
           {edit && (

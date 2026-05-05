@@ -7,6 +7,7 @@ import { buildCsv } from '@/lib/csvUtils'
 export async function GET() {
   try {
     const data = await db.select({
+      id:               properties.id,
       product_category: properties.product_category,
       name:             properties.name,
       property_type:    properties.property_type,
@@ -60,8 +61,8 @@ export async function GET() {
       .orderBy(desc(properties.created_at))
 
     const headers = [
-      // 基本 (0-7)
-      'カテゴリ', '件名', '物件種別', '取引種別', 'ステータス', '価格(円)', '取引先名', '担当者名',
+      // 基本 (0-8)
+      'ID', 'カテゴリ', '件名', '物件種別', '取引種別', 'ステータス', '価格(円)', '取引先名', '担当者名',
       // 土地 表題部 (8-13)
       '土地不動産番号', '土地所在', '地番', '地目', '地積(㎡)', '原因及びその日付',
       // 土地 甲区 (14-19)
@@ -79,6 +80,7 @@ export async function GET() {
     const bool = (v: boolean | null) => v ? '1' : '0'
 
     const rows = data.map((r) => [
+      r.id,
       r.product_category === 'other' ? 'その他商品' : '不動産',
       r.name,
       r.property_type,

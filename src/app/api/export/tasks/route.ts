@@ -7,6 +7,7 @@ import { buildCsv } from '@/lib/csvUtils'
 export async function GET() {
   try {
     const data = await db.select({
+      id:            tasks.id,
       title:         tasks.title,
       due_date:      tasks.due_date,
       priority:      tasks.priority,
@@ -23,8 +24,9 @@ export async function GET() {
 
     const PRIORITY_LABEL: Record<string, string> = { high: '高', medium: '中', low: '低' }
 
-    const headers = ['タイトル', '期日', '優先度', '完了', '取引先名', '担当者名', '商談名']
+    const headers = ['ID', 'タイトル', '期日', '優先度', '完了', '取引先名', '担当者名', '商談名']
     const rows = data.map((r) => [
+      r.id,
       r.title,
       r.due_date ?? '',
       PRIORITY_LABEL[r.priority] ?? r.priority,

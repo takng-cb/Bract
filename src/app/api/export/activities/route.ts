@@ -7,6 +7,7 @@ import { buildCsv } from '@/lib/csvUtils'
 export async function GET() {
   try {
     const data = await db.select({
+      id:            activities.id,
       occurred_at:   activities.occurred_at,
       type:          activities.type,
       subject:       activities.subject,
@@ -21,8 +22,9 @@ export async function GET() {
       .leftJoin(opportunities, eq(activities.opportunity_id, opportunities.id))
       .orderBy(desc(activities.occurred_at))
 
-    const headers = ['実施日時', '種別', '件名', '内容', '取引先名', '担当者名', '商談名']
+    const headers = ['ID', '実施日時', '種別', '件名', '内容', '取引先名', '担当者名', '商談名']
     const rows = data.map((r) => [
+      r.id,
       r.occurred_at ? new Date(r.occurred_at).toLocaleString('ja-JP') : '',
       r.type,
       r.subject,

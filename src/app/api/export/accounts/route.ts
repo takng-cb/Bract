@@ -2,10 +2,12 @@ import { db } from '@/lib/db'
 import { accounts } from '@/lib/schema'
 import { desc } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+import { buildCsv } from '@/lib/csvUtils'
 
 export async function GET() {
   try {
     const data = await db.select({
+      id:             accounts.id,
       name:           accounts.name,
       type:           accounts.type,
       industry:       accounts.industry,
@@ -19,8 +21,9 @@ export async function GET() {
       created_at:     accounts.created_at,
     }).from(accounts).orderBy(desc(accounts.created_at))
 
-    const headers = ['会社名', '種別', '業種', '電話番号', 'Webサイト', '住所', '年間売上', '従業員数', 'ステータス', 'メモ', '登録日']
+    const headers = ['ID', '会社名', '種別', '業種', '電話番号', 'Webサイト', '住所', '年間売上', '従業員数', 'ステータス', 'メモ', '登録日']
     const rows = data.map((r) => [
+      r.id,
       r.name,
       r.type ?? '',
       r.industry ?? '',
@@ -34,11 +37,7 @@ export async function GET() {
       r.created_at ? new Date(r.created_at).toLocaleDateString('ja-JP') : '',
     ])
 
-    const csv = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-
-    return new NextResponse('﻿' + csv, {
+    return new NextResponse(buildCsv(headers, rows), {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': 'attachment; filename="accounts.csv"',

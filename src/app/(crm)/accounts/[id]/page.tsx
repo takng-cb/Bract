@@ -15,6 +15,7 @@ import AuthGuard from '@/components/AuthGuard'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { canEdit } from '@/lib/auth'
+import TextImportModal from '@/components/TextImportModal'
 
 const ACCOUNT_STAGES: StageConfig[] = [
   { value: 'prospect', label: '見込み', activeColor: '#2563eb', pastColor: '#93c5fd' },
@@ -173,7 +174,12 @@ export default async function AccountDetailPage({
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">担当者 <span className="text-zinc-400 font-normal text-sm">({contactsList.length})</span></h2>
-          <AuthGuard minRole="editor"><Link href={`/contacts/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <TextImportModal importUrl="/api/import/contacts" title="担当者インポート" csvFormat="ID,氏名,役職,部署,メール,電話番号,誕生日,メモ" defaultContext={{ account_id: id }} />
+              <Link href={`/contacts/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </div>
+          </AuthGuard>
         </div>
         {contactsList.length > 0 ? (
           <>
@@ -223,7 +229,12 @@ export default async function AccountDetailPage({
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">商談 <span className="text-zinc-400 font-normal text-sm">({opportunitiesList.length})</span></h2>
-          <AuthGuard minRole="editor"><Link href={`/opportunities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <TextImportModal importUrl="/api/import/opportunities" title="商談インポート" csvFormat="ID,商談名,ステージ,金額,完了予定日,確度(%),説明" defaultContext={{ account_id: id }} />
+              <Link href={`/opportunities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </div>
+          </AuthGuard>
         </div>
         {opportunitiesList.length > 0 ? (
           <>
@@ -280,7 +291,12 @@ export default async function AccountDetailPage({
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">ToDo <span className="text-zinc-400 font-normal text-sm">({tasksList.length})</span></h2>
-          <AuthGuard minRole="editor"><Link href={`/tasks/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <TextImportModal importUrl="/api/import/tasks" title="ToDoインポート" csvFormat="ID,タイトル,期日,優先度,完了,担当者名" defaultContext={{ account_id: id }} />
+              <Link href={`/tasks/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </div>
+          </AuthGuard>
         </div>
         {tasksList.length > 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
@@ -321,7 +337,12 @@ export default async function AccountDetailPage({
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
-          <AuthGuard minRole="editor"><Link href={`/activities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link></AuthGuard>
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <TextImportModal importUrl="/api/import/activities" title="活動履歴インポート" csvFormat="ID,実施日時,種別,件名,内容,担当者名" defaultContext={{ account_id: id }} />
+              <Link href={`/activities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </div>
+          </AuthGuard>
         </div>
         {activitiesList.length > 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
