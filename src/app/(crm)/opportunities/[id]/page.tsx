@@ -12,6 +12,9 @@ import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
+import CustomFieldsCard from '@/components/CustomFieldsCard'
+import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { canEdit } from '@/lib/auth'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -47,7 +50,7 @@ function formatFileSize(bytes: number | null) {
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList] = await Promise.all([
+  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag] = await Promise.all([
     db.select({
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
@@ -63,6 +66,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     db.select().from(tasks).where(eq(tasks.opportunity_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.opportunity_id, id)).orderBy(desc(attachments.created_at)),
     db.select().from(expenses).where(eq(expenses.opportunity_id, id)).orderBy(desc(expenses.expense_date)),
+    getCustomFieldsWithValues('opportunities', id),
+    canEdit(),
   ])
 
   if (!opportunity) notFound()
@@ -192,6 +197,16 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           )
         })()}
       </div>
+
+      {/* カスタムフィールド */}
+      {customData.fields.length > 0 && (
+        <div className="mb-6">
+          <CustomFieldsCard
+            fields={customData.fields}
+            values={customData.values}
+          />
+        </div>
+      )}
 
       {/* ToDo */}
       <section className="mb-6">

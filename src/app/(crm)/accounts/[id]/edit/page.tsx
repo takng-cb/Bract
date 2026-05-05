@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AccountForm from '@/components/AccountForm'
 import { updateAccount } from '@/app/actions/accounts'
+import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
+import { getCustomFieldsWithValues } from '@/lib/customFields'
 
 export default async function EditAccountPage({
   params,
@@ -12,12 +14,16 @@ export default async function EditAccountPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const account = await db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null)
+  const [account, customData] = await Promise.all([
+    db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null),
+    getCustomFieldsWithValues('accounts', id),
+  ])
   if (!account) notFound()
 
   async function updateAccountAction(_: string | null, formData: FormData): Promise<string | null> {
     'use server'
     try {
+      await saveCustomFieldValues('accounts', id, formData)
       await updateAccount(id, formData)
       return null
     } catch (e) {
@@ -44,6 +50,8 @@ export default async function EditAccountPage({
             ...account,
             annual_revenue: account.annual_revenue !== null ? Number(account.annual_revenue) : null,
           }}
+          customFields={customData.fields}
+          customValues={customData.values}
         />
       </div>
     </div>

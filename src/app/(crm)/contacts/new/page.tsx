@@ -4,15 +4,9 @@ import { ne, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import ContactForm from '@/components/ContactForm'
 import { createContact } from '@/app/actions/contacts'
-
-async function createContactAction(_: string | null, formData: FormData): Promise<string | null> {
-  'use server'
-  try { await createContact(formData); return null }
-  catch (e) {
-    if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-    return (e as Error).message
-  }
-}
+import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
+import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { redirect } from 'next/navigation'
 
 export default async function NewContactPage({
   searchParams,
@@ -22,10 +16,25 @@ export default async function NewContactPage({
   const { account_id, view } = await searchParams
   const contactType = view === 'consumer' ? 'consumer' : 'business'
 
-  const accountsList = await db.select({ id: accounts.id, name: accounts.name })
-    .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name))
+  const [accountsList, { fields }] = await Promise.all([
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
+    getCustomFieldsWithValues('contacts', ''),
+  ])
 
   const cancelHref = account_id ? `/accounts/${account_id}` : `/contacts?view=${contactType}`
+
+  async function createContactAction(_: string | null, formData: FormData): Promise<string | null> {
+    'use server'
+    try {
+      const newId = await createContact(formData)
+      if (fields.length > 0) await saveCustomFieldValues('contacts', newId, formData)
+      redirect(`/contacts/${newId}`)
+    } catch (e) {
+      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+      return (e as Error).message
+    }
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
@@ -43,6 +52,7 @@ export default async function NewContactPage({
           cancelHref={cancelHref}
           accounts={accountsList}
           defaultValues={{ account_id: account_id ?? '', contact_type: contactType }}
+          customFields={fields}
         />
       </div>
     </div>

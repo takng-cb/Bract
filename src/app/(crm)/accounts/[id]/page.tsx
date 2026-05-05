@@ -12,6 +12,9 @@ import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
+import CustomFieldsCard from '@/components/CustomFieldsCard'
+import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { canEdit } from '@/lib/auth'
 
 const ACCOUNT_STAGES: StageConfig[] = [
   { value: 'prospect', label: '見込み', activeColor: '#2563eb', pastColor: '#93c5fd' },
@@ -48,13 +51,15 @@ export default async function AccountDetailPage({
 }) {
   const { id } = await params
 
-  const [account, contactsList, opportunitiesList, activitiesList, tasksList, attachmentsList] = await Promise.all([
+  const [account, contactsList, opportunitiesList, activitiesList, tasksList, attachmentsList, customData, editFlag] = await Promise.all([
     db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null),
     db.select().from(contacts).where(eq(contacts.account_id, id)).orderBy(desc(contacts.created_at)),
     db.select().from(opportunities).where(eq(opportunities.account_id, id)).orderBy(desc(opportunities.created_at)),
     db.select().from(activities).where(eq(activities.account_id, id)).orderBy(desc(activities.occurred_at)),
     db.select().from(tasks).where(eq(tasks.account_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.account_id, id)).orderBy(desc(attachments.created_at)),
+    getCustomFieldsWithValues('accounts', id),
+    canEdit(), // 編集ボタン表示判定（担当者リスト等に使用）
   ])
 
   if (!account) notFound()
@@ -153,6 +158,16 @@ export default async function AccountDetailPage({
           </dd>
         </div>
       </div>
+
+      {/* カスタムフィールド */}
+      {customData.fields.length > 0 && (
+        <div className="mb-6">
+          <CustomFieldsCard
+            fields={customData.fields}
+            values={customData.values}
+          />
+        </div>
+      )}
 
       {/* 担当者 */}
       <section className="mb-6">

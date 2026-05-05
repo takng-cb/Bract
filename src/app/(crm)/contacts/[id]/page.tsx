@@ -11,6 +11,9 @@ import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
+import CustomFieldsCard from '@/components/CustomFieldsCard'
+import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { canEdit } from '@/lib/auth'
 
 const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   call: '📞 電話', email: '✉️ メール', meeting: '🤝 打合せ', note: '📝 メモ',
@@ -36,7 +39,7 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params
 
-  const [contact, activitiesList, tasksList, attachmentsList] = await Promise.all([
+  const [contact, activitiesList, tasksList, attachmentsList, customData, editFlag] = await Promise.all([
     db.select({
       id: contacts.id, contact_type: contacts.contact_type, full_name: contacts.full_name, email: contacts.email,
       phone: contacts.phone, title: contacts.title, department: contacts.department,
@@ -51,6 +54,8 @@ export default async function ContactDetailPage({
     db.select().from(activities).where(eq(activities.contact_id, id)).orderBy(desc(activities.occurred_at)),
     db.select().from(tasks).where(eq(tasks.contact_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.contact_id, id)).orderBy(desc(attachments.created_at)),
+    getCustomFieldsWithValues('contacts', id),
+    canEdit(),
   ])
 
   if (!contact) notFound()
@@ -166,6 +171,16 @@ export default async function ContactDetailPage({
           </dd>
         </div>
       </div>
+
+      {/* カスタムフィールド */}
+      {customData.fields.length > 0 && (
+        <div className="mb-6">
+          <CustomFieldsCard
+            fields={customData.fields}
+            values={customData.values}
+          />
+        </div>
+      )}
 
       {/* ToDo */}
       <section className="mb-6">

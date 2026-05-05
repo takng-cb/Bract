@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react'
 import Link from 'next/link'
+import type { FieldDef } from '@/lib/objectMetadata'
+import CustomFieldsFields from '@/components/CustomFieldsFields'
 
 type Account = { id: string; name: string }
 
@@ -9,6 +11,8 @@ type OpportunityFormProps = {
   action: (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref: string
   accounts: Account[]
+  customFields?: FieldDef[]
+  customValues?: Record<string, string | null>
   defaultValues?: {
     name?: string
     account_id?: string | null
@@ -29,7 +33,7 @@ const STAGES = [
   { value: 'closed_lost',   label: '失注' },
 ]
 
-export default function OpportunityForm({ action, cancelHref, accounts, defaultValues = {} }: OpportunityFormProps) {
+export default function OpportunityForm({ action, cancelHref, accounts, defaultValues = {}, customFields = [], customValues = {} }: OpportunityFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
 
   return (
@@ -37,6 +41,12 @@ export default function OpportunityForm({ action, cancelHref, accounts, defaultV
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
+
+      <div className="flex items-center gap-3">
+        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
+        <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
+        <div className="flex-1 h-px bg-zinc-200" />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">
@@ -120,6 +130,8 @@ export default function OpportunityForm({ action, cancelHref, accounts, defaultV
           placeholder="商談の詳細を記入してください..."
         />
       </div>
+
+      <CustomFieldsFields fields={customFields} values={customValues} />
 
       <div className="flex gap-3 pt-2">
         <button

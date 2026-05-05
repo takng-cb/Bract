@@ -2,10 +2,14 @@
 
 import { useActionState } from 'react'
 import Link from 'next/link'
+import type { FieldDef } from '@/lib/objectMetadata'
+import CustomFieldsFields from '@/components/CustomFieldsFields'
 
 type AccountFormProps = {
   action: (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref: string
+  customFields?: FieldDef[]
+  customValues?: Record<string, string | null>
   defaultValues?: {
     name?: string
     type?: string | null
@@ -28,7 +32,7 @@ const INDUSTRIES = [
 
 const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他社', 'その他']
 
-export default function AccountForm({ action, cancelHref, defaultValues = {} }: AccountFormProps) {
+export default function AccountForm({ action, cancelHref, defaultValues = {}, customFields = [], customValues = {} }: AccountFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
 
   return (
@@ -38,6 +42,12 @@ export default function AccountForm({ action, cancelHref, defaultValues = {} }: 
           {error}
         </div>
       )}
+
+      <div className="flex items-center gap-3">
+        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
+        <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
+        <div className="flex-1 h-px bg-zinc-200" />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">
@@ -156,6 +166,8 @@ export default function AccountForm({ action, cancelHref, defaultValues = {} }: 
           <option value="inactive">無効</option>
         </select>
       </div>
+
+      <CustomFieldsFields fields={customFields} values={customValues} />
 
       <div className="flex gap-3 pt-2">
         <button

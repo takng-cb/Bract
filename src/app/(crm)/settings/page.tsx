@@ -114,6 +114,39 @@ export default async function SettingsPage() {
             <p className="text-sm text-zinc-500 mt-1">管理者のみ表示されます</p>
           </div>
 
+          {/* 管理画面へのリンク */}
+          <div className="bg-white border border-zinc-200 rounded-lg p-6">
+            <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">管理画面</h3>
+            <div className="space-y-2">
+              <a
+                href="/admin/objects"
+                className="flex items-center justify-between px-4 py-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🗂️</span>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-800">オブジェクト管理</p>
+                    <p className="text-xs text-zinc-400">カスタムオブジェクトとフィールドを管理</p>
+                  </div>
+                </div>
+                <span className="text-zinc-400 group-hover:text-zinc-600">→</span>
+              </a>
+              <a
+                href="/admin/users"
+                className="flex items-center justify-between px-4 py-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">👥</span>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-800">ユーザー管理</p>
+                    <p className="text-xs text-zinc-400">ユーザーのロールと権限を管理</p>
+                  </div>
+                </div>
+                <span className="text-zinc-400 group-hover:text-zinc-600">→</span>
+              </a>
+            </div>
+          </div>
+
           {/* ユーザー管理 */}
           <UserManagement
             users={userList}

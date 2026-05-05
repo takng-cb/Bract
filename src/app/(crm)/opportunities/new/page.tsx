@@ -4,15 +4,9 @@ import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import OpportunityForm from '@/components/OpportunityForm'
 import { createOpportunity } from '@/app/actions/opportunities'
-
-async function createOpportunityAction(_: string | null, formData: FormData): Promise<string | null> {
-  'use server'
-  try { await createOpportunity(formData); return null }
-  catch (e) {
-    if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-    return (e as Error).message
-  }
-}
+import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
+import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { redirect } from 'next/navigation'
 
 export default async function NewOpportunityPage({
   searchParams,
@@ -20,11 +14,25 @@ export default async function NewOpportunityPage({
   searchParams: Promise<{ account_id?: string }>
 }) {
   const { account_id } = await searchParams
-  const accountsList = await db.select({ id: accounts.id, name: accounts.name })
-    .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name))
+  const [accountsList, { fields }] = await Promise.all([
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    getCustomFieldsWithValues('opportunities', ''),
+  ])
 
-  // 取引先から遷移してきた場合はその取引先詳細に戻る
   const cancelHref = account_id ? `/accounts/${account_id}` : '/opportunities'
+
+  async function createOpportunityAction(_: string | null, formData: FormData): Promise<string | null> {
+    'use server'
+    try {
+      const newId = await createOpportunity(formData)
+      if (fields.length > 0) await saveCustomFieldValues('opportunities', newId, formData)
+      redirect(`/opportunities/${newId}`)
+    } catch (e) {
+      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+      return (e as Error).message
+    }
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
@@ -40,6 +48,7 @@ export default async function NewOpportunityPage({
           cancelHref={cancelHref}
           accounts={accountsList}
           defaultValues={{ account_id: account_id ?? '' }}
+          customFields={fields}
         />
       </div>
     </div>

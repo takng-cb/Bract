@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { logChanges } from '@/lib/changeLog'
 
-export async function createContact(formData: FormData) {
+export async function createContact(formData: FormData): Promise<string> {
   await requireEditor()
   const full_name    = formData.get('full_name') as string
   const contact_type = (formData.get('contact_type') as string) || 'business'
@@ -26,7 +26,7 @@ export async function createContact(formData: FormData) {
     account_id:  contact_type === 'business' ? ((formData.get('account_id') as string) || null) : null,
   }).returning({ id: contacts.id })
 
-  redirect(`/contacts/${row.id}`)
+  return row.id
 }
 
 export async function updateContact(id: string, formData: FormData) {

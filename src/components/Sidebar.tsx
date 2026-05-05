@@ -7,10 +7,14 @@ import Image from 'next/image'
 import SignOutButton from '@/components/SignOutButton'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
+/** 管理者のみ表示するボトムナビの href */
+const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/users'])
+
 type Props = {
   mainItems:   NavItem[]
   companyName: string
   displayName: string | null
+  isAdmin?:    boolean
 }
 
 const ChevronLeft = () => (
@@ -25,7 +29,7 @@ const ChevronRight = () => (
   </svg>
 )
 
-export default function Sidebar({ mainItems, companyName, displayName }: Props) {
+export default function Sidebar({ mainItems, companyName, displayName, isAdmin = false }: Props) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -102,7 +106,7 @@ export default function Sidebar({ mainItems, companyName, displayName }: Props) 
 
       {/* ボトムナビ */}
       <div className="px-2 pb-3 border-t border-zinc-800 pt-3 space-y-0.5">
-        {BOTTOM_NAV_ITEMS.map((item) => {
+        {BOTTOM_NAV_ITEMS.filter((item) => !ADMIN_ONLY_HREFS.has(item.href) || isAdmin).map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link

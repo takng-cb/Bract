@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
+import type { FieldDef } from '@/lib/objectMetadata'
+import CustomFieldsFields from '@/components/CustomFieldsFields'
 
 type Account = { id: string; name: string }
 
@@ -9,6 +11,8 @@ type ContactFormProps = {
   action: (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref: string
   accounts: Account[]
+  customFields?: FieldDef[]
+  customValues?: Record<string, string | null>
   defaultValues?: {
     contact_type?: string | null
     full_name?: string
@@ -22,7 +26,7 @@ type ContactFormProps = {
   }
 }
 
-export default function ContactForm({ action, cancelHref, accounts, defaultValues = {} }: ContactFormProps) {
+export default function ContactForm({ action, cancelHref, accounts, defaultValues = {}, customFields = [], customValues = {} }: ContactFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const [contactType, setContactType] = useState<string>(defaultValues.contact_type ?? 'business')
 
@@ -34,6 +38,12 @@ export default function ContactForm({ action, cancelHref, accounts, defaultValue
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
+
+      <div className="flex items-center gap-3">
+        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
+        <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
+        <div className="flex-1 h-px bg-zinc-200" />
+      </div>
 
       {/* 人物タイプ */}
       <div>
@@ -151,6 +161,8 @@ export default function ContactForm({ action, cancelHref, accounts, defaultValue
           placeholder="メモを記入してください..."
         />
       </div>
+
+      <CustomFieldsFields fields={customFields} values={customValues} />
 
       <div className="flex gap-3 pt-2">
         <button

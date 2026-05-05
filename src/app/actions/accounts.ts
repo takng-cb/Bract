@@ -25,7 +25,7 @@ export async function updateAccountStatus(id: string, status: string) {
   revalidatePath(`/accounts/${id}`)
 }
 
-export async function createAccount(formData: FormData) {
+export async function createAccount(formData: FormData): Promise<string> {
   await requireEditor()
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('会社名は必須です')
@@ -46,7 +46,7 @@ export async function createAccount(formData: FormData) {
     status:         (formData.get('status') as string) || 'active',
   }).returning({ id: accounts.id })
 
-  redirect(`/accounts/${row.id}`)
+  return row.id
 }
 
 export async function updateAccount(id: string, formData: FormData) {

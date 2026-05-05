@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
+import type { FieldDef } from '@/lib/objectMetadata'
+import CustomFieldsFields from '@/components/CustomFieldsFields'
 
 const PROPERTY_TYPES  = ['土地・建物', '建物のみ', '土地のみ', 'その他']
 const STATUSES_RE     = ['募集中', '交渉中', '成約', '管理中', '終了']
@@ -73,11 +75,14 @@ interface Props {
   scrivenerAccounts: Account[]
   scrivenerContacts: Contact[]
   defaultValues?:    DefaultValues
+  customFields?:     FieldDef[]
+  customValues?:     Record<string, string | null>
 }
 
 export default function PropertyForm({
   action, cancelHref, accounts, contacts,
   scrivenerAccounts, scrivenerContacts, defaultValues = {},
+  customFields = [], customValues = {},
 }: Props) {
   const [error, formAction, pending] = useActionState(action, null)
   const [category, setCategory] = useState<string>(defaultValues.product_category ?? 'real_estate')
@@ -98,6 +103,12 @@ export default function PropertyForm({
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
+
+      <div className="flex items-center gap-3">
+        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
+        <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
+        <div className="flex-1 h-px bg-zinc-200" />
+      </div>
 
       {/* カテゴリ切り替え */}
       <div>
@@ -505,6 +516,8 @@ export default function PropertyForm({
           className={`${field} resize-none`}
         />
       </div>
+
+      <CustomFieldsFields fields={customFields} values={customValues} />
 
       <div className="flex gap-3 pt-2">
         <button

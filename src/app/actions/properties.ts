@@ -70,13 +70,13 @@ function parseForm(formData: FormData) {
   }
 }
 
-export async function createProperty(formData: FormData) {
+export async function createProperty(formData: FormData): Promise<string> {
   await requireEditor()
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
   const [row] = await db.insert(properties).values(data).returning({ id: properties.id })
   revalidatePath('/properties')
-  redirect(`/properties/${row.id}`)
+  return row.id
 }
 
 export async function updateProperty(id: string, formData: FormData) {

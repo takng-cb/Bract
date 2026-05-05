@@ -249,6 +249,71 @@ export const change_logs = pgTable('change_logs', {
 ])
 
 // ----------------------------------------------------------------
+// object_definitions（カスタムオブジェクト定義）
+// ----------------------------------------------------------------
+export const object_definitions = pgTable('object_definitions', {
+  id:           uuid('id').primaryKey().defaultRandom(),
+  api_name:     text('api_name').notNull().unique(),   // URL・DB キー。変更不可想定
+  label:        text('label').notNull(),               // 単数形表示名
+  label_plural: text('label_plural').notNull(),        // 複数形表示名
+  icon:         text('icon').notNull().default('📦'),
+  is_builtin:   boolean('is_builtin').notNull().default(false), // 組み込みオブジェクトは削除不可
+  nav_enabled:  boolean('nav_enabled').notNull().default(true),
+  sort_order:   integer('sort_order').notNull().default(0),
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:   timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// field_definitions（カスタムフィールド定義）
+// ----------------------------------------------------------------
+export const field_definitions = pgTable('field_definitions', {
+  id:          uuid('id').primaryKey().defaultRandom(),
+  object_id:   uuid('object_id').notNull().references(() => object_definitions.id, { onDelete: 'cascade' }),
+  api_name:    text('api_name').notNull(),             // フィールドキー
+  label:       text('label').notNull(),
+  field_type:  text('field_type').notNull().default('text'), // 'text'|'number'|'date'|'boolean'|'select'|'textarea'
+  options:     text('options'),                        // select 時の選択肢 JSON: string[]
+  is_required: boolean('is_required').notNull().default(false),
+  is_builtin:  boolean('is_builtin').notNull().default(false),
+  is_visible:  boolean('is_visible').notNull().default(true),
+  sort_order:  integer('sort_order').notNull().default(0),
+  created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  unique().on(t.object_id, t.api_name),
+])
+
+// ----------------------------------------------------------------
+// custom_records（カスタムオブジェクトのレコード）
+// ----------------------------------------------------------------
+export const custom_records = pgTable('custom_records', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  object_id: uuid('object_id').notNull().references(() => object_definitions.id, { onDelete: 'cascade' }),
+  data:      text('data').notNull().default('{}'),   // JSON blob
+  owner_id:  uuid('owner_id'),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('custom_records_object_idx').on(t.object_id),
+])
+
+// ----------------------------------------------------------------
+// custom_field_values（組み込みオブジェクトのカスタムフィールド値）
+// ----------------------------------------------------------------
+export const custom_field_values = pgTable('custom_field_values', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  field_id:  uuid('field_id').notNull().references(() => field_definitions.id, { onDelete: 'cascade' }),
+  record_id: uuid('record_id').notNull(),  // 任意テーブルの id
+  value:     text('value'),               // 値をテキストで保存（型は field_type で解釈）
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  unique().on(t.field_id, t.record_id),
+  index('cfv_record_idx').on(t.record_id),
+])
+
+// ----------------------------------------------------------------
 // Relations
 // ----------------------------------------------------------------
 export const accountsRelations = relations(accounts, ({ many }) => ({
@@ -317,6 +382,19 @@ export const taggablesRelations = relations(taggables, ({ one }) => ({
 
 export const tagsRelations = relations(tags, ({ many }) => ({
   taggables: many(taggables),
+}))
+
+export const objectDefinitionsRelations = relations(object_definitions, ({ many }) => ({
+  field_definitions: many(field_definitions),
+  custom_records:    many(custom_records),
+}))
+
+export const fieldDefinitionsRelations = relations(field_definitions, ({ one }) => ({
+  object_definition: one(object_definitions, { fields: [field_definitions.object_id], references: [object_definitions.id] }),
+}))
+
+export const customRecordsRelations = relations(custom_records, ({ one }) => ({
+  object_definition: one(object_definitions, { fields: [custom_records.object_id], references: [object_definitions.id] }),
 }))
 
 // ----------------------------------------------------------------

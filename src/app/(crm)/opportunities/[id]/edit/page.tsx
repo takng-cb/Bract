@@ -5,20 +5,26 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import OpportunityForm from '@/components/OpportunityForm'
 import { updateOpportunity } from '@/app/actions/opportunities'
+import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
+import { getCustomFieldsWithValues } from '@/lib/customFields'
 
 export default async function EditOpportunityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [opportunity, accountsList] = await Promise.all([
+  const [opportunity, accountsList, customData] = await Promise.all([
     db.select().from(opportunities).where(eq(opportunities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    getCustomFieldsWithValues('opportunities', id),
   ])
   if (!opportunity) notFound()
 
   async function updateOpportunityAction(_: string | null, formData: FormData): Promise<string | null> {
     'use server'
-    try { await updateOpportunity(id, formData); return null }
-    catch (e) {
+    try {
+      await saveCustomFieldValues('opportunities', id, formData)
+      await updateOpportunity(id, formData)
+      return null
+    } catch (e) {
       if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
       return (e as Error).message
     }
@@ -44,6 +50,8 @@ export default async function EditOpportunityPage({ params }: { params: Promise<
             close_date: opportunity.close_date ?? null,
             amount: opportunity.amount !== null ? Number(opportunity.amount) : null,
           }}
+          customFields={customData.fields}
+          customValues={customData.values}
         />
       </div>
     </div>

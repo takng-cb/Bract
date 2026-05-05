@@ -26,7 +26,7 @@ export async function updateOpportunityStage(id: string, stage: string) {
   revalidatePath(`/opportunities/${id}`)
 }
 
-export async function createOpportunity(formData: FormData) {
+export async function createOpportunity(formData: FormData): Promise<string> {
   await requireEditor()
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('商談名は必須です')
@@ -45,7 +45,7 @@ export async function createOpportunity(formData: FormData) {
     description: (formData.get('description') as string) || null,
   }).returning({ id: opportunities.id })
 
-  redirect(`/opportunities/${row.id}`)
+  return row.id
 }
 
 export async function updateOpportunity(id: string, formData: FormData) {

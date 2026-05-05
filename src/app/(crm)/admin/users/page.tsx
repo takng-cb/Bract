@@ -3,6 +3,7 @@ import { users } from '@/lib/schema'
 import { requireAdmin } from '@/lib/auth'
 import { updateUserRole } from '@/app/actions/admin'
 import { asc } from 'drizzle-orm'
+import RoleSelect from './RoleSelect'
 
 const ROLE_LABELS: Record<string, string> = {
   admin:  '管理者',
@@ -47,19 +48,11 @@ export default async function AdminUsersPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <form action={updateUserRole}>
-                    <input type="hidden" name="userId" value={u.id} />
-                    <select
-                      name="role"
-                      defaultValue={u.role}
-                      onChange={(e) => (e.target.form as HTMLFormElement).requestSubmit()}
-                      className="border border-zinc-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="admin">管理者</option>
-                      <option value="editor">編集者</option>
-                      <option value="viewer">閲覧者</option>
-                    </select>
-                  </form>
+                  <RoleSelect
+                    userId={u.id}
+                    currentRole={u.role}
+                    updateAction={updateUserRole}
+                  />
                 </td>
               </tr>
             ))}

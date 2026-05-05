@@ -7,16 +7,20 @@ import Image from 'next/image'
 import { signOut } from '@/app/actions/auth'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
+const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/users'])
+
 type Props = {
   mainItems:   NavItem[]
   companyName: string
+  isAdmin?:    boolean
 }
 
-export default function MobileNav({ mainItems, companyName }: Props) {
+export default function MobileNav({ mainItems, companyName, isAdmin = false }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
-  const allItems = [...mainItems, ...BOTTOM_NAV_ITEMS]
+  const bottomItems = BOTTOM_NAV_ITEMS.filter((item) => !ADMIN_ONLY_HREFS.has(item.href) || isAdmin)
+  const allItems = [...mainItems, ...bottomItems]
 
   return (
     <>
