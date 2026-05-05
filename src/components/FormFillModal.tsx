@@ -60,9 +60,16 @@ export default function FormFillModal({
   onFill,
   buttonLabel = 'テキストから入力',
 }: Props) {
-  const [open, setOpen] = useState(false)
-  const [text, setText] = useState('')
-  const [msg, setMsg]   = useState<{ ok: boolean; text: string } | null>(null)
+  const [open, setOpen]     = useState(false)
+  const [text, setText]     = useState('')
+  const [msg, setMsg]       = useState<{ ok: boolean; text: string } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  function copyFormat() {
+    navigator.clipboard.writeText(csvFormat)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   function close() {
     setOpen(false)
@@ -175,7 +182,16 @@ export default function FormFillModal({
             {/* 本文 */}
             <div className="px-6 py-4 flex flex-col gap-3 overflow-y-auto">
               <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3">
-                <p className="text-xs font-semibold text-zinc-500 mb-1">フォーマット（ヘッダー行は省略可・カンマ区切り）</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-semibold text-zinc-500">フォーマット（ヘッダー行は省略可・カンマ区切り）</p>
+                  <button
+                    type="button"
+                    onClick={copyFormat}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    {copied ? '✓ コピー済み' : 'コピー'}
+                  </button>
+                </div>
                 <code className="text-xs text-zinc-700 break-all">{csvFormat}</code>
                 <p className="text-xs text-zinc-400 mt-1">データを1行貼り付けてください。入力後は通常通り「保存」で確定します。</p>
               </div>

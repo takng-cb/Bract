@@ -48,6 +48,13 @@ export default function TextImportModal({
   const [file, setFile]       = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [copied, setCopied]   = useState(false)
+
+  function copyFormat() {
+    navigator.clipboard.writeText(csvFormat)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
   const fileRef = useRef<HTMLInputElement>(null)
   const router  = useRouter()
 
@@ -194,7 +201,16 @@ export default function TextImportModal({
 
               {/* フォーマット説明 */}
               <div className="bg-zinc-50 border border-zinc-200 rounded-md p-3">
-                <p className="text-xs font-semibold text-zinc-500 mb-1">CSVフォーマット（1行目はヘッダー行・カンマ区切り）</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-semibold text-zinc-500">CSVフォーマット（1行目はヘッダー行・カンマ区切り）</p>
+                  <button
+                    type="button"
+                    onClick={copyFormat}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    {copied ? '✓ コピー済み' : 'コピー'}
+                  </button>
+                </div>
                 <code className="text-xs text-zinc-700 break-all">{csvFormat}</code>
                 <p className="text-xs text-zinc-400 mt-2">
                   ・<span className="font-medium">ID あり</span> → 既存レコードを更新<br />
