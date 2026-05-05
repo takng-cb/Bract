@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const record = {
       name:        name || undefined,
-      stage:       STAGE_REVERSE[stageRaw] ?? stageRaw || undefined,
+      stage:       (STAGE_REVERSE[stageRaw] ?? stageRaw) || undefined,
       amount:      row['金額'] ? String(Number(row['金額'])) : null,
       close_date:  row['完了予定日'] || null,
       probability: row['確度(%)'] ? Number(row['確度(%)']) : null,

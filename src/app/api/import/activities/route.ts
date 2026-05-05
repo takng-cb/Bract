@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const record = {
       subject:        subject || undefined,
-      type:           TYPE_MAP[rawType] ?? rawType || undefined,
+      type:           (TYPE_MAP[rawType] ?? rawType) || undefined,
       body:           row['内容'] || null,
       occurred_at:    occurred ? new Date(occurred) : undefined,
       account_id:     accountName ? (accountMap.get(accountName) ?? null) : (ctxAccountId ?? null),
