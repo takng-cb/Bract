@@ -149,7 +149,7 @@ ${selectSection}
 ・値にカンマが含まれる場合はダブルクォート（"）で囲むこと
 ・不明・該当なしの項目は空欄にすること
 ・選択リスト項目は指定された値以外を使用しないこと
-・日付はすべて「YYYY年MM月DD日」の形式で出力すること（例：2024年03月15日）`
+・日付はすべて「YYYY-MM-DD」の形式で出力すること（例：2024-03-15）`
     navigator.clipboard.writeText(prompt)
     setCopiedPrompt(true)
     setTimeout(() => setCopiedPrompt(false), 2000)
