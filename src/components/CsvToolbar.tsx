@@ -50,11 +50,11 @@ export default function CsvToolbar({ exportUrl, importUrl, label, showImport = t
         download
         className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-xs font-medium rounded-md hover:bg-zinc-50 transition-colors"
       >
-        ↓ CSV出力
+        ↓ エクスポート
       </a>
       {showImport && (
         <label className={`px-3 py-1.5 border border-zinc-300 text-zinc-600 text-xs font-medium rounded-md hover:bg-zinc-50 transition-colors cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-          {importing ? '取込中...' : '↑ CSV取込'}
+          {importing ? 'インポート中...' : '↑ インポート'}
           <input
             ref={fileRef}
             type="file"
