@@ -7,6 +7,7 @@ import { createProperty } from '@/app/actions/properties'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { redirect } from 'next/navigation'
+import { requireEditor } from '@/lib/auth'
 
 export default async function NewPropertyPage({
   searchParams,
@@ -15,7 +16,7 @@ export default async function NewPropertyPage({
 }) {
   const { view } = await searchParams
   const category = view === 'other' ? 'other' : 'real_estate'
-
+  await requireEditor()
   const [accountsList, contactsList, scrivenerAccounts, scrivenerContacts, { fields }] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),

@@ -4,8 +4,10 @@ import { createAccount } from '@/app/actions/accounts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { redirect } from 'next/navigation'
+import { requireEditor } from '@/lib/auth'
 
 export default async function NewAccountPage() {
+  await requireEditor()
   const { fields } = await getCustomFieldsWithValues('accounts', '')
 
   async function createAccountAction(_: string | null, formData: FormData): Promise<string | null> {

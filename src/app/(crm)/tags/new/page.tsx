@@ -1,12 +1,14 @@
 import { createTag } from '@/app/actions/tags'
 import Link from 'next/link'
+import { requireAdmin } from '@/lib/auth'
 
 const COLOR_PRESETS = [
   '#ef4444', '#f97316', '#eab308', '#22c55e',
   '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#71717a',
 ]
 
-export default function NewTagPage() {
+export default async function NewTagPage() {
+  await requireAdmin()
   return (
     <div className="p-4 md:p-8 max-w-lg">
       <div className="mb-6">

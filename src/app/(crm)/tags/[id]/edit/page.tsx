@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { updateTag } from '@/app/actions/tags'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { requireAdmin } from '@/lib/auth'
 
 const COLOR_PRESETS = [
   '#ef4444', '#f97316', '#eab308', '#22c55e',
@@ -12,6 +13,7 @@ const COLOR_PRESETS = [
 
 export default async function EditTagPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  await requireAdmin()
   const tag = await db.select().from(tags).where(eq(tags.id, id)).then((r) => r[0] ?? null)
   if (!tag) notFound()
 

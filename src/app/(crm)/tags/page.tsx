@@ -7,8 +7,10 @@ import Link from 'next/link'
 import { deleteTag } from '@/app/actions/tags'
 import TagDeleteButton from '@/components/TagDeleteButton'
 import AuthGuard from '@/components/AuthGuard'
+import { requireAdmin } from '@/lib/auth'
 
 export default async function TagsPage() {
+  await requireAdmin()
   const [allTags, countRows] = await Promise.all([
     db.select({ id: tags.id, name: tags.name, color: tags.color, created_at: tags.created_at })
       .from(tags).orderBy(tags.name),

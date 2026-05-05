@@ -7,6 +7,7 @@ import AccountForm from '@/components/AccountForm'
 import { updateAccount } from '@/app/actions/accounts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { requireEditor } from '@/lib/auth'
 
 export default async function EditAccountPage({
   params,
@@ -14,6 +15,7 @@ export default async function EditAccountPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  await requireEditor()
   const [account, customData] = await Promise.all([
     db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null),
     getCustomFieldsWithValues('accounts', id),

@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ActivityForm from '@/components/ActivityForm'
 import { updateActivity } from '@/app/actions/activities'
+import { requireEditor } from '@/lib/auth'
 
 export default async function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-
+  await requireEditor()
   const [activity, accountsList, contactsList, opportunitiesList, activityContactRows] = await Promise.all([
     db.select().from(activities).where(eq(activities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })

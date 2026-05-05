@@ -4,6 +4,7 @@ import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import ExpenseForm from '@/components/ExpenseForm'
 import { createExpense } from '@/app/actions/expenses'
+import { requireEditor } from '@/lib/auth'
 
 async function createExpenseAction(_: string | null, formData: FormData): Promise<string | null> {
   'use server'
@@ -20,7 +21,7 @@ export default async function NewExpensePage({
   searchParams: Promise<{ account_id?: string; opportunity_id?: string; contact_id?: string }>
 }) {
   const { account_id, opportunity_id, contact_id } = await searchParams
-
+  await requireEditor()
   const [accountsList, contactsList, opportunitiesList] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),

@@ -7,6 +7,7 @@ import { createOpportunity } from '@/app/actions/opportunities'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { redirect } from 'next/navigation'
+import { requireEditor } from '@/lib/auth'
 
 export default async function NewOpportunityPage({
   searchParams,
@@ -14,6 +15,7 @@ export default async function NewOpportunityPage({
   searchParams: Promise<{ account_id?: string }>
 }) {
   const { account_id } = await searchParams
+  await requireEditor()
   const [accountsList, { fields }] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),

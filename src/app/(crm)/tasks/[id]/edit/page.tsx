@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import TaskForm from '@/components/TaskForm'
 import { updateTask } from '@/app/actions/tasks'
+import { requireEditor } from '@/lib/auth'
 
 export default async function EditTaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-
+  await requireEditor()
   const [task, accountsList, contactsList, opportunitiesList] = await Promise.all([
     db.select().from(tasks).where(eq(tasks.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })

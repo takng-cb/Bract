@@ -4,6 +4,7 @@ import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import ActivityForm from '@/components/ActivityForm'
 import { createActivity } from '@/app/actions/activities'
+import { requireEditor } from '@/lib/auth'
 
 async function createActivityAction(_: string | null, formData: FormData): Promise<string | null> {
   'use server'
@@ -20,7 +21,7 @@ export default async function NewActivityPage({
   searchParams: Promise<{ account_id?: string; contact_id?: string; opportunity_id?: string }>
 }) {
   const { account_id, contact_id, opportunity_id } = await searchParams
-
+  await requireEditor()
   // contact_id / opportunity_id から account_id を補完する
   let resolvedAccountId = account_id ?? ''
   if (!resolvedAccountId && contact_id) {

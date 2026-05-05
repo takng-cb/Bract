@@ -7,10 +7,11 @@ import PropertyForm from '@/components/PropertyForm'
 import { updateProperty } from '@/app/actions/properties'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { requireEditor } from '@/lib/auth'
 
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-
+  await requireEditor()
   const [property, accountsList, contactsList, scrivenerAccounts, scrivenerContacts, customData] = await Promise.all([
     db.select().from(properties).where(eq(properties.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })

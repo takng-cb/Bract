@@ -7,9 +7,11 @@ import ContactForm from '@/components/ContactForm'
 import { updateContact } from '@/app/actions/contacts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { requireEditor } from '@/lib/auth'
 
 export default async function EditContactPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  await requireEditor()
   const [contact, accountsList, customData] = await Promise.all([
     db.select().from(contacts).where(eq(contacts.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
