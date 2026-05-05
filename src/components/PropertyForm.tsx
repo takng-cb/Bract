@@ -3,7 +3,7 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 
-const PROPERTY_TYPES  = ['マンション', '戸建て', '土地', 'ビル', '店舗', '倉庫', 'その他']
+const PROPERTY_TYPES  = ['土地・建物', '建物のみ', '土地のみ', 'その他']
 const STATUSES_RE     = ['募集中', '交渉中', '成約', '管理中', '終了']
 const STATUSES_OTHER  = ['提案中', '交渉中', '成約', '終了']
 const TX_TYPES_RE     = ['売買', '賃貸']
