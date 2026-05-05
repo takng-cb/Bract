@@ -8,92 +8,63 @@ import { resolve } from 'path'
 
 dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 
-const sql = neon(process.env.DATABASE_URL!)
-
 async function main() {
-  console.log('🔄 properties テーブルのスキーマ変更を適用中...')
+  const sql = neon(process.env.DATABASE_URL!)
 
-  // 1. 旧列を削除
-  const dropCols = [
-    'floor',
-    'total_floors',
-    'built_year',
-    'rights_status',
-    'building_floor_area',
-  ]
+  console.log('🔄 properties テーブルのスキーマ変更を適用中...\n')
 
-  const dropStmts: Record<string, string> = {
-    floor:               'ALTER TABLE properties DROP COLUMN IF EXISTS floor',
-    total_floors:        'ALTER TABLE properties DROP COLUMN IF EXISTS total_floors',
-    built_year:          'ALTER TABLE properties DROP COLUMN IF EXISTS built_year',
-    rights_status:       'ALTER TABLE properties DROP COLUMN IF EXISTS rights_status',
-    building_floor_area: 'ALTER TABLE properties DROP COLUMN IF EXISTS building_floor_area',
-  }
+  // ── 旧列を削除 ──────────────────────────────────────────────
+  console.log('【旧列 削除】')
+  try { await sql`ALTER TABLE properties DROP COLUMN IF EXISTS floor`; console.log('  ✅ DROP floor') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties DROP COLUMN IF EXISTS total_floors`; console.log('  ✅ DROP total_floors') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties DROP COLUMN IF EXISTS built_year`; console.log('  ✅ DROP built_year') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties DROP COLUMN IF EXISTS rights_status`; console.log('  ✅ DROP rights_status') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties DROP COLUMN IF EXISTS building_floor_area`; console.log('  ✅ DROP building_floor_area') } catch(e:any) { console.log('  ⚠️ ', e.message) }
 
-  for (const [col, stmt] of Object.entries(dropStmts)) {
-    try {
-      await sql.unsafe(stmt)
-      console.log(`  ✅ DROP COLUMN ${col}`)
-    } catch (e) {
-      console.log(`  ⚠️  DROP COLUMN ${col}: ${(e as Error).message}`)
-    }
-  }
+  // ── 新列を追加 ──────────────────────────────────────────────
+  console.log('\n【新列 追加】')
 
-  // 2. 新列を追加（既存なら SKIP）
-  const addCols: string[] = [
-    // 土地 表題部
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_fudosan_number TEXT',
-    // address は既存
-    // land_chiban は既存
-    // chimoku は既存
-    // area は既存
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_cause TEXT',
-    // 土地 甲区
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_owner_name TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_owner_address TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_acquisition_reason TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_acquisition_date DATE',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_seizure BOOLEAN DEFAULT FALSE',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_seizure_release_date DATE',
-    // 建物 表題部
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_fudosan_number TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_location TEXT',
-    // building_kaoku_number は既存
-    // building_shurui は既存
-    // structure は既存
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_floor_area_1f NUMERIC',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_floor_area_2f NUMERIC',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_floor_area_3f NUMERIC',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_new_construction_date DATE',
-    // 建物 甲区
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_owner_name TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_owner_address TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_acquisition_reason TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_acquisition_date DATE',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_seizure BOOLEAN DEFAULT FALSE',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_seizure_release_date DATE',
-    // 建物 乙区
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_lien_type TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_lien_holder TEXT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_debt_amount BIGINT',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_damage_rate NUMERIC',
-    'ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_joint_collateral_number TEXT',
-  ]
+  // 土地 表題部
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_fudosan_number TEXT`; console.log('  ✅ land_fudosan_number') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_cause TEXT`; console.log('  ✅ land_cause') } catch(e:any) { console.log('  ⚠️ ', e.message) }
 
-  for (const stmt of addCols) {
-    try {
-      await sql.unsafe(stmt)
-      const col = stmt.match(/ADD COLUMN IF NOT EXISTS (\w+)/)?.[1] ?? stmt
-      console.log(`  ✅ ${col}`)
-    } catch (e) {
-      console.log(`  ⚠️  ${stmt}: ${(e as Error).message}`)
-    }
-  }
+  // 土地 甲区
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_owner_name TEXT`; console.log('  ✅ land_owner_name') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_owner_address TEXT`; console.log('  ✅ land_owner_address') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_acquisition_reason TEXT`; console.log('  ✅ land_acquisition_reason') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_acquisition_date DATE`; console.log('  ✅ land_acquisition_date') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_seizure BOOLEAN DEFAULT FALSE`; console.log('  ✅ land_seizure') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_seizure_release_date DATE`; console.log('  ✅ land_seizure_release_date') } catch(e:any) { console.log('  ⚠️ ', e.message) }
 
-  console.log('\n🎉 完了しました')
+  // 建物 表題部
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_fudosan_number TEXT`; console.log('  ✅ building_fudosan_number') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_location TEXT`; console.log('  ✅ building_location') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_floor_area_1f NUMERIC`; console.log('  ✅ building_floor_area_1f') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_floor_area_2f NUMERIC`; console.log('  ✅ building_floor_area_2f') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_floor_area_3f NUMERIC`; console.log('  ✅ building_floor_area_3f') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_new_construction_date DATE`; console.log('  ✅ building_new_construction_date') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+
+  // 建物 甲区
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_owner_name TEXT`; console.log('  ✅ building_owner_name') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_owner_address TEXT`; console.log('  ✅ building_owner_address') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_acquisition_reason TEXT`; console.log('  ✅ building_acquisition_reason') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_acquisition_date DATE`; console.log('  ✅ building_acquisition_date') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_seizure BOOLEAN DEFAULT FALSE`; console.log('  ✅ building_seizure') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_seizure_release_date DATE`; console.log('  ✅ building_seizure_release_date') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+
+  // 建物 乙区
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_lien_type TEXT`; console.log('  ✅ building_lien_type') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_lien_holder TEXT`; console.log('  ✅ building_lien_holder') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_debt_amount BIGINT`; console.log('  ✅ building_debt_amount') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_damage_rate NUMERIC`; console.log('  ✅ building_damage_rate') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+  try { await sql`ALTER TABLE properties ADD COLUMN IF NOT EXISTS building_joint_collateral_number TEXT`; console.log('  ✅ building_joint_collateral_number') } catch(e:any) { console.log('  ⚠️ ', e.message) }
+
+  // 最終確認
+  const cols = await sql`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'properties' ORDER BY ordinal_position
+  `
+  console.log(`\n✅ 完了 — properties テーブル: 計 ${cols.length} カラム`)
 }
 
-main().catch((e) => {
-  console.error('❌ エラー:', e)
-  process.exit(1)
-})
+main().catch((e) => { console.error('❌', e); process.exit(1) })
