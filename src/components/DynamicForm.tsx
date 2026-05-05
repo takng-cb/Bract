@@ -1,7 +1,8 @@
 'use client'
-import { useActionState } from 'react'
+import { useActionState, useRef } from 'react'
 import type { FieldDef } from '@/lib/objectMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
+import FormFillModal from '@/components/FormFillModal'
 
 type Props = {
   fields:       FieldDef[]
@@ -26,13 +27,27 @@ export default function DynamicForm({
     null,
   )
 
+  const formRef = useRef<HTMLFormElement | null>(null)
   const visibleFields = fields.filter((f) => f.is_visible)
 
+  // boolean・section 以外のフィールドから csvFormat / fieldMap を自動生成
+  const fillableFields = visibleFields.filter(
+    (f) => f.field_type !== 'section' && f.field_type !== 'boolean'
+  )
+  const csvFormat = fillableFields.map((f) => f.label).join(',')
+  const fieldMap  = Object.fromEntries(fillableFields.map((f) => [f.label, f.api_name]))
+
   return (
-    <form action={dispatch} className="space-y-5">
+    <form ref={formRef} action={dispatch} className="space-y-5">
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {fillableFields.length > 0 && (
+        <div className="flex justify-end">
+          <FormFillModal formRef={formRef} csvFormat={csvFormat} fieldMap={fieldMap} />
         </div>
       )}
 

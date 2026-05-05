@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useState, useRef } from 'react'
 import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
+import FormFillModal from '@/components/FormFillModal'
 
 const PROPERTY_TYPES  = ['土地・建物', '建物のみ', '土地のみ', 'その他']
 const STATUSES_RE     = ['募集中', '交渉中', '成約', '管理中', '終了']
@@ -86,6 +87,7 @@ export default function PropertyForm({
 }: Props) {
   const [error, formAction, pending] = useActionState(action, null)
   const [category, setCategory] = useState<string>(defaultValues.product_category ?? 'real_estate')
+  const formRef = useRef<HTMLFormElement | null>(null)
   const d = defaultValues
 
   const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -99,7 +101,7 @@ export default function PropertyForm({
   const txTypes  = isRE ? TX_TYPES_RE : TX_TYPES_OTHER
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
@@ -108,6 +110,14 @@ export default function PropertyForm({
         <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
         <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
         <div className="flex-1 h-px bg-zinc-200" />
+        <FormFillModal
+          formRef={formRef}
+          csvFormat="件名,物件種別,取引種別,ステータス,価格(円)"
+          fieldMap={{
+            '件名': 'name', '物件種別': 'property_type',
+            '取引種別': 'transaction_type', 'ステータス': 'status', '価格(円)': 'price',
+          }}
+        />
       </div>
 
       {/* カテゴリ切り替え */}
