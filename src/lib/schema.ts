@@ -457,6 +457,36 @@ export const saved_views = pgTable('saved_views', {
 ])
 
 // ----------------------------------------------------------------
+// relationship_definitions（関係性定義 - 管理者が設定する多対多の関係）
+// ----------------------------------------------------------------
+export const relationship_definitions = pgTable('relationship_definitions', {
+  id:                  uuid('id').primaryKey().defaultRandom(),
+  source_object_type:  text('source_object_type').notNull(),  // 'properties', 'opportunities', etc.
+  target_object_type:  text('target_object_type').notNull(),
+  label:               text('label').notNull(),               // 表示名 例：「関連商談」
+  reverse_label:       text('reverse_label'),                 // 逆方向の表示名 例：「関連物件」
+  cardinality:         text('cardinality').notNull().default('many_to_many'), // 'many_to_many' | 'one_to_many'
+  created_at:          timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  unique().on(t.source_object_type, t.target_object_type, t.label),
+])
+
+// ----------------------------------------------------------------
+// relationship_values（関係性の実データ）
+// ----------------------------------------------------------------
+export const relationship_values = pgTable('relationship_values', {
+  id:               uuid('id').primaryKey().defaultRandom(),
+  relationship_id:  uuid('relationship_id').notNull().references(() => relationship_definitions.id, { onDelete: 'cascade' }),
+  source_record_id: uuid('source_record_id').notNull(),
+  target_record_id: uuid('target_record_id').notNull(),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  unique().on(t.relationship_id, t.source_record_id, t.target_record_id),
+  index('rv_source_idx').on(t.relationship_id, t.source_record_id),
+  index('rv_target_idx').on(t.relationship_id, t.target_record_id),
+])
+
+// ----------------------------------------------------------------
 // import_logs（インポート実行ログ）
 // ----------------------------------------------------------------
 export const import_logs = pgTable('import_logs', {

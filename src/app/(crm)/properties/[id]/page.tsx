@@ -12,6 +12,7 @@ import RecordHeader from '@/components/RecordHeader'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { canEdit } from '@/lib/auth'
+import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -297,6 +298,15 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           />
         </div>
       )}
+
+      {/* 関係性（多対多） */}
+      <div className="mb-6">
+        <RelatedRecordsSection
+          objectType="properties"
+          recordId={id}
+          pagePath={`/properties/${id}`}
+        />
+      </div>
 
       <div className="mt-6 text-right">
         <RecordId id={id} />

@@ -24,7 +24,8 @@ tests/
 │   ├── 14_admin.md                  # 管理者機能（TC-ADM）
 │   ├── 15_custom_objects.md         # カスタムオブジェクト（TC-COBJ）
 │   ├── 16_csv_and_dashboard.md      # CSV・ダッシュボード・フォーキャスト（TC-CSV / TC-DASH）
-│   └── 17_settings.md              # 設定・プロフィール（TC-SET）
+│   ├── 17_settings.md              # 設定・プロフィール（TC-SET）
+│   └── 18_relationships.md         # 関係性管理・多対多リレーション（TC-18）
 └── results/                         # テスト実施結果
     └── YYYY-MM-DD_description.md
 ```
@@ -51,6 +52,7 @@ tests/
 | TC-DASH | ダッシュボード・フォーキャスト |
 | TC-SET | 設定 |
 | TC-PWA / TC-MOB | PWA・モバイル |
+| TC-18 | 関係性管理（多対多） |
 
 ## 記法
 

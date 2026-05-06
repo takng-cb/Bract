@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { signOut } from '@/app/actions/auth'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
-const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/users'])
+const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs'])
 
 type Props = {
   mainItems:   NavItem[]

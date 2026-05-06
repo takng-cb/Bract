@@ -17,6 +17,7 @@ import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
+import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -352,6 +353,16 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             </form>
           </AuthGuard>
         </div>
+      </section>
+
+      {/* 関係性（多対多） */}
+      <section className="mb-6">
+        <h2 className="text-base font-semibold text-zinc-800 mb-3">関連レコード</h2>
+        <RelatedRecordsSection
+          objectType="opportunities"
+          recordId={id}
+          pagePath={`/opportunities/${id}`}
+        />
       </section>
 
       {/* 変更履歴 */}
