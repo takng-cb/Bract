@@ -45,9 +45,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
     }
   }
 
-  const viewParam      = property.product_category === 'other' ? 'other' : 'real_estate'
-  const currentAccount = accountsList.find((a) => a.id === property.account_id) ?? null
-  const currentContact = contactsList.find((c) => c.id === property.contact_id) ?? null
+  const viewParam = property.product_category === 'other' ? 'other' : 'real_estate'
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
@@ -58,16 +56,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
           { label: '編集' },
         ]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 break-words">{property.name}</h1>
-        {(currentAccount || currentContact) && (
-          <div className="flex items-center gap-3 mt-1.5 text-sm text-zinc-600 flex-wrap">
-            {currentAccount && <Link href={`/accounts/${currentAccount.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">🏢 {currentAccount.name}</Link>}
-            {currentAccount && currentContact && <span className="text-zinc-300">·</span>}
-            {currentContact && <Link href={`/contacts/${currentContact.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">👤 {currentContact.full_name}</Link>}
-          </div>
-        )}
-      </div>
+      <h1 className="text-2xl font-bold text-zinc-900 break-words mb-6">{property.name}</h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <PropertyForm
           action={updatePropertyAction}

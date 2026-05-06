@@ -100,6 +100,9 @@ export default function PropertyForm({
   const statuses = isRE ? STATUSES_RE : STATUSES_OTHER
   const txTypes  = isRE ? TX_TYPES_RE : TX_TYPES_OTHER
 
+  const currentAccount = accounts.find((a) => a.id === d.account_id) ?? null
+  const currentContact = contacts.find((c) => c.id === d.contact_id) ?? null
+
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
       {error && (
@@ -179,6 +182,23 @@ export default function PropertyForm({
           className={field}
         />
       </div>
+
+      {/* 関連取引先 / 関連人物 */}
+      {(currentAccount || currentContact) && (
+        <div className="flex items-center gap-3 text-sm text-zinc-600 flex-wrap -mt-2">
+          {currentAccount && (
+            <a href={`/accounts/${currentAccount.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+              🏢 {currentAccount.name}
+            </a>
+          )}
+          {currentAccount && currentContact && <span className="text-zinc-300">·</span>}
+          {currentContact && (
+            <a href={`/contacts/${currentContact.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+              👤 {currentContact.full_name}
+            </a>
+          )}
+        </div>
+      )}
 
       {/* 物件種別 / 取引種別 / ステータス */}
       {isRE ? (
