@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
 export default withPWA({
   dest: "public",
   disable: process.env.NODE_ENV === "development", // 開発中はOFF
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
 })(nextConfig);

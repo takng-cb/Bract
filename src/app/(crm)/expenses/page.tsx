@@ -14,6 +14,7 @@ import { getListViewColumns } from '@/lib/listViewSettings'
 import { getDefaultView } from '@/lib/savedViews'
 import ExpensesTableView from '@/components/tableviews/ExpensesTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
+import TableErrorBoundary from '@/components/TableErrorBoundary'
 
 const PAGE_SIZE = 20
 
@@ -229,13 +230,15 @@ export default async function ExpensesPage({
         <>
           {/* PC: 動的テーブル（グルーピング対応） */}
           <div className="hidden md:block">
-            <ExpensesTableView
-              records={displayList as Record<string, unknown>[]}
-              groupBy={groupBy}
-              fields={FIELDS}
-              activeKeys={colConfig}
-              currentSortStr={sortRaw}
-            />
+            <TableErrorBoundary>
+              <ExpensesTableView
+                records={displayList as Record<string, unknown>[]}
+                groupBy={groupBy}
+                fields={FIELDS}
+                activeKeys={colConfig}
+                currentSortStr={sortRaw}
+              />
+            </TableErrorBoundary>
           </div>
           {/* モバイル: カード（グルーピング非対応） */}
           {!isGrouped && (

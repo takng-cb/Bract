@@ -15,6 +15,7 @@ import { getListViewColumns } from '@/lib/listViewSettings'
 import { getDefaultView } from '@/lib/savedViews'
 import ContactsTableView from '@/components/tableviews/ContactsTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
+import TableErrorBoundary from '@/components/TableErrorBoundary'
 
 const PAGE_SIZE = 20
 
@@ -207,13 +208,15 @@ export default async function ContactsPage({
         <>
           {/* PC: 動的テーブル（グルーピング対応） */}
           <div className="hidden md:block">
-            <ContactsTableView
-              records={displayList}
-              groupBy={groupBy}
-              fields={FIELDS}
-              activeKeys={colConfig}
-              currentSortStr={sortRaw}
-            />
+            <TableErrorBoundary>
+              <ContactsTableView
+                records={displayList}
+                groupBy={groupBy}
+                fields={FIELDS}
+                activeKeys={colConfig}
+                currentSortStr={sortRaw}
+              />
+            </TableErrorBoundary>
           </div>
           {/* モバイル: カード（グルーピング非対応） */}
           {!isGrouped && (

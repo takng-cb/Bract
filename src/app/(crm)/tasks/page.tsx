@@ -15,6 +15,7 @@ import { getListViewColumns } from '@/lib/listViewSettings'
 import { getDefaultView } from '@/lib/savedViews'
 import TasksTableView from '@/components/tableviews/TasksTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
+import TableErrorBoundary from '@/components/TableErrorBoundary'
 
 const PAGE_SIZE = 20
 
@@ -297,13 +298,15 @@ export default async function TasksPage({
       ) : isGrouped ? (
         /* グルーピング時: TasksTableView（PC のみ） */
         <div className="hidden md:block">
-          <TasksTableView
-            records={displayList as Record<string, unknown>[]}
-            groupBy={groupBy}
-            fields={FIELDS}
-            activeKeys={colConfig}
-            currentSortStr={sortRaw}
-          />
+          <TableErrorBoundary>
+            <TasksTableView
+              records={displayList as Record<string, unknown>[]}
+              groupBy={groupBy}
+              fields={FIELDS}
+              activeKeys={colConfig}
+              currentSortStr={sortRaw}
+            />
+          </TableErrorBoundary>
         </div>
       ) : (
         /* 通常時: 未完了 / 完了済み 分割表示 */
