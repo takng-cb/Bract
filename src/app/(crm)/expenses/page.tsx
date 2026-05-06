@@ -1,12 +1,15 @@
 import { db } from '@/lib/db'
 import { expenses, accounts, opportunities } from '@/lib/schema'
-import { desc, eq, gte, lte } from 'drizzle-orm'
+import { desc, eq, gte } from 'drizzle-orm'
 import Link from 'next/link'
-import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
+import ListViewToolbar from '@/components/ListViewToolbar'
+import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
+import { getListViewColumns } from '@/lib/listViewSettings'
+import ExpensesTableView from '@/components/tableviews/ExpensesTableView'
 
 const PAGE_SIZE = 20
 
@@ -43,9 +46,9 @@ const FIELDS: FieldDef[] = [
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string }>
+  searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string; group?: string }>
 }) {
-  const [sp, edit] = await Promise.all([searchParams, canEdit()])
+  const [sp, edit, colConfig] = await Promise.all([searchParams, canEdit(), getListViewColumns('expenses')])
   const now = new Date()
 
   const fromYear  = Number(sp.from_year  ?? now.getFullYear())
@@ -58,6 +61,8 @@ export default async function ExpensesPage({
 
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
+  const isGrouped  = groupBy.length > 0
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -81,16 +86,18 @@ export default async function ExpensesPage({
     .where(gte(expenses.expense_date, from))
     .orderBy(desc(expenses.expense_date))
 
-  // to の日付フィルタは JS 側で適用（lte は同じ型で比較）
+  // to の日付フィルタは JS 側で適用
   const filtered = raw.filter((e) => e.expense_date! <= to)
 
   const expensesList = applyFilters(filtered as Record<string, unknown>[], conditions) as typeof raw
   const total        = expensesList.reduce((s, e) => s + Number(e.amount), 0)
   const hasFilter    = conditions.length > 0
   const totalCount   = expensesList.length
-  const totalPages   = Math.ceil(totalCount / PAGE_SIZE)
-  const pagedList    = expensesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
-  const pagedTotal   = pagedList.reduce((s, e) => s + Number(e.amount), 0)
+  const totalPages   = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
+  const displayList  = isGrouped
+    ? expensesList
+    : expensesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+  const pagedTotal   = (displayList as typeof raw).reduce((s, e) => s + Number(e.amount), 0)
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
   const yearOptions  = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i)
@@ -105,6 +112,8 @@ export default async function ExpensesPage({
   }
   const clearUrl = `/expenses?${new URLSearchParams(persistParams).toString()}`
 
+  const groupableFields = FIELDS.map((f) => ({ key: f.value, label: f.label }))
+
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
@@ -114,6 +123,7 @@ export default async function ExpensesPage({
             {periodLabel} — 全 {totalCount} 件 合計{' '}
             <span className="font-semibold text-zinc-800">¥{total.toLocaleString()}</span>
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -167,14 +177,16 @@ export default async function ExpensesPage({
         </button>
       </form>
 
-      <FilterBuilder
+      <ListViewToolbar
         fields={FIELDS}
         initialFilters={filterRaw}
         basePath="/expenses"
+        groupableFields={groupableFields}
+        initialGroup={sp.group ?? ''}
         persistParams={persistParams}
       />
 
-      {totalCount === 0 ? (
+      {expensesList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">💰</p>
           <p className="text-lg font-medium">
@@ -189,93 +201,59 @@ export default async function ExpensesPage({
         </div>
       ) : (
         <>
-          {/* PC: テーブル */}
-          <div className="hidden md:block bg-white border border-zinc-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">日付</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">件名</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">カテゴリ</th>
-                  <th className="text-right px-4 py-2 font-medium text-zinc-600">金額</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">商談</th>
-                  <th className="px-4 py-2"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {pagedList.map((e) => {
-                  const account     = e.accounts?.id     ? e.accounts     : null
-                  const opportunity = e.opportunities?.id ? e.opportunities : null
-                  const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
-                  return (
-                    <tr key={e.id} className="hover:bg-zinc-50">
-                      <td className="px-4 py-2 text-zinc-500 whitespace-nowrap">{e.expense_date}</td>
-                      <td className="px-4 py-2 font-medium">
-                        <Link href={`/expenses/${e.id}`} className="hover:text-blue-600">{e.title}</Link>
-                        {account && <div className="text-xs text-zinc-400 mt-0.5"><Link href={`/accounts/${account.id}`} className="hover:text-blue-500">🏢 {account.name}</Link></div>}
-                      </td>
-                      <td className="px-4 py-2">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{e.category}</span>
-                      </td>
-                      <td className="px-4 py-2 text-right font-medium text-zinc-800">¥{Number(e.amount).toLocaleString()}</td>
-                      <td className="px-4 py-2 text-zinc-500 text-xs">
-                        {opportunity ? <Link href={`/opportunities/${opportunity.id}`} className="hover:text-blue-600">💼 {opportunity.name}</Link> : '—'}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <Link href={`/expenses/${e.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-              <tfoot className="border-t-2 border-zinc-200 bg-zinc-50">
-                <tr>
-                  <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-zinc-700">小計</td>
-                  <td className="px-4 py-2 text-right font-bold text-zinc-900">¥{pagedTotal.toLocaleString()}</td>
-                  <td colSpan={2} />
-                </tr>
-              </tfoot>
-            </table>
+          {/* PC: 動的テーブル（グルーピング対応） */}
+          <div className="hidden md:block">
+            <ExpensesTableView
+              records={displayList as Record<string, unknown>[]}
+              groupBy={groupBy}
+              fields={FIELDS}
+              activeKeys={colConfig}
+            />
           </div>
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {pagedList.map((e) => {
-              const account     = e.accounts?.id     ? e.accounts     : null
-              const opportunity = e.opportunities?.id ? e.opportunities : null
-              const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
-              return (
-                <Link key={e.id} href={`/expenses/${e.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{e.title}</span>
-                    <span className="shrink-0 font-bold text-zinc-800 text-sm">¥{Number(e.amount).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{e.category}</span>
-                    <span className="text-xs text-zinc-400">{e.expense_date}</span>
-                  </div>
-                  {(account || opportunity) && (
-                    <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-zinc-500">
-                      {account && <span>🏢 {account.name}</span>}
-                      {opportunity && <span>💼 {opportunity.name}</span>}
+          {/* モバイル: カード（グルーピング非対応） */}
+          {!isGrouped && (
+            <div className="md:hidden space-y-2">
+              {(displayList as typeof raw).map((e) => {
+                const account     = e.accounts?.id     ? e.accounts     : null
+                const opportunity = e.opportunities?.id ? e.opportunities : null
+                const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
+                return (
+                  <Link key={e.id} href={`/expenses/${e.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-zinc-900 text-sm leading-snug">{e.title}</span>
+                      <span className="shrink-0 font-bold text-zinc-800 text-sm">¥{Number(e.amount).toLocaleString()}</span>
                     </div>
-                  )}
-                </Link>
-              )
-            })}
-            <div className="bg-zinc-100 rounded-lg px-4 py-3 flex items-center justify-between">
-              <span className="text-sm font-semibold text-zinc-700">小計</span>
-              <span className="font-bold text-zinc-900">¥{pagedTotal.toLocaleString()}</span>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{e.category}</span>
+                      <span className="text-xs text-zinc-400">{e.expense_date}</span>
+                    </div>
+                    {(account || opportunity) && (
+                      <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-zinc-500">
+                        {account && <span>🏢 {account.name}</span>}
+                        {opportunity && <span>💼 {opportunity.name}</span>}
+                      </div>
+                    )}
+                  </Link>
+                )
+              })}
+              <div className="bg-zinc-100 rounded-lg px-4 py-3 flex items-center justify-between">
+                <span className="text-sm font-semibold text-zinc-700">小計</span>
+                <span className="font-bold text-zinc-900">¥{pagedTotal.toLocaleString()}</span>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        basePath="/expenses"
-        filterParams={filterRaw}
-        extraParams={persistParams}
-      />
+
+      {!isGrouped && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          basePath="/expenses"
+          filterParams={filterRaw}
+          extraParams={persistParams}
+        />
+      )}
     </div>
   )
 }

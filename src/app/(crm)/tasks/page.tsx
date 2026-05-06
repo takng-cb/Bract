@@ -1,13 +1,16 @@
 import { db } from '@/lib/db'
 import { tasks, accounts, opportunities } from '@/lib/schema'
-import { asc, desc, eq, sql } from 'drizzle-orm'
+import { asc, desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
-import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
+import ListViewToolbar from '@/components/ListViewToolbar'
+import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
+import { getListViewColumns } from '@/lib/listViewSettings'
+import TasksTableView from '@/components/tableviews/TasksTableView'
 
 const PAGE_SIZE = 20
 
@@ -41,11 +44,13 @@ const FIELDS: FieldDef[] = [
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string }>
 }) {
-  const [sp, edit] = await Promise.all([searchParams, canEdit()])
+  const [sp, edit, colConfig] = await Promise.all([searchParams, canEdit(), getListViewColumns('tasks')])
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
-  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
+  const isGrouped  = groupBy.length > 0
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -72,11 +77,15 @@ export default async function TasksPage({
   const tasksList  = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
   const hasFilter  = conditions.length > 0
   const totalCount = tasksList.length
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
-  const pagedList  = tasksList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+  const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
   const today      = new Date().toISOString().slice(0, 10)
-  const pending    = pagedList.filter((t) => !t.done)
-  const done       = pagedList.filter((t) =>  t.done)
+
+  const displayList = isGrouped
+    ? tasksList
+    : tasksList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+
+  const pending = (displayList as typeof raw).filter((t) => !t.done)
+  const done    = (displayList as typeof raw).filter((t) =>  t.done)
 
   async function toggleDone(formData: FormData) {
     'use server'
@@ -84,6 +93,10 @@ export default async function TasksPage({
     const doneVal = formData.get('done') === 'true'
     await toggleTaskDone(id, doneVal, '/tasks')
   }
+
+  const groupableFields = FIELDS
+    .filter((f) => f.value !== 'done')
+    .map((f) => ({ key: f.value, label: f.label }))
 
   const TaskTable = ({ rows, label }: { rows: typeof tasksList; label: string }) => (
     <div>
@@ -212,6 +225,7 @@ export default async function TasksPage({
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件（未完了 {tasksList.filter((t) => !t.done).length} 件）
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -237,7 +251,13 @@ export default async function TasksPage({
         </div>
       </div>
 
-      <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/tasks" />
+      <ListViewToolbar
+        fields={FIELDS}
+        initialFilters={filterRaw}
+        basePath="/tasks"
+        groupableFields={groupableFields}
+        initialGroup={sp.group ?? ''}
+      />
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
@@ -250,13 +270,27 @@ export default async function TasksPage({
             : <p className="text-sm mt-1">「新規作成」ボタンから追加してください</p>
           }
         </div>
+      ) : isGrouped ? (
+        /* グルーピング時: TasksTableView（PC のみ） */
+        <div className="hidden md:block">
+          <TasksTableView
+            records={displayList as Record<string, unknown>[]}
+            groupBy={groupBy}
+            fields={FIELDS}
+            activeKeys={colConfig}
+          />
+        </div>
       ) : (
+        /* 通常時: 未完了 / 完了済み 分割表示 */
         <div className="space-y-4">
           <TaskTable rows={pending} label="未完了" />
           {done.length > 0 && <TaskTable rows={done} label="完了済み" />}
         </div>
       )}
-      <Pagination currentPage={page} totalPages={totalPages} basePath="/tasks" filterParams={filterRaw} />
+
+      {!isGrouped && (
+        <Pagination currentPage={page} totalPages={totalPages} basePath="/tasks" filterParams={filterRaw} />
+      )}
     </div>
   )
 }

@@ -429,6 +429,16 @@ export const system_settings = pgTable('system_settings', {
 })
 
 // ----------------------------------------------------------------
+// list_view_settings（リストビューのカラム設定）
+// ----------------------------------------------------------------
+export const list_view_settings = pgTable('list_view_settings', {
+  id:          uuid('id').primaryKey().defaultRandom(),
+  object_type: text('object_type').notNull().unique(),
+  columns:     text('columns').notNull().default('[]'), // JSON: string[]
+  updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
 // import_logs（インポート実行ログ）
 // ----------------------------------------------------------------
 export const import_logs = pgTable('import_logs', {

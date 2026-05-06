@@ -2,24 +2,29 @@ import { db } from '@/lib/db'
 import { contacts, accounts, tags, taggables } from '@/lib/schema'
 import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
-import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
+import ListViewToolbar from '@/components/ListViewToolbar'
+import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import TextImportModal from '@/components/TextImportModal'
 import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
+import { getListViewColumns } from '@/lib/listViewSettings'
+import ContactsTableView from '@/components/tableviews/ContactsTableView'
 
 const PAGE_SIZE = 20
 
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string }>
 }) {
-  const [sp, edit] = await Promise.all([searchParams, canEdit()])
+  const [sp, edit, colConfig] = await Promise.all([searchParams, canEdit(), getListViewColumns('contacts')])
   const view       = (sp.view === 'consumer') ? 'consumer' : 'business'
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
+  const isGrouped  = groupBy.length > 0
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
@@ -32,6 +37,7 @@ export default async function ContactsPage({
       phone:        contacts.phone,
       title:        contacts.title,
       department:   contacts.department,
+      birthday:     contacts.birthday,
       account_id:   contacts.account_id,
       accounts: {
         id:   accounts.id,
@@ -75,8 +81,14 @@ export default async function ContactsPage({
   contactsList     = applyTagFilter(contactsList, tagConditions, taggedIdsByTagId)
   const hasFilter  = conditions.length > 0
   const totalCount = contactsList.length
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
-  const pagedList  = contactsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
+  const displayList = isGrouped
+    ? contactsList
+    : contactsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const groupableFields = FIELDS
+    .filter((f) => f.value !== 'tag')
+    .map((f) => ({ key: f.value, label: f.label }))
 
   const tabBase  = (v: string) => `/contacts?view=${v}`
   const newHref  = `/contacts/new?view=${view}`
@@ -89,6 +101,7 @@ export default async function ContactsPage({
           <h1 className="text-2xl font-bold text-zinc-900">人物</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -142,14 +155,16 @@ export default async function ContactsPage({
         ))}
       </div>
 
-      <FilterBuilder
+      <ListViewToolbar
         fields={FIELDS}
         initialFilters={filterRaw}
         basePath="/contacts"
+        groupableFields={groupableFields}
+        initialGroup={sp.group ?? ''}
         persistParams={{ view }}
       />
 
-      {totalCount === 0 ? (
+      {contactsList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">{isBiz ? '👔' : '👤'}</p>
           <p className="text-lg font-medium">
@@ -164,78 +179,49 @@ export default async function ContactsPage({
         </div>
       ) : (
         <>
-          {/* PC: テーブル */}
-          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">氏名</th>
-                  {isBiz && <th className="text-left px-4 py-3 font-medium text-zinc-600">会社</th>}
-                  {isBiz && <th className="text-left px-4 py-3 font-medium text-zinc-600">役職 / 部署</th>}
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">メール</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">電話</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {(pagedList as typeof raw).map((c) => {
-                  const account = c.accounts?.id ? c.accounts : null
-                  return (
-                    <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-zinc-900">
-                        <Link href={`/contacts/${c.id}`} className="hover:text-blue-600">{c.full_name}</Link>
-                      </td>
-                      {isBiz && (
-                        <td className="px-4 py-3 text-zinc-600">
-                          {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link> : '—'}
-                        </td>
-                      )}
-                      {isBiz && (
-                        <td className="px-4 py-3 text-zinc-600">
-                          <span>{c.title ?? '—'}</span>
-                          {c.department && <span className="text-zinc-400 ml-1 text-xs">/ {c.department}</span>}
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-zinc-600">{c.email ?? '—'}</td>
-                      <td className="px-4 py-3 text-zinc-600">{c.phone ?? '—'}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Link href={`/contacts/${c.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          {/* PC: 動的テーブル（グルーピング対応） */}
+          <div className="hidden md:block">
+            <ContactsTableView
+              records={displayList}
+              groupBy={groupBy}
+              fields={FIELDS}
+              activeKeys={colConfig}
+            />
           </div>
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {(pagedList as typeof raw).map((c) => {
-              const account = c.accounts?.id ? c.accounts : null
-              return (
-                <Link key={c.id} href={`/contacts/${c.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-zinc-900 text-sm">{isBiz ? '👔' : '👤'} {c.full_name}</span>
-                    {isBiz && c.title && <span className="shrink-0 text-xs text-zinc-500">{c.title}</span>}
-                  </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
-                    {isBiz && account && <span>🏢 {account.name}</span>}
-                    {isBiz && c.department && <span>{c.department}</span>}
-                    {c.email && <span>✉️ {c.email}</span>}
-                    {c.phone && <span>📞 {c.phone}</span>}
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+          {/* モバイル: カード（グルーピング非対応） */}
+          {!isGrouped && (
+            <div className="md:hidden space-y-2">
+              {(displayList as typeof raw).map((c) => {
+                const account = c.accounts?.id ? c.accounts : null
+                return (
+                  <Link key={c.id} href={`/contacts/${c.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-zinc-900 text-sm">{isBiz ? '👔' : '👤'} {c.full_name}</span>
+                      {isBiz && c.title && <span className="shrink-0 text-xs text-zinc-500">{c.title}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
+                      {isBiz && account && <span>🏢 {account.name}</span>}
+                      {isBiz && c.department && <span>{c.department}</span>}
+                      {c.email && <span>✉️ {c.email}</span>}
+                      {c.phone && <span>📞 {c.phone}</span>}
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </>
       )}
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        basePath="/contacts"
-        filterParams={filterRaw}
-        extraParams={{ view }}
-      />
+
+      {!isGrouped && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          basePath="/contacts"
+          filterParams={filterRaw}
+          extraParams={{ view }}
+        />
+      )}
     </div>
   )
 }

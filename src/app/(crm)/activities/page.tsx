@@ -2,11 +2,14 @@ import { db } from '@/lib/db'
 import { activities, accounts } from '@/lib/schema'
 import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
-import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
+import ListViewToolbar from '@/components/ListViewToolbar'
+import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
+import { getListViewColumns } from '@/lib/listViewSettings'
+import ActivitiesTableView from '@/components/tableviews/ActivitiesTableView'
 
 const PAGE_SIZE = 20
 
@@ -36,11 +39,13 @@ const FIELDS: FieldDef[] = [
 export default async function ActivitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string }>
 }) {
-  const [sp, edit] = await Promise.all([searchParams, canEdit()])
+  const [sp, edit, colConfig] = await Promise.all([searchParams, canEdit(), getListViewColumns('activities')])
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
-  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
+  const isGrouped  = groupBy.length > 0
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -59,11 +64,15 @@ export default async function ActivitiesPage({
     .leftJoin(accounts, eq(activities.account_id, accounts.id))
     .orderBy(desc(activities.occurred_at))
 
-  const activitiesList = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
+  const activitiesList = applyFilters(raw as Record<string, unknown>[], conditions)
   const hasFilter      = conditions.length > 0
   const totalCount     = activitiesList.length
-  const totalPages     = Math.ceil(totalCount / PAGE_SIZE)
-  const pagedList      = activitiesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+  const totalPages     = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
+  const displayList    = isGrouped
+    ? activitiesList
+    : activitiesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const groupableFields = FIELDS.map((f) => ({ key: f.value, label: f.label }))
 
   return (
     <div className="p-4 md:p-8">
@@ -72,6 +81,7 @@ export default async function ActivitiesPage({
           <h1 className="text-2xl font-bold text-zinc-900">活動履歴</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -96,9 +106,15 @@ export default async function ActivitiesPage({
         </div>
       </div>
 
-      <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/activities" />
+      <ListViewToolbar
+        fields={FIELDS}
+        initialFilters={filterRaw}
+        basePath="/activities"
+        groupableFields={groupableFields}
+        initialGroup={sp.group ?? ''}
+      />
 
-      {totalCount === 0 ? (
+      {activitiesList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">📋</p>
           <p className="text-lg font-medium">
@@ -111,71 +127,43 @@ export default async function ActivitiesPage({
         </div>
       ) : (
         <>
-          {/* PC: テーブル */}
-          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">件名</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">実施日</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {pagedList.map((a) => {
-                  const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
-                  const account = a.accounts?.id ? a.accounts : null
-                  return (
-                    <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}>
-                          {type.icon} {type.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block">{a.subject}</Link>
-                        {a.body && <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">{a.body}</p>}
-                      </td>
-                      <td className="px-4 py-3 text-zinc-600">
-                        {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link> : <span className="text-zinc-300">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">
+          {/* PC: 動的テーブル（グルーピング対応） */}
+          <div className="hidden md:block">
+            <ActivitiesTableView
+              records={displayList}
+              groupBy={groupBy}
+              fields={FIELDS}
+              activeKeys={colConfig}
+            />
+          </div>
+          {/* モバイル: カード（グルーピング非対応） */}
+          {!isGrouped && (
+            <div className="md:hidden space-y-2">
+              {(displayList as typeof raw).map((a) => {
+                const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
+                const account = a.accounts?.id ? a.accounts : null
+                return (
+                  <Link key={a.id} href={`/activities/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${type.color}`}>{type.icon} {type.label}</span>
+                      <span className="text-xs text-zinc-400">
                         {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link href={`/activities/${a.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {pagedList.map((a) => {
-              const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
-              const account = a.accounts?.id ? a.accounts : null
-              return (
-                <Link key={a.id} href={`/activities/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${type.color}`}>{type.icon} {type.label}</span>
-                    <span className="text-xs text-zinc-400">
-                      {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
-                    </span>
-                  </div>
-                  <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>
-                  {a.body && <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">{a.body}</p>}
-                  {account && <p className="text-xs text-zinc-500 mt-1">🏢 {account.name}</p>}
-                </Link>
-              )
-            })}
-          </div>
+                      </span>
+                    </div>
+                    <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>
+                    {a.body && <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">{a.body}</p>}
+                    {account && <p className="text-xs text-zinc-500 mt-1">🏢 {account.name}</p>}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </>
       )}
-      <Pagination currentPage={page} totalPages={totalPages} basePath="/activities" filterParams={filterRaw} />
+
+      {!isGrouped && (
+        <Pagination currentPage={page} totalPages={totalPages} basePath="/activities" filterParams={filterRaw} />
+      )}
     </div>
   )
 }

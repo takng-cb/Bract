@@ -2,11 +2,14 @@ import { db } from '@/lib/db'
 import { properties, accounts, contacts } from '@/lib/schema'
 import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
-import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
+import ListViewToolbar from '@/components/ListViewToolbar'
+import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
+import { getListViewColumns } from '@/lib/listViewSettings'
+import PropertiesTableView from '@/components/tableviews/PropertiesTableView'
 
 const PAGE_SIZE = 20
 
@@ -61,12 +64,14 @@ const FIELDS_OTHER: FieldDef[] = [
 export default async function PropertiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string }>
 }) {
-  const [sp, edit] = await Promise.all([searchParams, canEdit()])
+  const [sp, edit, colConfig] = await Promise.all([searchParams, canEdit(), getListViewColumns('properties')])
   const view      = sp.view === 'other' ? 'other' : 'real_estate'
   const filterRaw = [sp.f].flat().filter(Boolean) as string[]
   const page      = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const groupBy   = (sp.group ?? '').split(',').filter(Boolean)
+  const isGrouped = groupBy.length > 0
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -88,15 +93,19 @@ export default async function PropertiesPage({
     .where(eq(properties.product_category, view))
     .orderBy(desc(properties.created_at))
 
-  const list       = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
+  const list       = applyFilters(raw as Record<string, unknown>[], conditions)
   const hasFilter  = conditions.length > 0
   const totalCount = list.length
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
-  const pagedList  = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+  const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
+  const displayList = isGrouped
+    ? list
+    : list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const isRE    = view === 'real_estate'
   const FIELDS  = isRE ? FIELDS_RE : FIELDS_OTHER
   const newHref = `/properties/new?view=${view}`
+
+  const groupableFields = FIELDS.map((f) => ({ key: f.value, label: f.label }))
 
   return (
     <div className="p-4 md:p-8">
@@ -105,6 +114,7 @@ export default async function PropertiesPage({
           <h1 className="text-2xl font-bold text-zinc-900">物件・商品</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -154,9 +164,16 @@ export default async function PropertiesPage({
         ))}
       </div>
 
-      <FilterBuilder fields={FIELDS} initialFilters={filterRaw} basePath="/properties" persistParams={{ view }} />
+      <ListViewToolbar
+        fields={FIELDS}
+        initialFilters={filterRaw}
+        basePath="/properties"
+        groupableFields={groupableFields}
+        initialGroup={sp.group ?? ''}
+        persistParams={{ view }}
+      />
 
-      {totalCount === 0 ? (
+      {list.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">{isRE ? '🏠' : '📦'}</p>
           <p className="text-lg font-medium">
@@ -171,100 +188,56 @@ export default async function PropertiesPage({
         </div>
       ) : (
         <>
-          {/* PC: テーブル */}
-          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">{isRE ? '物件名' : '件名'}</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">{isRE ? '種別' : '取引種別'}</th>
-                  {isRE && <th className="text-left px-4 py-3 font-medium text-zinc-600">所在地</th>}
-                  {isRE && <th className="text-right px-4 py-3 font-medium text-zinc-600">面積</th>}
-                  <th className="text-right px-4 py-3 font-medium text-zinc-600">{isRE ? '価格 / 賃料' : '金額'}</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">ステータス</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {pagedList.map((p) => {
-                  const account = p.accounts?.id ? p.accounts : null
-                  const contact = p.contacts?.id ? p.contacts : null
-                  return (
-                    <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-zinc-900">
-                        <Link href={`/properties/${p.id}`} className="hover:text-blue-600">{p.name}</Link>
-                        {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
-                        {!isRE && contact && <p className="text-xs text-zinc-400 mt-0.5">👤 {contact.full_name}</p>}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isRE ? (
-                          <div className="flex flex-col gap-1">
-                            <span className="text-zinc-600 text-xs">{p.property_type}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium w-fit ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
-                          </div>
-                        ) : (
-                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
-                        )}
-                      </td>
-                      {isRE && <td className="px-4 py-3 text-zinc-500 text-xs max-w-[12rem] truncate">{p.address ?? '—'}</td>}
-                      {isRE && (
-                        <td className="px-4 py-3 text-right text-zinc-600 whitespace-nowrap">
-                          {p.area ? `${Number(p.area).toLocaleString()} ㎡` : '—'}
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-right font-medium text-zinc-800 whitespace-nowrap">
-                        {p.price ? `¥${Number(p.price).toLocaleString()}` : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[p.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link href={`/properties/${p.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          {/* PC: 動的テーブル（グルーピング対応） */}
+          <div className="hidden md:block">
+            <PropertiesTableView
+              records={displayList}
+              groupBy={groupBy}
+              fields={FIELDS}
+              activeKeys={colConfig}
+            />
           </div>
 
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {pagedList.map((p) => {
-              const account = p.accounts?.id ? p.accounts : null
-              return (
-                <Link key={p.id} href={`/properties/${p.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{p.name}</span>
-                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[p.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                      {p.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
-                    {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
-                    <span className={`text-xs px-1.5 py-0 rounded font-medium ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
-                  </div>
-                  {isRE && p.address && <p className="text-xs text-zinc-400 mt-1 truncate">📍 {p.address}</p>}
-                  {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
-                  <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                    <span>{isRE && p.area ? `${Number(p.area).toLocaleString()} ㎡` : ''}</span>
-                    {p.price && <span className="font-semibold text-zinc-800">¥{Number(p.price).toLocaleString()}</span>}
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+          {/* モバイル: カード（グルーピング非対応） */}
+          {!isGrouped && (
+            <div className="md:hidden space-y-2">
+              {(displayList as typeof raw).map((p) => {
+                const account = p.accounts?.id ? p.accounts : null
+                return (
+                  <Link key={p.id} href={`/properties/${p.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-zinc-900 text-sm leading-snug">{p.name}</span>
+                      <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[p.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                        {p.status}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                      {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
+                      <span className={`text-xs px-1.5 py-0 rounded font-medium ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
+                    </div>
+                    {isRE && p.address && <p className="text-xs text-zinc-400 mt-1 truncate">📍 {p.address}</p>}
+                    {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
+                    <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
+                      <span>{isRE && p.area ? `${Number(p.area).toLocaleString()} ㎡` : ''}</span>
+                      {p.price && <span className="font-semibold text-zinc-800">¥{Number(p.price).toLocaleString()}</span>}
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </>
       )}
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        basePath="/properties"
-        filterParams={filterRaw}
-        extraParams={{ view }}
-      />
+
+      {!isGrouped && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          basePath="/properties"
+          filterParams={filterRaw}
+          extraParams={{ view }}
+        />
+      )}
     </div>
   )
 }

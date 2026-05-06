@@ -2,22 +2,33 @@ import { db } from '@/lib/db'
 import { accounts, tags, taggables } from '@/lib/schema'
 import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
-import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
+import ListViewToolbar from '@/components/ListViewToolbar'
+import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
+import { getListViewColumns } from '@/lib/listViewSettings'
+import AccountsTableView from '@/components/tableviews/AccountsTableView'
 
 const PAGE_SIZE = 20
 
 export default async function AccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string }>
 }) {
-  const [sp, edit] = await Promise.all([searchParams, canEdit()])
-  const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
-  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const [sp, edit, colConfig] = await Promise.all([
+    searchParams,
+    canEdit(),
+    getListViewColumns('accounts'),
+  ])
+
+  const filterRaw = [sp.f].flat().filter(Boolean) as string[]
+  const page      = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const groupBy   = (sp.group ?? '').split(',').filter(Boolean)
+  const isGrouped = groupBy.length > 0
+
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
@@ -69,8 +80,14 @@ export default async function AccountsPage({
   accountsList     = applyTagFilter(accountsList, tagConditions, taggedIdsByTagId)
   const hasFilter  = conditions.length > 0
   const totalCount = accountsList.length
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
-  const pagedList  = accountsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
+  const displayList = isGrouped
+    ? accountsList
+    : accountsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const groupableFields = FIELDS
+    .filter((f) => f.value !== 'tag')
+    .map((f) => ({ key: f.value, label: f.label }))
 
   return (
     <div className="p-4 md:p-8">
@@ -79,6 +96,7 @@ export default async function AccountsPage({
           <h1 className="text-2xl font-bold text-zinc-900">取引先</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -105,10 +123,12 @@ export default async function AccountsPage({
         </div>
       </div>
 
-      <FilterBuilder
+      <ListViewToolbar
         fields={FIELDS}
         initialFilters={filterRaw}
         basePath="/accounts"
+        groupableFields={groupableFields}
+        initialGroup={sp.group ?? ''}
       />
 
       {accountsList.length === 0 ? (
@@ -124,70 +144,45 @@ export default async function AccountsPage({
         </div>
       ) : (
         <>
-          {/* PC: テーブル */}
-          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">会社名</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">業種</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">種別</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">電話番号</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">ステータス</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {(pagedList as typeof raw).map((account) => (
-                  <tr key={account.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-zinc-900">
-                      <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600">{account.industry ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-600">{account.type ?? '—'}</td>
-                    <td className="px-4 py-3 text-zinc-600">{account.phone ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        account.status === 'active'   ? 'bg-green-100 text-green-700' :
-                        account.status === 'prospect' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-zinc-100 text-zinc-500'
-                      }`}>
-                        {account.status === 'active' ? '有効' : account.status === 'prospect' ? '見込み' : '無効'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* PC: 動的テーブル（グルーピング対応） */}
+          <div className="hidden md:block">
+            <AccountsTableView
+              records={displayList}
+              groupBy={groupBy}
+              fields={FIELDS}
+              activeKeys={colConfig}
+            />
           </div>
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {(pagedList as typeof raw).map((account) => (
-              <Link key={account.id} href={`/accounts/${account.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-semibold text-zinc-900 text-sm leading-snug">{account.name}</span>
-                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
-                    account.status === 'active'   ? 'bg-green-100 text-green-700' :
-                    account.status === 'prospect' ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-zinc-100 text-zinc-500'
-                  }`}>
-                    {account.status === 'active' ? '有効' : account.status === 'prospect' ? '見込み' : '無効'}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
-                  {account.industry && <span>{account.industry}</span>}
-                  {account.type && <span>{account.type}</span>}
-                  {account.phone && <span>📞 {account.phone}</span>}
-                </div>
-              </Link>
-            ))}
-          </div>
+          {/* モバイル: カード（グルーピング非対応） */}
+          {!isGrouped && (
+            <div className="md:hidden space-y-2">
+              {(displayList as typeof raw).map((account) => (
+                <Link key={account.id} href={`/accounts/${account.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{account.name}</span>
+                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
+                      account.status === 'active'   ? 'bg-green-100 text-green-700' :
+                      account.status === 'prospect' ? 'bg-blue-100 text-blue-700' :
+                                                      'bg-zinc-100 text-zinc-500'
+                    }`}>
+                      {account.status === 'active' ? '有効' : account.status === 'prospect' ? '見込み' : '無効'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
+                    {account.industry && <span>{account.industry}</span>}
+                    {account.type && <span>{account.type}</span>}
+                    {account.phone && <span>📞 {account.phone}</span>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </>
       )}
-      <Pagination currentPage={page} totalPages={totalPages} basePath="/accounts" filterParams={filterRaw} />
+
+      {!isGrouped && (
+        <Pagination currentPage={page} totalPages={totalPages} basePath="/accounts" filterParams={filterRaw} />
+      )}
     </div>
   )
 }

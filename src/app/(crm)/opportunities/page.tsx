@@ -2,11 +2,14 @@ import { db } from '@/lib/db'
 import { opportunities, accounts, tags, taggables } from '@/lib/schema'
 import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
-import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
+import ListViewToolbar from '@/components/ListViewToolbar'
+import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
+import { getListViewColumns } from '@/lib/listViewSettings'
+import OpportunitiesTableView from '@/components/tableviews/OpportunitiesTableView'
 
 const PAGE_SIZE = 20
 
@@ -22,11 +25,13 @@ const STAGE_LABELS: Record<string, { label: string; color: string }> = {
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string }>
 }) {
-  const [sp, edit] = await Promise.all([searchParams, canEdit()])
+  const [sp, edit, colConfig] = await Promise.all([searchParams, canEdit(), getListViewColumns('opportunities')])
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
-  const page = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
+  const isGrouped  = groupBy.length > 0
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
@@ -87,8 +92,14 @@ export default async function OpportunitiesPage({
   opportunitiesList     = applyTagFilter(opportunitiesList, tagConditions, taggedIdsByTagId)
   const hasFilter       = conditions.length > 0
   const totalCount      = opportunitiesList.length
-  const totalPages      = Math.ceil(totalCount / PAGE_SIZE)
-  const pagedList       = opportunitiesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages      = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
+  const displayList     = isGrouped
+    ? opportunitiesList
+    : opportunitiesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const groupableFields = FIELDS
+    .filter((f) => f.value !== 'tag')
+    .map((f) => ({ key: f.value, label: f.label }))
 
   return (
     <div className="p-4 md:p-8">
@@ -97,6 +108,7 @@ export default async function OpportunitiesPage({
           <h1 className="text-2xl font-bold text-zinc-900">商談</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -121,13 +133,15 @@ export default async function OpportunitiesPage({
         </div>
       </div>
 
-      <FilterBuilder
+      <ListViewToolbar
         fields={FIELDS}
         initialFilters={filterRaw}
         basePath="/opportunities"
+        groupableFields={groupableFields}
+        initialGroup={sp.group ?? ''}
       />
 
-      {totalCount === 0 ? (
+      {opportunitiesList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">💼</p>
           <p className="text-lg font-medium">
@@ -140,77 +154,46 @@ export default async function OpportunitiesPage({
         </div>
       ) : (
         <>
-          {/* PC: テーブル */}
-          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">商談名</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">ステージ</th>
-                  <th className="text-right px-4 py-3 font-medium text-zinc-600">金額</th>
-                  <th className="text-right px-4 py-3 font-medium text-zinc-600">確度</th>
-                  <th className="text-left px-4 py-3 font-medium text-zinc-600">完了予定日</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {(pagedList as typeof raw).map((o) => {
-                  const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
-                  const account   = o.accounts?.id ? o.accounts : null
-                  return (
-                    <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-zinc-900">
-                        <Link href={`/opportunities/${o.id}`} className="hover:text-blue-600">{o.name}</Link>
-                      </td>
-                      <td className="px-4 py-3 text-zinc-600">
-                        {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">{account.name}</Link> : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${stageConf.color}`}>{stageConf.label}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-zinc-700 font-medium">
-                        {o.amount ? `¥${Number(o.amount).toLocaleString()}` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right text-zinc-500">
-                        {o.probability != null ? `${o.probability}%` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-zinc-600">{o.close_date ?? '—'}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Link href={`/opportunities/${o.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          {/* PC: 動的テーブル（グルーピング対応） */}
+          <div className="hidden md:block">
+            <OpportunitiesTableView
+              records={displayList}
+              groupBy={groupBy}
+              fields={FIELDS}
+              activeKeys={colConfig}
+            />
           </div>
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {(pagedList as typeof raw).map((o) => {
-              const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
-              const account   = o.accounts?.id ? o.accounts : null
-              return (
-                <Link key={o.id} href={`/opportunities/${o.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{o.name}</span>
-                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${stageConf.color}`}>{stageConf.label}</span>
-                  </div>
-                  {account && <p className="text-xs text-zinc-500 mt-0.5">🏢 {account.name}</p>}
-                  <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                    <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
-                    <div className="text-right">
-                      {o.amount && <span className="font-semibold text-zinc-800">¥{Number(o.amount).toLocaleString()}</span>}
-                      {o.probability != null && <span className="ml-2 text-zinc-400">確度{o.probability}%</span>}
+          {/* モバイル: カード（グルーピング非対応） */}
+          {!isGrouped && (
+            <div className="md:hidden space-y-2">
+              {(displayList as typeof raw).map((o) => {
+                const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
+                const account   = o.accounts?.id ? o.accounts : null
+                return (
+                  <Link key={o.id} href={`/opportunities/${o.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-zinc-900 text-sm leading-snug">{o.name}</span>
+                      <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${stageConf.color}`}>{stageConf.label}</span>
                     </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+                    {account && <p className="text-xs text-zinc-500 mt-0.5">🏢 {account.name}</p>}
+                    <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
+                      <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
+                      <div className="text-right">
+                        {o.amount && <span className="font-semibold text-zinc-800">¥{Number(o.amount).toLocaleString()}</span>}
+                        {o.probability != null && <span className="ml-2 text-zinc-400">確度{o.probability}%</span>}
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </>
       )}
-      <Pagination currentPage={page} totalPages={totalPages} basePath="/opportunities" filterParams={filterRaw} />
+
+      {!isGrouped && (
+        <Pagination currentPage={page} totalPages={totalPages} basePath="/opportunities" filterParams={filterRaw} />
+      )}
     </div>
   )
 }

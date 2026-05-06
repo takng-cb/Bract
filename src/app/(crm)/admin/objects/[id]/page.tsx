@@ -10,6 +10,9 @@ import {
 import FieldEditRow from './FieldEditRow'
 import NewFieldForm from './NewFieldForm'
 import ObjectEditForm from './ObjectEditForm'
+import ListViewColumnsForm from './ListViewColumnsForm'
+import { LIST_VIEW_COLS } from '@/lib/listViewDefs'
+import { getListViewColumns } from '@/lib/listViewSettings'
 
 const FIELD_TYPE_LABELS: Record<string, string> = {
   text:     'テキスト',
@@ -32,6 +35,8 @@ export default async function AdminObjectDetailPage({
   if (!obj) notFound()
 
   const fields = await getFieldDefs(id)
+  const availableCols = LIST_VIEW_COLS[obj.api_name] ?? null
+  const currentKeys   = availableCols ? await getListViewColumns(obj.api_name) : []
 
   return (
     <div className="p-4 md:p-8 max-w-4xl">
@@ -73,6 +78,19 @@ export default async function AdminObjectDetailPage({
           </div>
         )}
       </section>
+
+      {/* リストビュー表示項目（組み込みオブジェクトのみ） */}
+      {availableCols && (
+        <section className="bg-white rounded-lg border border-zinc-200 p-5 mb-6">
+          <h2 className="text-sm font-semibold text-zinc-700 mb-1">リストビュー表示項目</h2>
+          <p className="text-xs text-zinc-400 mb-4">リストビューに表示するカラムを選択します。変更はすべてのユーザーに反映されます。</p>
+          <ListViewColumnsForm
+            objectType={obj.api_name}
+            availableColumns={availableCols}
+            currentKeys={currentKeys}
+          />
+        </section>
+      )}
 
       {/* 新規フィールド追加（組み込みオブジェクトにもカスタムフィールドは追加可能） */}
       <section className="bg-white rounded-lg border border-zinc-200 p-5">
