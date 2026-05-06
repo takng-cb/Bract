@@ -107,9 +107,9 @@ function GroupRows({
         const bgClass = DEPTH_BG[Math.min(depth, DEPTH_BG.length - 1)]
 
         return (
-          <tbody key={node.pathKey}>
+          <>
             {/* グループヘッダー行 */}
-            <tr className={`${bgClass} border-t border-zinc-200`}>
+            <tr key={`hd-${node.pathKey}`} className={`${bgClass} border-t border-zinc-200`}>
               <td colSpan={colSpan} className="px-4 py-2">
                 <button
                   type="button"
@@ -141,7 +141,7 @@ function GroupRows({
                 />
               ) : (
                 node.records.map((rec) => (
-                  <tr key={String(rec.id)} className="hover:bg-blue-50/30 transition-colors border-t border-zinc-100">
+                  <tr key={`rec-${String(rec.id)}-${node.pathKey}`} className="hover:bg-blue-50/30 transition-colors border-t border-zinc-100">
                     {columns.map((col, ci) => (
                       <td
                         key={col.key}
@@ -163,7 +163,7 @@ function GroupRows({
                 ))
               )
             )}
-          </tbody>
+          </>
         )
       })}
     </>
@@ -246,15 +246,17 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
             ))}
           </tbody>
         ) : (
-          /* グルーピングあり: 再帰的グループ描画 */
-          <GroupRows
-            nodes={groups}
-            columns={columns}
-            depth={0}
-            openPaths={openPaths}
-            toggle={toggle}
-            detailHref={detailHref}
-          />
+          /* グルーピングあり: 再帰的グループ描画（tbody は1つだけ） */
+          <tbody>
+            <GroupRows
+              nodes={groups}
+              columns={columns}
+              depth={0}
+              openPaths={openPaths}
+              toggle={toggle}
+              detailHref={detailHref}
+            />
+          </tbody>
         )}
       </table>
     </div>
