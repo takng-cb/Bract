@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Bract CRM",
   description: "社内CRMシステム",
+  manifest: '/manifest.json',
   icons: {
     icon: '/icon.png',
     apple: '/apple-touch-icon.png',
