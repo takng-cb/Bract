@@ -302,6 +302,7 @@ export default async function TasksPage({
             groupBy={groupBy}
             fields={FIELDS}
             activeKeys={colConfig}
+            currentSortStr={sortRaw}
           />
         </div>
       ) : (

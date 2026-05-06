@@ -158,6 +158,7 @@ export default async function ActivitiesPage({
               groupBy={groupBy}
               fields={FIELDS}
               activeKeys={colConfig}
+              currentSortStr={sortRaw}
             />
           </div>
           {/* モバイル: カード（グルーピング非対応） */}

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, ReactNode } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import type { FieldDef } from '@/components/FilterBuilder'
 import { parseSortParams, toggleSort, sortParamsToString } from '@/lib/sortUtils'
 
@@ -76,7 +76,7 @@ function buildGroups(
 }
 
 // ────────────────────────────────────────────────────────────
-// GroupRows — 再帰的にグループ行・レコード行を描画
+// GroupRows
 // ────────────────────────────────────────────────────────────
 
 const DEPTH_BG = ['bg-zinc-100', 'bg-zinc-50', 'bg-white']
@@ -157,7 +157,7 @@ function GroupRows({
 }
 
 // ────────────────────────────────────────────────────────────
-// ソートヘッダー
+// ソートアイコン
 // ────────────────────────────────────────────────────────────
 
 function SortIcon({ dir, rank }: { dir: 'asc' | 'desc' | null; rank: number | null }) {
@@ -173,7 +173,7 @@ function SortIcon({ dir, rank }: { dir: 'asc' | 'desc' | null; rank: number | nu
 }
 
 // ────────────────────────────────────────────────────────────
-// GroupedTable — メインコンポーネント
+// GroupedTable
 // ────────────────────────────────────────────────────────────
 
 type Props = {
@@ -181,9 +181,11 @@ type Props = {
   columns: ColDef[]
   groupBy: string[]
   fields: FieldDef[]
+  /** サーバーから渡す現在のソート文字列（例: "name:asc,status:desc"） */
+  currentSortStr?: string
 }
 
-export default function GroupedTable({ records, columns, groupBy, fields }: Props) {
+export default function GroupedTable({ records, columns, groupBy, fields, currentSortStr = '' }: Props) {
   const isFlat = groupBy.length === 0
   const groups = isFlat ? [] : buildGroups(records, groupBy, fields)
 
@@ -206,16 +208,19 @@ export default function GroupedTable({ records, columns, groupBy, fields }: Prop
   }
 
   // ── ソート ──────────────────────────────────────────────
-  const searchParams = useSearchParams()
+  // useSearchParams を使わず、クリック時に window.location.search から読む
+  const currentSort = parseSortParams(currentSortStr)
   const pathname = usePathname()
   const router = useRouter()
 
-  const sortStr = searchParams.get('sort') ?? ''
-  const currentSort = parseSortParams(sortStr)
-
   function handleSortClick(field: string) {
-    const newSort = toggleSort(currentSort, field, 3)
-    const params = new URLSearchParams(searchParams.toString())
+    // クリック時点の URL パラメータを読む（useSearchParams 不要）
+    const params = new URLSearchParams(
+      typeof window !== 'undefined' ? window.location.search : ''
+    )
+    const sortStr = params.get('sort') ?? ''
+    const cur = parseSortParams(sortStr)
+    const newSort = toggleSort(cur, field, 3)
     const newSortStr = sortParamsToString(newSort)
     if (newSortStr) params.set('sort', newSortStr)
     else params.delete('sort')
@@ -245,7 +250,7 @@ export default function GroupedTable({ records, columns, groupBy, fields }: Prop
 
   return (
     <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
-      <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: `${columns.length * 120 + 80}px` }}>
+      <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: `${columns.length * 120 + 16}px` }}>
         <colgroup>
           {columns.map((col) => (
             <col key={col.key} style={colWidths[col.key] ? { width: colWidths[col.key] } : undefined} />
@@ -275,7 +280,6 @@ export default function GroupedTable({ records, columns, groupBy, fields }: Prop
                     <span className="truncate">{col.label}</span>
                     <SortIcon dir={sortDir} rank={sortIdx} />
                   </button>
-                  {/* リサイズハンドル */}
                   <div
                     className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 hover:bg-blue-400 active:bg-blue-600 transition-opacity"
                     onMouseDown={(e) => startResize(col.key, e)}

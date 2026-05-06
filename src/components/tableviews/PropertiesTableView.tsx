@@ -62,9 +62,10 @@ type Props = {
   groupBy: string[]
   fields: FieldDef[]
   activeKeys: string[]
+  currentSortStr?: string
 }
 
-export default function PropertiesTableView({ records, groupBy, fields, activeKeys }: Props) {
+export default function PropertiesTableView({ records, groupBy, fields, activeKeys, currentSortStr }: Props) {
   const keys = activeKeys.length > 0 ? activeKeys : DEFAULT_KEYS
   const cols = ALL_COLS.filter((c) => keys.includes(c.key))
   return (
@@ -73,6 +74,7 @@ export default function PropertiesTableView({ records, groupBy, fields, activeKe
       columns={cols}
       groupBy={groupBy}
       fields={fields}
+      currentSortStr={currentSortStr}
     />
   )
 }

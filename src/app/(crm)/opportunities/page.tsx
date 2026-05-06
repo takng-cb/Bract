@@ -185,6 +185,7 @@ export default async function OpportunitiesPage({
               groupBy={groupBy}
               fields={FIELDS}
               activeKeys={colConfig}
+              currentSortStr={sortRaw}
             />
           </div>
           {/* モバイル: カード（グルーピング非対応） */}

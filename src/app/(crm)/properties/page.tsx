@@ -220,6 +220,7 @@ export default async function PropertiesPage({
               groupBy={groupBy}
               fields={FIELDS}
               activeKeys={colConfig}
+              currentSortStr={sortRaw}
             />
           </div>
 

@@ -234,6 +234,7 @@ export default async function ExpensesPage({
               groupBy={groupBy}
               fields={FIELDS}
               activeKeys={colConfig}
+              currentSortStr={sortRaw}
             />
           </div>
           {/* モバイル: カード（グルーピング非対応） */}
