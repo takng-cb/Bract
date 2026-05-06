@@ -45,6 +45,19 @@ export default function AccountForm({ action, cancelHref, defaultValues = {}, cu
         </div>
       )}
 
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {pending ? '保存中...' : '保存'}
+        </button>
+        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+          キャンセル
+        </Link>
+      </div>
+
       <div className="flex items-center gap-3">
         <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
         <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>

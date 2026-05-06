@@ -45,6 +45,19 @@ export default function TaskForm({ action, cancelHref, accounts, contacts, oppor
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
 
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {pending ? '保存中...' : '保存'}
+        </button>
+        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+          キャンセル
+        </Link>
+      </div>
+
       <div className="flex justify-end">
         <FormFillModal
           formRef={formRef}
