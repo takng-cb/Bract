@@ -2,6 +2,7 @@ import Sidebar from '@/components/Sidebar'
 import MobileNav from '@/components/MobileNav'
 import BottomNav from '@/components/BottomNav'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
+import PwaInstallBanner from '@/components/PwaInstallBanner'
 import { getEffectiveNavOrder } from '@/app/actions/navSettings'
 import { applyNavOrder, type NavItem } from '@/lib/navItems'
 import { getSystemSetting } from '@/lib/systemSettings'
@@ -64,6 +65,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         {children}
       </main>
       <BottomNav />
+      <PwaInstallBanner />
       {impersonation && (
         <ImpersonationBanner
           adminEmail={impersonation.adminEmail}
