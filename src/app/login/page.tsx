@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { signIn } from '@/app/actions/auth'
 import { createClient } from '@supabase/supabase-js'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 
@@ -93,6 +94,11 @@ function LoginForm() {
             >
               {pending ? 'ログイン中...' : 'メールでログイン'}
             </button>
+            <div className="text-right">
+              <Link href="/forgot-password" className="text-xs text-zinc-400 hover:text-zinc-600">
+                パスワードをお忘れの方
+              </Link>
+            </div>
           </form>
         </div>
       </div>
