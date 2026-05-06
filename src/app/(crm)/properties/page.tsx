@@ -15,6 +15,7 @@ import { getDefaultView } from '@/lib/savedViews'
 import PropertiesTableView from '@/components/tableviews/PropertiesTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
+import MobileGroupedCards from '@/components/MobileGroupedCards'
 
 const PAGE_SIZE = 20
 
@@ -118,7 +119,6 @@ export default async function PropertiesPage({
   const displayList = isGrouped
     ? sorted
     : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const mobileList = isGrouped ? sorted.slice(0, PAGE_SIZE) : displayList
 
   const isRE    = view === 'real_estate'
   const FIELDS  = isRE ? FIELDS_RE : FIELDS_OTHER
@@ -228,36 +228,37 @@ export default async function PropertiesPage({
             </TableErrorBoundary>
           </div>
 
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {isGrouped && (
-              <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-                📊 グルーピング表示はPC版でご確認ください（先頭 {PAGE_SIZE} 件を表示中）
-              </p>
-            )}
-            {(mobileList as typeof raw).map((p) => {
-              const account = p.accounts?.id ? p.accounts : null
-              return (
-                <Link key={p.id} href={`/properties/${p.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{p.name}</span>
-                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[p.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                      {p.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
-                    {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
-                    <span className={`text-xs px-1.5 py-0 rounded font-medium ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
-                  </div>
-                  {isRE && p.address && <p className="text-xs text-zinc-400 mt-1 truncate">📍 {p.address}</p>}
-                  {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
-                  <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                    <span>{isRE && p.area ? `${Number(p.area).toLocaleString()} ㎡` : ''}</span>
-                    {p.price && <span className="font-semibold text-zinc-800">¥{Number(p.price).toLocaleString()}</span>}
-                  </div>
-                </Link>
-              )
-            })}
+          {/* モバイル: カード（グルーピング対応） */}
+          <div className="md:hidden">
+            <MobileGroupedCards
+              records={displayList}
+              groupBy={groupBy}
+              fields={FIELDS}
+              renderCard={(rec) => {
+                const p = rec as typeof raw[0]
+                const account = p.accounts?.id ? p.accounts : null
+                return (
+                  <Link href={`/properties/${p.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-zinc-900 text-sm leading-snug">{p.name}</span>
+                      <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[p.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                        {p.status}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                      {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
+                      <span className={`text-xs px-1.5 py-0 rounded font-medium ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
+                    </div>
+                    {isRE && p.address && <p className="text-xs text-zinc-400 mt-1 truncate">📍 {p.address}</p>}
+                    {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
+                    <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
+                      <span>{isRE && p.area ? `${Number(p.area).toLocaleString()} ㎡` : ''}</span>
+                      {p.price && <span className="font-semibold text-zinc-800">¥{Number(p.price).toLocaleString()}</span>}
+                    </div>
+                  </Link>
+                )
+              }}
+            />
           </div>
         </>
       )}

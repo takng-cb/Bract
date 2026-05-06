@@ -16,6 +16,7 @@ import { getDefaultView } from '@/lib/savedViews'
 import TasksTableView from '@/components/tableviews/TasksTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
+import MobileGroupedCards from '@/components/MobileGroupedCards'
 
 const PAGE_SIZE = 20
 
@@ -101,7 +102,6 @@ export default async function TasksPage({
   const displayList = isGrouped
     ? sorted
     : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
-  const mobileList = isGrouped ? (sorted.slice(0, PAGE_SIZE) as typeof raw) : (displayList as typeof raw)
 
   const pending = (displayList as typeof raw).filter((t) => !t.done)
   const done    = (displayList as typeof raw).filter((t) =>  t.done)
@@ -310,47 +310,50 @@ export default async function TasksPage({
               />
             </TableErrorBoundary>
           </div>
-          <div className="md:hidden space-y-2">
-            <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-              📊 グルーピング表示はPC版でご確認ください（先頭 {PAGE_SIZE} 件を表示中）
-            </p>
-            {mobileList.map((task) => {
-              const account     = task.accounts?.id     ? task.accounts     : null
-              const opportunity = task.opportunities?.id ? task.opportunities : null
-              const priority    = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
-              const isOverdue   = !task.done && task.due_date && task.due_date < today
-              return (
-                <div key={task.id} className={`bg-white rounded-lg border border-zinc-200 px-4 py-3 flex gap-3 ${task.done ? 'opacity-60' : ''}`}>
-                  <div className="pt-0.5 shrink-0">
-                    <form action={toggleDone}>
-                      <input type="hidden" name="id" value={task.id} />
-                      <input type="hidden" name="done" value={(!task.done).toString()} />
-                      <button type="submit"
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
-                        {task.done && <span className="text-xs leading-none">✓</span>}
-                      </button>
-                    </form>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <Link href={`/tasks/${task.id}`} className={`font-medium text-sm leading-snug ${task.done ? 'line-through text-zinc-400' : 'text-zinc-900 hover:text-blue-600'}`}>
-                        {task.title}
-                      </Link>
-                      <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
+          <div className="md:hidden">
+            <MobileGroupedCards
+              records={displayList as Record<string, unknown>[]}
+              groupBy={groupBy}
+              fields={FIELDS}
+              renderCard={(rec) => {
+                const task = rec as typeof tasksList[0]
+                const account     = task.accounts?.id     ? task.accounts     : null
+                const opportunity = task.opportunities?.id ? task.opportunities : null
+                const priority    = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
+                const isOverdue   = !task.done && task.due_date && task.due_date < today
+                return (
+                  <div className={`bg-white rounded-lg border border-zinc-200 px-4 py-3 flex gap-3 ${task.done ? 'opacity-60' : ''}`}>
+                    <div className="pt-0.5 shrink-0">
+                      <form action={toggleDone}>
+                        <input type="hidden" name="id" value={task.id} />
+                        <input type="hidden" name="done" value={(!task.done).toString()} />
+                        <button type="submit"
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
+                          {task.done && <span className="text-xs leading-none">✓</span>}
+                        </button>
+                      </form>
                     </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-500">
-                      {task.due_date && (
-                        <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
-                          📅 {new Date(task.due_date).toLocaleDateString('ja-JP')}{isOverdue ? ' (超過)' : ''}
-                        </span>
-                      )}
-                      {account && <span>🏢 {account.name}</span>}
-                      {opportunity && <span>💼 {opportunity.name}</span>}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <Link href={`/tasks/${task.id}`} className={`font-medium text-sm leading-snug ${task.done ? 'line-through text-zinc-400' : 'text-zinc-900 hover:text-blue-600'}`}>
+                          {task.title}
+                        </Link>
+                        <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-500">
+                        {task.due_date && (
+                          <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
+                            📅 {new Date(task.due_date).toLocaleDateString('ja-JP')}{isOverdue ? ' (超過)' : ''}
+                          </span>
+                        )}
+                        {account && <span>🏢 {account.name}</span>}
+                        {opportunity && <span>💼 {opportunity.name}</span>}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              }}
+            />
           </div>
         </>
       ) : (

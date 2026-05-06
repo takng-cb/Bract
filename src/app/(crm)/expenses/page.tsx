@@ -15,6 +15,7 @@ import { getDefaultView } from '@/lib/savedViews'
 import ExpensesTableView from '@/components/tableviews/ExpensesTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
+import MobileGroupedCards from '@/components/MobileGroupedCards'
 
 const PAGE_SIZE = 20
 
@@ -120,7 +121,6 @@ export default async function ExpensesPage({
   const displayList  = isGrouped
     ? sorted
     : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
-  const mobileList = isGrouped ? sorted.slice(0, PAGE_SIZE) : displayList
   const pagedTotal   = (displayList as typeof raw).reduce((s, e) => s + Number(e.amount), 0)
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
@@ -241,37 +241,38 @@ export default async function ExpensesPage({
               />
             </TableErrorBoundary>
           </div>
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {isGrouped && (
-              <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-                📊 グルーピング表示はPC版でご確認ください（先頭 {PAGE_SIZE} 件を表示中）
-              </p>
-            )}
-            {(mobileList as typeof raw).map((e) => {
-              const account     = e.accounts?.id     ? e.accounts     : null
-              const opportunity = e.opportunities?.id ? e.opportunities : null
-              const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
-              return (
-                <Link key={e.id} href={`/expenses/${e.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{e.title}</span>
-                    <span className="shrink-0 font-bold text-zinc-800 text-sm">¥{Number(e.amount).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{e.category}</span>
-                    <span className="text-xs text-zinc-400">{e.expense_date}</span>
-                  </div>
-                  {(account || opportunity) && (
-                    <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-zinc-500">
-                      {account && <span>🏢 {account.name}</span>}
-                      {opportunity && <span>💼 {opportunity.name}</span>}
+          {/* モバイル: カード（グルーピング対応） */}
+          <div className="md:hidden">
+            <MobileGroupedCards
+              records={displayList}
+              groupBy={groupBy}
+              fields={FIELDS}
+              renderCard={(rec) => {
+                const e = rec as typeof raw[0]
+                const account     = e.accounts?.id     ? e.accounts     : null
+                const opportunity = e.opportunities?.id ? e.opportunities : null
+                const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']
+                return (
+                  <Link href={`/expenses/${e.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-zinc-900 text-sm leading-snug">{e.title}</span>
+                      <span className="shrink-0 font-bold text-zinc-800 text-sm">¥{Number(e.amount).toLocaleString()}</span>
                     </div>
-                  )}
-                </Link>
-              )
-            })}
-            <div className="bg-zinc-100 rounded-lg px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{e.category}</span>
+                      <span className="text-xs text-zinc-400">{e.expense_date}</span>
+                    </div>
+                    {(account || opportunity) && (
+                      <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-zinc-500">
+                        {account && <span>🏢 {account.name}</span>}
+                        {opportunity && <span>💼 {opportunity.name}</span>}
+                      </div>
+                    )}
+                  </Link>
+                )
+              }}
+            />
+            <div className="bg-zinc-100 rounded-lg px-4 py-3 flex items-center justify-between mt-2">
               <span className="text-sm font-semibold text-zinc-700">小計</span>
               <span className="font-bold text-zinc-900">¥{pagedTotal.toLocaleString()}</span>
             </div>

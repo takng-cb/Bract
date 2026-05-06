@@ -15,6 +15,7 @@ import { getDefaultView } from '@/lib/savedViews'
 import OpportunitiesTableView from '@/components/tableviews/OpportunitiesTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
+import MobileGroupedCards from '@/components/MobileGroupedCards'
 
 const PAGE_SIZE = 20
 
@@ -114,7 +115,6 @@ export default async function OpportunitiesPage({
   const displayList     = isGrouped
     ? sorted
     : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const mobileList = isGrouped ? sorted.slice(0, PAGE_SIZE) : displayList
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -192,33 +192,34 @@ export default async function OpportunitiesPage({
               />
             </TableErrorBoundary>
           </div>
-          {/* モバイル: カード */}
-          <div className="md:hidden space-y-2">
-            {isGrouped && (
-              <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-                📊 グルーピング表示はPC版でご確認ください（先頭 {PAGE_SIZE} 件を表示中）
-              </p>
-            )}
-            {(mobileList as typeof raw).map((o) => {
-              const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
-              const account   = o.accounts?.id ? o.accounts : null
-              return (
-                <Link key={o.id} href={`/opportunities/${o.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{o.name}</span>
-                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${stageConf.color}`}>{stageConf.label}</span>
-                  </div>
-                  {account && <p className="text-xs text-zinc-500 mt-0.5">🏢 {account.name}</p>}
-                  <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                    <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
-                    <div className="text-right">
-                      {o.amount && <span className="font-semibold text-zinc-800">¥{Number(o.amount).toLocaleString()}</span>}
-                      {o.probability != null && <span className="ml-2 text-zinc-400">確度{o.probability}%</span>}
+          {/* モバイル: カード（グルーピング対応） */}
+          <div className="md:hidden">
+            <MobileGroupedCards
+              records={displayList}
+              groupBy={groupBy}
+              fields={FIELDS}
+              renderCard={(rec) => {
+                const o = rec as typeof raw[0]
+                const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
+                const account   = o.accounts?.id ? o.accounts : null
+                return (
+                  <Link href={`/opportunities/${o.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-zinc-900 text-sm leading-snug">{o.name}</span>
+                      <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${stageConf.color}`}>{stageConf.label}</span>
                     </div>
-                  </div>
-                </Link>
-              )
-            })}
+                    {account && <p className="text-xs text-zinc-500 mt-0.5">🏢 {account.name}</p>}
+                    <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
+                      <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
+                      <div className="text-right">
+                        {o.amount && <span className="font-semibold text-zinc-800">¥{Number(o.amount).toLocaleString()}</span>}
+                        {o.probability != null && <span className="ml-2 text-zinc-400">確度{o.probability}%</span>}
+                      </div>
+                    </div>
+                  </Link>
+                )
+              }}
+            />
           </div>
         </>
       )}
