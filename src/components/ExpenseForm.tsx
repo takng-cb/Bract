@@ -1,12 +1,12 @@
 'use client'
 
-import { useActionState, useRef } from 'react'
+import { useActionState, useRef, useState } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
 import SearchableSelect from '@/components/SearchableSelect'
 
 type Account = { id: string; name: string }
-type Contact = { id: string; full_name: string }
+type Contact = { id: string; full_name: string; account_id?: string | null }
 type Opportunity = { id: string; name: string }
 
 type ExpenseFormProps = {
@@ -34,6 +34,10 @@ export default function ExpenseForm({
 }: ExpenseFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
+  const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
+  const filteredContacts = selectedAccountId
+    ? contacts.filter((c) => c.account_id === selectedAccountId)
+    : contacts
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -119,14 +123,16 @@ export default function ExpenseForm({
             defaultValue={defaultValues.account_id}
             options={accounts.map((a) => ({ value: a.id, label: a.name }))}
             placeholder="選択してください"
+            onSelect={setSelectedAccountId}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
           <SearchableSelect
+            key={selectedAccountId}
             name="contact_id"
             defaultValue={defaultValues.contact_id}
-            options={contacts.map((c) => ({ value: c.id, label: c.full_name }))}
+            options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
             placeholder="選択してください"
           />
         </div>

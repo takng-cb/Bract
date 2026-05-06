@@ -17,7 +17,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
     db.select().from(properties).where(eq(properties.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
-    db.select({ id: contacts.id, full_name: contacts.full_name })
+    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
       .from(contacts).orderBy(asc(contacts.full_name)),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts)

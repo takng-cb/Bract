@@ -6,7 +6,7 @@ import FormFillModal from '@/components/FormFillModal'
 import SearchableSelect from '@/components/SearchableSelect'
 
 type Account = { id: string; name: string }
-type Contact = { id: string; full_name: string }
+type Contact = { id: string; full_name: string; account_id?: string | null }
 type Opportunity = { id: string; name: string }
 
 type ActivityFormProps = {
@@ -38,6 +38,10 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     new Set(defaultValues.contact_ids ?? [])
   )
+  const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
+  const filteredContacts = selectedAccountId
+    ? contacts.filter((c) => c.account_id === selectedAccountId)
+    : contacts
   const formRef = useRef<HTMLFormElement>(null)
 
   const now = new Date()
@@ -135,6 +139,7 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
             defaultValue={defaultValues.account_id}
             options={accounts.map((a) => ({ value: a.id, label: a.name }))}
             placeholder="選択してください"
+            onSelect={(val) => { setSelectedAccountId(val); setSelectedIds(new Set()) }}
           />
         </div>
 
@@ -150,11 +155,11 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
           {Array.from(selectedIds).map((cid) => (
             <input key={cid} type="hidden" name="contact_ids" value={cid} />
           ))}
-          {contacts.length === 0 ? (
-            <p className="text-sm text-zinc-400">担当者がいません</p>
+          {filteredContacts.length === 0 ? (
+            <p className="text-sm text-zinc-400">{selectedAccountId ? 'この取引先の担当者がいません' : '担当者がいません'}</p>
           ) : (
             <div className="border border-zinc-200 rounded-md divide-y divide-zinc-100 max-h-48 overflow-y-auto">
-              {contacts.map((c) => {
+              {filteredContacts.map((c) => {
                 const checked = selectedIds.has(c.id)
                 return (
                   <label

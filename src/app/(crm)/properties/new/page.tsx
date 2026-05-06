@@ -20,7 +20,7 @@ export default async function NewPropertyPage({
   const [accountsList, contactsList, scrivenerAccounts, scrivenerContacts, { fields }] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
-    db.select({ id: contacts.id, full_name: contacts.full_name })
+    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
       .from(contacts).orderBy(asc(contacts.full_name)),
     // 業種=司法書士の取引先
     db.select({ id: accounts.id, name: accounts.name })

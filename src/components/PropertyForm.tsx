@@ -14,7 +14,7 @@ const TX_TYPES_RE     = ['売買', '賃貸']
 const TX_TYPES_OTHER  = ['売買', '賃貸', 'サービス提供', 'その他']
 
 type Account = { id: string; name: string }
-type Contact = { id: string; full_name: string }
+type Contact = { id: string; full_name: string; account_id?: string | null }
 
 interface DefaultValues {
   product_category?:  string
@@ -88,6 +88,10 @@ export default function PropertyForm({
 }: Props) {
   const [error, formAction, pending] = useActionState(action, null)
   const [category, setCategory] = useState<string>(defaultValues.product_category ?? 'real_estate')
+  const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
+  const filteredContacts = selectedAccountId
+    ? contacts.filter((c) => c.account_id === selectedAccountId)
+    : contacts
   const formRef = useRef<HTMLFormElement | null>(null)
   const d = defaultValues
 
@@ -190,14 +194,16 @@ export default function PropertyForm({
             defaultValue={d.account_id}
             options={accounts.map((a) => ({ value: a.id, label: a.name }))}
             placeholder="— 選択しない —"
+            onSelect={setSelectedAccountId}
           />
         </div>
         <div>
           <label className={lbl}>関連人物</label>
           <SearchableSelect
+            key={selectedAccountId}
             name="contact_id"
             defaultValue={d.contact_id}
-            options={contacts.map((c) => ({ value: c.id, label: c.full_name }))}
+            options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
             placeholder="— 選択しない —"
           />
         </div>

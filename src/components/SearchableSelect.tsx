@@ -13,6 +13,7 @@ type Props = {
   defaultValue?: string | null
   placeholder?:  string
   className?:    string
+  onSelect?:     (value: string) => void
 }
 
 /**
@@ -25,6 +26,7 @@ export default function SearchableSelect({
   defaultValue = '',
   placeholder = '選択してください',
   className = '',
+  onSelect,
 }: Props) {
   const initialValue = defaultValue ?? ''
   const [selected, setSelected] = useState<SelectOption | null>(
@@ -60,6 +62,7 @@ export default function SearchableSelect({
     setSelected(opt)
     setOpen(false)
     setQuery('')
+    onSelect?.(opt?.value ?? '')
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

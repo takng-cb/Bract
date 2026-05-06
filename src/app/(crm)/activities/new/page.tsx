@@ -38,7 +38,7 @@ export default async function NewActivityPage({
   const [accountsList, contactsList, opportunitiesList] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
-    db.select({ id: contacts.id, full_name: contacts.full_name })
+    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
       .from(contacts).orderBy(asc(contacts.full_name)),
     db.select({ id: opportunities.id, name: opportunities.name })
       .from(opportunities).orderBy(asc(opportunities.name)),
