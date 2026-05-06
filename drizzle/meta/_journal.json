@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1778074309347,
+      "tag": "0000_add_sort_params_to_saved_views",
+      "breakpoints": true
+    }
+  ]
+}

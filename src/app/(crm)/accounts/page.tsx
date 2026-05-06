@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -19,7 +20,7 @@ const PAGE_SIZE = 20
 export default async function AccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
   const [sp, edit, colConfig, userId] = await Promise.all([
     searchParams,
@@ -40,6 +41,7 @@ export default async function AccountsPage({
       const p = new URLSearchParams()
       dv.filter_params.forEach((f) => p.append('f', f))
       if (dv.group_params) p.set('group', dv.group_params)
+      if (dv.sort_params) p.set('sort', dv.sort_params)
       redirect(`/accounts?${p.toString()}`)
     }
   }
@@ -93,12 +95,14 @@ export default async function AccountsPage({
 
   let accountsList = applyFilters(raw as Record<string, unknown>[], otherConditions)
   accountsList     = applyTagFilter(accountsList, tagConditions, taggedIdsByTagId)
+  const sortRaw    = sp.sort ?? ''
+  const sorted     = applySort(accountsList as Record<string, unknown>[], parseSortParams(sortRaw))
   const hasFilter  = conditions.length > 0
-  const totalCount = accountsList.length
+  const totalCount = sorted.length
   const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
   const displayList = isGrouped
-    ? accountsList
-    : accountsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    ? sorted
+    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -143,6 +147,7 @@ export default async function AccountsPage({
         basePath="/accounts"
         currentFilterRaw={filterRaw}
         currentGroup={sp.group ?? ''}
+        currentSort={sortRaw}
       />
       <ListViewToolbar
         fields={FIELDS}
@@ -152,7 +157,7 @@ export default async function AccountsPage({
         initialGroup={sp.group ?? ''}
       />
 
-      {accountsList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">🏢</p>
           <p className="text-lg font-medium">

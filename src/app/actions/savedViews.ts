@@ -11,6 +11,7 @@ export async function createSavedView(
   name: string,
   filterParams: string[],
   groupParams: string,
+  sortParams: string,
   scope: 'user' | 'system',
   path: string,
 ): Promise<void> {
@@ -18,15 +19,17 @@ export async function createSavedView(
   if (!userId) throw new Error('Not authenticated')
   if (scope === 'system' && !(await isAdmin())) throw new Error('Admin required')
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await db.insert(saved_views).values({
     object_type:   objectType,
     name:          name.trim(),
     filter_params: JSON.stringify(filterParams),
     group_params:  groupParams,
+    sort_params:   sortParams,
     scope,
     user_id:       scope === 'user' ? userId : null,
     is_default:    false,
-  })
+  } as any)
   revalidatePath(path)
 }
 

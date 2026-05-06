@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -67,7 +68,7 @@ const FIELDS_OTHER: FieldDef[] = [
 export default async function PropertiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string; sort?: string }>
 }) {
   const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('properties'), getCurrentUserId()])
   const view      = sp.view === 'other' ? 'other' : 'real_estate'
@@ -82,6 +83,7 @@ export default async function PropertiesPage({
       const p = new URLSearchParams({ view })
       dv.filter_params.forEach((f) => p.append('f', f))
       if (dv.group_params) p.set('group', dv.group_params)
+      if (dv.sort_params) p.set('sort', dv.sort_params)
       redirect(`/properties?${p.toString()}`)
     }
   }
@@ -107,12 +109,14 @@ export default async function PropertiesPage({
     .orderBy(desc(properties.created_at))
 
   const list       = applyFilters(raw as Record<string, unknown>[], conditions)
+  const sortRaw    = sp.sort ?? ''
+  const sorted     = applySort(list as Record<string, unknown>[], parseSortParams(sortRaw))
   const hasFilter  = conditions.length > 0
-  const totalCount = list.length
+  const totalCount = sorted.length
   const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
   const displayList = isGrouped
-    ? list
-    : list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    ? sorted
+    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const isRE    = view === 'real_estate'
   const FIELDS  = isRE ? FIELDS_RE : FIELDS_OTHER
@@ -182,6 +186,7 @@ export default async function PropertiesPage({
         basePath="/properties"
         currentFilterRaw={filterRaw}
         currentGroup={sp.group ?? ''}
+        currentSort={sortRaw}
         persistParams={{ view }}
       />
       <ListViewToolbar
@@ -193,7 +198,7 @@ export default async function PropertiesPage({
         persistParams={{ view }}
       />
 
-      {list.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">{isRE ? '🏠' : '📦'}</p>
           <p className="text-lg font-medium">

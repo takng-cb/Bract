@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
@@ -47,7 +48,7 @@ const FIELDS: FieldDef[] = [
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
   const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('tasks'), getCurrentUserId()])
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
@@ -61,6 +62,7 @@ export default async function TasksPage({
       const p = new URLSearchParams()
       dv.filter_params.forEach((f) => p.append('f', f))
       if (dv.group_params) p.set('group', dv.group_params)
+      if (dv.sort_params) p.set('sort', dv.sort_params)
       redirect(`/tasks?${p.toString()}`)
     }
   }
@@ -88,14 +90,16 @@ export default async function TasksPage({
     .orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
 
   const tasksList  = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
+  const sortRaw    = sp.sort ?? ''
+  const sorted     = applySort(tasksList as Record<string, unknown>[], parseSortParams(sortRaw)) as typeof raw
   const hasFilter  = conditions.length > 0
-  const totalCount = tasksList.length
+  const totalCount = sorted.length
   const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
   const today      = new Date().toISOString().slice(0, 10)
 
   const displayList = isGrouped
-    ? tasksList
-    : tasksList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+    ? sorted
+    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
 
   const pending = (displayList as typeof raw).filter((t) => !t.done)
   const done    = (displayList as typeof raw).filter((t) =>  t.done)
@@ -236,7 +240,7 @@ export default async function TasksPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">ToDo</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            全 {totalCount} 件（未完了 {tasksList.filter((t) => !t.done).length} 件）
+            全 {totalCount} 件（未完了 {sorted.filter((t) => !t.done).length} 件）
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
             {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
@@ -269,6 +273,7 @@ export default async function TasksPage({
         basePath="/tasks"
         currentFilterRaw={filterRaw}
         currentGroup={sp.group ?? ''}
+        currentSort={sortRaw}
       />
       <ListViewToolbar
         fields={FIELDS}

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import TextImportModal from '@/components/TextImportModal'
 import Pagination from '@/components/Pagination'
@@ -20,7 +21,7 @@ const PAGE_SIZE = 20
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string; sort?: string }>
 }) {
   const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('contacts'), getCurrentUserId()])
   const view       = (sp.view === 'consumer') ? 'consumer' : 'business'
@@ -36,6 +37,7 @@ export default async function ContactsPage({
       const p = new URLSearchParams({ view })
       dv.filter_params.forEach((f) => p.append('f', f))
       if (dv.group_params) p.set('group', dv.group_params)
+      if (dv.sort_params) p.set('sort', dv.sort_params)
       redirect(`/contacts?${p.toString()}`)
     }
   }
@@ -93,12 +95,14 @@ export default async function ContactsPage({
 
   let contactsList = applyFilters(raw as Record<string, unknown>[], otherConditions)
   contactsList     = applyTagFilter(contactsList, tagConditions, taggedIdsByTagId)
+  const sortRaw    = sp.sort ?? ''
+  const sorted     = applySort(contactsList as Record<string, unknown>[], parseSortParams(sortRaw))
   const hasFilter  = conditions.length > 0
-  const totalCount = contactsList.length
+  const totalCount = sorted.length
   const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
   const displayList = isGrouped
-    ? contactsList
-    : contactsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    ? sorted
+    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -174,6 +178,7 @@ export default async function ContactsPage({
         basePath="/contacts"
         currentFilterRaw={filterRaw}
         currentGroup={sp.group ?? ''}
+        currentSort={sortRaw}
         persistParams={{ view }}
       />
       <ListViewToolbar
@@ -185,7 +190,7 @@ export default async function ContactsPage({
         persistParams={{ view }}
       />
 
-      {contactsList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">{isBiz ? '👔' : '👤'}</p>
           <p className="text-lg font-medium">

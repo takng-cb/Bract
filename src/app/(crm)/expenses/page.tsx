@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -49,7 +50,7 @@ const FIELDS: FieldDef[] = [
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string; group?: string }>
+  searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
   const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('expenses'), getCurrentUserId()])
   const now = new Date()
@@ -79,6 +80,7 @@ export default async function ExpensesPage({
       const p = new URLSearchParams(persistParams)
       dv.filter_params.forEach((f) => p.append('f', f))
       if (dv.group_params) p.set('group', dv.group_params)
+      if (dv.sort_params) p.set('sort', dv.sort_params)
       redirect(`/expenses?${p.toString()}`)
     }
   }
@@ -108,13 +110,15 @@ export default async function ExpensesPage({
   const filtered = raw.filter((e) => e.expense_date! <= to)
 
   const expensesList = applyFilters(filtered as Record<string, unknown>[], conditions) as typeof raw
-  const total        = expensesList.reduce((s, e) => s + Number(e.amount), 0)
+  const sortRaw      = sp.sort ?? ''
+  const sorted       = applySort(expensesList as Record<string, unknown>[], parseSortParams(sortRaw)) as typeof raw
+  const total        = sorted.reduce((s, e) => s + Number(e.amount), 0)
   const hasFilter    = conditions.length > 0
-  const totalCount   = expensesList.length
+  const totalCount   = sorted.length
   const totalPages   = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
   const displayList  = isGrouped
-    ? expensesList
-    : expensesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
+    ? sorted
+    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
   const pagedTotal   = (displayList as typeof raw).reduce((s, e) => s + Number(e.amount), 0)
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
@@ -196,6 +200,7 @@ export default async function ExpensesPage({
         basePath="/expenses"
         currentFilterRaw={filterRaw}
         currentGroup={sp.group ?? ''}
+        currentSort={sortRaw}
         persistParams={persistParams}
       />
       <ListViewToolbar
@@ -207,7 +212,7 @@ export default async function ExpensesPage({
         persistParams={persistParams}
       />
 
-      {expensesList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">💰</p>
           <p className="text-lg font-medium">

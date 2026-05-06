@@ -13,6 +13,7 @@ type Props = {
   basePath: string
   currentFilterRaw: string[]
   currentGroup: string
+  currentSort: string
   persistParams?: Record<string, string>
 }
 
@@ -21,6 +22,7 @@ export default async function SavedViewsPanel({
   basePath,
   currentFilterRaw,
   currentGroup,
+  currentSort,
   persistParams,
 }: Props) {
   const [userId, admin] = await Promise.all([getCurrentUserId(), getIsAdmin()])
@@ -32,10 +34,11 @@ export default async function SavedViewsPanel({
     name: string,
     filterParams: string[],
     groupParams: string,
+    sortParams: string,
     scope: 'user' | 'system',
   ) {
     'use server'
-    await createSavedView(objectType, name, filterParams, groupParams, scope, basePath)
+    await createSavedView(objectType, name, filterParams, groupParams, sortParams, scope, basePath)
   }
 
   async function deleteAction(id: string) {
@@ -54,7 +57,7 @@ export default async function SavedViewsPanel({
   }
 
   // ビューなし かつ 現在の条件もなし → 何も表示しない
-  if (views.length === 0 && currentFilterRaw.length === 0 && !currentGroup) return null
+  if (views.length === 0 && currentFilterRaw.length === 0 && !currentGroup && !currentSort) return null
 
   return (
     <SavedViewsClient
@@ -62,6 +65,7 @@ export default async function SavedViewsPanel({
       basePath={basePath}
       currentFilterRaw={currentFilterRaw}
       currentGroup={currentGroup}
+      currentSort={currentSort}
       persistParams={persistParams}
       isAdmin={admin}
       userId={userId}

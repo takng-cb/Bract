@@ -1,7 +1,9 @@
 'use client'
 
-import React, { useState, ReactNode } from 'react'
+import React, { useState, useCallback, ReactNode } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { FieldDef } from '@/components/FilterBuilder'
+import { parseSortParams, toggleSort, sortParamsToString } from '@/lib/sortUtils'
 
 // ────────────────────────────────────────────────────────────
 // 型定義
@@ -15,8 +17,8 @@ export type ColDef = {
 }
 
 type GroupNode = {
-  pathKey: string        // "0-active" など、一意識別用
-  displayLabel: string   // グループヘッダーに表示する文字列
+  pathKey: string
+  displayLabel: string
   records: Record<string, unknown>[]
   children: GroupNode[]
 }
@@ -77,19 +79,10 @@ function buildGroups(
 // GroupRows — 再帰的にグループ行・レコード行を描画
 // ────────────────────────────────────────────────────────────
 
-const DEPTH_BG = [
-  'bg-zinc-100',
-  'bg-zinc-50',
-  'bg-white',
-]
+const DEPTH_BG = ['bg-zinc-100', 'bg-zinc-50', 'bg-white']
 
 function GroupRows({
-  nodes,
-  columns,
-  depth,
-  openPaths,
-  toggle,
-  detailHref,
+  nodes, columns, depth, openPaths, toggle, detailHref, colWidths,
 }: {
   nodes: GroupNode[]
   columns: ColDef[]
@@ -97,6 +90,7 @@ function GroupRows({
   openPaths: Set<string>
   toggle: (key: string) => void
   detailHref: (r: Record<string, unknown>) => string
+  colWidths: Record<string, number>
 }) {
   const colSpan = columns.length + 1
   return (
@@ -108,7 +102,6 @@ function GroupRows({
 
         return (
           <React.Fragment key={node.pathKey}>
-            {/* グループヘッダー行 */}
             <tr className={`${bgClass} border-t border-zinc-200`}>
               <td colSpan={colSpan} className="px-4 py-2">
                 <button
@@ -128,7 +121,6 @@ function GroupRows({
               </td>
             </tr>
 
-            {/* 展開時: 子グループ or レコード */}
             {isOpen && (
               node.children.length > 0 ? (
                 <GroupRows
@@ -138,6 +130,7 @@ function GroupRows({
                   openPaths={openPaths}
                   toggle={toggle}
                   detailHref={detailHref}
+                  colWidths={colWidths}
                 />
               ) : (
                 node.records.map((rec) => (
@@ -145,17 +138,17 @@ function GroupRows({
                     {columns.map((col, ci) => (
                       <td
                         key={col.key}
-                        className={`px-4 py-3 text-sm ${col.align === 'right' ? 'text-right' : 'text-left'}`}
-                        style={ci === 0 ? { paddingLeft: `${indentRem + 2.5}rem` } : undefined}
+                        className={`px-4 py-3 text-sm overflow-hidden ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                        style={{
+                          ...(ci === 0 ? { paddingLeft: `${indentRem + 2.5}rem` } : undefined),
+                          ...(colWidths[col.key] ? { width: colWidths[col.key], maxWidth: colWidths[col.key] } : undefined),
+                        }}
                       >
                         {col.render(rec)}
                       </td>
                     ))}
-                    <td className="px-4 py-3 text-right">
-                      <a
-                        href={detailHref(rec)}
-                        className="text-blue-600 hover:text-blue-800 text-xs"
-                      >
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <a href={detailHref(rec)} className="text-blue-600 hover:text-blue-800 text-xs">
                         詳細 →
                       </a>
                     </td>
@@ -171,14 +164,30 @@ function GroupRows({
 }
 
 // ────────────────────────────────────────────────────────────
+// ソートヘッダー
+// ────────────────────────────────────────────────────────────
+
+function SortIcon({ dir, rank }: { dir: 'asc' | 'desc' | null; rank: number | null }) {
+  if (!dir) return <span className="text-zinc-300 text-xs ml-1">↕</span>
+  return (
+    <span className="ml-1 inline-flex items-center gap-0.5">
+      <span className="text-blue-500 text-xs">{dir === 'asc' ? '▲' : '▼'}</span>
+      {rank !== null && rank > 0 && (
+        <span className="text-[9px] text-blue-400 font-medium">{rank + 1}</span>
+      )}
+    </span>
+  )
+}
+
+// ────────────────────────────────────────────────────────────
 // GroupedTable — メインコンポーネント
 // ────────────────────────────────────────────────────────────
 
 type Props = {
   records: Record<string, unknown>[]
   columns: ColDef[]
-  groupBy: string[]       // 空配列 = フラット表示
-  fields: FieldDef[]      // グループラベル変換に使用
+  groupBy: string[]
+  fields: FieldDef[]
   detailHref: (r: Record<string, unknown>) => string
 }
 
@@ -186,7 +195,6 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
   const isFlat = groupBy.length === 0
   const groups = isFlat ? [] : buildGroups(records, groupBy, fields)
 
-  // 初期: すべてのグループを展開した状態
   const [openPaths, setOpenPaths] = useState<Set<string>>(() => {
     const s = new Set<string>()
     function collect(nodes: GroupNode[]) {
@@ -205,39 +213,103 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
     })
   }
 
+  // ── ソート ──────────────────────────────────────────────
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const router = useRouter()
+
+  const sortStr = searchParams.get('sort') ?? ''
+  const currentSort = parseSortParams(sortStr)
+
+  function handleSortClick(field: string) {
+    const newSort = toggleSort(currentSort, field, 3)
+    const params = new URLSearchParams(searchParams.toString())
+    const newSortStr = sortParamsToString(newSort)
+    if (newSortStr) params.set('sort', newSortStr)
+    else params.delete('sort')
+    params.delete('page')
+    router.push(`${pathname}?${params.toString()}`)
+  }
+
+  // ── 列幅リサイズ ────────────────────────────────────────
+  const [colWidths, setColWidths] = useState<Record<string, number>>({})
+
+  const startResize = useCallback((colKey: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = colWidths[colKey] ?? (e.currentTarget.parentElement?.offsetWidth ?? 120)
+
+    function onMouseMove(ev: MouseEvent) {
+      const newW = Math.max(60, startW + (ev.clientX - startX))
+      setColWidths((prev) => ({ ...prev, [colKey]: newW }))
+    }
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [colWidths])
+
   return (
-    <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
+      <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: `${columns.length * 120 + 80}px` }}>
+        <colgroup>
+          {columns.map((col) => (
+            <col key={col.key} style={colWidths[col.key] ? { width: colWidths[col.key] } : undefined} />
+          ))}
+          <col style={{ width: 64 }} />
+        </colgroup>
+
         <thead className="bg-zinc-50 border-b border-zinc-200">
           <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={`px-4 py-3 font-medium text-zinc-600 ${
-                  col.align === 'right' ? 'text-right' : 'text-left'
-                }`}
-              >
-                {col.label}
-              </th>
-            ))}
+            {columns.map((col) => {
+              const sortIdx = currentSort.findIndex((s) => s.field === col.key)
+              const sortDir = sortIdx >= 0 ? currentSort[sortIdx].dir : null
+              return (
+                <th
+                  key={col.key}
+                  className={`relative px-4 py-3 font-medium text-zinc-600 select-none group ${
+                    col.align === 'right' ? 'text-right' : 'text-left'
+                  }`}
+                  style={colWidths[col.key] ? { width: colWidths[col.key] } : undefined}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleSortClick(col.key)}
+                    className="flex items-center gap-0.5 hover:text-zinc-900 transition-colors w-full"
+                    style={col.align === 'right' ? { justifyContent: 'flex-end' } : undefined}
+                    title="クリックでソート（3段階まで）"
+                  >
+                    <span className="truncate">{col.label}</span>
+                    <SortIcon dir={sortDir} rank={sortIdx} />
+                  </button>
+                  {/* リサイズハンドル */}
+                  <div
+                    className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 hover:bg-blue-400 active:bg-blue-600 transition-opacity"
+                    onMouseDown={(e) => startResize(col.key, e)}
+                  />
+                </th>
+              )
+            })}
             <th className="px-4 py-3 w-16" />
           </tr>
         </thead>
 
         {isFlat ? (
-          /* グルーピングなし: フラットにレコードを描画 */
           <tbody className="divide-y divide-zinc-100">
             {records.map((rec) => (
               <tr key={String(rec.id)} className="hover:bg-zinc-50 transition-colors">
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3 text-sm ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                    className={`px-4 py-3 text-sm overflow-hidden ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                    style={colWidths[col.key] ? { width: colWidths[col.key], maxWidth: colWidths[col.key] } : undefined}
                   >
                     {col.render(rec)}
                   </td>
                 ))}
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-right whitespace-nowrap">
                   <a href={detailHref(rec)} className="text-blue-600 hover:text-blue-800 text-xs">
                     詳細 →
                   </a>
@@ -246,7 +318,6 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
             ))}
           </tbody>
         ) : (
-          /* グルーピングあり: 再帰的グループ描画（tbody は1つだけ） */
           <tbody>
             <GroupRows
               nodes={groups}
@@ -255,6 +326,7 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
               openPaths={openPaths}
               toggle={toggle}
               detailHref={detailHref}
+              colWidths={colWidths}
             />
           </tbody>
         )}

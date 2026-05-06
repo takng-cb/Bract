@@ -447,6 +447,7 @@ export const saved_views = pgTable('saved_views', {
   name:          text('name').notNull(),
   filter_params: text('filter_params').notNull().default('[]'), // JSON: string[]
   group_params:  text('group_params').notNull().default(''),    // comma-separated group fields
+  sort_params:   text('sort_params').notNull().default(''),     // "field:asc,field2:desc"
   scope:         text('scope').notNull().default('user'),       // 'user' | 'system'
   user_id:       text('user_id'),                              // null for system scope
   is_default:    boolean('is_default').notNull().default(false),

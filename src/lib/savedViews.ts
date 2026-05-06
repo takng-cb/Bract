@@ -8,6 +8,7 @@ export type SavedView = {
   name: string
   filter_params: string[]  // parsed from JSON
   group_params: string     // comma-separated, matches ?group= param
+  sort_params: string      // "field:asc,field2:desc"
   scope: 'user' | 'system'
   user_id: string | null
   is_default: boolean
@@ -20,6 +21,7 @@ function parseRow(r: typeof saved_views.$inferSelect): SavedView {
     name:          r.name,
     filter_params: JSON.parse(r.filter_params) as string[],
     group_params:  r.group_params,
+    sort_params:   (r as Record<string, unknown>).sort_params as string ?? '',
     scope:         r.scope as 'user' | 'system',
     user_id:       r.user_id,
     is_default:    r.is_default,

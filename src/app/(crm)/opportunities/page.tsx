@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -28,7 +29,7 @@ const STAGE_LABELS: Record<string, { label: string; color: string }> = {
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
   const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('opportunities'), getCurrentUserId()])
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
@@ -42,6 +43,7 @@ export default async function OpportunitiesPage({
       const p = new URLSearchParams()
       dv.filter_params.forEach((f) => p.append('f', f))
       if (dv.group_params) p.set('group', dv.group_params)
+      if (dv.sort_params) p.set('sort', dv.sort_params)
       redirect(`/opportunities?${p.toString()}`)
     }
   }
@@ -103,12 +105,14 @@ export default async function OpportunitiesPage({
 
   let opportunitiesList = applyFilters(raw as Record<string, unknown>[], otherConditions)
   opportunitiesList     = applyTagFilter(opportunitiesList, tagConditions, taggedIdsByTagId)
+  const sortRaw         = sp.sort ?? ''
+  const sorted          = applySort(opportunitiesList as Record<string, unknown>[], parseSortParams(sortRaw))
   const hasFilter       = conditions.length > 0
-  const totalCount      = opportunitiesList.length
+  const totalCount      = sorted.length
   const totalPages      = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
   const displayList     = isGrouped
-    ? opportunitiesList
-    : opportunitiesList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    ? sorted
+    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -151,6 +155,7 @@ export default async function OpportunitiesPage({
         basePath="/opportunities"
         currentFilterRaw={filterRaw}
         currentGroup={sp.group ?? ''}
+        currentSort={sortRaw}
       />
       <ListViewToolbar
         fields={FIELDS}
@@ -160,7 +165,7 @@ export default async function OpportunitiesPage({
         initialGroup={sp.group ?? ''}
       />
 
-      {opportunitiesList.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">💼</p>
           <p className="text-lg font-medium">

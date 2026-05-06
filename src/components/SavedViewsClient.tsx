@@ -9,10 +9,11 @@ type Props = {
   basePath: string
   currentFilterRaw: string[]
   currentGroup: string
+  currentSort: string
   persistParams?: Record<string, string>
   isAdmin: boolean
   userId: string | null
-  createAction: (name: string, filterParams: string[], groupParams: string, scope: 'user' | 'system') => Promise<void>
+  createAction: (name: string, filterParams: string[], groupParams: string, sortParams: string, scope: 'user' | 'system') => Promise<void>
   deleteAction: (id: string) => Promise<void>
   setDefaultAction: (id: string, scope: 'user' | 'system') => Promise<void>
   clearDefaultAction: (scope: 'user' | 'system') => Promise<void>
@@ -23,12 +24,14 @@ function buildViewUrl(basePath: string, view: SavedView, persistParams?: Record<
   for (const [k, v] of Object.entries(persistParams ?? {})) params.set(k, v)
   for (const f of view.filter_params) params.append('f', f)
   if (view.group_params) params.set('group', view.group_params)
+  if (view.sort_params) params.set('sort', view.sort_params)
   const qs = params.toString()
   return qs ? `${basePath}?${qs}` : basePath
 }
 
-function isViewActive(view: SavedView, currentFilterRaw: string[], currentGroup: string): boolean {
+function isViewActive(view: SavedView, currentFilterRaw: string[], currentGroup: string, currentSort: string): boolean {
   if (view.group_params !== currentGroup) return false
+  if ((view.sort_params ?? '') !== currentSort) return false
   if (view.filter_params.length !== currentFilterRaw.length) return false
   const a = [...view.filter_params].sort()
   const b = [...currentFilterRaw].sort()
@@ -36,7 +39,7 @@ function isViewActive(view: SavedView, currentFilterRaw: string[], currentGroup:
 }
 
 export default function SavedViewsClient({
-  views, basePath, currentFilterRaw, currentGroup, persistParams, isAdmin, userId,
+  views, basePath, currentFilterRaw, currentGroup, currentSort, persistParams, isAdmin, userId,
   createAction, deleteAction, setDefaultAction, clearDefaultAction,
 }: Props) {
   const router = useRouter()
@@ -49,7 +52,7 @@ export default function SavedViewsClient({
 
   const userViews   = views.filter((v) => v.scope === 'user')
   const systemViews = views.filter((v) => v.scope === 'system')
-  const hasCurrentConditions = currentFilterRaw.length > 0 || currentGroup !== ''
+  const hasCurrentConditions = currentFilterRaw.length > 0 || currentGroup !== '' || currentSort !== ''
 
   function handleClickView(view: SavedView) {
     router.push(buildViewUrl(basePath, view, persistParams))
@@ -80,7 +83,7 @@ export default function SavedViewsClient({
     if (!saveName.trim()) { setSaveError('名前を入力してください'); return }
     setSaveError('')
     startTransition(async () => {
-      await createAction(saveName.trim(), currentFilterRaw, currentGroup, saveScope)
+      await createAction(saveName.trim(), currentFilterRaw, currentGroup, currentSort, saveScope)
       setSaveName('')
       setShowSaveForm(false)
     })
@@ -95,7 +98,7 @@ export default function SavedViewsClient({
 
         {/* ユーザービュー */}
         {userViews.map((view) => {
-          const active    = isViewActive(view, currentFilterRaw, currentGroup)
+          const active    = isViewActive(view, currentFilterRaw, currentGroup, currentSort)
           const loading   = isPending && pendingId === view.id
           const canDelete = view.user_id === userId
           return (
@@ -144,7 +147,7 @@ export default function SavedViewsClient({
 
         {/* システムビュー */}
         {systemViews.map((view) => {
-          const active  = isViewActive(view, currentFilterRaw, currentGroup)
+          const active  = isViewActive(view, currentFilterRaw, currentGroup, currentSort)
           const loading = isPending && pendingId === view.id
           return (
             <span
