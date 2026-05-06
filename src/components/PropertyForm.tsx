@@ -100,9 +100,6 @@ export default function PropertyForm({
   const statuses = isRE ? STATUSES_RE : STATUSES_OTHER
   const txTypes  = isRE ? TX_TYPES_RE : TX_TYPES_OTHER
 
-  const currentAccount = accounts.find((a) => a.id === d.account_id) ?? null
-  const currentContact = contacts.find((c) => c.id === d.contact_id) ?? null
-
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
       {error && (
@@ -184,21 +181,22 @@ export default function PropertyForm({
       </div>
 
       {/* 関連取引先 / 関連人物 */}
-      {(currentAccount || currentContact) && (
-        <div className="flex items-center gap-3 text-sm text-zinc-600 flex-wrap -mt-2">
-          {currentAccount && (
-            <a href={`/accounts/${currentAccount.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-              🏢 {currentAccount.name}
-            </a>
-          )}
-          {currentAccount && currentContact && <span className="text-zinc-300">·</span>}
-          {currentContact && (
-            <a href={`/contacts/${currentContact.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-              👤 {currentContact.full_name}
-            </a>
-          )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className={lbl}>関連取引先</label>
+          <select name="account_id" defaultValue={d.account_id ?? ''} className={`${field} bg-white`}>
+            <option value="">— 選択しない —</option>
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
         </div>
-      )}
+        <div>
+          <label className={lbl}>関連人物</label>
+          <select name="contact_id" defaultValue={d.contact_id ?? ''} className={`${field} bg-white`}>
+            <option value="">— 選択しない —</option>
+            {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+          </select>
+        </div>
+      </div>
 
       {/* 物件種別 / 取引種別 / ステータス */}
       {isRE ? (
@@ -482,24 +480,6 @@ export default function PropertyForm({
           </div>
         </div>
       )}
-
-      {/* 関連取引先 / 関連人物 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className={lbl}>関連取引先</label>
-          <select name="account_id" defaultValue={d.account_id ?? ''} className={`${field} bg-white`}>
-            <option value="">— 選択しない —</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className={lbl}>関連人物</label>
-          <select name="contact_id" defaultValue={d.contact_id ?? ''} className={`${field} bg-white`}>
-            <option value="">— 選択しない —</option>
-            {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-          </select>
-        </div>
-      </div>
 
       {/* 不動産のみ: 司法書士情報 */}
       {isRE && (
