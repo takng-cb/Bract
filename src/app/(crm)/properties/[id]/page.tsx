@@ -135,6 +135,13 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-zinc-900 break-words">{p.name}</h1>
+        {(account || contact) && (
+          <div className="flex items-center gap-3 mt-1.5 text-sm text-zinc-600 flex-wrap">
+            {account && <Link href={`/accounts/${account.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">🏢 {account.name}</Link>}
+            {account && contact && <span className="text-zinc-300">·</span>}
+            {contact && <Link href={`/contacts/${contact.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">👤 {contact.full_name}</Link>}
+          </div>
+        )}
         <div className="mt-2 mb-3">
           <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
         </div>
@@ -155,23 +162,12 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           { label: '物件種別',   value: p.property_type },
           { label: '取引種別',   value: p.transaction_type },
           { label: '価格 / 賃料', value: fmt.price(p.price) },
-          { label: '関連取引先', value: account?.name ?? null },
-          { label: '関連人物',   value: contact?.full_name ?? null },
           { label: '登録日',     value: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : null },
         ] : [
           { label: '取引種別',   value: p.transaction_type },
           { label: '金額',       value: fmt.price(p.price) },
-          { label: '関連取引先', value: account?.name ?? null },
-          { label: '関連人物',   value: contact?.full_name ?? null },
           { label: '登録日',     value: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : null },
         ]} />
-        {/* 関連リンク */}
-        {(account || contact) && (
-          <div className="mt-3 flex gap-4 text-sm">
-            {account && <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name} →</Link>}
-            {contact && <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">{contact.full_name} →</Link>}
-          </div>
-        )}
         {!isRE && p.description && (
           <div className="mt-4 pt-4 border-t border-zinc-100">
             <dt className="text-xs text-zinc-400 mb-1">備考</dt>

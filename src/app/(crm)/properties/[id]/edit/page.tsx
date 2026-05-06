@@ -8,6 +8,7 @@ import { updateProperty } from '@/app/actions/properties'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { requireEditor } from '@/lib/auth'
+import RecordHeader from '@/components/RecordHeader'
 
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -44,20 +45,29 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
     }
   }
 
-  const viewParam = property.product_category === 'other' ? 'other' : 'real_estate'
+  const viewParam      = property.product_category === 'other' ? 'other' : 'real_estate'
+  const currentAccount = accountsList.find((a) => a.id === property.account_id) ?? null
+  const currentContact = contactsList.find((c) => c.id === property.contact_id) ?? null
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href={`/properties?view=${viewParam}`} className="hover:text-zinc-600">物件・商品</Link>
-        <span className="mx-2">/</span>
-        <Link href={`/properties/${id}`} className="hover:text-zinc-600 line-clamp-1">{property.name}</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">編集</span>
+      <RecordHeader
+        crumbs={[
+          { label: '物件・商品', href: `/properties?view=${viewParam}` },
+          { label: property.name, href: `/properties/${id}` },
+          { label: '編集' },
+        ]}
+      />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-zinc-900 break-words">{property.name}</h1>
+        {(currentAccount || currentContact) && (
+          <div className="flex items-center gap-3 mt-1.5 text-sm text-zinc-600 flex-wrap">
+            {currentAccount && <Link href={`/accounts/${currentAccount.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">🏢 {currentAccount.name}</Link>}
+            {currentAccount && currentContact && <span className="text-zinc-300">·</span>}
+            {currentContact && <Link href={`/contacts/${currentContact.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">👤 {currentContact.full_name}</Link>}
+          </div>
+        )}
       </div>
-      <h1 className="text-2xl font-bold text-zinc-900 mb-6">
-        {viewParam === 'real_estate' ? '物件を編集' : '商品を編集'}
-      </h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <PropertyForm
           action={updatePropertyAction}
