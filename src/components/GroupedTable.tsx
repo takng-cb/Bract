@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, ReactNode } from 'react'
+import React, { useState, ReactNode } from 'react'
 import type { FieldDef } from '@/components/FilterBuilder'
 
 // ────────────────────────────────────────────────────────────
@@ -107,9 +107,9 @@ function GroupRows({
         const bgClass = DEPTH_BG[Math.min(depth, DEPTH_BG.length - 1)]
 
         return (
-          <>
+          <React.Fragment key={node.pathKey}>
             {/* グループヘッダー行 */}
-            <tr key={`hd-${node.pathKey}`} className={`${bgClass} border-t border-zinc-200`}>
+            <tr className={`${bgClass} border-t border-zinc-200`}>
               <td colSpan={colSpan} className="px-4 py-2">
                 <button
                   type="button"
@@ -163,7 +163,7 @@ function GroupRows({
                 ))
               )
             )}
-          </>
+          </React.Fragment>
         )
       })}
     </>
