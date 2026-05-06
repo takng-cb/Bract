@@ -3,6 +3,7 @@
 import { useActionState, useState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
+import SearchableSelect from '@/components/SearchableSelect'
 
 type Account = { id: string; name: string }
 type Contact = { id: string; full_name: string }
@@ -129,11 +130,12 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
       <div className="grid grid-cols-1 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">取引先</label>
-          <select name="account_id" defaultValue={defaultValues.account_id ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-            <option value="">選択してください</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+          <SearchableSelect
+            name="account_id"
+            defaultValue={defaultValues.account_id}
+            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+            placeholder="選択してください"
+          />
         </div>
 
         {/* 複数担当者選択 */}
@@ -175,11 +177,12 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
 
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">商談</label>
-          <select name="opportunity_id" defaultValue={defaultValues.opportunity_id ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-            <option value="">選択してください</option>
-            {opportunities.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-          </select>
+          <SearchableSelect
+            name="opportunity_id"
+            defaultValue={defaultValues.opportunity_id}
+            options={opportunities.map((o) => ({ value: o.id, label: o.name }))}
+            placeholder="選択してください"
+          />
         </div>
       </div>
 

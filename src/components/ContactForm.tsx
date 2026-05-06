@@ -3,6 +3,7 @@
 import { useActionState, useState, useRef } from 'react'
 import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
+import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 
@@ -98,10 +99,12 @@ export default function ContactForm({ action, cancelHref, accounts, defaultValue
         <>
           <div>
             <label className={lbl}>取引先</label>
-            <select name="account_id" defaultValue={defaultValues.account_id ?? ''} className={`${field} bg-white`}>
-              <option value="">選択してください</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <SearchableSelect
+              name="account_id"
+              defaultValue={defaultValues.account_id}
+              options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+              placeholder="選択してください"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

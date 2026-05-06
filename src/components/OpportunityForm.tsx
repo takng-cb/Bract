@@ -3,6 +3,7 @@
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
+import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 
@@ -80,14 +81,12 @@ export default function OpportunityForm({ action, cancelHref, accounts, defaultV
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">取引先</label>
-        <select
+        <SearchableSelect
           name="account_id"
-          defaultValue={defaultValues.account_id ?? ''}
-          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">選択してください</option>
-          {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
+          defaultValue={defaultValues.account_id}
+          options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+          placeholder="選択してください"
+        />
       </div>
 
       <div>

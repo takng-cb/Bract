@@ -3,6 +3,7 @@
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
+import SearchableSelect from '@/components/SearchableSelect'
 
 type Account = { id: string; name: string }
 type Contact = { id: string; full_name: string }
@@ -102,38 +103,32 @@ export default function ExpenseForm({
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">商談</label>
-        <select
+        <SearchableSelect
           name="opportunity_id"
-          defaultValue={defaultValues.opportunity_id ?? ''}
-          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">選択してください</option>
-          {opportunities.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-        </select>
+          defaultValue={defaultValues.opportunity_id}
+          options={opportunities.map((o) => ({ value: o.id, label: o.name }))}
+          placeholder="選択してください"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">取引先</label>
-          <select
+          <SearchableSelect
             name="account_id"
-            defaultValue={defaultValues.account_id ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">選択してください</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+            defaultValue={defaultValues.account_id}
+            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+            placeholder="選択してください"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
-          <select
+          <SearchableSelect
             name="contact_id"
-            defaultValue={defaultValues.contact_id ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">選択してください</option>
-            {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-          </select>
+            defaultValue={defaultValues.contact_id}
+            options={contacts.map((c) => ({ value: c.id, label: c.full_name }))}
+            placeholder="選択してください"
+          />
         </div>
       </div>
 
