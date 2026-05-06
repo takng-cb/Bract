@@ -20,8 +20,9 @@ export const ALL_NAV_ITEMS: NavItem[] = [
 /** サイドバー下部（固定・順序変更不可） */
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
   { href: '/tags',           label: 'タグ管理',       icon: '🏷️' },
-  { href: '/admin/objects',  label: 'オブジェクト管理', icon: '🗂️' },
-  { href: '/admin/users',    label: 'ユーザー管理',   icon: '👥' },
+  { href: '/admin/objects',      label: 'オブジェクト管理', icon: '🗂️' },
+  { href: '/admin/users',        label: 'ユーザー管理',     icon: '👥' },
+  { href: '/admin/import-logs',  label: 'インポートログ',   icon: '📥' },
   { href: '/settings',       label: '設定',           icon: '⚙️' },
   { href: '/about',          label: '使い方',         icon: '💡' },
 ]

@@ -16,6 +16,7 @@ import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
+import RecordHeader from '@/components/RecordHeader'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -109,22 +110,23 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/opportunities" className="hover:text-zinc-600">商談</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">{opportunity.name}</span>
-      </div>
-
-      <div className="mb-4">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{opportunity.name}</h1>
+      <RecordHeader
+        crumbs={[
+          { label: '商談', href: '/opportunities' },
+          { label: opportunity.name },
+        ]}
+        actions={
           <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <div className="flex items-center gap-2">
               <Link href={`/opportunities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この商談を削除しますか？" />
             </div>
           </AuthGuard>
-        </div>
+        }
+      />
+
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-zinc-900 break-words">{opportunity.name}</h1>
         {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
         <div className="mt-2">
           <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />

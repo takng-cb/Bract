@@ -15,6 +15,7 @@ import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
+import RecordHeader from '@/components/RecordHeader'
 
 const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   call: '📞 電話', email: '✉️ メール', meeting: '🤝 打合せ', note: '📝 メモ',
@@ -94,22 +95,23 @@ export default async function ContactDetailPage({
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href={`/contacts?view=${view}`} className="hover:text-zinc-600">人物</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">{contact.full_name}</span>
-      </div>
-
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{contact.full_name}</h1>
+      <RecordHeader
+        crumbs={[
+          { label: '人物', href: `/contacts?view=${view}` },
+          { label: contact.full_name },
+        ]}
+        actions={
           <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <div className="flex items-center gap-2">
               <Link href={`/contacts/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この人物を削除しますか？" />
             </div>
           </AuthGuard>
-        </div>
+        }
+      />
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-zinc-900 break-words">{contact.full_name}</h1>
         <p className="text-zinc-500 text-sm mt-1">
           {isBiz
             ? [contact.title, contact.department].filter(Boolean).join(' · ') || '役職未設定'

@@ -16,6 +16,7 @@ import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
+import RecordHeader from '@/components/RecordHeader'
 
 const ACCOUNT_STAGES: StageConfig[] = [
   { value: 'prospect', label: '見込み', activeColor: '#2563eb', pastColor: '#93c5fd' },
@@ -100,22 +101,23 @@ export default async function AccountDetailPage({
 
   return (
     <div className="p-4 md:p-8 max-w-5xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/accounts" className="hover:text-zinc-600">取引先</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">{account.name}</span>
-      </div>
-
-      <div className="mb-4">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{account.name}</h1>
+      <RecordHeader
+        crumbs={[
+          { label: '取引先', href: '/accounts' },
+          { label: account.name },
+        ]}
+        actions={
           <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <div className="flex items-center gap-2">
               <Link href={`/accounts/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この取引先を削除しますか？&#10;関連する担当者・商談・活動・ToDoも削除されます。" />
             </div>
           </AuthGuard>
-        </div>
+        }
+      />
+
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-zinc-900 break-words">{account.name}</h1>
         <p className="text-zinc-500 text-sm mt-1">
           {[account.type, account.industry].filter(Boolean).join(' · ') || '業種未設定'}
         </p>

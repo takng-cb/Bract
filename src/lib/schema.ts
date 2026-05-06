@@ -427,3 +427,16 @@ export const system_settings = pgTable('system_settings', {
   value:      text('value').notNull(), // JSON value
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
+
+// ----------------------------------------------------------------
+// import_logs（インポート実行ログ）
+// ----------------------------------------------------------------
+export const import_logs = pgTable('import_logs', {
+  id:           uuid('id').primaryKey().defaultRandom(),
+  route:        text('route').notNull(),          // 例: '/api/import/properties'
+  imported:     integer('imported').notNull().default(0),
+  updated:      integer('updated').notNull().default(0),
+  user_errors:  text('user_errors'),              // JSON: string[] — ユーザー向けエラー
+  raw_errors:   text('raw_errors'),               // JSON: string[] — 管理者向け詳細エラー
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+})

@@ -7,6 +7,7 @@ import RecordId from '@/components/RecordId'
 import { revalidatePath } from 'next/cache'
 import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
+import RecordHeader from '@/components/RecordHeader'
 
 const CATEGORY_COLORS: Record<string, string> = {
   交通費:  'bg-blue-50 text-blue-700 border-blue-200',
@@ -55,38 +56,31 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/expenses" className="hover:text-zinc-600">経費管理</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700 line-clamp-1">{expense.title}</span>
-      </div>
-
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-md border text-sm font-medium ${catColor}`}>
-                {expense.category}
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold text-zinc-900 break-words">{expense.title}</h1>
-            <p className="text-2xl font-bold text-blue-600 mt-1">¥{Number(expense.amount).toLocaleString()}</p>
-          </div>
+      <RecordHeader
+        crumbs={[
+          { label: '経費管理', href: '/expenses' },
+          { label: expense.title },
+        ]}
+        actions={
           <AuthGuard minRole="editor">
-            <div className="flex gap-2 shrink-0 mt-0.5">
-              <Link
-                href={`/expenses/${id}/edit`}
-                className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-              >
+            <div className="flex items-center gap-2">
+              <Link href={`/expenses/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
                 ✏️ 編集
               </Link>
-              <DeleteButton
-                action={deleteAction}
-                confirmMessage="この経費を削除しますか？"
-              />
+              <DeleteButton action={deleteAction} confirmMessage="この経費を削除しますか？" />
             </div>
           </AuthGuard>
+        }
+      />
+
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-md border text-sm font-medium ${catColor}`}>
+            {expense.category}
+          </span>
         </div>
+        <h1 className="text-2xl font-bold text-zinc-900 break-words">{expense.title}</h1>
+        <p className="text-2xl font-bold text-blue-600 mt-1">¥{Number(expense.amount).toLocaleString()}</p>
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg p-6">

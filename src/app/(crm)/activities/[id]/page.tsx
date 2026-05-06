@@ -7,6 +7,7 @@ import { deleteActivity } from '@/app/actions/activities'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
+import RecordHeader from '@/components/RecordHeader'
 
 const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -49,35 +50,34 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/activities" className="hover:text-zinc-600">活動履歴</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700 line-clamp-1">{activityRow.subject}</span>
-      </div>
-
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md border text-sm font-medium ${typeConf.color}`}>
-                {typeConf.icon} {typeConf.label}
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold text-zinc-900 break-words">{activityRow.subject}</h1>
-            <p className="text-sm text-zinc-500 mt-1">
-              {activityRow.occurred_at ? new Date(activityRow.occurred_at).toLocaleString('ja-JP', {
-                year: 'numeric', month: 'long', day: 'numeric',
-                hour: '2-digit', minute: '2-digit',
-              }) : '—'}
-            </p>
-          </div>
+      <RecordHeader
+        crumbs={[
+          { label: '活動履歴', href: '/activities' },
+          { label: activityRow.subject },
+        ]}
+        actions={
           <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <div className="flex items-center gap-2">
               <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この活動履歴を削除しますか？" />
             </div>
           </AuthGuard>
+        }
+      />
+
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md border text-sm font-medium ${typeConf.color}`}>
+            {typeConf.icon} {typeConf.label}
+          </span>
         </div>
+        <h1 className="text-2xl font-bold text-zinc-900 break-words">{activityRow.subject}</h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {activityRow.occurred_at ? new Date(activityRow.occurred_at).toLocaleString('ja-JP', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          }) : '—'}
+        </p>
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">

@@ -8,6 +8,7 @@ import DeleteButton from '@/components/DeleteButton'
 import TagsSection from '@/components/TagsSection'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
+import RecordHeader from '@/components/RecordHeader'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { canEdit } from '@/lib/auth'
@@ -117,24 +118,23 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
-      {/* パンくず */}
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href={`/properties?view=${viewParam}`} className="hover:text-zinc-600">物件・商品</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700 line-clamp-1">{p.name}</span>
-      </div>
-
-      {/* ヘッダ */}
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold text-zinc-900 min-w-0 break-words">{p.name}</h1>
+      <RecordHeader
+        crumbs={[
+          { label: '物件・商品', href: `/properties?view=${viewParam}` },
+          { label: p.name },
+        ]}
+        actions={
           <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2 shrink-0 mt-0.5">
+            <div className="flex items-center gap-2">
               <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
             </div>
           </AuthGuard>
-        </div>
+        }
+      />
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-zinc-900 break-words">{p.name}</h1>
         <div className="mt-2 mb-3">
           <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
         </div>
@@ -302,17 +302,6 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         </div>
       )}
 
-      {/* フッタ */}
-      <div className="flex gap-3">
-        <AuthGuard minRole="editor">
-          <Link href={`/properties/${id}/edit`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
-            編集する
-          </Link>
-        </AuthGuard>
-        <Link href={`/properties?view=${viewParam}`} className="px-4 py-2 border border-zinc-300 text-sm rounded-md hover:bg-zinc-50 transition-colors">
-          一覧に戻る
-        </Link>
-      </div>
       <div className="mt-6 text-right">
         <RecordId id={id} />
       </div>
