@@ -1,10 +1,18 @@
-'use client'
+/**
+ * MobileGroupedCards — サーバーコンポーネント
+ *
+ * ページ（サーバー）から renderCard 関数を受け取り、グループ構造を構築して
+ * GroupAccordion（クライアント）に children として渡す。
+ * サーバー→サーバー間の props 渡しなので関数を props に使える。
+ * トグル状態は GroupAccordion が持つ（クライアント側のみ）。
+ */
 
-import React, { useState } from 'react'
+import React from 'react'
 import type { FieldDef } from '@/components/FilterBuilder'
+import GroupAccordion from '@/components/GroupAccordion'
 
 // ────────────────────────────────────────────────────────────
-// グループ構造 構築
+// グループ構造 構築（サーバー側で実行）
 // ────────────────────────────────────────────────────────────
 
 type GroupNode = {
@@ -62,69 +70,43 @@ function buildGroups(
 }
 
 // ────────────────────────────────────────────────────────────
-// グループセクション（再帰）
+// グループセクション（再帰・サーバー側）
 // ────────────────────────────────────────────────────────────
 
-const INDENT = ['', 'ml-3 border-l-2 border-zinc-100 pl-3', 'ml-3 border-l-2 border-zinc-100 pl-3']
-
-function GroupSection({
+function GroupSections({
   nodes,
   renderCard,
   depth,
-  openPaths,
-  toggle,
 }: {
   nodes: GroupNode[]
   renderCard: (record: Record<string, unknown>) => React.ReactNode
   depth: number
-  openPaths: Set<string>
-  toggle: (key: string) => void
 }) {
   return (
-    <div className={INDENT[Math.min(depth, INDENT.length - 1)]}>
-      {nodes.map((node) => {
-        const isOpen = openPaths.has(node.pathKey)
-        return (
-          <div key={node.pathKey} className="mb-2">
-            {/* グループヘッダー */}
-            <button
-              type="button"
-              onClick={() => toggle(node.pathKey)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 bg-zinc-100 rounded-lg text-sm font-semibold text-zinc-700 hover:bg-zinc-200 active:bg-zinc-300 transition-colors"
-            >
-              <span className="text-zinc-400 text-xs w-3 shrink-0">
-                {isOpen ? '▼' : '▶'}
-              </span>
-              <span className="flex-1 text-left truncate">{node.label}</span>
-              <span className="shrink-0 text-xs font-normal text-zinc-400 tabular-nums">
-                {node.records.length} 件
-              </span>
-            </button>
-
-            {/* グループ内容 */}
-            {isOpen && (
-              <div className="mt-1 space-y-1.5">
-                {node.children.length > 0 ? (
-                  <GroupSection
-                    nodes={node.children}
-                    renderCard={renderCard}
-                    depth={depth + 1}
-                    openPaths={openPaths}
-                    toggle={toggle}
-                  />
-                ) : (
-                  node.records.map((r, i) => (
-                    <React.Fragment key={String(r.id ?? i)}>
-                      {renderCard(r)}
-                    </React.Fragment>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
+    <>
+      {nodes.map((node) => (
+        <GroupAccordion
+          key={node.pathKey}
+          label={node.label}
+          count={node.records.length}
+          depth={depth}
+        >
+          {node.children.length > 0 ? (
+            <GroupSections
+              nodes={node.children}
+              renderCard={renderCard}
+              depth={depth + 1}
+            />
+          ) : (
+            node.records.map((r, i) => (
+              <React.Fragment key={String(r.id ?? i)}>
+                {renderCard(r)}
+              </React.Fragment>
+            ))
+          )}
+        </GroupAccordion>
+      ))}
+    </>
   )
 }
 
@@ -136,54 +118,29 @@ type Props = {
   records: Record<string, unknown>[]
   groupBy: string[]
   fields: FieldDef[]
-  /** レコード 1 件分のカード JSX を返す関数 */
+  /** サーバー側でカード JSX を返す関数（サーバー→サーバーで渡すので OK） */
   renderCard: (record: Record<string, unknown>) => React.ReactNode
 }
 
 export default function MobileGroupedCards({ records, groupBy, fields, renderCard }: Props) {
-  const isFlat = groupBy.length === 0
-  const groups = isFlat ? [] : buildGroups(records, groupBy, fields)
-
-  // 初期状態: すべてのグループを展開
-  const [openPaths, setOpenPaths] = useState<Set<string>>(() => {
-    const s = new Set<string>()
-    function collect(nodes: GroupNode[]) {
-      for (const n of nodes) { s.add(n.pathKey); collect(n.children) }
-    }
-    collect(groups)
-    return s
-  })
-
-  function toggle(key: string) {
-    setOpenPaths((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
-
-  // グルーピングなし: フラットなカードリスト
-  if (isFlat) {
+  // グルーピングなし → フラットなカードリスト
+  if (groupBy.length === 0) {
     return (
       <div className="space-y-2">
         {records.map((r, i) => (
-          <React.Fragment key={String(r.id ?? i)}>{renderCard(r)}</React.Fragment>
+          <React.Fragment key={String(r.id ?? i)}>
+            {renderCard(r)}
+          </React.Fragment>
         ))}
       </div>
     )
   }
 
-  // グルーピングあり: アコーディオン形式のグループ＋カード
+  // グルーピングあり → アコーディオン
+  const groups = buildGroups(records, groupBy, fields)
   return (
     <div className="space-y-1">
-      <GroupSection
-        nodes={groups}
-        renderCard={renderCard}
-        depth={0}
-        openPaths={openPaths}
-        toggle={toggle}
-      />
+      <GroupSections nodes={groups} renderCard={renderCard} depth={0} />
     </div>
   )
 }
