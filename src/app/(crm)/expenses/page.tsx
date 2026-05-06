@@ -1,15 +1,18 @@
 import { db } from '@/lib/db'
 import { expenses, accounts, opportunities } from '@/lib/schema'
 import { desc, eq, gte } from 'drizzle-orm'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
-import { canEdit } from '@/lib/auth'
+import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { getListViewColumns } from '@/lib/listViewSettings'
+import { getDefaultView } from '@/lib/savedViews'
 import ExpensesTableView from '@/components/tableviews/ExpensesTableView'
+import SavedViewsPanel from '@/components/SavedViewsPanel'
 
 const PAGE_SIZE = 20
 
@@ -48,7 +51,7 @@ export default async function ExpensesPage({
 }: {
   searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string; group?: string }>
 }) {
-  const [sp, edit, colConfig] = await Promise.all([searchParams, canEdit(), getListViewColumns('expenses')])
+  const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('expenses'), getCurrentUserId()])
   const now = new Date()
 
   const fromYear  = Number(sp.from_year  ?? now.getFullYear())
@@ -59,11 +62,26 @@ export default async function ExpensesPage({
   const from = `${fromYear}-${String(fromMonth).padStart(2, '0')}-01`
   const to   = new Date(toYear, toMonth, 0).toISOString().slice(0, 10)
 
+  const persistParams = {
+    from_year: String(fromYear), from_month: String(fromMonth),
+    to_year: String(toYear),     to_month: String(toMonth),
+  }
+
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
   const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
   const isGrouped  = groupBy.length > 0
   const conditions = parseFilterParams(filterRaw)
+
+  if (filterRaw.length === 0 && groupBy.length === 0) {
+    const dv = await getDefaultView('expenses', userId)
+    if (dv && (dv.filter_params.length > 0 || dv.group_params)) {
+      const p = new URLSearchParams(persistParams)
+      dv.filter_params.forEach((f) => p.append('f', f))
+      if (dv.group_params) p.set('group', dv.group_params)
+      redirect(`/expenses?${p.toString()}`)
+    }
+  }
 
   const raw = await db.select({
     id:           expenses.id,
@@ -106,10 +124,6 @@ export default async function ExpensesPage({
     ? `${fromYear}年${fromMonth}月`
     : `${fromYear}年${fromMonth}月 〜 ${toYear}年${toMonth}月`
 
-  const persistParams = {
-    from_year: String(fromYear), from_month: String(fromMonth),
-    to_year: String(toYear),     to_month: String(toMonth),
-  }
   const clearUrl = `/expenses?${new URLSearchParams(persistParams).toString()}`
 
   const groupableFields = FIELDS.map((f) => ({ key: f.value, label: f.label }))
@@ -177,6 +191,13 @@ export default async function ExpensesPage({
         </button>
       </form>
 
+      <SavedViewsPanel
+        objectType="expenses"
+        basePath="/expenses"
+        currentFilterRaw={filterRaw}
+        currentGroup={sp.group ?? ''}
+        persistParams={persistParams}
+      />
       <ListViewToolbar
         fields={FIELDS}
         initialFilters={filterRaw}

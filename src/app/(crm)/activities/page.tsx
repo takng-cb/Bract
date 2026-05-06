@@ -1,15 +1,18 @@
 import { db } from '@/lib/db'
 import { activities, accounts } from '@/lib/schema'
 import { desc, eq } from 'drizzle-orm'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
-import { canEdit } from '@/lib/auth'
+import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { getListViewColumns } from '@/lib/listViewSettings'
+import { getDefaultView } from '@/lib/savedViews'
 import ActivitiesTableView from '@/components/tableviews/ActivitiesTableView'
+import SavedViewsPanel from '@/components/SavedViewsPanel'
 
 const PAGE_SIZE = 20
 
@@ -41,11 +44,21 @@ export default async function ActivitiesPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string }>
 }) {
-  const [sp, edit, colConfig] = await Promise.all([searchParams, canEdit(), getListViewColumns('activities')])
+  const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('activities'), getCurrentUserId()])
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
   const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
   const isGrouped  = groupBy.length > 0
+
+  if (filterRaw.length === 0 && groupBy.length === 0) {
+    const dv = await getDefaultView('activities', userId)
+    if (dv && (dv.filter_params.length > 0 || dv.group_params)) {
+      const p = new URLSearchParams()
+      dv.filter_params.forEach((f) => p.append('f', f))
+      if (dv.group_params) p.set('group', dv.group_params)
+      redirect(`/activities?${p.toString()}`)
+    }
+  }
   const conditions = parseFilterParams(filterRaw)
 
   const raw = await db.select({
@@ -106,6 +119,12 @@ export default async function ActivitiesPage({
         </div>
       </div>
 
+      <SavedViewsPanel
+        objectType="activities"
+        basePath="/activities"
+        currentFilterRaw={filterRaw}
+        currentGroup={sp.group ?? ''}
+      />
       <ListViewToolbar
         fields={FIELDS}
         initialFilters={filterRaw}

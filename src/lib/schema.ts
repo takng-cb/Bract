@@ -439,6 +439,23 @@ export const list_view_settings = pgTable('list_view_settings', {
 })
 
 // ----------------------------------------------------------------
+// saved_views（保存済みビュー: フィルター・グルーピング条件）
+// ----------------------------------------------------------------
+export const saved_views = pgTable('saved_views', {
+  id:            uuid('id').primaryKey().defaultRandom(),
+  object_type:   text('object_type').notNull(),
+  name:          text('name').notNull(),
+  filter_params: text('filter_params').notNull().default('[]'), // JSON: string[]
+  group_params:  text('group_params').notNull().default(''),    // comma-separated group fields
+  scope:         text('scope').notNull().default('user'),       // 'user' | 'system'
+  user_id:       text('user_id'),                              // null for system scope
+  is_default:    boolean('is_default').notNull().default(false),
+  created_at:    timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('saved_views_object_idx').on(t.object_type, t.scope),
+])
+
+// ----------------------------------------------------------------
 // import_logs（インポート実行ログ）
 // ----------------------------------------------------------------
 export const import_logs = pgTable('import_logs', {
