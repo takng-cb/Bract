@@ -73,7 +73,6 @@ export default function PropertiesTableView({ records, groupBy, fields, activeKe
       columns={cols}
       groupBy={groupBy}
       fields={fields}
-      detailHref={(r) => `/properties/${String(r.id)}`}
     />
   )
 }

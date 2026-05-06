@@ -73,7 +73,6 @@ export default function ExpensesTableView({ records, groupBy, fields, activeKeys
       columns={cols}
       groupBy={groupBy}
       fields={fields}
-      detailHref={(r) => `/expenses/${String(r.id)}`}
     />
   )
 }

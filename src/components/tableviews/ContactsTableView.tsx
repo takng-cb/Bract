@@ -76,7 +76,6 @@ export default function ContactsTableView({ records, groupBy, fields, activeKeys
       columns={cols}
       groupBy={groupBy}
       fields={fields}
-      detailHref={(r) => `/contacts/${String(r.id)}`}
     />
   )
 }

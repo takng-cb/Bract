@@ -85,7 +85,6 @@ export default function OpportunitiesTableView({ records, groupBy, fields, activ
       columns={cols}
       groupBy={groupBy}
       fields={fields}
-      detailHref={(r) => `/opportunities/${String(r.id)}`}
     />
   )
 }

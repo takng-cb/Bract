@@ -82,7 +82,6 @@ export default function TasksTableView({ records, groupBy, fields, activeKeys }:
       columns={cols}
       groupBy={groupBy}
       fields={fields}
-      detailHref={(r) => `/tasks/${String(r.id)}`}
     />
   )
 }

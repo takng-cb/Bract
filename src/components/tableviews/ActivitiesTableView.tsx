@@ -68,7 +68,6 @@ export default function ActivitiesTableView({ records, groupBy, fields, activeKe
       columns={cols}
       groupBy={groupBy}
       fields={fields}
-      detailHref={(r) => `/activities/${String(r.id)}`}
     />
   )
 }

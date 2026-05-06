@@ -82,17 +82,16 @@ function buildGroups(
 const DEPTH_BG = ['bg-zinc-100', 'bg-zinc-50', 'bg-white']
 
 function GroupRows({
-  nodes, columns, depth, openPaths, toggle, detailHref, colWidths,
+  nodes, columns, depth, openPaths, toggle, colWidths,
 }: {
   nodes: GroupNode[]
   columns: ColDef[]
   depth: number
   openPaths: Set<string>
   toggle: (key: string) => void
-  detailHref: (r: Record<string, unknown>) => string
   colWidths: Record<string, number>
 }) {
-  const colSpan = columns.length + 1
+  const colSpan = columns.length
   return (
     <>
       {nodes.map((node) => {
@@ -129,7 +128,6 @@ function GroupRows({
                   depth={depth + 1}
                   openPaths={openPaths}
                   toggle={toggle}
-                  detailHref={detailHref}
                   colWidths={colWidths}
                 />
               ) : (
@@ -147,11 +145,6 @@ function GroupRows({
                         {col.render(rec)}
                       </td>
                     ))}
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <a href={detailHref(rec)} className="text-blue-600 hover:text-blue-800 text-xs">
-                        詳細 →
-                      </a>
-                    </td>
                   </tr>
                 ))
               )
@@ -188,10 +181,9 @@ type Props = {
   columns: ColDef[]
   groupBy: string[]
   fields: FieldDef[]
-  detailHref: (r: Record<string, unknown>) => string
 }
 
-export default function GroupedTable({ records, columns, groupBy, fields, detailHref }: Props) {
+export default function GroupedTable({ records, columns, groupBy, fields }: Props) {
   const isFlat = groupBy.length === 0
   const groups = isFlat ? [] : buildGroups(records, groupBy, fields)
 
@@ -258,7 +250,6 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
           {columns.map((col) => (
             <col key={col.key} style={colWidths[col.key] ? { width: colWidths[col.key] } : undefined} />
           ))}
-          <col style={{ width: 64 }} />
         </colgroup>
 
         <thead className="bg-zinc-50 border-b border-zinc-200">
@@ -292,7 +283,6 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
                 </th>
               )
             })}
-            <th className="px-4 py-3 w-16" />
           </tr>
         </thead>
 
@@ -309,11 +299,6 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
                     {col.render(rec)}
                   </td>
                 ))}
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <a href={detailHref(rec)} className="text-blue-600 hover:text-blue-800 text-xs">
-                    詳細 →
-                  </a>
-                </td>
               </tr>
             ))}
           </tbody>
@@ -325,7 +310,6 @@ export default function GroupedTable({ records, columns, groupBy, fields, detail
               depth={0}
               openPaths={openPaths}
               toggle={toggle}
-              detailHref={detailHref}
               colWidths={colWidths}
             />
           </tbody>
