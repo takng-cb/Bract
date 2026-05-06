@@ -25,8 +25,12 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // 未ログイン → /login にリダイレクト（コールバックは除外）
-  if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/auth/')) {
+  // 認証不要のパス
+  const publicPaths = ['/login', '/auth/', '/forgot-password', '/reset-password']
+  const isPublic = publicPaths.some((p) => pathname.startsWith(p))
+
+  // 未ログイン → /login にリダイレクト（認証不要パスは除外）
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
