@@ -104,6 +104,7 @@ export default async function ContactsPage({
   const displayList = isGrouped
     ? sorted
     : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const mobileList = isGrouped ? sorted.slice(0, PAGE_SIZE) : displayList
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -218,28 +219,31 @@ export default async function ContactsPage({
               />
             </TableErrorBoundary>
           </div>
-          {/* モバイル: カード（グルーピング非対応） */}
-          {!isGrouped && (
-            <div className="md:hidden space-y-2">
-              {(displayList as typeof raw).map((c) => {
-                const account = c.accounts?.id ? c.accounts : null
-                return (
-                  <Link key={c.id} href={`/contacts/${c.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-semibold text-zinc-900 text-sm">{isBiz ? '👔' : '👤'} {c.full_name}</span>
-                      {isBiz && c.title && <span className="shrink-0 text-xs text-zinc-500">{c.title}</span>}
-                    </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
-                      {isBiz && account && <span>🏢 {account.name}</span>}
-                      {isBiz && c.department && <span>{c.department}</span>}
-                      {c.email && <span>✉️ {c.email}</span>}
-                      {c.phone && <span>📞 {c.phone}</span>}
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
+          {/* モバイル: カード */}
+          <div className="md:hidden space-y-2">
+            {isGrouped && (
+              <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+                📊 グルーピング表示はPC版でご確認ください（先頭 {PAGE_SIZE} 件を表示中）
+              </p>
+            )}
+            {(mobileList as typeof raw).map((c) => {
+              const account = c.accounts?.id ? c.accounts : null
+              return (
+                <Link key={c.id} href={`/contacts/${c.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-zinc-900 text-sm">{isBiz ? '👔' : '👤'} {c.full_name}</span>
+                    {isBiz && c.title && <span className="shrink-0 text-xs text-zinc-500">{c.title}</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
+                    {isBiz && account && <span>🏢 {account.name}</span>}
+                    {isBiz && c.department && <span>{c.department}</span>}
+                    {c.email && <span>✉️ {c.email}</span>}
+                    {c.phone && <span>📞 {c.phone}</span>}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         </>
       )}
 

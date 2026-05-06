@@ -104,6 +104,8 @@ export default async function AccountsPage({
   const displayList = isGrouped
     ? sorted
     : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // モバイル用: グルーピング中も先頭 PAGE_SIZE 件をカード表示
+  const mobileList = isGrouped ? sorted.slice(0, PAGE_SIZE) : displayList
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -183,30 +185,33 @@ export default async function AccountsPage({
               />
             </TableErrorBoundary>
           </div>
-          {/* モバイル: カード（グルーピング非対応） */}
-          {!isGrouped && (
-            <div className="md:hidden space-y-2">
-              {(displayList as typeof raw).map((account) => (
-                <Link key={account.id} href={`/accounts/${account.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-zinc-900 text-sm leading-snug">{account.name}</span>
-                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
-                      account.status === 'active'   ? 'bg-green-100 text-green-700' :
-                      account.status === 'prospect' ? 'bg-blue-100 text-blue-700' :
-                                                      'bg-zinc-100 text-zinc-500'
-                    }`}>
-                      {account.status === 'active' ? '有効' : account.status === 'prospect' ? '見込み' : '無効'}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
-                    {account.industry && <span>{account.industry}</span>}
-                    {account.type && <span>{account.type}</span>}
-                    {account.phone && <span>📞 {account.phone}</span>}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+          {/* モバイル: カード */}
+          <div className="md:hidden space-y-2">
+            {isGrouped && (
+              <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+                📊 グルーピング表示はPC版でご確認ください（先頭 {PAGE_SIZE} 件を表示中）
+              </p>
+            )}
+            {(mobileList as typeof raw).map((account) => (
+              <Link key={account.id} href={`/accounts/${account.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-semibold text-zinc-900 text-sm leading-snug">{account.name}</span>
+                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
+                    account.status === 'active'   ? 'bg-green-100 text-green-700' :
+                    account.status === 'prospect' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-zinc-100 text-zinc-500'
+                  }`}>
+                    {account.status === 'active' ? '有効' : account.status === 'prospect' ? '見込み' : '無効'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
+                  {account.industry && <span>{account.industry}</span>}
+                  {account.type && <span>{account.type}</span>}
+                  {account.phone && <span>📞 {account.phone}</span>}
+                </div>
+              </Link>
+            ))}
+          </div>
         </>
       )}
 
