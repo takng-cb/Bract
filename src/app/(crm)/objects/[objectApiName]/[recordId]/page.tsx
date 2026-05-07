@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 import { deleteCustomRecord } from '@/app/actions/customRecords'
 import DeleteButton from '@/components/DeleteButton'
+import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 
 export default async function CustomRecordDetailPage({
   params,
@@ -34,6 +35,9 @@ export default async function CustomRecordDetailPage({
 
   const visibleFields = fields.filter((f) => f.is_visible)
 
+  // レコードのタイトル（name フィールドを優先）
+  const recordTitle = String(data.name ?? data.title ?? `${obj.label} #${recordId.slice(0, 8)}`)
+
   async function handleDelete() {
     'use server'
     await deleteCustomRecord(objectApiName, recordId)
@@ -41,17 +45,17 @@ export default async function CustomRecordDetailPage({
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
-      {/* パンくず */}
+      {/* パンくず＋アクション */}
       <div className="mb-6">
         <Link href={`/objects/${objectApiName}`} className="text-sm text-zinc-400 hover:text-zinc-600">
           ← {obj.label_plural}
         </Link>
-        <div className="flex items-center justify-between mt-2">
-          <h1 className="text-2xl font-bold text-zinc-900">
-            {obj.icon} {obj.label}詳細
+        <div className="flex items-start justify-between mt-2 gap-4">
+          <h1 className="text-2xl font-bold text-zinc-900 break-words">
+            {obj.icon} {recordTitle}
           </h1>
           {edit && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Link
                 href={`/objects/${objectApiName}/${recordId}/edit`}
                 className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
@@ -68,7 +72,7 @@ export default async function CustomRecordDetailPage({
       </div>
 
       {/* フィールド表示 */}
-      <div className="bg-white rounded-lg border border-zinc-200 p-6">
+      <div className="bg-white rounded-lg border border-zinc-200 p-6 mb-6">
         {visibleFields.length === 0 ? (
           <p className="text-sm text-zinc-400">フィールドが定義されていません。管理画面でフィールドを追加してください。</p>
         ) : (
@@ -101,6 +105,13 @@ export default async function CustomRecordDetailPage({
           <span>更新: {record.updated_at ? new Date(record.updated_at).toLocaleString('ja-JP') : '—'}</span>
         </div>
       </div>
+
+      {/* 関係性（多対多） */}
+      <RelatedRecordsSection
+        objectType={objectApiName}
+        recordId={recordId}
+        pagePath={`/objects/${objectApiName}/${recordId}`}
+      />
     </div>
   )
 }

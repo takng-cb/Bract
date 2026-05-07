@@ -3,11 +3,14 @@
  *
  * オブジェクト種別 + ID → 表示名 / 詳細 URL を解決するユーティリティ。
  * サーバー側 (Server Component / Server Action) でのみ使用。
+ *
+ * 組み込みオブジェクト（accounts / contacts / opportunities）は専用テーブルを参照。
+ * それ以外はカスタムオブジェクト（custom_records + object_definitions）を参照。
  */
 
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, properties } from '@/lib/schema'
-import { inArray } from 'drizzle-orm'
+import { accounts, contacts, opportunities, object_definitions, custom_records } from '@/lib/schema'
+import { inArray, eq, and } from 'drizzle-orm'
 
 export type ResolvedRecord = {
   id: string
@@ -45,25 +48,66 @@ export async function resolveRecords(
       return rows.map((r) => ({ id: r.id, label: r.name, sub: r.stage ?? undefined, href: `/opportunities/${r.id}` }))
     }
 
-    case 'properties': {
-      const rows = await db.select({ id: properties.id, name: properties.name, status: properties.status })
-        .from(properties)
-        .where(inArray(properties.id, ids))
-      return rows.map((r) => ({ id: r.id, label: r.name, sub: r.status ?? undefined, href: `/properties/${r.id}` }))
-    }
+    default: {
+      // カスタムオブジェクト（properties など）→ custom_records を参照
+      const objRows = await db
+        .select({ id: object_definitions.id })
+        .from(object_definitions)
+        .where(eq(object_definitions.api_name, objectType))
+        .limit(1)
 
-    default:
-      return ids.map((id) => ({ id, label: id, href: '#' }))
+      if (objRows.length === 0) {
+        // 未知のオブジェクト種別：ID をそのまま返す
+        return ids.map((id) => ({ id, label: id, href: '#' }))
+      }
+
+      const objectId = objRows[0].id
+      const rows = await db
+        .select({ id: custom_records.id, data: custom_records.data })
+        .from(custom_records)
+        .where(and(
+          eq(custom_records.object_id, objectId),
+          inArray(custom_records.id, ids),
+        ))
+
+      return rows.map((r) => {
+        let data: Record<string, unknown> = {}
+        try { data = JSON.parse(r.data) } catch { /* ignore */ }
+        return {
+          id:    r.id,
+          label: String(data.name ?? data.title ?? r.id),
+          sub:   data.status ? String(data.status) : undefined,
+          href:  `/objects/${objectType}/${r.id}`,
+        }
+      })
+    }
   }
 }
 
-/** オブジェクト種別の日本語ラベル */
+/** オブジェクト種別の日本語ラベル（静的な組み込みオブジェクトのみ） */
 export const OBJECT_TYPE_LABELS: Record<string, string> = {
   accounts:      '取引先',
   contacts:      '担当者',
   opportunities: '商談',
-  properties:    '物件・商品',
 }
 
-/** 選択可能なオブジェクト種別一覧 */
+/**
+ * 選択可能なオブジェクト種別一覧を返す。
+ * 組み込みオブジェクト + DB に登録されたカスタムオブジェクト（is_builtin=false）を含む。
+ * サーバー側専用。
+ */
+export async function getSelectableObjectTypes(): Promise<{ value: string; label: string }[]> {
+  const builtin = Object.entries(OBJECT_TYPE_LABELS).map(([value, label]) => ({ value, label }))
+
+  const customObjs = await db
+    .select({ api_name: object_definitions.api_name, label: object_definitions.label })
+    .from(object_definitions)
+    .where(eq(object_definitions.is_builtin, false))
+
+  const custom = customObjs.map((o) => ({ value: o.api_name, label: o.label }))
+
+  return [...builtin, ...custom]
+}
+
+/** 後方互換：静的な OBJECT_TYPES 配列（組み込みのみ） */
 export const OBJECT_TYPES = Object.keys(OBJECT_TYPE_LABELS)

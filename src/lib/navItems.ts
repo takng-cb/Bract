@@ -14,7 +14,8 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/activities',    label: '活動履歴',      icon: '📋' },
   { href: '/tasks',         label: 'ToDo',          icon: '✅' },
   { href: '/expenses',      label: '経費管理',      icon: '💰' },
-  { href: '/properties',    label: '物件・商品',    icon: '🏠' },
+  // /properties はカスタムオブジェクト化のため削除。
+  // DB の object_definitions (api_name='properties') から自動的にサイドバーに表示される。
 ]
 
 /** サイドバー下部（固定・順序変更不可） */
