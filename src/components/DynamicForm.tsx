@@ -3,18 +3,22 @@ import { useActionState, useRef } from 'react'
 import type { FieldDef } from '@/lib/objectMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
 import FormFillModal from '@/components/FormFillModal'
+import RecordSearchInput from '@/components/RecordSearchInput'
 
 type Props = {
-  fields:       FieldDef[]
+  fields:         FieldDef[]
   defaultValues?: Record<string, unknown>
-  action:       (prev: unknown, formData: FormData) => Promise<unknown>
-  submitLabel?: string
-  cancelHref?:  string
+  /** 編集時に account_id / contact_id の UUID を名前に解決した結果（api_name → 表示名） */
+  defaultLabels?: Record<string, string>
+  action:         (prev: unknown, formData: FormData) => Promise<unknown>
+  submitLabel?:   string
+  cancelHref?:    string
 }
 
 export default function DynamicForm({
   fields,
   defaultValues = {},
+  defaultLabels = {},
   action,
   submitLabel = '保存',
   cancelHref,
@@ -30,9 +34,13 @@ export default function DynamicForm({
   const formRef = useRef<HTMLFormElement | null>(null)
   const visibleFields = fields.filter((f) => f.is_visible)
 
-  // boolean・section 以外のフィールドから csvFormat / fieldMap を自動生成
+  // boolean・section・_id 系フィールド以外から csvFormat / fieldMap を自動生成
   const fillableFields = visibleFields.filter(
-    (f) => f.field_type !== 'section' && f.field_type !== 'boolean'
+    (f) =>
+      f.field_type !== 'section' &&
+      f.field_type !== 'boolean' &&
+      f.api_name !== 'account_id' && !f.api_name.endsWith('_account_id') &&
+      f.api_name !== 'contact_id' && !f.api_name.endsWith('_contact_id'),
   )
   const csvFormat = fillableFields.map((f) => f.label).join(',')
   const fieldMap  = Object.fromEntries(fillableFields.map((f) => [f.label, f.api_name]))
@@ -62,6 +70,47 @@ export default function DynamicForm({
         }
 
         const val = defaultValues[field.api_name]
+
+        // account_id / *_account_id → 取引先検索ピッカー
+        if (field.api_name === 'account_id' || field.api_name.endsWith('_account_id')) {
+          return (
+            <div key={field.id}>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                {field.label.replace(/ ?ID$/, '')}
+                {field.is_required && <span className="ml-1 text-red-500">*</span>}
+              </label>
+              <RecordSearchInput
+                name={field.api_name}
+                objectType="accounts"
+                defaultId={String(val ?? '')}
+                defaultLabel={defaultLabels[field.api_name] ?? ''}
+                placeholder="取引先名で検索..."
+                required={field.is_required}
+              />
+            </div>
+          )
+        }
+
+        // contact_id / *_contact_id → 担当者検索ピッカー
+        if (field.api_name === 'contact_id' || field.api_name.endsWith('_contact_id')) {
+          return (
+            <div key={field.id}>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                {field.label.replace(/ ?ID$/, '')}
+                {field.is_required && <span className="ml-1 text-red-500">*</span>}
+              </label>
+              <RecordSearchInput
+                name={field.api_name}
+                objectType="contacts"
+                defaultId={String(val ?? '')}
+                defaultLabel={defaultLabels[field.api_name] ?? ''}
+                placeholder="担当者名で検索..."
+                required={field.is_required}
+              />
+            </div>
+          )
+        }
+
         return (
           <div key={field.id}>
             <label className="block text-sm font-medium text-zinc-700 mb-1">
