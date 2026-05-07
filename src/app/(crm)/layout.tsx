@@ -3,39 +3,52 @@ import MobileNav from '@/components/MobileNav'
 import BottomNav from '@/components/BottomNav'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
 import PwaInstallBanner from '@/components/PwaInstallBanner'
-import { getEffectiveNavOrder } from '@/app/actions/navSettings'
-import { applyNavOrder, type NavItem } from '@/lib/navItems'
+import { applyNavOrder, DEFAULT_NAV_ORDER, type NavItem } from '@/lib/navItems'
 import { getSystemSetting } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
-import { user_preferences } from '@/lib/schema'
+import { user_preferences, system_settings } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { getCustomObjectsForNav } from '@/lib/objectMetadata'
 import { isAdmin, getSupabaseUser } from '@/lib/auth'
 
 export default async function CrmLayout({ children }: { children: React.ReactNode }) {
-  // ── Round 1: 独立したクエリを全て並列実行 ──────────────────────────────
-  // getSupabaseUser() と isAdmin() は内部で同じ React cache を共有するため
-  // auth.getUser() はこのリクエスト全体で1回だけ呼ばれる
-  const [order, companyName, user, customObjects, adminFlag, cookieStore] = await Promise.all([
-    getEffectiveNavOrder(),
-    getSystemSetting('company_name'),
-    getSupabaseUser(),          // キャッシュ済み。isAdmin() と auth 呼び出しを共有
-    getCustomObjectsForNav(),
-    isAdmin(),                  // getSupabaseUser() のキャッシュを再利用するため余分な通信なし
+  // ── Round 1: 認証を先に取得してユーザー ID を確定 ───────────────────
+  const [user, cookieStore] = await Promise.all([
+    getSupabaseUser(),
     cookies(),
   ])
 
-  // ── Round 2: ユーザー ID が確定してから表示名を取得 ──────────────────
-  let displayName: string | null = user?.email ?? null
-  if (user) {
-    const pref = await db
-      .select({ display_name: user_preferences.display_name })
-      .from(user_preferences)
-      .where(eq(user_preferences.user_id, user.id))
-      .then((r) => r[0] ?? null)
-    if (pref?.display_name) displayName = pref.display_name
+  // ── Round 2: ユーザー ID が確定してから残りを並列実行 ─────────────────
+  // user_preferences を1回のクエリで nav_order と display_name の両方を取得
+  const [pref, sysNavOrder, companyName, customObjects, adminFlag] = await Promise.all([
+    user
+      ? db.select({
+          nav_order:    user_preferences.nav_order,
+          display_name: user_preferences.display_name,
+        }).from(user_preferences)
+          .where(eq(user_preferences.user_id, user.id))
+          .then((r) => r[0] ?? null)
+      : Promise.resolve(null),
+    db.select({ value: system_settings.value })
+      .from(system_settings)
+      .where(eq(system_settings.key, 'nav_order'))
+      .then((r) => r[0] ?? null),
+    getSystemSetting('company_name'),
+    getCustomObjectsForNav(),
+    isAdmin(),
+  ])
+
+  // ナビ順序の解決（ユーザー設定 → システム設定 → デフォルト）
+  let order: string[] = DEFAULT_NAV_ORDER
+  if (pref?.nav_order) {
+    try { order = JSON.parse(pref.nav_order) as string[] } catch { /* use default */ }
+  } else if (sysNavOrder?.value) {
+    try { order = JSON.parse(sysNavOrder.value) as string[] } catch { /* use default */ }
   }
+
+  // 表示名の解決
+  const displayName: string | null = pref?.display_name ?? user?.email ?? null
 
   // カスタムオブジェクトをナビアイテムに変換
   const customNavItems: NavItem[] = customObjects

@@ -8,7 +8,7 @@
 
 import { db } from '@/lib/db'
 import { relationship_definitions, relationship_values } from '@/lib/schema'
-import { eq, and, or } from 'drizzle-orm'
+import { eq, and, or, inArray } from 'drizzle-orm'
 import { resolveRecords, OBJECT_TYPE_LABELS } from '@/lib/relationships'
 import { canEdit } from '@/lib/auth'
 import RelatedRecordsEditor from './RelatedRecordsEditor'
@@ -25,29 +25,40 @@ type Props = {
 export default async function RelatedRecordsSection({ objectType, recordId, pagePath }: Props) {
   const edit = await canEdit()
 
-  // このオブジェクト種別に関係する定義を取得
-  const allDefs = await db.select().from(relationship_definitions)
-  const relevantDefs = allDefs.filter(
-    (d) => d.source_object_type === objectType || d.target_object_type === objectType
+  // このオブジェクト種別に関係する定義をSQLで絞り込み
+  const relevantDefs = await db.select().from(relationship_definitions).where(
+    or(
+      eq(relationship_definitions.source_object_type, objectType),
+      eq(relationship_definitions.target_object_type, objectType),
+    )
   )
 
   if (relevantDefs.length === 0) return null
 
-  // 各定義について、紐づくレコード ID を取得して解決
+  const defIds = relevantDefs.map((d) => d.id)
+
+  // 全定義のうちこのレコードに紐づく値を一括取得（SQL で絞り込む）
+  const allValues = await db.select().from(relationship_values).where(
+    and(
+      inArray(relationship_values.relationship_id, defIds),
+      or(
+        eq(relationship_values.source_record_id, recordId),
+        eq(relationship_values.target_record_id, recordId),
+      )
+    )
+  )
+
+  // 各定義について紐づくレコードを解決
   const sections = await Promise.all(
     relevantDefs.map(async (def) => {
       const isSource = def.source_object_type === objectType
       const relatedObjectType = isSource ? def.target_object_type : def.source_object_type
       const label = isSource ? def.label : (def.reverse_label ?? def.label)
 
-      // 紐づく値を取得
-      const rows = await db.select().from(relationship_values).where(
-        eq(relationship_values.relationship_id, def.id)
-      )
-
+      const defRows = allValues.filter((r) => r.relationship_id === def.id)
       const relatedIds = isSource
-        ? rows.filter((r) => r.source_record_id === recordId).map((r) => r.target_record_id)
-        : rows.filter((r) => r.target_record_id === recordId).map((r) => r.source_record_id)
+        ? defRows.map((r) => r.target_record_id)
+        : defRows.map((r) => r.source_record_id)
 
       const resolved = await resolveRecords(relatedObjectType, relatedIds)
 

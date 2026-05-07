@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { opportunities, accounts, tags, taggables } from '@/lib/schema'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, and, inArray } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
@@ -72,7 +72,10 @@ export default async function OpportunitiesPage({
     db.select({ id: tags.id, name: tags.name, color: tags.color }).from(tags).orderBy(tags.name),
     tagConditions.length > 0
       ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
-          .from(taggables).where(eq(taggables.object_type, 'opportunity'))
+          .from(taggables).where(and(
+            eq(taggables.object_type, 'opportunity'),
+            inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
+          ))
       : Promise.resolve([]),
   ])
 
