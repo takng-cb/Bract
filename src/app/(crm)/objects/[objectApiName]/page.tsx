@@ -1,10 +1,11 @@
 import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { db } from '@/lib/db'
-import { custom_records } from '@/lib/schema'
-import { eq, desc } from 'drizzle-orm'
+import { custom_records, accounts, contacts } from '@/lib/schema'
+import { eq, desc, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
+import CsvToolbar from '@/components/CsvToolbar'
 
 export default async function CustomObjectListPage({
   params,
@@ -37,26 +38,72 @@ export default async function CustomObjectListPage({
     return { ...r, data }
   })
 
-  // 一覧に表示する代表フィールドを最大 4 列選ぶ
-  const listFields = visibleFields.slice(0, 4)
+  // ── account_id / contact_id を一括ルックアップ ──
+  const accountIdApiNames = new Set(
+    visibleFields.filter((f) => f.api_name === 'account_id' || f.api_name.endsWith('_account_id')).map((f) => f.api_name)
+  )
+  const contactIdApiNames = new Set(
+    visibleFields.filter((f) => f.api_name === 'contact_id' || f.api_name.endsWith('_contact_id')).map((f) => f.api_name)
+  )
+
+  const accountIdSet = new Set<string>()
+  const contactIdSet = new Set<string>()
+  for (const r of parsedRecords) {
+    for (const an of accountIdApiNames) {
+      const v = String(r.data[an] ?? '').trim()
+      if (v) accountIdSet.add(v)
+    }
+    for (const cn of contactIdApiNames) {
+      const v = String(r.data[cn] ?? '').trim()
+      if (v) contactIdSet.add(v)
+    }
+  }
+
+  const [accountRows, contactRows] = await Promise.all([
+    accountIdSet.size > 0
+      ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(inArray(accounts.id, [...accountIdSet]))
+      : Promise.resolve([]),
+    contactIdSet.size > 0
+      ? db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).where(inArray(contacts.id, [...contactIdSet]))
+      : Promise.resolve([]),
+  ])
+  const accountMap = new Map(accountRows.map((a) => [a.id, a.name]))
+  const contactMap = new Map(contactRows.map((c) => [c.id, c.name]))
+
+  // 一覧に表示する代表フィールドを最大 4 列選ぶ（_id 系フィールドを除く）
+  const listFields = visibleFields
+    .filter((f) => !accountIdApiNames.has(f.api_name) && !contactIdApiNames.has(f.api_name))
+    .slice(0, 4)
+
+  // CSV インポートのフォーマット文字列
+  const csvFormat = ['ID', ...visibleFields.map((f) => f.label)].join(',')
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">
             {obj.icon} {obj.label_plural}
           </h1>
           <p className="text-sm text-zinc-500 mt-1">全 {parsedRecords.length} 件</p>
         </div>
-        {edit && (
-          <Link
-            href={`/objects/${objectApiName}/new`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-          >
-            ＋ 新規登録
-          </Link>
-        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          <CsvToolbar
+            exportUrl={`/api/export/custom/${objectApiName}`}
+            importUrl={`/api/import/custom/${objectApiName}`}
+            label={obj.label}
+            csvFormat={csvFormat}
+            showImport={edit}
+          />
+          {edit && (
+            <Link
+              href={`/objects/${objectApiName}/new`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              ＋ 新規登録
+            </Link>
+          )}
+        </div>
       </div>
 
       {parsedRecords.length === 0 ? (
@@ -84,7 +131,7 @@ export default async function CustomObjectListPage({
                 <tr key={r.id} className="hover:bg-zinc-50 transition-colors">
                   {listFields.map((f) => (
                     <td key={f.id} className="px-4 py-3 text-zinc-700 max-w-[12rem] truncate">
-                      {formatCellValue(f.field_type, r.data[f.api_name], f)}
+                      {formatCellValue(f.field_type, r.data[f.api_name])}
                     </td>
                   ))}
                   <td className="px-4 py-3 text-right text-xs text-zinc-400 whitespace-nowrap">
@@ -108,11 +155,7 @@ export default async function CustomObjectListPage({
   )
 }
 
-function formatCellValue(
-  fieldType: string,
-  value: unknown,
-  field: Awaited<ReturnType<typeof getFieldDefs>>[number],
-): string {
+function formatCellValue(fieldType: string, value: unknown): string {
   if (value == null || value === '') return '—'
   switch (fieldType) {
     case 'boolean': return value ? '✅' : '—'
