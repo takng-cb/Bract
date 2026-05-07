@@ -7,12 +7,22 @@ import { users } from './schema'
 import { eq } from 'drizzle-orm'
 import type { Role } from './userRole'
 
+/**
+ * リクエストごとに一度だけ Supabase Auth を呼ぶ内部キャッシュ関数。
+ * getUser() は認証サーバーへのネットワーク呼び出しになるため、
+ * React の cache() でリクエスト内の重複呼び出しを防ぐ。
+ */
+const getSupabaseUser = cache(async () => {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+})
+
 /** 現在のログインユーザーのロールを返す（リクエスト内でキャッシュ）
  *  なりすまし中は対象ユーザーのロールを返す（Supabaseセッションが切り替わっているため自動的に正しい）
  */
 export const getCurrentRole = cache(async (): Promise<Role> => {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSupabaseUser()
   if (!user) return 'viewer'
 
   const row = await db
@@ -57,7 +67,6 @@ export async function requireAdmin(): Promise<void> {
 
 /** 現在のログインユーザーのIDを返す（未ログインは null） */
 export const getCurrentUserId = cache(async (): Promise<string | null> => {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSupabaseUser()
   return user?.id ?? null
 })
