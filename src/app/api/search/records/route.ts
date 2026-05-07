@@ -10,7 +10,7 @@
 
 import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, object_definitions, custom_records } from '@/lib/schema'
-import { ilike, notInArray, and, eq, inArray } from 'drizzle-orm'
+import { ilike, notInArray, and, eq, sql } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
 
       default: {
         // カスタムオブジェクト（properties など）は custom_records を参照
+        // PostgreSQL の JSON 演算子（->>'name'）を使い DB 側でフィルタ（全件取得を回避）
         const objRows = await db
           .select({ id: object_definitions.id })
           .from(object_definitions)
@@ -93,29 +94,28 @@ export async function GET(req: NextRequest) {
         }
         const objectId = objRows[0].id
 
-        // custom_records の data（JSON blob）から全件取得し、メモリ内で name フィルタ
-        // ※ JSON 列に対する LIKE は DB 側では難しいため、一旦全件引いてフィルタする
-        // （件数が多い場合は PostgreSQL の ->> 演算子を使うよう最適化可能）
-        const allRows = await db
+        const rows = await db
           .select({ id: custom_records.id, data: custom_records.data })
           .from(custom_records)
           .where(
-            excludeIds.length > 0
-              ? and(eq(custom_records.object_id, objectId), notInArray(custom_records.id, excludeIds))
-              : eq(custom_records.object_id, objectId)
+            and(
+              eq(custom_records.object_id, objectId),
+              // JSON の "name" フィールドを PostgreSQL 側で ILIKE フィルタ
+              sql`(${custom_records.data}->>'name') ILIKE ${pattern}`,
+              excludeIds.length > 0 ? notInArray(custom_records.id, excludeIds) : undefined,
+            )
           )
+          .limit(MAX_RESULTS)
 
-        const qLower = q.toLowerCase()
-        results = allRows
-          .map((r) => {
-            let data: Record<string, unknown> = {}
-            try { data = JSON.parse(r.data) } catch { /* ignore */ }
-            const label = String(data.name ?? data.title ?? r.id)
-            return { id: r.id, label, sub: data.status ? String(data.status) : undefined, _match: label.toLowerCase().includes(qLower) }
-          })
-          .filter((r) => r._match)
-          .slice(0, MAX_RESULTS)
-          .map(({ _match: _, ...r }) => r)
+        results = rows.map((r) => {
+          let data: Record<string, unknown> = {}
+          try { data = JSON.parse(r.data) } catch { /* ignore */ }
+          return {
+            id:    r.id,
+            label: String(data.name ?? data.title ?? r.id),
+            sub:   data.status ? String(data.status) : undefined,
+          }
+        })
         break
       }
     }

@@ -6,23 +6,36 @@ import PwaInstallBanner from '@/components/PwaInstallBanner'
 import { getEffectiveNavOrder } from '@/app/actions/navSettings'
 import { applyNavOrder, type NavItem } from '@/lib/navItems'
 import { getSystemSetting } from '@/lib/systemSettings'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { db } from '@/lib/db'
 import { user_preferences } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { getCustomObjectsForNav } from '@/lib/objectMetadata'
-import { isAdmin } from '@/lib/auth'
+import { isAdmin, getSupabaseUser } from '@/lib/auth'
 
 export default async function CrmLayout({ children }: { children: React.ReactNode }) {
-  const [order, companyName, supabase, cookieStore, customObjects, adminFlag] = await Promise.all([
+  // ── Round 1: 独立したクエリを全て並列実行 ──────────────────────────────
+  // getSupabaseUser() と isAdmin() は内部で同じ React cache を共有するため
+  // auth.getUser() はこのリクエスト全体で1回だけ呼ばれる
+  const [order, companyName, user, customObjects, adminFlag, cookieStore] = await Promise.all([
     getEffectiveNavOrder(),
     getSystemSetting('company_name'),
-    createSupabaseServerClient(),
-    cookies(),
+    getSupabaseUser(),          // キャッシュ済み。isAdmin() と auth 呼び出しを共有
     getCustomObjectsForNav(),
-    isAdmin(),
+    isAdmin(),                  // getSupabaseUser() のキャッシュを再利用するため余分な通信なし
+    cookies(),
   ])
+
+  // ── Round 2: ユーザー ID が確定してから表示名を取得 ──────────────────
+  let displayName: string | null = user?.email ?? null
+  if (user) {
+    const pref = await db
+      .select({ display_name: user_preferences.display_name })
+      .from(user_preferences)
+      .where(eq(user_preferences.user_id, user.id))
+      .then((r) => r[0] ?? null)
+    if (pref?.display_name) displayName = pref.display_name
+  }
 
   // カスタムオブジェクトをナビアイテムに変換して追加
   const customNavItems: NavItem[] = customObjects
@@ -34,17 +47,6 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     }))
 
   const mainItems = [...applyNavOrder(order), ...customNavItems]
-
-  // ログインユーザーの表示名を取得
-  const { data: { user } } = await supabase.auth.getUser()
-  let displayName: string | null = null
-  if (user) {
-    const pref = await db.select({ display_name: user_preferences.display_name })
-      .from(user_preferences)
-      .where(eq(user_preferences.user_id, user.id))
-      .then((r) => r[0] ?? null)
-    displayName = pref?.display_name ?? user.email ?? null
-  }
 
   // なりすまし中かどうか確認
   const adminSessionRaw = cookieStore.get('crm_admin_session')?.value
