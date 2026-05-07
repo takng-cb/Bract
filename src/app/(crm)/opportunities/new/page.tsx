@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { accounts } from '@/lib/schema'
+import { accounts, contacts } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import OpportunityForm from '@/components/OpportunityForm'
@@ -16,9 +16,11 @@ export default async function NewOpportunityPage({
 }) {
   const { account_id } = await searchParams
   await requireEditor()
-  const [accountsList, { fields }] = await Promise.all([
+  const [accountsList, contactsList, { fields }] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
     getCustomFieldsWithValues('opportunities', ''),
   ])
 
@@ -49,6 +51,7 @@ export default async function NewOpportunityPage({
           action={createOpportunityAction}
           cancelHref={cancelHref}
           accounts={accountsList}
+          contacts={contactsList}
           defaultValues={{ account_id: account_id ?? '' }}
           customFields={fields}
         />

@@ -35,15 +35,18 @@ export async function createObjectDef(formData: FormData) {
 export async function updateObjectDef(id: string, formData: FormData) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
-  const label        = (formData.get('label')        as string).trim()
-  const label_plural = (formData.get('label_plural') as string).trim()
-  const icon         = (formData.get('icon')         as string).trim() || '📦'
-  const nav_enabled  = formData.get('nav_enabled') === 'on'
+  const label             = (formData.get('label')        as string).trim()
+  const label_plural      = (formData.get('label_plural') as string).trim()
+  const icon              = (formData.get('icon')         as string).trim() || '📦'
+  const nav_enabled       = formData.get('nav_enabled')       === 'on'
+  const enable_activities = formData.get('enable_activities') === 'on'
+  const enable_tasks      = formData.get('enable_tasks')      === 'on'
+  const enable_expenses   = formData.get('enable_expenses')   === 'on'
 
   if (!label || !label_plural) throw new Error('必須項目が不足しています')
 
   await db.update(object_definitions)
-    .set({ label, label_plural, icon, nav_enabled, updated_at: new Date() })
+    .set({ label, label_plural, icon, nav_enabled, enable_activities, enable_tasks, enable_expenses, updated_at: new Date() })
     .where(eq(object_definitions.id, id))
 
   revalidateTag(CACHE_TAG_OBJECTS, 'max')

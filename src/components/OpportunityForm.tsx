@@ -7,17 +7,20 @@ import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 
-type Account = { id: string; name: string }
+type Account  = { id: string; name: string }
+type Contact  = { id: string; full_name: string }
 
 type OpportunityFormProps = {
   action: (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref: string
   accounts: Account[]
+  contacts?: Contact[]
   customFields?: FieldDef[]
   customValues?: Record<string, string | null>
   defaultValues?: {
     name?: string
     account_id?: string | null
+    contact_id?: string | null
     stage?: string
     amount?: number | null
     close_date?: string | null
@@ -35,7 +38,7 @@ const STAGES = [
   { value: 'closed_lost',   label: '失注' },
 ]
 
-export default function OpportunityForm({ action, cancelHref, accounts, defaultValues = {}, customFields = [], customValues = {} }: OpportunityFormProps) {
+export default function OpportunityForm({ action, cancelHref, accounts, contacts = [], defaultValues = {}, customFields = [], customValues = {} }: OpportunityFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -101,6 +104,18 @@ export default function OpportunityForm({ action, cancelHref, accounts, defaultV
           placeholder="選択してください"
         />
       </div>
+
+      {contacts.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <SearchableSelect
+            name="contact_id"
+            defaultValue={defaultValues.contact_id}
+            options={contacts.map((c) => ({ value: c.id, label: c.full_name }))}
+            placeholder="選択してください"
+          />
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">ステージ</label>

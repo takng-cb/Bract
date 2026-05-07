@@ -58,6 +58,7 @@ export const contacts = pgTable('contacts', {
 export const opportunities = pgTable('opportunities', {
   id:          uuid('id').primaryKey().defaultRandom(),
   account_id:  uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
+  contact_id:  uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
   name:        text('name').notNull(),
   stage:       text('stage').notNull().default('prospecting'),
   amount:      numeric('amount'),
@@ -73,16 +74,17 @@ export const opportunities = pgTable('opportunities', {
 // activities（活動履歴）
 // ----------------------------------------------------------------
 export const activities = pgTable('activities', {
-  id:             uuid('id').primaryKey().defaultRandom(),
-  account_id:     uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
-  contact_id:     uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
-  opportunity_id: uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
-  type:           text('type').notNull(),
-  subject:        text('subject').notNull(),
-  body:           text('body'),
-  occurred_at:    timestamp('occurred_at', { withTimezone: true }).defaultNow(),
-  owner_id:       uuid('owner_id'),
-  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+  id:               uuid('id').primaryKey().defaultRandom(),
+  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
+  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  opportunity_id:   uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
+  custom_record_id: uuid('custom_record_id').references(() => custom_records.id, { onDelete: 'cascade' }),
+  type:             text('type').notNull(),
+  subject:          text('subject').notNull(),
+  body:             text('body'),
+  occurred_at:      timestamp('occurred_at', { withTimezone: true }).defaultNow(),
+  owner_id:         uuid('owner_id'),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------
@@ -101,16 +103,17 @@ export const activity_contacts = pgTable('activity_contacts', {
 // tasks（タスク / ToDo）
 // ----------------------------------------------------------------
 export const tasks = pgTable('tasks', {
-  id:             uuid('id').primaryKey().defaultRandom(),
-  title:          text('title').notNull(),
-  due_date:       date('due_date'),
-  done:           boolean('done').notNull().default(false),
-  priority:       text('priority').notNull().default('medium'),
-  account_id:     uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
-  contact_id:     uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
-  opportunity_id: uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
-  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at:     timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:               uuid('id').primaryKey().defaultRandom(),
+  title:            text('title').notNull(),
+  due_date:         date('due_date'),
+  done:             boolean('done').notNull().default(false),
+  priority:         text('priority').notNull().default('medium'),
+  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
+  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  opportunity_id:   uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
+  custom_record_id: uuid('custom_record_id').references(() => custom_records.id, { onDelete: 'cascade' }),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------
@@ -133,17 +136,18 @@ export const attachments = pgTable('attachments', {
 // expenses（経費申請）
 // ----------------------------------------------------------------
 export const expenses = pgTable('expenses', {
-  id:             uuid('id').primaryKey().defaultRandom(),
-  title:          text('title').notNull(),
-  amount:         numeric('amount').notNull(),
-  category:       text('category').notNull().default('その他'),
-  expense_date:   date('expense_date').notNull(),
-  account_id:     uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
-  contact_id:     uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
-  opportunity_id: uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
-  notes:          text('notes'),
-  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at:     timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:               uuid('id').primaryKey().defaultRandom(),
+  title:            text('title').notNull(),
+  amount:           numeric('amount').notNull(),
+  category:         text('category').notNull().default('その他'),
+  expense_date:     date('expense_date').notNull(),
+  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  opportunity_id:   uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
+  custom_record_id: uuid('custom_record_id').references(() => custom_records.id, { onDelete: 'set null' }),
+  notes:            text('notes'),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------
@@ -252,16 +256,19 @@ export const change_logs = pgTable('change_logs', {
 // object_definitions（カスタムオブジェクト定義）
 // ----------------------------------------------------------------
 export const object_definitions = pgTable('object_definitions', {
-  id:           uuid('id').primaryKey().defaultRandom(),
-  api_name:     text('api_name').notNull().unique(),   // URL・DB キー。変更不可想定
-  label:        text('label').notNull(),               // 単数形表示名
-  label_plural: text('label_plural').notNull(),        // 複数形表示名
-  icon:         text('icon').notNull().default('📦'),
-  is_builtin:   boolean('is_builtin').notNull().default(false), // 組み込みオブジェクトは削除不可
-  nav_enabled:  boolean('nav_enabled').notNull().default(true),
-  sort_order:   integer('sort_order').notNull().default(0),
-  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at:   timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:                uuid('id').primaryKey().defaultRandom(),
+  api_name:          text('api_name').notNull().unique(),   // URL・DB キー。変更不可想定
+  label:             text('label').notNull(),               // 単数形表示名
+  label_plural:      text('label_plural').notNull(),        // 複数形表示名
+  icon:              text('icon').notNull().default('📦'),
+  is_builtin:        boolean('is_builtin').notNull().default(false), // 組み込みオブジェクトは削除不可
+  nav_enabled:       boolean('nav_enabled').notNull().default(true),
+  sort_order:        integer('sort_order').notNull().default(0),
+  enable_activities: boolean('enable_activities').notNull().default(false),
+  enable_tasks:      boolean('enable_tasks').notNull().default(false),
+  enable_expenses:   boolean('enable_expenses').notNull().default(false),
+  created_at:        timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:        timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------

@@ -38,6 +38,7 @@ export async function createOpportunity(formData: FormData): Promise<string> {
   const [row] = await db.insert(opportunities).values({
     name:        name.trim(),
     account_id:  (formData.get('account_id') as string) || null,
+    contact_id:  (formData.get('contact_id') as string) || null,
     stage:       (formData.get('stage') as string) || 'prospecting',
     amount:      amount ? String(Number(amount)) : null,
     close_date:  close_date || null,
@@ -67,6 +68,7 @@ export async function updateOpportunity(id: string, formData: FormData) {
   await db.update(opportunities).set({
     name:        name.trim(),
     account_id:  (formData.get('account_id') as string) || null,
+    contact_id:  (formData.get('contact_id') as string) || null,
     stage,
     amount:      amount ? String(Number(amount)) : null,
     close_date:  close_date || null,

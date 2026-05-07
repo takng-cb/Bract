@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { opportunities, accounts, activities, tasks, attachments, expenses } from '@/lib/schema'
+import { opportunities, accounts, contacts, activities, tasks, attachments, expenses } from '@/lib/schema'
 import { eq, asc, desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -60,9 +60,11 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       close_date: opportunities.close_date, description: opportunities.description,
       created_at: opportunities.created_at,
       accounts: { id: accounts.id, name: accounts.name },
+      contacts: { id: contacts.id, full_name: contacts.full_name },
     })
       .from(opportunities)
       .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+      .leftJoin(contacts, eq(opportunities.contact_id, contacts.id))
       .where(eq(opportunities.id, id))
       .then((r) => r[0] ?? null),
     db.select().from(activities).where(eq(activities.opportunity_id, id)).orderBy(desc(activities.occurred_at)),
@@ -75,6 +77,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   if (!opportunity) notFound()
   const account = opportunity.accounts?.id ? opportunity.accounts : null
+  const contact = opportunity.contacts?.id ? opportunity.contacts : null
 
   async function changeStage(stage: string) {
     'use server'
@@ -129,6 +132,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-zinc-900 break-words">{opportunity.name}</h1>
         {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
+        {contact && <Link href={`/contacts/${contact.id}`} className="text-sm text-blue-600 hover:underline mt-0.5 block">👤 {contact.full_name}</Link>}
         <div className="mt-2">
           <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
         </div>

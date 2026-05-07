@@ -15,22 +15,26 @@ export async function createExpense(formData: FormData) {
   const amount = formData.get('amount') as string
   if (!amount || Number(amount) <= 0) throw new Error('金額は0より大きい値を入力してください')
 
-  const expense_date   = formData.get('expense_date') as string
-  const opportunity_id = (formData.get('opportunity_id') as string) || null
-  const account_id     = (formData.get('account_id') as string) || null
-  const contact_id     = (formData.get('contact_id') as string) || null
+  const expense_date     = formData.get('expense_date') as string
+  const opportunity_id   = (formData.get('opportunity_id')   as string) || null
+  const account_id       = (formData.get('account_id')       as string) || null
+  const contact_id       = (formData.get('contact_id')       as string) || null
+  const custom_record_id = (formData.get('custom_record_id') as string) || null
+  const return_to        = (formData.get('return_to')        as string) || null
 
   const [row] = await db.insert(expenses).values({
-    title:        title.trim(),
-    amount:       String(Number(amount)),
-    category:     (formData.get('category') as string) || 'その他',
-    expense_date: expense_date || new Date().toISOString().slice(0, 10),
+    title:            title.trim(),
+    amount:           String(Number(amount)),
+    category:         (formData.get('category') as string) || 'その他',
+    expense_date:     expense_date || new Date().toISOString().slice(0, 10),
     account_id,
     contact_id,
     opportunity_id,
+    custom_record_id,
     notes: (formData.get('notes') as string) || null,
   }).returning({ id: expenses.id })
 
+  if (return_to)      redirect(return_to)
   if (opportunity_id) redirect(`/opportunities/${opportunity_id}`)
   if (account_id)     redirect(`/accounts/${account_id}`)
   redirect(`/expenses/${row.id}`)

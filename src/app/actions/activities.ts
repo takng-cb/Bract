@@ -63,18 +63,23 @@ export async function createActivity(formData: FormData) {
   const contactIds     = formData.getAll('contact_ids') as string[]
   const primaryContactId = contactIds[0] ?? null
 
+  const custom_record_id = (formData.get('custom_record_id') as string) || null
+  const return_to        = (formData.get('return_to')        as string) || null
+
   const [row] = await db.insert(activities).values({
-    subject:        subject.trim(),
+    subject:          subject.trim(),
     type,
-    body:           (formData.get('body') as string) || null,
-    occurred_at:    occurred_at ? new Date(occurred_at) : new Date(),
-    account_id:     account_id || null,
-    contact_id:     primaryContactId,
-    opportunity_id: opportunity_id || null,
+    body:             (formData.get('body') as string) || null,
+    occurred_at:      occurred_at ? new Date(occurred_at) : new Date(),
+    account_id:       account_id || null,
+    contact_id:       primaryContactId,
+    opportunity_id:   opportunity_id || null,
+    custom_record_id: custom_record_id || null,
   }).returning({ id: activities.id })
 
   await syncActivityContacts(row.id, contactIds)
 
+  if (return_to)         redirect(return_to)
   if (account_id)        redirect(`/accounts/${account_id}`)
   if (primaryContactId)  redirect(`/contacts/${primaryContactId}`)
   if (opportunity_id)    redirect(`/opportunities/${opportunity_id}`)

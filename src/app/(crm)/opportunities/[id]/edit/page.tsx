@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { opportunities, accounts } from '@/lib/schema'
+import { opportunities, accounts, contacts } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -12,10 +12,12 @@ import { requireEditor } from '@/lib/auth'
 export default async function EditOpportunityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [opportunity, accountsList, customData] = await Promise.all([
+  const [opportunity, accountsList, contactsList, customData] = await Promise.all([
     db.select().from(opportunities).where(eq(opportunities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
     getCustomFieldsWithValues('opportunities', id),
   ])
   if (!opportunity) notFound()
@@ -47,6 +49,7 @@ export default async function EditOpportunityPage({ params }: { params: Promise<
           action={updateOpportunityAction}
           cancelHref={`/opportunities/${id}`}
           accounts={accountsList}
+          contacts={contactsList}
           defaultValues={{
             ...opportunity,
             close_date: opportunity.close_date ?? null,

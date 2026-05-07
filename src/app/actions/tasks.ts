@@ -13,19 +13,23 @@ export async function createTask(formData: FormData) {
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('タイトルは必須です')
 
-  const account_id     = (formData.get('account_id') as string) || null
-  const contact_id     = (formData.get('contact_id') as string) || null
-  const opportunity_id = (formData.get('opportunity_id') as string) || null
+  const account_id       = (formData.get('account_id')       as string) || null
+  const contact_id       = (formData.get('contact_id')       as string) || null
+  const opportunity_id   = (formData.get('opportunity_id')   as string) || null
+  const custom_record_id = (formData.get('custom_record_id') as string) || null
+  const return_to        = (formData.get('return_to')        as string) || null
 
   const [row] = await db.insert(tasks).values({
-    title:          title.trim(),
-    due_date:       (formData.get('due_date') as string) || null,
-    priority:       (formData.get('priority') as string) || 'medium',
+    title:            title.trim(),
+    due_date:         (formData.get('due_date') as string) || null,
+    priority:         (formData.get('priority') as string) || 'medium',
     account_id,
     contact_id,
     opportunity_id,
+    custom_record_id,
   }).returning({ id: tasks.id })
 
+  if (return_to)      redirect(return_to)
   if (account_id)     redirect(`/accounts/${account_id}`)
   if (contact_id)     redirect(`/contacts/${contact_id}`)
   if (opportunity_id) redirect(`/opportunities/${opportunity_id}`)
