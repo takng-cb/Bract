@@ -10,6 +10,7 @@ const FIELD_TYPES = [
   { value: 'date',     label: '日付' },
   { value: 'boolean',  label: 'チェックボックス' },
   { value: 'select',   label: '選択肢' },
+  { value: 'formula',  label: '🔢 数式（計算フィールド）' },
 ]
 
 type Props = {
@@ -138,10 +139,13 @@ function FieldEditForm({
 
   const base = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
+  // select: JSON配列 → 1行1つのテキスト
   let optionsText = ''
-  if (field.options) {
+  if (field.options && field.field_type === 'select') {
     try { optionsText = (JSON.parse(field.options) as string[]).join('\n') } catch { /* ignore */ }
   }
+  // formula: options に数式文字列が直接入っている
+  const formulaExpr = field.field_type === 'formula' ? (field.options ?? '') : ''
 
   return (
     <form action={dispatch} className="px-5 py-4 bg-blue-50/40 space-y-3">
@@ -167,6 +171,23 @@ function FieldEditForm({
         <div>
           <label className="block text-xs font-medium text-zinc-600 mb-1">選択肢（1行1つ）</label>
           <textarea name="options" defaultValue={optionsText} rows={4} className={base} />
+        </div>
+      )}
+
+      {fieldType === 'formula' && (
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">数式</label>
+          <input
+            name="options"
+            type="text"
+            defaultValue={formulaExpr}
+            required
+            placeholder="例: price * quantity"
+            className={base}
+          />
+          <p className="mt-1 text-xs text-zinc-400">
+            他のフィールドの API名を使って計算式を記述します。四則演算（+ - * /）と括弧が使えます。
+          </p>
         </div>
       )}
 

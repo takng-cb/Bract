@@ -11,21 +11,24 @@ import { type NavItem, ALL_NAV_ITEMS } from '@/lib/navItems'
 
 type Props = {
   /** 現在のユーザー設定順序（null = 設定なし） */
-  userOrder:   string[] | null
+  userOrder:    string[] | null
   /** 現在のシステム設定順序（null = 設定なし） */
-  systemOrder: string[] | null
+  systemOrder:  string[] | null
+  /** カスタムオブジェクトのナビアイテム */
+  customItems?: NavItem[]
 }
 
-function buildItems(order: string[] | null): NavItem[] {
-  const map           = new Map(ALL_NAV_ITEMS.map((i) => [i.href, i]))
-  const effectiveOrder = order ?? ALL_NAV_ITEMS.map((i) => i.href)
-  const ordered       = effectiveOrder.filter((h) => map.has(h)).map((h) => map.get(h)!)
-  const missing       = ALL_NAV_ITEMS.filter((i) => !effectiveOrder.includes(i.href))
+function buildItems(order: string[] | null, extraItems: NavItem[]): NavItem[] {
+  const allItems       = [...ALL_NAV_ITEMS, ...extraItems]
+  const map            = new Map(allItems.map((i) => [i.href, i]))
+  const effectiveOrder = order ?? allItems.map((i) => i.href)
+  const ordered        = effectiveOrder.filter((h) => map.has(h)).map((h) => map.get(h)!)
+  const missing        = allItems.filter((i) => !effectiveOrder.includes(i.href))
   return [...ordered, ...missing]
 }
 
-export default function NavOrderEditor({ userOrder, systemOrder }: Props) {
-  const [items, setItems]     = useState<NavItem[]>(() => buildItems(userOrder ?? systemOrder))
+export default function NavOrderEditor({ userOrder, systemOrder, customItems = [] }: Props) {
+  const [items, setItems]     = useState<NavItem[]>(() => buildItems(userOrder ?? systemOrder, customItems))
   const [saved, setSaved]     = useState<'user' | 'system' | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -55,7 +58,7 @@ export default function NavOrderEditor({ userOrder, systemOrder }: Props) {
   function handleResetUser() {
     startTransition(async () => {
       await resetUserNavOrder()
-      setItems(buildItems(systemOrder))
+      setItems(buildItems(systemOrder, customItems))
       setSaved(null)
     })
   }
@@ -63,7 +66,7 @@ export default function NavOrderEditor({ userOrder, systemOrder }: Props) {
   function handleResetSystem() {
     startTransition(async () => {
       await resetSystemNavOrder()
-      setItems(buildItems(null))
+      setItems(buildItems(null, customItems))
       setSaved(null)
     })
   }
@@ -79,33 +82,41 @@ export default function NavOrderEditor({ userOrder, systemOrder }: Props) {
 
       {/* 並び替えリスト */}
       <ul className="space-y-2 mb-6">
-        {items.map((item, i) => (
-          <li
-            key={item.href}
-            className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2.5"
-          >
-            <span className="text-lg w-6 text-center shrink-0">{item.icon}</span>
-            <span className="flex-1 text-sm font-medium text-zinc-800">{item.label}</span>
-            <div className="flex gap-1 shrink-0">
-              <button
-                onClick={() => move(i, -1)}
-                disabled={i === 0 || isPending}
-                className="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-500 transition-colors"
-                aria-label="上に移動"
-              >
-                ▲
-              </button>
-              <button
-                onClick={() => move(i, 1)}
-                disabled={i === items.length - 1 || isPending}
-                className="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-500 transition-colors"
-                aria-label="下に移動"
-              >
-                ▼
-              </button>
-            </div>
-          </li>
-        ))}
+        {items.map((item, i) => {
+          const isCustom = item.href.startsWith('/objects/')
+          return (
+            <li
+              key={item.href}
+              className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2.5"
+            >
+              <span className="text-lg w-6 text-center shrink-0">{item.icon}</span>
+              <span className="flex-1 text-sm font-medium text-zinc-800">{item.label}</span>
+              {isCustom && (
+                <span className="text-xs text-violet-500 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5 shrink-0">
+                  カスタム
+                </span>
+              )}
+              <div className="flex gap-1 shrink-0">
+                <button
+                  onClick={() => move(i, -1)}
+                  disabled={i === 0 || isPending}
+                  className="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-500 transition-colors"
+                  aria-label="上に移動"
+                >
+                  ▲
+                </button>
+                <button
+                  onClick={() => move(i, 1)}
+                  disabled={i === items.length - 1 || isPending}
+                  className="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-500 transition-colors"
+                  aria-label="下に移動"
+                >
+                  ▼
+                </button>
+              </div>
+            </li>
+          )
+        })}
       </ul>
 
       {/* 保存完了メッセージ */}

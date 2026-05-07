@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 import { createCustomRecord } from '@/app/actions/customRecords'
 import DynamicForm from '@/components/DynamicForm'
+import { db } from '@/lib/db'
+import { accounts, contacts } from '@/lib/schema'
+import { asc } from 'drizzle-orm'
 
 export default async function NewCustomRecordPage({
   params,
@@ -17,6 +20,25 @@ export default async function NewCustomRecordPage({
   if (!obj) notFound()
 
   const fields = await getFieldDefs(obj.id)
+
+  // account_id / contact_id フィールドの有無を確認
+  const visibleFields   = fields.filter((f) => f.is_visible)
+  const hasAccountField = visibleFields.some(
+    (f) => f.api_name === 'account_id' || f.api_name.endsWith('_account_id')
+  )
+  const hasContactField = visibleFields.some(
+    (f) => f.api_name === 'contact_id' || f.api_name.endsWith('_contact_id')
+  )
+
+  // 必要な場合のみ取引先・担当者一覧を取得
+  const [accountList, contactList] = await Promise.all([
+    hasAccountField
+      ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).orderBy(asc(accounts.name))
+      : Promise.resolve([]),
+    hasContactField
+      ? db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).orderBy(asc(contacts.full_name))
+      : Promise.resolve([]),
+  ])
 
   async function handleCreate(_prev: unknown, fd: FormData) {
     'use server'
@@ -40,6 +62,8 @@ export default async function NewCustomRecordPage({
           action={handleCreate}
           submitLabel="登録"
           cancelHref={`/objects/${objectApiName}`}
+          accountOptions={hasAccountField ? accountList.map((a) => ({ value: a.id, label: a.name })) : undefined}
+          contactOptions={hasContactField ? contactList.map((c) => ({ value: c.id, label: c.name })) : undefined}
         />
       </div>
     </div>

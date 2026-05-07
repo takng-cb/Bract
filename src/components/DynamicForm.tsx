@@ -1,38 +1,45 @@
 'use client'
-import { useActionState, useRef } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
 import FormFillModal from '@/components/FormFillModal'
-import RecordSearchInput from '@/components/RecordSearchInput'
+import SearchableSelect from '@/components/SearchableSelect'
+
+type SelectOption = { value: string; label: string }
 
 type Props = {
-  fields:         FieldDef[]
-  defaultValues?: Record<string, unknown>
-  /** 編集時に account_id / contact_id の UUID を名前に解決した結果（api_name → 表示名） */
-  defaultLabels?: Record<string, string>
-  action:         (prev: unknown, formData: FormData) => Promise<unknown>
-  submitLabel?:   string
-  cancelHref?:    string
+  fields:          FieldDef[]
+  defaultValues?:  Record<string, unknown>
+  action:          (prev: unknown, formData: FormData) => Promise<unknown>
+  submitLabel?:    string
+  cancelHref?:     string
+  /** 取引先フィールド用の選択肢（SearchableSelect に渡す） */
+  accountOptions?: SelectOption[]
+  /** 担当者フィールド用の選択肢（SearchableSelect に渡す） */
+  contactOptions?: SelectOption[]
 }
 
 export default function DynamicForm({
   fields,
   defaultValues = {},
-  defaultLabels = {},
   action,
   submitLabel = '保存',
   cancelHref,
+  accountOptions,
+  contactOptions,
 }: Props) {
   const [error, dispatch, isPending] = useActionState(
     async (_prev: unknown, fd: FormData) => {
-      try { await action(_prev, fd); return null }
+      try { await action(_prev, fd); setIsDirty(false); return null }
       catch (e: unknown) { return (e as Error).message ?? '保存に失敗しました' }
     },
     null,
   )
 
-  const formRef = useRef<HTMLFormElement | null>(null)
+  const formRef   = useRef<HTMLFormElement | null>(null)
+  const [isDirty, setIsDirty] = useState(false)
+
   const visibleFields = fields.filter((f) => f.is_visible)
 
   // boolean・section・_id 系フィールド以外から csvFormat / fieldMap を自動生成
@@ -40,13 +47,43 @@ export default function DynamicForm({
     (f) =>
       f.field_type !== 'section' &&
       f.field_type !== 'boolean' &&
+      f.field_type !== 'formula' &&
       f.api_name !== 'account_id' && !f.api_name.endsWith('_account_id') &&
       f.api_name !== 'contact_id' && !f.api_name.endsWith('_contact_id'),
   )
   const csvFormat = fillableFields.map((f) => f.label).join(',')
   const fieldMap  = Object.fromEntries(fillableFields.map((f) => [f.label, f.api_name]))
 
+  // ── 離脱ガード: ブラウザのリフレッシュ・閉じる ──────────────────────
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!isDirty) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
+  // ── 離脱ガード: ページ内リンクのクリック ────────────────────────────
+  useEffect(() => {
+    if (!isDirty) return
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null
+      if (!anchor) return
+      const href = anchor.getAttribute('href') ?? ''
+      // 同一ページのアンカーリンクは無視
+      if (href.startsWith('#')) return
+      const confirmed = window.confirm('変更内容が保存されていません。このページを離れますか？')
+      if (!confirmed) e.preventDefault()
+    }
+    document.addEventListener('click', handleClick, true)
+    return () => document.removeEventListener('click', handleClick, true)
+  }, [isDirty])
+
   // ── ボタン（上下共通） ──────────────────────────────────────
+  // 離脱確認はドキュメントレベルのクリックインターセプターで処理するため
+  // Link の onClick は不要（二重確認を避ける）
   const Buttons = () => (
     <div className="flex gap-3">
       <button
@@ -68,7 +105,12 @@ export default function DynamicForm({
   )
 
   return (
-    <form ref={formRef} action={dispatch} className="space-y-5">
+    <form
+      ref={formRef}
+      action={dispatch}
+      className="space-y-5"
+      onChange={() => setIsDirty(true)}
+    >
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
@@ -94,9 +136,10 @@ export default function DynamicForm({
           )
         }
 
-        const val = defaultValues[field.api_name]
+        const val    = defaultValues[field.api_name]
+        const strVal = val != null ? String(val) : ''
 
-        // account_id / *_account_id → 取引先検索ピッカー
+        // ── account_id / *_account_id → 取引先選択（SearchableSelect） ──
         if (field.api_name === 'account_id' || field.api_name.endsWith('_account_id')) {
           return (
             <div key={field.id}>
@@ -104,19 +147,17 @@ export default function DynamicForm({
                 {field.label.replace(/ ?ID$/, '')}
                 {field.is_required && <span className="ml-1 text-red-500">*</span>}
               </label>
-              <RecordSearchInput
+              <SearchableSelect
                 name={field.api_name}
-                objectType="accounts"
-                defaultId={String(val ?? '')}
-                defaultLabel={defaultLabels[field.api_name] ?? ''}
-                placeholder="取引先名で検索..."
-                required={field.is_required}
+                options={accountOptions ?? []}
+                defaultValue={strVal}
+                placeholder="取引先を選択..."
               />
             </div>
           )
         }
 
-        // contact_id / *_contact_id → 担当者検索ピッカー
+        // ── contact_id / *_contact_id → 担当者選択（SearchableSelect） ──
         if (field.api_name === 'contact_id' || field.api_name.endsWith('_contact_id')) {
           return (
             <div key={field.id}>
@@ -124,13 +165,29 @@ export default function DynamicForm({
                 {field.label.replace(/ ?ID$/, '')}
                 {field.is_required && <span className="ml-1 text-red-500">*</span>}
               </label>
-              <RecordSearchInput
+              <SearchableSelect
                 name={field.api_name}
-                objectType="contacts"
-                defaultId={String(val ?? '')}
-                defaultLabel={defaultLabels[field.api_name] ?? ''}
-                placeholder="担当者名で検索..."
-                required={field.is_required}
+                options={contactOptions ?? []}
+                defaultValue={strVal}
+                placeholder="担当者を選択..."
+              />
+            </div>
+          )
+        }
+
+        // ── 数式フィールド（読み取り専用） ──
+        if (field.field_type === 'formula') {
+          return (
+            <div key={field.id}>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                {field.label}
+                <span className="ml-1.5 text-xs text-violet-500 font-normal">数式</span>
+              </label>
+              <input
+                type="text"
+                value={strVal}
+                readOnly
+                className="w-full border border-zinc-200 bg-zinc-50 rounded-md px-3 py-2 text-sm text-zinc-500 cursor-not-allowed"
               />
             </div>
           )

@@ -88,11 +88,15 @@ export async function createFieldDef(objectId: string, formData: FormData) {
     throw new Error('API名は英小文字・数字・アンダースコアのみ使用できます（先頭は英字）')
   }
 
-  // select の場合 options を JSON 配列に変換
+  // options の処理:
+  //   select  → 1行1選択肢のテキストを JSON 配列に変換
+  //   formula → 数式文字列をそのまま保存
   let options: string | null = null
   if (field_type === 'select' && optionsRaw) {
     const arr = optionsRaw.split('\n').map((s) => s.trim()).filter(Boolean)
     options = JSON.stringify(arr)
+  } else if (field_type === 'formula' && optionsRaw) {
+    options = optionsRaw
   }
 
   await db.insert(field_definitions).values({
@@ -123,6 +127,8 @@ export async function updateFieldDef(fieldId: string, objectId: string, formData
   if (field_type === 'select' && optionsRaw) {
     const arr = optionsRaw.split('\n').map((s) => s.trim()).filter(Boolean)
     options = JSON.stringify(arr)
+  } else if (field_type === 'formula' && optionsRaw) {
+    options = optionsRaw
   }
 
   await db.update(field_definitions)

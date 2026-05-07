@@ -3,13 +3,15 @@
 import Link from 'next/link'
 import GroupedTable, { type ColDef } from '@/components/GroupedTable'
 import type { FieldDef } from '@/components/FilterBuilder'
+import { evalFormula } from '@/lib/formulaEval'
 
 // フィールド定義（サーバーから渡す最小限の情報）
 export type SerializedFieldDef = {
-  api_name: string
-  label: string
-  field_type: string
-  options: string[] | null  // select フィールドの選択肢
+  api_name:    string
+  label:       string
+  field_type:  string
+  options:     string[] | null  // select フィールドの選択肢
+  formulaExpr: string | null    // formula フィールドの数式
 }
 
 type Props = {
@@ -47,7 +49,7 @@ export default function CustomObjectTableView({
         )
       },
     },
-    // name / title 以外のデータフィールド
+    // name / title 以外のデータフィールド（数式フィールドも含む）
     ...fields
       .filter((f) =>
         f.field_type !== 'section' &&
@@ -59,7 +61,7 @@ export default function CustomObjectTableView({
       .map((f): ColDef => ({
         key: f.api_name,
         label: f.label,
-        align: f.field_type === 'number' ? 'right' : 'left',
+        align: f.field_type === 'number' || f.field_type === 'formula' ? 'right' : 'left',
         render: (r) => renderCell(f, r, objectApiName),
       })),
   ]
@@ -81,11 +83,9 @@ function renderCell(
   rec: Record<string, unknown>,
   objectApiName: string,
 ): React.ReactNode {
-  const val = rec[field.api_name]
-
   // account_id / *_account_id → 取引先リンク
   if (field.api_name === 'account_id' || field.api_name.endsWith('_account_id')) {
-    const id   = String(val ?? '').trim()
+    const id   = String(rec[field.api_name] ?? '').trim()
     const name = String(rec[`__name__${field.api_name}`] ?? '').trim()
     if (!id) return '—'
     return name
@@ -95,7 +95,7 @@ function renderCell(
 
   // contact_id / *_contact_id → 担当者リンク
   if (field.api_name === 'contact_id' || field.api_name.endsWith('_contact_id')) {
-    const id   = String(val ?? '').trim()
+    const id   = String(rec[field.api_name] ?? '').trim()
     const name = String(rec[`__name__${field.api_name}`] ?? '').trim()
     if (!id) return '—'
     return name
@@ -103,6 +103,18 @@ function renderCell(
       : id
   }
 
+  // formula フィールド → 数式を評価
+  if (field.field_type === 'formula') {
+    const expr = field.formulaExpr ?? ''
+    const computed = evalFormula(expr, rec as Record<string, unknown>)
+    if (computed === '') return '—'
+    const num = Number(computed)
+    return isNaN(num)
+      ? computed
+      : <span className="font-medium text-zinc-700">{num.toLocaleString('ja-JP')}</span>
+  }
+
+  const val = rec[field.api_name]
   if (val == null || val === '') return '—'
 
   switch (field.field_type) {
@@ -112,10 +124,8 @@ function renderCell(
       return Number(val).toLocaleString('ja-JP')
     case 'date':
       return new Date(String(val)).toLocaleDateString('ja-JP')
-    case 'select': {
-      // options が英語キーの場合もそのまま表示（管理画面で設定された値）
+    case 'select':
       return String(val)
-    }
     default:
       return <span className="truncate">{String(val)}</span>
   }

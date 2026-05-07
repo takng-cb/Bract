@@ -37,7 +37,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     if (pref?.display_name) displayName = pref.display_name
   }
 
-  // カスタムオブジェクトをナビアイテムに変換して追加
+  // カスタムオブジェクトをナビアイテムに変換
   const customNavItems: NavItem[] = customObjects
     .filter((o) => o.nav_enabled)
     .map((o) => ({
@@ -46,7 +46,8 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
       icon:  o.icon,
     }))
 
-  const mainItems = [...applyNavOrder(order), ...customNavItems]
+  // カスタムオブジェクトを含めてユーザー設定順に並び替え
+  const mainItems = applyNavOrder(order, customNavItems)
 
   // なりすまし中かどうか確認
   const adminSessionRaw = cookieStore.get('crm_admin_session')?.value

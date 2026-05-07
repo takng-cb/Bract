@@ -8,6 +8,7 @@ import { canEdit } from '@/lib/auth'
 import { deleteCustomRecord } from '@/app/actions/customRecords'
 import DeleteButton from '@/components/DeleteButton'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
+import { evalFormula } from '@/lib/formulaEval'
 
 export default async function CustomRecordDetailPage({
   params,
@@ -142,6 +143,23 @@ export default async function CustomRecordDetailPage({
                         ? <Link href={`/contacts/${id}`} className="text-blue-600 hover:underline">{name}</Link>
                         : id || '—'
                       }
+                    </dd>
+                  </div>
+                )
+              }
+
+              // formula フィールド → 数式を評価して表示
+              if (field.field_type === 'formula') {
+                const expr = field.options ?? ''
+                const computed = evalFormula(expr, data)
+                return (
+                  <div key={field.id}>
+                    <dt className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1">
+                      {field.label}
+                      <span className="ml-1.5 text-violet-400 normal-case font-normal">数式</span>
+                    </dt>
+                    <dd className="text-sm text-zinc-800">
+                      {computed !== '' ? Number(computed).toLocaleString('ja-JP') : '—'}
                     </dd>
                   </div>
                 )

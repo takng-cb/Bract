@@ -33,12 +33,15 @@ export const BOTTOM_NAV_ITEMS: NavItem[] = [
 export const DEFAULT_NAV_ORDER: string[] = ALL_NAV_ITEMS.map((i) => i.href)
 
 /**
- * href配列を受け取り、ALL_NAV_ITEMSを並び替えたNavItem配列を返す。
+ * href配列を受け取り、全アイテム（静的＋カスタム）を並び替えたNavItem配列を返す。
  * 順序リストにないアイテムは末尾に追加される。
+ * @param order  保存済みの href 順序
+ * @param extraItems  カスタムオブジェクトなど動的に追加されるアイテム
  */
-export function applyNavOrder(order: string[]): NavItem[] {
-  const map      = new Map(ALL_NAV_ITEMS.map((i) => [i.href, i]))
+export function applyNavOrder(order: string[], extraItems: NavItem[] = []): NavItem[] {
+  const allItems = [...ALL_NAV_ITEMS, ...extraItems]
+  const map      = new Map(allItems.map((i) => [i.href, i]))
   const ordered  = order.filter((h) => map.has(h)).map((h) => map.get(h)!)
-  const missing  = ALL_NAV_ITEMS.filter((i) => !order.includes(i.href))
+  const missing  = allItems.filter((i) => !order.includes(i.href))
   return [...ordered, ...missing]
 }

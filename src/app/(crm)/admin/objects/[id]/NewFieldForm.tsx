@@ -8,6 +8,7 @@ const FIELD_TYPES = [
   { value: 'date',     label: '日付' },
   { value: 'boolean',  label: 'チェックボックス' },
   { value: 'select',   label: '選択肢' },
+  { value: 'formula',  label: '🔢 数式（計算フィールド）' },
   { value: 'section',  label: '─── セクション区切り' },
 ]
 
@@ -19,6 +20,7 @@ type Props = {
 export default function NewFieldForm({ objectId, createAction }: Props) {
   const [fieldType, setFieldType] = useState('text')
   const isSection = fieldType === 'section'
+  const isFormula = fieldType === 'formula'
 
   const [error, dispatch, isPending] = useActionState(
     async (_prev: unknown, fd: FormData) => {
@@ -100,6 +102,24 @@ export default function NewFieldForm({ objectId, createAction }: Props) {
         <div>
           <label className="block text-xs font-medium text-zinc-600 mb-1">選択肢（1行1つ）</label>
           <textarea name="options" rows={4} placeholder={'例:\n対応中\n完了\nキャンセル'} className={base} />
+        </div>
+      )}
+
+      {isFormula && (
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">
+            数式 <span className="text-red-500">*</span>
+          </label>
+          <input
+            name="options"
+            type="text"
+            required
+            placeholder="例: price * quantity　または　amount * (1 - discount_rate)"
+            className={base}
+          />
+          <p className="mt-1 text-xs text-zinc-400">
+            他のフィールドの API名を使って計算式を記述します。四則演算（+ - * /）と括弧が使えます。
+          </p>
         </div>
       )}
 

@@ -12,12 +12,13 @@ import { user_preferences } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { isAdminUser } from '@/lib/userRole'
 import { listUsers } from '@/app/actions/userManagement'
+import { getCustomObjectsForNav } from '@/lib/objectMetadata'
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ userOrder, systemOrder }, systemSettings, userPref, adminFlag] = await Promise.all([
+  const [{ userOrder, systemOrder }, systemSettings, userPref, adminFlag, customObjects] = await Promise.all([
     getNavOrderSettings(),
     getSystemSettings([
       'company_name', 'password_min_length',
@@ -30,7 +31,13 @@ export default async function SettingsPage() {
           .then((r) => r[0] ?? null)
       : null,
     user ? isAdminUser(user.id) : Promise.resolve(false),
+    getCustomObjectsForNav(),
   ])
+
+  // カスタムオブジェクトをナビアイテム形式に変換（nav_enabled のもののみ）
+  const customNavItems = customObjects
+    .filter((o) => o.nav_enabled)
+    .map((o) => ({ href: `/objects/${o.api_name}`, label: o.label_plural, icon: o.icon }))
 
   const passwordMinLen = parseInt(
     systemSettings.password_min_length ?? SYSTEM_DEFAULTS.password_min_length, 10
@@ -97,7 +104,7 @@ export default async function SettingsPage() {
           </ul>
         </div>
 
-        <NavOrderEditor userOrder={userOrder} systemOrder={systemOrder} />
+        <NavOrderEditor userOrder={userOrder} systemOrder={systemOrder} customItems={customNavItems} />
 
         <PasswordForm passwordMinLength={passwordMinLen} />
       </div>

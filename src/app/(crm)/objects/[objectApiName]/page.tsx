@@ -183,10 +183,11 @@ export default async function CustomObjectListPage({
 
   // ── SerializedFieldDef（クライアントコンポーネントへの props） ──
   const serializedFields: SerializedFieldDef[] = dataFields.map((f) => ({
-    api_name:   f.api_name,
-    label:      f.label,
-    field_type: f.field_type,
-    options:    f.field_type === 'select' ? parseFieldOptions(f) : null,
+    api_name:    f.api_name,
+    label:       f.label,
+    field_type:  f.field_type,
+    options:     f.field_type === 'select' ? parseFieldOptions(f) : null,
+    formulaExpr: f.field_type === 'formula' ? (f.options ?? null) : null,
   }))
 
   // CSV インポートのフォーマット文字列
