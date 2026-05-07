@@ -3,11 +3,14 @@
  *
  * 関係性追加UI用のレコード検索エンドポイント。
  * objectType 別にレコード名を前方一致検索して返す。
+ *
+ * 組み込みオブジェクト（accounts / contacts / opportunities）は専用テーブルを参照。
+ * それ以外はカスタムオブジェクト（custom_records + object_definitions）を参照。
  */
 
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, properties } from '@/lib/schema'
-import { ilike, notInArray, and } from 'drizzle-orm'
+import { accounts, contacts, opportunities, object_definitions, custom_records } from '@/lib/schema'
+import { ilike, notInArray, and, eq, inArray } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
@@ -77,23 +80,44 @@ export async function GET(req: NextRequest) {
         break
       }
 
-      case 'properties': {
-        const rows = await db
-          .select({ id: properties.id, name: properties.name, status: properties.status })
-          .from(properties)
+      default: {
+        // カスタムオブジェクト（properties など）は custom_records を参照
+        const objRows = await db
+          .select({ id: object_definitions.id })
+          .from(object_definitions)
+          .where(eq(object_definitions.api_name, objectType))
+          .limit(1)
+
+        if (objRows.length === 0) {
+          return NextResponse.json({ error: 'Unknown objectType' }, { status: 400 })
+        }
+        const objectId = objRows[0].id
+
+        // custom_records の data（JSON blob）から全件取得し、メモリ内で name フィルタ
+        // ※ JSON 列に対する LIKE は DB 側では難しいため、一旦全件引いてフィルタする
+        // （件数が多い場合は PostgreSQL の ->> 演算子を使うよう最適化可能）
+        const allRows = await db
+          .select({ id: custom_records.id, data: custom_records.data })
+          .from(custom_records)
           .where(
-            and(
-              ilike(properties.name, pattern),
-              excludeIds.length > 0 ? notInArray(properties.id, excludeIds) : undefined,
-            )
+            excludeIds.length > 0
+              ? and(eq(custom_records.object_id, objectId), notInArray(custom_records.id, excludeIds))
+              : eq(custom_records.object_id, objectId)
           )
-          .limit(MAX_RESULTS)
-        results = rows.map((r) => ({ id: r.id, label: r.name, sub: r.status ?? undefined }))
+
+        const qLower = q.toLowerCase()
+        results = allRows
+          .map((r) => {
+            let data: Record<string, unknown> = {}
+            try { data = JSON.parse(r.data) } catch { /* ignore */ }
+            const label = String(data.name ?? data.title ?? r.id)
+            return { id: r.id, label, sub: data.status ? String(data.status) : undefined, _match: label.toLowerCase().includes(qLower) }
+          })
+          .filter((r) => r._match)
+          .slice(0, MAX_RESULTS)
+          .map(({ _match: _, ...r }) => r)
         break
       }
-
-      default:
-        return NextResponse.json({ error: 'Unknown objectType' }, { status: 400 })
     }
 
     return NextResponse.json(results)
