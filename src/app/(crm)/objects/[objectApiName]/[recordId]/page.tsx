@@ -1,7 +1,7 @@
 import { getObjectDef, getFieldDefs, parseFieldOptions } from '@/lib/objectMetadata'
 import { db } from '@/lib/db'
-import { custom_records } from '@/lib/schema'
-import { eq, and } from 'drizzle-orm'
+import { custom_records, accounts, contacts } from '@/lib/schema'
+import { eq, and, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
@@ -34,6 +34,28 @@ export default async function CustomRecordDetailPage({
   try { data = JSON.parse(record.data) } catch { /* ignore */ }
 
   const visibleFields = fields.filter((f) => f.is_visible)
+
+  // ── account_id / contact_id フィールドの ID を一括ルックアップ ──
+  const accountIdApiNames = new Set(
+    visibleFields.filter((f) => f.api_name === 'account_id' || f.api_name.endsWith('_account_id')).map((f) => f.api_name)
+  )
+  const contactIdApiNames = new Set(
+    visibleFields.filter((f) => f.api_name === 'contact_id' || f.api_name.endsWith('_contact_id')).map((f) => f.api_name)
+  )
+
+  const accountIdList = [...accountIdApiNames].map((an) => String(data[an] ?? '')).filter(Boolean)
+  const contactIdList = [...contactIdApiNames].map((cn) => String(data[cn] ?? '')).filter(Boolean)
+
+  const [accountRows, contactRows] = await Promise.all([
+    accountIdList.length > 0
+      ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(inArray(accounts.id, accountIdList))
+      : Promise.resolve([]),
+    contactIdList.length > 0
+      ? db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).where(inArray(contacts.id, contactIdList))
+      : Promise.resolve([]),
+  ])
+  const accountMap = new Map(accountRows.map((a) => [a.id, a.name]))
+  const contactMap = new Map(contactRows.map((c) => [c.id, c.name]))
 
   // レコードのタイトル（name フィールドを優先）
   const recordTitle = String(data.name ?? data.title ?? `${obj.label} #${recordId.slice(0, 8)}`)
@@ -86,6 +108,45 @@ export default async function CustomRecordDetailPage({
                 )
               }
               const val = data[field.api_name]
+
+              // account_id フィールド → 取引先リンク
+              if (accountIdApiNames.has(field.api_name)) {
+                const id = String(val ?? '').trim()
+                const name = id ? accountMap.get(id) : null
+                return (
+                  <div key={field.id}>
+                    <dt className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1">
+                      {field.label.replace(/ ?ID$/, '')}
+                    </dt>
+                    <dd className="text-sm text-zinc-800">
+                      {name
+                        ? <Link href={`/accounts/${id}`} className="text-blue-600 hover:underline">{name}</Link>
+                        : id || '—'
+                      }
+                    </dd>
+                  </div>
+                )
+              }
+
+              // contact_id フィールド → 担当者リンク
+              if (contactIdApiNames.has(field.api_name)) {
+                const id = String(val ?? '').trim()
+                const name = id ? contactMap.get(id) : null
+                return (
+                  <div key={field.id}>
+                    <dt className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1">
+                      {field.label.replace(/ ?ID$/, '')}
+                    </dt>
+                    <dd className="text-sm text-zinc-800">
+                      {name
+                        ? <Link href={`/contacts/${id}`} className="text-blue-600 hover:underline">{name}</Link>
+                        : id || '—'
+                      }
+                    </dd>
+                  </div>
+                )
+              }
+
               return (
                 <div key={field.id} className={field.field_type === 'textarea' ? 'col-span-full' : ''}>
                   <dt className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-1">
@@ -116,7 +177,7 @@ export default async function CustomRecordDetailPage({
   )
 }
 
-function formatDetailValue(fieldType: string, value: unknown): string {
+function formatDetailValue(fieldType: string, value: unknown): React.ReactNode {
   if (value == null || value === '') return '—'
   switch (fieldType) {
     case 'boolean': return value ? 'はい' : 'いいえ'

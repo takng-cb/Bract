@@ -180,22 +180,12 @@ async function main() {
   const propRows = await sql`SELECT * FROM properties ORDER BY created_at`
   console.log(`  📊 properties テーブル: ${propRows.length}件`)
 
-  let copied = 0
-  let skipped = 0
-  let errors = 0
+  let inserted = 0
+  let updated  = 0
+  let errors   = 0
 
   for (const p of propRows) {
-    // 既に custom_records に同 ID があるかチェック
-    const existing = await sql`
-      SELECT id FROM custom_records WHERE id = ${p.id} LIMIT 1
-    `
-    if (existing.length > 0) {
-      skipped++
-      continue
-    }
-
     // properties の全カラムを JSON にシリアライズ
-    // null は省略せずに保持（空欄との区別のため）
     const data = {}
     const SKIP_COLS = new Set(['id', 'created_at', 'updated_at', 'owner_id'])
 
@@ -210,30 +200,52 @@ async function main() {
       }
     }
 
+    // 既に custom_records に同 ID があるかチェック
+    const existing = await sql`
+      SELECT id FROM custom_records WHERE id = ${p.id} LIMIT 1
+    `
+
     try {
       if (!isDryRun) {
-        await sql`
-          INSERT INTO custom_records (id, object_id, data, owner_id, created_at, updated_at)
-          VALUES (
-            ${p.id},
-            ${objectId},
-            ${JSON.stringify(data)},
-            ${p.owner_id ?? null},
-            ${p.created_at},
-            ${p.updated_at}
-          )
-        `
+        if (existing.length > 0) {
+          // 既存レコードを properties の最新データで上書き更新
+          await sql`
+            UPDATE custom_records
+            SET data = ${JSON.stringify(data)}, updated_at = ${p.updated_at}
+            WHERE id = ${p.id}
+          `
+          updated++
+        } else {
+          await sql`
+            INSERT INTO custom_records (id, object_id, data, owner_id, created_at, updated_at)
+            VALUES (
+              ${p.id},
+              ${objectId},
+              ${JSON.stringify(data)},
+              ${p.owner_id ?? null},
+              ${p.created_at},
+              ${p.updated_at}
+            )
+          `
+          inserted++
+        }
+      } else {
+        if (existing.length > 0) {
+          console.log(`  [DRY-RUN] 更新予定: ${p.id} (${data.name ?? '?'})`)
+        } else {
+          console.log(`  [DRY-RUN] 挿入予定: ${p.id} (${data.name ?? '?'})`)
+        }
+        inserted++
       }
-      copied++
-      if (copied % 10 === 0) process.stdout.write('.')
+      if ((inserted + updated) % 10 === 0) process.stdout.write('.')
     } catch (e) {
       errors++
-      console.error(`\n  ❌ ID ${p.id} のコピー失敗:`, e.message)
+      console.error(`\n  ❌ ID ${p.id} の処理失敗:`, e.message)
     }
   }
 
-  if (copied > 0) console.log()
-  console.log(`  ✅ コピー完了: ${copied}件 / スキップ（既存）: ${skipped}件 / エラー: ${errors}件`)
+  if (inserted + updated > 0) console.log()
+  console.log(`  ✅ 新規挿入: ${inserted}件 / 更新: ${updated}件 / エラー: ${errors}件`)
 
   // ── Step 4: 件数検証 ──
   console.log('\n📋 Step 4: 件数検証...')
