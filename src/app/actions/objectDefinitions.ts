@@ -2,8 +2,9 @@
 import { db } from '@/lib/db'
 import { object_definitions, field_definitions } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { isAdmin } from '@/lib/auth'
+import { CACHE_TAG_OBJECTS, CACHE_TAG_FIELDS } from '@/lib/objectMetadata'
 
 // ────────────────────────────────────────────────────────────────
 // オブジェクト定義 CRUD
@@ -26,6 +27,7 @@ export async function createObjectDef(formData: FormData) {
     nav_enabled: true,
     sort_order:  100,
   })
+  revalidateTag(CACHE_TAG_OBJECTS, 'max')
   revalidatePath('/admin/objects')
   revalidatePath('/', 'layout')
 }
@@ -44,6 +46,7 @@ export async function updateObjectDef(id: string, formData: FormData) {
     .set({ label, label_plural, icon, nav_enabled, updated_at: new Date() })
     .where(eq(object_definitions.id, id))
 
+  revalidateTag(CACHE_TAG_OBJECTS, 'max')
   revalidatePath('/admin/objects')
   revalidatePath('/', 'layout')
 }
@@ -59,6 +62,8 @@ export async function deleteObjectDef(id: string) {
   if (obj.is_builtin) throw new Error('組み込みオブジェクトは削除できません')
 
   await db.delete(object_definitions).where(eq(object_definitions.id, id))
+  revalidateTag(CACHE_TAG_OBJECTS, 'max')
+  revalidateTag(CACHE_TAG_FIELDS, 'max')
   revalidatePath('/admin/objects')
   revalidatePath('/', 'layout')
 }
@@ -99,6 +104,7 @@ export async function createFieldDef(objectId: string, formData: FormData) {
     is_visible: true,
     sort_order: 100,
   })
+  revalidateTag(CACHE_TAG_FIELDS, 'max')
   revalidatePath(`/admin/objects/${objectId}`)
 }
 
@@ -123,6 +129,7 @@ export async function updateFieldDef(fieldId: string, objectId: string, formData
     .set({ label, field_type, options, is_required, is_visible, updated_at: new Date() })
     .where(eq(field_definitions.id, fieldId))
 
+  revalidateTag(CACHE_TAG_FIELDS, 'max')
   revalidatePath(`/admin/objects/${objectId}`)
 }
 
@@ -158,6 +165,7 @@ export async function moveFieldDef(fieldId: string, objectId: string, direction:
     db.update(field_definitions).set({ sort_order: aOrder }).where(eq(field_definitions.id, b.id)),
   ])
 
+  revalidateTag(CACHE_TAG_FIELDS, 'max')
   revalidatePath(`/admin/objects/${objectId}`)
 }
 
@@ -172,5 +180,6 @@ export async function deleteFieldDef(fieldId: string, objectId: string) {
   if (field.is_builtin) throw new Error('組み込みフィールドは削除できません')
 
   await db.delete(field_definitions).where(eq(field_definitions.id, fieldId))
+  revalidateTag(CACHE_TAG_FIELDS, 'max')
   revalidatePath(`/admin/objects/${objectId}`)
 }

@@ -1,4 +1,4 @@
-import { getObjectDef, getFieldDefs, parseFieldOptions } from '@/lib/objectMetadata'
+import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { db } from '@/lib/db'
 import { custom_records } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
@@ -13,19 +13,23 @@ export default async function CustomObjectListPage({
 }) {
   const { objectApiName } = await params
 
+  // ── Round 1: オブジェクト定義取得（キャッシュ済みなので高速） ──
   const [obj, edit] = await Promise.all([
     getObjectDef(objectApiName),
     canEdit(),
   ])
   if (!obj) notFound()
 
-  const fields = await getFieldDefs(obj.id)
-  const visibleFields = fields.filter((f) => f.is_visible)
+  // ── Round 2: フィールド定義とレコードを並列取得 ──────────────────
+  const [fields, records] = await Promise.all([
+    getFieldDefs(obj.id),
+    db.select()
+      .from(custom_records)
+      .where(eq(custom_records.object_id, obj.id))
+      .orderBy(desc(custom_records.created_at)),
+  ])
 
-  const records = await db.select()
-    .from(custom_records)
-    .where(eq(custom_records.object_id, obj.id))
-    .orderBy(desc(custom_records.created_at))
+  const visibleFields = fields.filter((f) => f.is_visible && f.field_type !== 'section')
 
   const parsedRecords = records.map((r) => {
     let data: Record<string, unknown> = {}

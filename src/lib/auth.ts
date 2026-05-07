@@ -8,11 +8,12 @@ import { eq } from 'drizzle-orm'
 import type { Role } from './userRole'
 
 /**
- * リクエストごとに一度だけ Supabase Auth を呼ぶ内部キャッシュ関数。
+ * リクエストごとに一度だけ Supabase Auth を呼ぶ共有キャッシュ関数。
  * getUser() は認証サーバーへのネットワーク呼び出しになるため、
  * React の cache() でリクエスト内の重複呼び出しを防ぐ。
+ * layout.tsx など複数箇所から import して使うことで auth 呼び出しを1回に抑える。
  */
-const getSupabaseUser = cache(async () => {
+export const getSupabaseUser = cache(async () => {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   return user
