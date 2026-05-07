@@ -6,21 +6,23 @@ import ExpenseForm from '@/components/ExpenseForm'
 import { createExpense } from '@/app/actions/expenses'
 import { requireEditor } from '@/lib/auth'
 
-async function createExpenseAction(_: string | null, formData: FormData): Promise<string | null> {
-  'use server'
-  try { await createExpense(formData); return null }
-  catch (e) {
-    if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-    return (e as Error).message
-  }
-}
-
 export default async function NewExpensePage({
   searchParams,
 }: {
-  searchParams: Promise<{ account_id?: string; opportunity_id?: string; contact_id?: string }>
+  searchParams: Promise<{ account_id?: string; opportunity_id?: string; contact_id?: string; custom_record_id?: string; return_to?: string }>
 }) {
-  const { account_id, opportunity_id, contact_id } = await searchParams
+  const { account_id, opportunity_id, contact_id, custom_record_id, return_to } = await searchParams
+
+  async function createExpenseAction(_: string | null, formData: FormData): Promise<string | null> {
+    'use server'
+    if (custom_record_id) formData.set('custom_record_id', custom_record_id)
+    if (return_to)        formData.set('return_to', return_to)
+    try { await createExpense(formData); return null }
+    catch (e) {
+      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+      return (e as Error).message
+    }
+  }
   await requireEditor()
   const [accountsList, contactsList, opportunitiesList] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
@@ -31,11 +33,12 @@ export default async function NewExpensePage({
       .from(opportunities).orderBy(asc(opportunities.name)),
   ])
 
-  const cancelHref = opportunity_id
+  const cancelHref = return_to
+    ?? (opportunity_id
     ? `/opportunities/${opportunity_id}`
     : account_id
     ? `/accounts/${account_id}`
-    : '/expenses'
+    : '/expenses')
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">

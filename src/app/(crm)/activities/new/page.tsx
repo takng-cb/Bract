@@ -6,21 +6,23 @@ import ActivityForm from '@/components/ActivityForm'
 import { createActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
 
-async function createActivityAction(_: string | null, formData: FormData): Promise<string | null> {
-  'use server'
-  try { await createActivity(formData); return null }
-  catch (e) {
-    if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-    return (e as Error).message
-  }
-}
-
 export default async function NewActivityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ account_id?: string; contact_id?: string; opportunity_id?: string }>
+  searchParams: Promise<{ account_id?: string; contact_id?: string; opportunity_id?: string; custom_record_id?: string; return_to?: string }>
 }) {
-  const { account_id, contact_id, opportunity_id } = await searchParams
+  const { account_id, contact_id, opportunity_id, custom_record_id, return_to } = await searchParams
+
+  async function createActivityAction(_: string | null, formData: FormData): Promise<string | null> {
+    'use server'
+    if (custom_record_id) formData.set('custom_record_id', custom_record_id)
+    if (return_to)        formData.set('return_to', return_to)
+    try { await createActivity(formData); return null }
+    catch (e) {
+      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+      return (e as Error).message
+    }
+  }
   await requireEditor()
   // contact_id / opportunity_id から account_id を補完する
   let resolvedAccountId = account_id ?? ''
@@ -44,13 +46,14 @@ export default async function NewActivityPage({
       .from(opportunities).orderBy(asc(opportunities.name)),
   ])
 
-  const cancelHref = account_id
+  const cancelHref = return_to
+    ?? (account_id
     ? `/accounts/${account_id}`
     : contact_id
     ? `/contacts/${contact_id}`
     : opportunity_id
     ? `/opportunities/${opportunity_id}`
-    : '/activities'
+    : '/activities')
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">

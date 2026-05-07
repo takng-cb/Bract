@@ -45,6 +45,41 @@ export default function ObjectEditForm({ obj, updateAction }: Props) {
           </label>
         </div>
       </div>
+
+      {/* 機能切り替え */}
+      <div>
+        <p className="text-xs font-medium text-zinc-600 mb-2">関連機能</p>
+        <div className="space-y-2 pl-1">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              name="enable_activities"
+              defaultChecked={obj.enable_activities}
+              className="w-4 h-4 rounded"
+            />
+            📋 活動履歴を紐付ける
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              name="enable_tasks"
+              defaultChecked={obj.enable_tasks}
+              className="w-4 h-4 rounded"
+            />
+            ✅ ToDo を紐付ける
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              name="enable_expenses"
+              defaultChecked={obj.enable_expenses}
+              className="w-4 h-4 rounded"
+            />
+            💰 経費を紐付ける
+          </label>
+        </div>
+      </div>
+
       <div>
         <button
           type="submit"
