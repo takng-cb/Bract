@@ -1,5 +1,6 @@
 'use client'
 import { useActionState, useRef } from 'react'
+import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
 import FormFillModal from '@/components/FormFillModal'
@@ -45,6 +46,27 @@ export default function DynamicForm({
   const csvFormat = fillableFields.map((f) => f.label).join(',')
   const fieldMap  = Object.fromEntries(fillableFields.map((f) => [f.label, f.api_name]))
 
+  // ── ボタン（上下共通） ──────────────────────────────────────
+  const Buttons = () => (
+    <div className="flex gap-3">
+      <button
+        type="submit"
+        disabled={isPending}
+        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
+        {isPending ? '保存中…' : submitLabel}
+      </button>
+      {cancelHref && (
+        <Link
+          href={cancelHref}
+          className="px-5 py-2 border border-zinc-300 text-zinc-700 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors"
+        >
+          キャンセル
+        </Link>
+      )}
+    </div>
+  )
+
   return (
     <form ref={formRef} action={dispatch} className="space-y-5">
       {error && (
@@ -53,18 +75,21 @@ export default function DynamicForm({
         </div>
       )}
 
-      {fillableFields.length > 0 && (
-        <div className="flex justify-end">
-          <FormFillModal formRef={formRef} csvFormat={csvFormat} fieldMap={fieldMap} />
-        </div>
-      )}
+      {/* ── 上部ボタン ── */}
+      <Buttons />
 
       {visibleFields.map((field) => {
-        // セクション区切り
+        // ── セクション区切り（取引先スタイル） ──
         if (field.field_type === 'section') {
           return (
-            <div key={field.id} className="pt-3 pb-1 border-b-2 border-zinc-100">
-              <p className="text-sm font-semibold text-zinc-600">{field.label}</p>
+            <div key={field.id} className="flex items-center gap-3">
+              <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
+              <span className="text-sm font-bold text-zinc-700 tracking-wide">{field.label}</span>
+              <div className="flex-1 h-px bg-zinc-200" />
+              {/* 最初のセクションの右横に FormFillModal を配置 */}
+              {fillableFields.length > 0 && field.api_name === visibleFields.find(f => f.field_type === 'section')?.api_name && (
+                <FormFillModal formRef={formRef} csvFormat={csvFormat} fieldMap={fieldMap} />
+              )}
             </div>
           )
         }
@@ -122,22 +147,16 @@ export default function DynamicForm({
         )
       })}
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {isPending ? '保存中…' : submitLabel}
-        </button>
-        {cancelHref && (
-          <a
-            href={cancelHref}
-            className="px-4 py-2 border border-zinc-300 text-zinc-700 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors"
-          >
-            キャンセル
-          </a>
-        )}
+      {/* セクションが1つもない場合、FormFillModal をフィールド群の直前に表示 */}
+      {fillableFields.length > 0 && !visibleFields.some(f => f.field_type === 'section') && (
+        <div className="flex justify-end -mb-3">
+          <FormFillModal formRef={formRef} csvFormat={csvFormat} fieldMap={fieldMap} />
+        </div>
+      )}
+
+      {/* ── 下部ボタン ── */}
+      <div className="pt-2">
+        <Buttons />
       </div>
     </form>
   )
@@ -155,7 +174,7 @@ function FieldInput({ field, value }: { field: FieldDef; value: unknown }) {
           defaultValue={strVal}
           required={field.is_required}
           rows={4}
-          className={base}
+          className={`${base} resize-none`}
         />
       )
 
@@ -198,7 +217,7 @@ function FieldInput({ field, value }: { field: FieldDef; value: unknown }) {
     case 'select': {
       const options = parseFieldOptions(field.options)
       return (
-        <select name={field.api_name} defaultValue={strVal} required={field.is_required} className={base}>
+        <select name={field.api_name} defaultValue={strVal} required={field.is_required} className={`${base} bg-white`}>
           {!field.is_required && <option value="">— 未選択 —</option>}
           {options.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
