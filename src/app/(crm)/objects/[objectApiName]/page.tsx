@@ -2,11 +2,12 @@ import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { db } from '@/lib/db'
 import { custom_records, accounts, contacts } from '@/lib/schema'
 import { eq, desc, inArray } from 'drizzle-orm'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { canEdit } from '@/lib/auth'
+import { canEdit, getCurrentUserId } from '@/lib/auth'
 import CsvToolbar from '@/components/CsvToolbar'
 import ListViewToolbar from '@/components/ListViewToolbar'
+import SavedViewsPanel from '@/components/SavedViewsPanel'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import Pagination from '@/components/Pagination'
 import CustomObjectTableView, { type SerializedFieldDef } from '@/components/tableviews/CustomObjectTableView'
@@ -14,6 +15,7 @@ import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import { parseSortParams, applySort } from '@/lib/sortUtils'
 import type { FieldDef } from '@/components/FilterBuilder'
 import { parseFieldOptions } from '@/lib/objectMetadata'
+import { getDefaultView } from '@/lib/savedViews'
 
 const PAGE_SIZE = 20
 
@@ -35,11 +37,25 @@ export default async function CustomObjectListPage({
   const [{ objectApiName }, sp] = await Promise.all([params, searchParams])
 
   // ── Round 1: オブジェクト定義取得 ──
-  const [obj, edit] = await Promise.all([
+  const [obj, edit, userId] = await Promise.all([
     getObjectDef(objectApiName),
     canEdit(),
+    getCurrentUserId(),
   ])
   if (!obj) notFound()
+
+  // デフォルトビュー適用（URLにパラメータがない場合のみ）
+  const filterRawRaw = [sp.f].flat().filter(Boolean) as string[]
+  if (filterRawRaw.length === 0 && !sp.group && !sp.sort) {
+    const dv = await getDefaultView(objectApiName, userId)
+    if (dv && (dv.filter_params.length > 0 || dv.group_params || dv.sort_params)) {
+      const p = new URLSearchParams()
+      dv.filter_params.forEach((f) => p.append('f', f))
+      if (dv.group_params) p.set('group', dv.group_params)
+      if (dv.sort_params)  p.set('sort', dv.sort_params)
+      redirect(`/objects/${objectApiName}?${p.toString()}`)
+    }
+  }
 
   // ── Round 2: フィールド定義とレコードを並列取得 ──
   const [fields, records] = await Promise.all([
@@ -112,7 +128,7 @@ export default async function CustomObjectListPage({
   })
 
   // ── URL パラメータ解析 ──
-  const filterRaw = [sp.f].flat().filter(Boolean) as string[]
+  const filterRaw = filterRawRaw
   const groupBy   = (sp.group ?? '').split(',').filter(Boolean)
   const sortStr   = sp.sort ?? ''
   const page      = Math.max(1, parseInt(sp.page ?? '1', 10))
@@ -208,6 +224,15 @@ export default async function CustomObjectListPage({
           )}
         </div>
       </div>
+
+      {/* ── 保存済みビュー ── */}
+      <SavedViewsPanel
+        objectType={objectApiName}
+        basePath={`/objects/${objectApiName}`}
+        currentFilterRaw={filterRaw}
+        currentGroup={sp.group ?? ''}
+        currentSort={sortStr}
+      />
 
       {/* ── フィルター・グルーピングツールバー ── */}
       {filterFields.length > 0 && (
