@@ -1,11 +1,14 @@
 import { requireAdmin } from '@/lib/auth'
 import { createRelationshipDefinition } from '@/app/actions/relationships'
-import { OBJECT_TYPE_LABELS, OBJECT_TYPES } from '@/lib/relationships'
+import { getSelectableObjectTypes } from '@/lib/relationships'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
 export default async function NewRelationshipPage() {
   await requireAdmin()
+
+  // 組み込み + カスタムオブジェクトを動的に取得
+  const objectTypes = await getSelectableObjectTypes()
 
   async function handleCreate(formData: FormData) {
     'use server'
@@ -37,8 +40,8 @@ export default async function NewRelationshipPage() {
             className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">選択してください</option>
-            {OBJECT_TYPES.map((t) => (
-              <option key={t} value={t}>{OBJECT_TYPE_LABELS[t]}</option>
+            {objectTypes.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </div>
@@ -54,8 +57,8 @@ export default async function NewRelationshipPage() {
             className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">選択してください</option>
-            {OBJECT_TYPES.map((t) => (
-              <option key={t} value={t}>{OBJECT_TYPE_LABELS[t]}</option>
+            {objectTypes.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </div>

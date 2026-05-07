@@ -3,11 +3,14 @@
  *
  * 関係性追加UI用のレコード検索エンドポイント。
  * objectType 別にレコード名を前方一致検索して返す。
+ *
+ * 組み込みオブジェクト（accounts / contacts / opportunities）は専用テーブルを参照。
+ * それ以外はカスタムオブジェクト（custom_records + object_definitions）を参照。
  */
 
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, properties } from '@/lib/schema'
-import { ilike, notInArray, and } from 'drizzle-orm'
+import { accounts, contacts, opportunities, object_definitions, custom_records } from '@/lib/schema'
+import { ilike, notInArray, and, eq, sql } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
@@ -77,23 +80,44 @@ export async function GET(req: NextRequest) {
         break
       }
 
-      case 'properties': {
+      default: {
+        // カスタムオブジェクト（properties など）は custom_records を参照
+        // PostgreSQL の JSON 演算子（->>'name'）を使い DB 側でフィルタ（全件取得を回避）
+        const objRows = await db
+          .select({ id: object_definitions.id })
+          .from(object_definitions)
+          .where(eq(object_definitions.api_name, objectType))
+          .limit(1)
+
+        if (objRows.length === 0) {
+          return NextResponse.json({ error: 'Unknown objectType' }, { status: 400 })
+        }
+        const objectId = objRows[0].id
+
         const rows = await db
-          .select({ id: properties.id, name: properties.name, status: properties.status })
-          .from(properties)
+          .select({ id: custom_records.id, data: custom_records.data })
+          .from(custom_records)
           .where(
             and(
-              ilike(properties.name, pattern),
-              excludeIds.length > 0 ? notInArray(properties.id, excludeIds) : undefined,
+              eq(custom_records.object_id, objectId),
+              // JSON の "name" フィールドを PostgreSQL 側で ILIKE フィルタ
+              sql`(${custom_records.data}->>'name') ILIKE ${pattern}`,
+              excludeIds.length > 0 ? notInArray(custom_records.id, excludeIds) : undefined,
             )
           )
           .limit(MAX_RESULTS)
-        results = rows.map((r) => ({ id: r.id, label: r.name, sub: r.status ?? undefined }))
+
+        results = rows.map((r) => {
+          let data: Record<string, unknown> = {}
+          try { data = JSON.parse(r.data) } catch { /* ignore */ }
+          return {
+            id:    r.id,
+            label: String(data.name ?? data.title ?? r.id),
+            sub:   data.status ? String(data.status) : undefined,
+          }
+        })
         break
       }
-
-      default:
-        return NextResponse.json({ error: 'Unknown objectType' }, { status: 400 })
     }
 
     return NextResponse.json(results)
