@@ -160,7 +160,7 @@ async function main() {
           ${f.field_type},
           ${f.options ?? null},
           ${f.is_required ?? false},
-          true,
+          false,
           true,
           ${f.sort_order}
         )
