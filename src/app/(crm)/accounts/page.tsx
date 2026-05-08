@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
-import { accounts, tags, taggables } from '@/lib/schema'
+import { accounts, taggables } from '@/lib/schema'
+import { getAllTags } from '@/lib/tagUtils'
 import { desc, eq, and, inArray } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -53,7 +54,7 @@ export default async function AccountsPage({
 
   const [raw, allTags, taggableRows] = await Promise.all([
     db.select().from(accounts).orderBy(desc(accounts.created_at)),
-    db.select({ id: tags.id, name: tags.name, color: tags.color }).from(tags).orderBy(tags.name),
+    getAllTags(),
     tagConditions.length > 0
       ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
           .from(taggables).where(and(
