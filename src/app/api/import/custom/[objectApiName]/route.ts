@@ -148,12 +148,10 @@ export async function POST(
             .from(custom_records)
             .where(eq(custom_records.id, id))
             .then((r) => r[0])
-          let currentData: Record<string, unknown> = {}
-          try { currentData = JSON.parse(current.data) } catch { /* ignore */ }
-          const merged = { ...currentData, ...data }
+          const merged = { ...(current.data ?? {}), ...data }
 
           await db.update(custom_records)
-            .set({ data: JSON.stringify(merged), updated_at: new Date() })
+            .set({ data: merged, updated_at: new Date() })
             .where(eq(custom_records.id, id))
           updated++
         } else {
@@ -161,7 +159,7 @@ export async function POST(
           await db.insert(custom_records).values({
             id,
             object_id: objectId,
-            data: JSON.stringify(data),
+            data,
             owner_id: user.id,
           })
           inserted++
@@ -174,7 +172,7 @@ export async function POST(
         }
         await db.insert(custom_records).values({
           object_id: objectId,
-          data: JSON.stringify(data),
+          data,
           owner_id: user.id,
         })
         inserted++

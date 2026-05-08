@@ -41,8 +41,7 @@ export default async function CustomRecordDetailPage({
   ])
   if (!record) notFound()
 
-  let data: Record<string, unknown> = {}
-  try { data = JSON.parse(record.data) } catch { /* ignore */ }
+  const data: Record<string, unknown> = record.data ?? {}
 
   const visibleFields = fields.filter((f) => f.is_visible)
 
