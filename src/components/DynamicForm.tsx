@@ -163,7 +163,7 @@ export default function DynamicForm({
           )
         }
 
-        // ── contact_id / *_contact_id → 担当者選択（SearchableSelect） ──
+        // ── contact_id / *_contact_id → 人物選択（SearchableSelect） ──
         if (field.api_name === 'contact_id' || field.api_name.endsWith('_contact_id')) {
           return (
             <div key={field.id}>
@@ -175,7 +175,7 @@ export default function DynamicForm({
                 name={field.api_name}
                 options={contactOptions ?? []}
                 defaultValue={strVal}
-                placeholder="担当者を選択..."
+                placeholder="人物を選択..."
               />
             </div>
           )

@@ -110,7 +110,7 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
 
       {contacts.length > 0 && (
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">人物</label>
           <SearchableSelect
             name="contact_id"
             defaultValue={defaultValues.contact_id}

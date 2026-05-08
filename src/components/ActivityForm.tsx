@@ -156,10 +156,10 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
           />
         </div>
 
-        {/* 複数担当者選択 */}
+        {/* 複数人物選択 */}
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-2">
-            担当者
+            人物
             {selectedIds.size > 0 && (
               <span className="ml-2 text-xs text-blue-600 font-normal">{selectedIds.size} 名選択中</span>
             )}
@@ -169,7 +169,7 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
             <input key={cid} type="hidden" name="contact_ids" value={cid} />
           ))}
           {filteredContacts.length === 0 ? (
-            <p className="text-sm text-zinc-400">{selectedAccountId ? 'この取引先の担当者がいません' : '担当者がいません'}</p>
+            <p className="text-sm text-zinc-400">{selectedAccountId ? 'この取引先の人物がいません' : '人物がいません'}</p>
           ) : (
             <div className="border border-zinc-200 rounded-md divide-y divide-zinc-100 max-h-48 overflow-y-auto">
               {filteredContacts.map((c) => {

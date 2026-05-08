@@ -47,7 +47,7 @@ export default function AboutPage() {
             },
             {
               icon: '👤',
-              title: '担当者',
+              title: '人物',
               href: '/contacts',
               desc: '各企業の窓口となる人物を管理します。役職・部署・誕生日など、関係を深めるための情報を記録できます。',
             },
@@ -100,10 +100,10 @@ export default function AboutPage() {
           <div>
             <h3 className="text-sm font-semibold text-zinc-800 mb-3 flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center shrink-0">2</span>
-              担当者を紐付ける
+              人物を紐付ける
             </h3>
             <p className="text-sm text-zinc-500 leading-relaxed pl-7">
-              取引先の詳細ページから「担当者を追加」します。窓口となる人物の名前・役職・メールアドレスを登録しておくと、
+              取引先の詳細ページから「人物を追加」します。窓口となる人物の名前・役職・メールアドレスを登録しておくと、
               やり取りの記録がしやすくなります。
             </p>
           </div>
