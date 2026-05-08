@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { opportunities, accounts, taggables } from '@/lib/schema'
 import { getAllTags } from '@/lib/tagUtils'
+import { getAllUsers } from '@/lib/userUtils'
 import { desc, eq, and, inArray } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -53,7 +54,7 @@ export default async function OpportunitiesPage({
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
-  const [raw, allTags, taggableRows] = await Promise.all([
+  const [raw, allTags, taggableRows, allUsers] = await Promise.all([
     db.select({
       id:          opportunities.id,
       name:        opportunities.name,
@@ -62,6 +63,7 @@ export default async function OpportunitiesPage({
       probability: opportunities.probability,
       close_date:  opportunities.close_date,
       account_id:  opportunities.account_id,
+      owner_id:    opportunities.owner_id,
       accounts: {
         id:   accounts.id,
         name: accounts.name,
@@ -78,6 +80,7 @@ export default async function OpportunitiesPage({
             inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
           ))
       : Promise.resolve([]),
+    getAllUsers(),
   ])
 
   const taggedIdsByTagId = new Map<string, Set<string>>()
@@ -103,6 +106,7 @@ export default async function OpportunitiesPage({
     { value: 'amount',      label: '金額（円）', type: 'number' },
     { value: 'probability', label: '確度（%）',  type: 'number' },
     { value: 'close_date',  label: '完了予定日', type: 'date' },
+    { value: 'owner_id', label: '担当者', type: 'select', options: allUsers.map((u) => ({ value: u.id, label: u.name })) },
     {
       value: 'tag', label: 'タグ', type: 'select',
       options: allTags.map((t) => ({ value: t.id, label: t.name })),

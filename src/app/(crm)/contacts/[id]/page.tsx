@@ -13,6 +13,7 @@ import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { getAllUsers } from '@/lib/userUtils'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
@@ -41,12 +42,12 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params
 
-  const [contact, activitiesList, tasksList, attachmentsList, customData, editFlag] = await Promise.all([
+  const [contact, activitiesList, tasksList, attachmentsList, customData, editFlag, allUsers] = await Promise.all([
     db.select({
       id: contacts.id, contact_type: contacts.contact_type, full_name: contacts.full_name, email: contacts.email,
       phone: contacts.phone, title: contacts.title, department: contacts.department,
       birthday: contacts.birthday, description: contacts.description,
-      created_at: contacts.created_at,
+      created_at: contacts.created_at, owner_id: contacts.owner_id,
       accounts: { id: accounts.id, name: accounts.name },
     })
       .from(contacts)
@@ -58,10 +59,12 @@ export default async function ContactDetailPage({
     db.select().from(attachments).where(eq(attachments.contact_id, id)).orderBy(desc(attachments.created_at)),
     getCustomFieldsWithValues('contacts', id),
     canEdit(),
+    getAllUsers(),
   ])
 
   if (!contact) notFound()
   const account   = contact.accounts?.id ? contact.accounts : null
+  const ownerName = contact.owner_id ? (allUsers.find((u) => u.id === contact.owner_id)?.name ?? null) : null
   const view      = contact.contact_type === 'consumer' ? 'consumer' : 'business'
   const isBiz     = view === 'business'
 
@@ -161,6 +164,10 @@ export default async function ContactDetailPage({
           <div>
             <dt className="text-xs text-zinc-400 mb-1">電話番号</dt>
             <dd className="text-sm text-zinc-800">{contact.phone ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+            <dd className="text-sm text-zinc-800">{ownerName ?? '—'}</dd>
           </div>
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>

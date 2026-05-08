@@ -7,6 +7,7 @@ import DynamicForm from '@/components/DynamicForm'
 import { db } from '@/lib/db'
 import { accounts, contacts } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
+import { getAllUsers } from '@/lib/userUtils'
 
 export default async function NewCustomRecordPage({
   params,
@@ -30,14 +31,15 @@ export default async function NewCustomRecordPage({
     (f) => f.api_name === 'contact_id' || f.api_name.endsWith('_contact_id')
   )
 
-  // 必要な場合のみ取引先・担当者一覧を取得
-  const [accountList, contactList] = await Promise.all([
+  // 必要な場合のみ取引先・担当者一覧を取得、ユーザー一覧は常に取得
+  const [accountList, contactList, allUsers] = await Promise.all([
     hasAccountField
       ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).orderBy(asc(accounts.name))
       : Promise.resolve([]),
     hasContactField
       ? db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).orderBy(asc(contacts.full_name))
       : Promise.resolve([]),
+    getAllUsers(),
   ])
 
   async function handleCreate(_prev: unknown, fd: FormData) {
@@ -64,6 +66,7 @@ export default async function NewCustomRecordPage({
           cancelHref={`/objects/${objectApiName}`}
           accountOptions={hasAccountField ? accountList.map((a) => ({ value: a.id, label: a.name })) : undefined}
           contactOptions={hasContactField ? contactList.map((c) => ({ value: c.id, label: c.name })) : undefined}
+          userOptions={allUsers.map((u) => ({ value: u.id, label: u.name }))}
         />
       </div>
     </div>

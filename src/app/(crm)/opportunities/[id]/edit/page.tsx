@@ -7,18 +7,20 @@ import OpportunityForm from '@/components/OpportunityForm'
 import { updateOpportunity } from '@/app/actions/opportunities'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
 
 export default async function EditOpportunityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [opportunity, accountsList, contactsList, customData] = await Promise.all([
+  const [opportunity, accountsList, contactsList, customData, allUsers] = await Promise.all([
     db.select().from(opportunities).where(eq(opportunities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
     getCustomFieldsWithValues('opportunities', id),
+    getAllUsers(),
   ])
   if (!opportunity) notFound()
 
@@ -50,6 +52,7 @@ export default async function EditOpportunityPage({ params }: { params: Promise<
           cancelHref={`/opportunities/${id}`}
           accounts={accountsList}
           contacts={contactsList}
+          users={allUsers}
           defaultValues={{
             ...opportunity,
             close_date: opportunity.close_date ?? null,

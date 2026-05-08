@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { accounts, taggables } from '@/lib/schema'
 import { getAllTags } from '@/lib/tagUtils'
+import { getAllUsers } from '@/lib/userUtils'
 import { desc, eq, and, inArray } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -52,7 +53,7 @@ export default async function AccountsPage({
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
-  const [raw, allTags, taggableRows] = await Promise.all([
+  const [raw, allTags, taggableRows, allUsers] = await Promise.all([
     db.select().from(accounts).orderBy(desc(accounts.created_at)),
     getAllTags(),
     tagConditions.length > 0
@@ -62,6 +63,7 @@ export default async function AccountsPage({
             inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
           ))
       : Promise.resolve([]),
+    getAllUsers(),
   ])
 
   const taggedIdsByTagId = new Map<string, Set<string>>()
@@ -93,6 +95,7 @@ export default async function AccountsPage({
     },
     { value: 'annual_revenue', label: '年間売上（円）', type: 'number' },
     { value: 'employee_count', label: '従業員数',       type: 'number' },
+    { value: 'owner_id', label: '担当者', type: 'select', options: allUsers.map((u) => ({ value: u.id, label: u.name })) },
     {
       value: 'tag', label: 'タグ', type: 'select',
       options: allTags.map((t) => ({ value: t.id, label: t.name })),

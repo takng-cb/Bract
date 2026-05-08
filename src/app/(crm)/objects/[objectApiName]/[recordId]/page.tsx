@@ -5,6 +5,7 @@ import { eq, and, inArray, desc, asc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
+import { getAllUsers } from '@/lib/userUtils'
 import { deleteCustomRecord } from '@/app/actions/customRecords'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import DeleteButton from '@/components/DeleteButton'
@@ -27,9 +28,10 @@ export default async function CustomRecordDetailPage({
 }) {
   const { objectApiName, recordId } = await params
 
-  const [obj, edit] = await Promise.all([
+  const [obj, edit, allUsers] = await Promise.all([
     getObjectDef(objectApiName),
     canEdit(),
+    getAllUsers(),
   ])
   if (!obj) notFound()
 
@@ -202,6 +204,9 @@ export default async function CustomRecordDetailPage({
         )}
 
         <div className="mt-6 pt-4 border-t border-zinc-100 flex gap-6 text-xs text-zinc-400">
+          {record.owner_id && (
+            <span>担当者: {allUsers.find((u) => u.id === record.owner_id)?.name ?? '—'}</span>
+          )}
           <span>作成: {record.created_at ? new Date(record.created_at).toLocaleString('ja-JP') : '—'}</span>
           <span>更新: {record.updated_at ? new Date(record.updated_at).toLocaleString('ja-JP') : '—'}</span>
         </div>

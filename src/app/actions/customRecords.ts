@@ -28,8 +28,10 @@ export async function createCustomRecord(
     data[f.api_name] = coerceValue(f.field_type, raw)
   }
 
+  const owner_id = (formData.get('owner_id') as string) || null
+
   const [rec] = await db.insert(custom_records)
-    .values({ object_id: obj.id, data })
+    .values({ object_id: obj.id, data, owner_id })
     .returning({ id: custom_records.id })
 
   revalidatePath(`/objects/${objectApiName}`)
@@ -54,8 +56,10 @@ export async function updateCustomRecord(
     data[f.api_name] = coerceValue(f.field_type, raw)
   }
 
+  const owner_id = (formData.get('owner_id') as string) || null
+
   await db.update(custom_records)
-    .set({ data, updated_at: new Date() })
+    .set({ data, owner_id, updated_at: new Date() })
     .where(and(eq(custom_records.id, recordId), eq(custom_records.object_id, obj.id)))
 
   revalidatePath(`/objects/${objectApiName}/${recordId}`)

@@ -18,15 +18,23 @@ const STAGE_COLORS: Record<string, string> = {
 export default async function ForecastPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; month?: string }>
+  searchParams: Promise<{ from?: string; to?: string; year?: string; month?: string }>
 }) {
   const sp = await searchParams
   const now = new Date()
-  const year  = Number(sp.year  ?? now.getFullYear())
-  const month = Number(sp.month ?? now.getMonth() + 1)
 
-  const from = `${year}-${String(month).padStart(2, '0')}-01`
-  const to   = new Date(year, month, 0).toISOString().slice(0, 10)
+  // from/to を優先、なければ year/month（後方互換）、それもなければ今月
+  let from: string
+  let to:   string
+  if (sp.from && sp.to) {
+    from = sp.from
+    to   = sp.to
+  } else {
+    const year  = Number(sp.year  ?? now.getFullYear())
+    const month = Number(sp.month ?? now.getMonth() + 1)
+    from = `${year}-${String(month).padStart(2, '0')}-01`
+    to   = new Date(year, month, 0).toISOString().slice(0, 10)
+  }
 
   const [allOpps, allExpenses] = await Promise.all([
     db.select({
@@ -69,9 +77,9 @@ export default async function ForecastPage({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">売上予測</h1>
-          <p className="text-sm text-zinc-500 mt-1">{year}年{month}月の商談・経費サマリー</p>
+          <p className="text-sm text-zinc-500 mt-1">{from} 〜 {to} の商談・経費サマリー</p>
         </div>
-        <PeriodSelector year={year} month={month} />
+        <PeriodSelector from={from} to={to} />
       </div>
 
       {/* KPI */}
@@ -159,7 +167,7 @@ export default async function ForecastPage({
             <h2 className="text-sm font-semibold text-zinc-700">
               経費 <span className="text-zinc-400 font-normal">({exps.length} 件)</span>
             </h2>
-            <Link href={`/expenses?year=${year}&month=${month}`} className="text-xs text-blue-600 hover:text-blue-800">詳細</Link>
+            <Link href={`/expenses?from=${from}&to=${to}`} className="text-xs text-blue-600 hover:text-blue-800">詳細</Link>
           </div>
           {exps.length === 0 ? (
             <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
