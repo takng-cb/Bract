@@ -100,7 +100,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
           )}
           {linkedContactRows.length > 0 && (
             <div className="col-span-2">
-              <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+              <dt className="text-xs text-zinc-400 mb-1">人物</dt>
               <dd className="flex flex-wrap gap-2 mt-1">
                 {linkedContactRows.map((c) => (
                   <Link key={c.contact_id} href={`/contacts/${c.contact_id}`} className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">

@@ -104,7 +104,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           )}
           {contact && (
             <div>
-              <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+              <dt className="text-xs text-zinc-400 mb-1">人物</dt>
               <dd className="text-sm">
                 <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">👤 {contact.full_name}</Link>
               </dd>

@@ -140,7 +140,7 @@ export default function ExpenseForm({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">人物</label>
           <SearchableSelect
             key={selectedAccountId}
             name="contact_id"
