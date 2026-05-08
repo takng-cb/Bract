@@ -10,6 +10,7 @@ import {
   timestamp,
   unique,
   index,
+  jsonb,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -297,7 +298,7 @@ export const field_definitions = pgTable('field_definitions', {
 export const custom_records = pgTable('custom_records', {
   id:        uuid('id').primaryKey().defaultRandom(),
   object_id: uuid('object_id').notNull().references(() => object_definitions.id, { onDelete: 'cascade' }),
-  data:      text('data').notNull().default('{}'),   // JSON blob
+  data:      jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
   owner_id:  uuid('owner_id'),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),

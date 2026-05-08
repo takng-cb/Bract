@@ -54,8 +54,7 @@ export async function GET(
   const contactIds = new Set<string>()
 
   for (const rec of records) {
-    let data: Record<string, unknown> = {}
-    try { data = JSON.parse(rec.data) } catch { /* ignore */ }
+    const data = rec.data
     for (const f of accountIdFields) {
       const v = String(data[f.api_name] ?? '').trim()
       if (v) accountIds.add(v)
@@ -88,9 +87,7 @@ export async function GET(
 
   // CSV 行
   const rows = records.map((rec) => {
-    let data: Record<string, unknown> = {}
-    try { data = JSON.parse(rec.data) } catch { /* ignore */ }
-
+    const data = rec.data
     const cells: (string | number | null | undefined)[] = [rec.id]
     for (const f of dataFields) {
       const val = data[f.api_name]

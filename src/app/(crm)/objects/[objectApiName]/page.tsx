@@ -1,7 +1,7 @@
 import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { db } from '@/lib/db'
 import { custom_records, accounts, contacts } from '@/lib/schema'
-import { eq, desc, inArray } from 'drizzle-orm'
+import { eq, desc, inArray, and, count } from 'drizzle-orm'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -11,11 +11,12 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import Pagination from '@/components/Pagination'
 import CustomObjectTableView, { type SerializedFieldDef } from '@/components/tableviews/CustomObjectTableView'
-import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
-import { parseSortParams, applySort } from '@/lib/sortUtils'
+import { parseFilterParams } from '@/lib/filterUtils'
+import { parseSortParams } from '@/lib/sortUtils'
 import type { FieldDef } from '@/components/FilterBuilder'
 import { parseFieldOptions } from '@/lib/objectMetadata'
 import { getDefaultView } from '@/lib/savedViews'
+import { buildJsonbWhere, buildJsonbOrderBy } from '@/lib/jsonbFilterUtils'
 
 const PAGE_SIZE = 20
 
@@ -36,7 +37,7 @@ export default async function CustomObjectListPage({
 }) {
   const [{ objectApiName }, sp] = await Promise.all([params, searchParams])
 
-  // ── Round 1: オブジェクト定義取得 ──
+  // ── Round 1: オブジェクト定義・フィールド定義取得 ──
   const [obj, edit, userId] = await Promise.all([
     getObjectDef(objectApiName),
     canEdit(),
@@ -44,8 +45,24 @@ export default async function CustomObjectListPage({
   ])
   if (!obj) notFound()
 
-  // デフォルトビュー適用（URLにパラメータがない場合のみ）
+  const fields = await getFieldDefs(obj.id)
+  const dataFields = fields.filter((f) => f.is_visible && f.field_type !== 'section')
+
+  // フィールド名 → type のマップ（SQL フィルタ・ソートに使用）
+  const fieldTypeMap = new Map(dataFields.map((f) => [f.api_name, f.field_type]))
+
+  // account_id / contact_id フィールドの特定
+  const accountIdApiNames = new Set(
+    dataFields.filter((f) => f.api_name === 'account_id' || f.api_name.endsWith('_account_id')).map((f) => f.api_name)
+  )
+  const contactIdApiNames = new Set(
+    dataFields.filter((f) => f.api_name === 'contact_id' || f.api_name.endsWith('_contact_id')).map((f) => f.api_name)
+  )
+
+  // ── URL パラメータ解析 ──
   const filterRawRaw = [sp.f].flat().filter(Boolean) as string[]
+
+  // デフォルトビュー適用
   if (filterRawRaw.length === 0 && !sp.group && !sp.sort) {
     const dv = await getDefaultView(objectApiName, userId)
     if (dv && (dv.filter_params.length > 0 || dv.group_params || dv.sort_params)) {
@@ -57,47 +74,64 @@ export default async function CustomObjectListPage({
     }
   }
 
-  // ── Round 2: フィールド定義とレコードを並列取得 ──
-  const [fields, records] = await Promise.all([
-    getFieldDefs(obj.id),
-    db.select()
-      .from(custom_records)
-      .where(eq(custom_records.object_id, obj.id))
-      .orderBy(desc(custom_records.created_at)),
-  ])
+  const filterRaw = filterRawRaw
+  const groupBy   = (sp.group ?? '').split(',').filter(Boolean)
+  const sortStr   = sp.sort ?? ''
+  const page      = Math.max(1, parseInt(sp.page ?? '1', 10))
+  const isGrouped = groupBy.length > 0
 
-  const dataFields = fields.filter((f) => f.is_visible && f.field_type !== 'section')
+  // ── SQL フィルタ・ソート構築 ──
+  const conditions  = parseFilterParams(filterRaw)
+  const sortDefs    = parseSortParams(sortStr)
+  const filterWhere = buildJsonbWhere(conditions, fieldTypeMap)
+  const orderByClauses = buildJsonbOrderBy(sortDefs, fieldTypeMap)
+  const hasFilter   = conditions.length > 0
 
-  // ── account_id / contact_id フィールドのリスト ──
-  const accountIdApiNames = new Set(
-    dataFields.filter((f) => f.api_name === 'account_id' || f.api_name.endsWith('_account_id')).map((f) => f.api_name)
-  )
-  const contactIdApiNames = new Set(
-    dataFields.filter((f) => f.api_name === 'contact_id' || f.api_name.endsWith('_contact_id')).map((f) => f.api_name)
-  )
+  // 基本 WHERE: このオブジェクトのレコード + フィルタ条件
+  const baseWhere = filterWhere
+    ? and(eq(custom_records.object_id, obj.id), filterWhere)
+    : eq(custom_records.object_id, obj.id)
 
-  // ── レコードをフラット化（JSON data を top-level に展開） ──
-  const rawFlat = records.map((r) => {
-    let data: Record<string, unknown> = {}
-    try { data = JSON.parse(r.data) } catch { /* ignore */ }
-    return {
-      id:         r.id,
-      created_at: r.created_at,
-      updated_at: r.updated_at,
-      ...data,
-    } as Record<string, unknown>
-  })
+  // デフォルトソート: created_at DESC
+  const defaultOrder = desc(custom_records.created_at)
+  const finalOrder   = orderByClauses.length > 0 ? orderByClauses : [defaultOrder]
+
+  // ── Round 2: レコード取得（グルーピング有無でページング方法を分岐） ──
+  let records: (typeof custom_records.$inferSelect)[]
+  let totalCount: number
+
+  if (isGrouped) {
+    // グルーピング時: フィルタ済み全件取得（LIMIT なし）
+    const [recs, [{ value: cnt }]] = await Promise.all([
+      db.select().from(custom_records).where(baseWhere).orderBy(...finalOrder),
+      db.select({ value: count() }).from(custom_records).where(baseWhere),
+    ])
+    records    = recs
+    totalCount = Number(cnt)
+  } else {
+    // 通常時: SQL で COUNT + LIMIT/OFFSET
+    const [recs, [{ value: cnt }]] = await Promise.all([
+      db.select().from(custom_records)
+        .where(baseWhere)
+        .orderBy(...finalOrder)
+        .limit(PAGE_SIZE)
+        .offset((page - 1) * PAGE_SIZE),
+      db.select({ value: count() }).from(custom_records).where(baseWhere),
+    ])
+    records    = recs
+    totalCount = Number(cnt)
+  }
 
   // ── account_id / contact_id を一括ルックアップ ──
   const accountIdSet = new Set<string>()
   const contactIdSet = new Set<string>()
-  for (const r of rawFlat) {
+  for (const r of records) {
     for (const an of accountIdApiNames) {
-      const v = String(r[an] ?? '').trim()
+      const v = String(r.data[an] ?? '').trim()
       if (v) accountIdSet.add(v)
     }
     for (const cn of contactIdApiNames) {
-      const v = String(r[cn] ?? '').trim()
+      const v = String(r.data[cn] ?? '').trim()
       if (v) contactIdSet.add(v)
     }
   }
@@ -113,26 +147,27 @@ export default async function CustomObjectListPage({
   const accountMap = new Map(accountRows.map((a) => [a.id, a.name]))
   const contactMap = new Map(contactRows.map((c) => [c.id, c.name]))
 
-  // ── フラットレコードに __name__* キーを追加 ──
-  const flatRecords = rawFlat.map((r) => {
+  // ── レコードをフラット化（JSONB data を top-level に展開） ──
+  const flatRecords = records.map((r) => {
     const extra: Record<string, unknown> = {}
     for (const an of accountIdApiNames) {
-      const id = String(r[an] ?? '').trim()
+      const id = String(r.data[an] ?? '').trim()
       if (id) extra[`__name__${an}`] = accountMap.get(id) ?? ''
     }
     for (const cn of contactIdApiNames) {
-      const id = String(r[cn] ?? '').trim()
+      const id = String(r.data[cn] ?? '').trim()
       if (id) extra[`__name__${cn}`] = contactMap.get(id) ?? ''
     }
-    return { ...r, ...extra }
+    return {
+      id:         r.id,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      ...r.data,
+      ...extra,
+    } as Record<string, unknown>
   })
 
-  // ── URL パラメータ解析 ──
-  const filterRaw = filterRawRaw
-  const groupBy   = (sp.group ?? '').split(',').filter(Boolean)
-  const sortStr   = sp.sort ?? ''
-  const page      = Math.max(1, parseInt(sp.page ?? '1', 10))
-  const isGrouped = groupBy.length > 0
+  const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
 
   // ── FilterBuilder 用フィールド定義 ──
   const filterFields: FieldDef[] = dataFields
@@ -140,48 +175,25 @@ export default async function CustomObjectListPage({
     .map((f): FieldDef => {
       if (f.field_type === 'boolean') {
         return {
-          value: f.api_name,
-          label: f.label,
-          type: 'select',
-          options: [
-            { value: 'true',  label: 'はい' },
-            { value: 'false', label: 'いいえ' },
-          ],
+          value: f.api_name, label: f.label, type: 'select',
+          options: [{ value: 'true', label: 'はい' }, { value: 'false', label: 'いいえ' }],
         }
       }
       if (f.field_type === 'select') {
         const opts = parseFieldOptions(f)
         return {
-          value: f.api_name,
-          label: f.label,
-          type: 'select',
+          value: f.api_name, label: f.label, type: 'select',
           options: opts.map((o) => ({ value: o, label: o })),
         }
       }
-      return {
-        value: f.api_name,
-        label: f.label,
-        type: toFilterType(f.field_type),
-      }
+      return { value: f.api_name, label: f.label, type: toFilterType(f.field_type) }
     })
 
-  // グルーピング対象フィールド（数値・テキストエリア・_id 系を除く）
   const groupableFields = filterFields
     .filter((f) => f.type !== 'number')
     .map((f) => ({ key: f.value, label: f.label }))
 
-  // ── フィルター・ソート適用 ──
-  const conditions   = parseFilterParams(filterRaw)
-  let   filtered     = applyFilters(flatRecords, conditions)
-  const sorted       = applySort(filtered, parseSortParams(sortStr))
-  const hasFilter    = conditions.length > 0
-  const totalCount   = sorted.length
-  const totalPages   = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
-  const displayList  = isGrouped
-    ? sorted
-    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
-  // ── SerializedFieldDef（クライアントコンポーネントへの props） ──
+  // ── SerializedFieldDef ──
   const serializedFields: SerializedFieldDef[] = dataFields.map((f) => ({
     api_name:    f.api_name,
     label:       f.label,
@@ -190,17 +202,13 @@ export default async function CustomObjectListPage({
     formulaExpr: f.field_type === 'formula' ? (f.options ?? null) : null,
   }))
 
-  // CSV インポートのフォーマット文字列
   const csvFormat = ['ID', ...dataFields.map((f) => f.label)].join(',')
 
   return (
     <div className="p-4 md:p-8">
-      {/* ── ヘッダー ── */}
       <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">
-            {obj.icon} {obj.label_plural}
-          </h1>
+          <h1 className="text-2xl font-bold text-zinc-900">{obj.icon} {obj.label_plural}</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
@@ -226,7 +234,6 @@ export default async function CustomObjectListPage({
         </div>
       </div>
 
-      {/* ── 保存済みビュー ── */}
       <SavedViewsPanel
         objectType={objectApiName}
         basePath={`/objects/${objectApiName}`}
@@ -235,7 +242,6 @@ export default async function CustomObjectListPage({
         currentSort={sortStr}
       />
 
-      {/* ── フィルター・グルーピングツールバー ── */}
       {filterFields.length > 0 && (
         <ListViewToolbar
           fields={filterFields}
@@ -246,7 +252,6 @@ export default async function CustomObjectListPage({
         />
       )}
 
-      {/* ── 件数 0 ── */}
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
           <p className="text-4xl mb-4">{obj.icon}</p>
@@ -260,10 +265,9 @@ export default async function CustomObjectListPage({
         </div>
       ) : (
         <>
-          {/* PC: GroupedTable */}
           <div className="hidden md:block">
             <CustomObjectTableView
-              records={displayList}
+              records={flatRecords}
               fields={serializedFields}
               objectApiName={objectApiName}
               groupBy={groupBy}
@@ -271,11 +275,9 @@ export default async function CustomObjectListPage({
               currentSortStr={sortStr}
             />
           </div>
-
-          {/* モバイル: カードリスト */}
           <div className="md:hidden">
             <MobileGroupedCards
-              records={displayList}
+              records={flatRecords}
               groupBy={groupBy}
               fields={filterFields}
               renderCard={(rec) => {
@@ -307,8 +309,6 @@ export default async function CustomObjectListPage({
               }}
             />
           </div>
-
-          {/* ページネーション */}
           {!isGrouped && (
             <Pagination
               currentPage={page}
