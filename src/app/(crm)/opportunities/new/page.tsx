@@ -6,6 +6,7 @@ import OpportunityForm from '@/components/OpportunityForm'
 import { createOpportunity } from '@/app/actions/opportunities'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { getAllUsers } from '@/lib/userUtils'
 import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
 
@@ -16,12 +17,13 @@ export default async function NewOpportunityPage({
 }) {
   const { account_id } = await searchParams
   await requireEditor()
-  const [accountsList, contactsList, { fields }] = await Promise.all([
+  const [accountsList, contactsList, { fields }, allUsers] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
     getCustomFieldsWithValues('opportunities', ''),
+    getAllUsers(),
   ])
 
   const cancelHref = account_id ? `/accounts/${account_id}` : '/opportunities'
@@ -52,6 +54,7 @@ export default async function NewOpportunityPage({
           cancelHref={cancelHref}
           accounts={accountsList}
           contacts={contactsList}
+          users={allUsers}
           defaultValues={{ account_id: account_id ?? '' }}
           customFields={fields}
         />

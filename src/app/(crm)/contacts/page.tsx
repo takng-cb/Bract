@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { contacts, accounts, taggables } from '@/lib/schema'
 import { getAllTags } from '@/lib/tagUtils'
+import { getAllUsers } from '@/lib/userUtils'
 import { desc, eq, and, inArray } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -47,7 +48,7 @@ export default async function ContactsPage({
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
 
-  const [raw, allTags, taggableRows] = await Promise.all([
+  const [raw, allTags, taggableRows, allUsers] = await Promise.all([
     db.select({
       id:           contacts.id,
       contact_type: contacts.contact_type,
@@ -58,6 +59,7 @@ export default async function ContactsPage({
       department:   contacts.department,
       birthday:     contacts.birthday,
       account_id:   contacts.account_id,
+      owner_id:     contacts.owner_id,
       accounts: {
         id:   accounts.id,
         name: accounts.name,
@@ -75,6 +77,7 @@ export default async function ContactsPage({
             inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
           ))
       : Promise.resolve([]),
+    getAllUsers(),
   ])
 
   const taggedIdsByTagId = new Map<string, Set<string>>()
@@ -89,12 +92,14 @@ export default async function ContactsPage({
     { value: 'title',         label: '役職',   type: 'text' },
     { value: 'department',    label: '部署',   type: 'text' },
     { value: 'accounts.name', label: '取引先', type: 'text' },
+    { value: 'owner_id', label: '担当者', type: 'select', options: allUsers.map((u) => ({ value: u.id, label: u.name })) },
     { value: 'tag', label: 'タグ', type: 'select', options: allTags.map((t) => ({ value: t.id, label: t.name })) },
   ]
   const FIELDS_CONSUMER: FieldDef[] = [
     { value: 'full_name', label: '氏名',   type: 'text' },
     { value: 'email',     label: 'メール', type: 'text' },
     { value: 'phone',     label: '電話',   type: 'text' },
+    { value: 'owner_id', label: '担当者', type: 'select', options: allUsers.map((u) => ({ value: u.id, label: u.name })) },
     { value: 'tag', label: 'タグ', type: 'select', options: allTags.map((t) => ({ value: t.id, label: t.name })) },
   ]
   const FIELDS = view === 'business' ? FIELDS_BUSINESS : FIELDS_CONSUMER

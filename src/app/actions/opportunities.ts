@@ -44,6 +44,7 @@ export async function createOpportunity(formData: FormData): Promise<string> {
     close_date:  close_date || null,
     probability: probability ? Number(probability) : null,
     description: (formData.get('description') as string) || null,
+    owner_id:    (formData.get('owner_id') as string) || null,
   }).returning({ id: opportunities.id })
 
   return row.id
@@ -74,6 +75,7 @@ export async function updateOpportunity(id: string, formData: FormData) {
     close_date:  close_date || null,
     probability: probability ? Number(probability) : null,
     description: (formData.get('description') as string) || null,
+    owner_id:    (formData.get('owner_id') as string) || null,
     updated_at:  new Date(),
   }).where(eq(opportunities.id, id))
 

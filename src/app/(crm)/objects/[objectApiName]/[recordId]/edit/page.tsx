@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 import { updateCustomRecord } from '@/app/actions/customRecords'
 import DynamicForm from '@/components/DynamicForm'
+import { getAllUsers } from '@/lib/userUtils'
 
 export default async function EditCustomRecordPage({
   params,
@@ -38,14 +39,15 @@ export default async function EditCustomRecordPage({
     (f) => f.api_name === 'contact_id' || f.api_name.endsWith('_contact_id')
   )
 
-  // 必要な場合のみ取引先・担当者一覧を取得
-  const [accountList, contactList] = await Promise.all([
+  // 必要な場合のみ取引先・担当者一覧を取得、ユーザー一覧は常に取得
+  const [accountList, contactList, allUsers] = await Promise.all([
     hasAccountField
       ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).orderBy(asc(accounts.name))
       : Promise.resolve([]),
     hasContactField
       ? db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).orderBy(asc(contacts.full_name))
       : Promise.resolve([]),
+    getAllUsers(),
   ])
 
   async function handleUpdate(_prev: unknown, fd: FormData) {
@@ -73,6 +75,8 @@ export default async function EditCustomRecordPage({
           cancelHref={`/objects/${objectApiName}/${recordId}`}
           accountOptions={hasAccountField ? accountList.map((a) => ({ value: a.id, label: a.name })) : undefined}
           contactOptions={hasContactField ? contactList.map((c) => ({ value: c.id, label: c.name })) : undefined}
+          userOptions={allUsers.map((u) => ({ value: u.id, label: u.name }))}
+          defaultOwnerId={record.owner_id ?? null}
         />
       </div>
     </div>

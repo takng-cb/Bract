@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm'
 import { createContact } from '@/app/actions/contacts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { getAllUsers } from '@/lib/userUtils'
 import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
 
@@ -17,10 +18,11 @@ export default async function NewContactPage({
   const { account_id, view } = await searchParams
   const contactType = view === 'consumer' ? 'consumer' : 'business'
   await requireEditor()
-  const [accountsList, { fields }] = await Promise.all([
+  const [accountsList, { fields }, allUsers] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
     getCustomFieldsWithValues('contacts', ''),
+    getAllUsers(),
   ])
 
   const cancelHref = account_id ? `/accounts/${account_id}` : `/contacts?view=${contactType}`
@@ -52,6 +54,7 @@ export default async function NewContactPage({
           action={createContactAction}
           cancelHref={cancelHref}
           accounts={accountsList}
+          users={allUsers}
           defaultValues={{ account_id: account_id ?? '', contact_type: contactType }}
           customFields={fields}
         />
