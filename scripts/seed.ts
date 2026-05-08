@@ -258,67 +258,6 @@ async function seed() {
 
   console.log('  ✅ 経費 3件')
 
-  // ----------------------------------------------------------------
-  // 物件・商品
-  // ----------------------------------------------------------------
-  await db.insert(schema.properties).values([
-    {
-      name: 'アーバンレジデンス渋谷 503号室',
-      property_type: '土地・建物',
-      transaction_type: '賃貸',
-      status: '募集中',
-      price: '265000',
-      address: '東京都渋谷区神宮前二丁目',
-      land_chiban: '10番5',
-      chimoku: '宅地',
-      area: '62.3',
-      building_location: '東京都渋谷区神宮前二丁目10番地5',
-      building_shurui: '共同住宅',
-      structure: '鉄筋コンクリート造',
-      building_floor_area_1f: '62.3',
-      account_id: acc1.id,
-      description: '渋谷駅徒歩7分。フルリノベーション済。オートロック・宅配ボックスあり。',
-    },
-    {
-      name: '赤坂ビジネスタワー 8F',
-      property_type: '建物のみ',
-      transaction_type: '賃貸',
-      status: '管理中',
-      price: '980000',
-      building_location: '東京都港区赤坂二丁目4番地9',
-      building_shurui: '事務所',
-      structure: '鉄骨造',
-      building_floor_area_1f: '210.0',
-      account_id: acc2.id,
-      description: '赤坂駅直結。大会議室・サーバールーム完備。光回線引込み済み。',
-    },
-    {
-      name: '梅田 駅前土地',
-      property_type: '土地のみ',
-      transaction_type: '売買',
-      status: '交渉中',
-      price: '54800000',
-      address: '大阪府大阪市北区梅田四丁目',
-      land_chiban: '2番1',
-      chimoku: '宅地',
-      area: '98.5',
-      account_id: acc3.id,
-      description: '梅田駅徒歩5分。南向き角地。駐車場1台。',
-    },
-    {
-      name: '渋谷 路面店舗',
-      property_type: '建物のみ',
-      transaction_type: '賃貸',
-      status: '成約',
-      price: '380000',
-      building_location: '東京都渋谷区神宮前一丁目8番地3',
-      building_shurui: '店舗',
-      building_floor_area_1f: '45.2',
-      description: '神宮前交差点近く。飲食・物販可。スケルトン渡し。',
-    },
-  ])
-
-  console.log('  ✅ 物件・商品 4件')
   console.log('\n🎉 テストデータの投入が完了しました！')
 }
 

@@ -159,29 +159,6 @@ async function seed() {
   await db.insert(schema.expenses).values(expValues)
   console.log(`  ✅ 経費 ${expValues.length}件`)
 
-  // ──────────────────────────────────────────────────────────────
-  // 物件・商品 22件
-  // ──────────────────────────────────────────────────────────────
-  const propValues = Array.from({ length: 22 }, (_, i) => ({
-    name:             `${PROP_NAMES_PREFIX[i % PROP_NAMES_PREFIX.length]}${PROP_NAMES_AREA[i % PROP_NAMES_AREA.length]} ${rand(100, 999)}号`,
-    property_type:    PROP_TYPES[i % PROP_TYPES.length],
-    transaction_type: TX_TYPES[i % TX_TYPES.length],
-    status:           PROP_STAT[i % PROP_STAT.length],
-    address:          `${PREFECTURES[i % PREFECTURES.length]}${PROP_NAMES_AREA[i % PROP_NAMES_AREA.length]}${rand(1, 5)}-${rand(1, 30)}-${rand(1, 20)}`,
-    area:             String(rand(20, 300)),
-    price:            TX_TYPES[i % TX_TYPES.length] === '売買'
-                        ? String(rand(1000, 30000) * 10_000)
-                        : String(rand(5, 100) * 10_000),
-    floor:            rand(1, 20),
-    total_floors:     rand(2, 30),
-    built_year:       rand(1980, 2024),
-    account_id:       accIds[i % accIds.length],
-    description:      `テスト物件 #${i + 1}`,
-  }))
-
-  await db.insert(schema.properties).values(propValues)
-  console.log(`  ✅ 物件・商品 ${propValues.length}件`)
-
   console.log('\n🎉 大量テストデータの投入が完了しました！')
   console.log('   各リストページで2ページ目が表示されることを確認してください。')
 }

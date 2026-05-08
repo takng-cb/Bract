@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { db } from '@/lib/db'
 import {
   accounts, contacts, opportunities, activities, activity_contacts,
-  tasks, expenses, properties, taggables, change_logs, attachments,
+  tasks, expenses, taggables, change_logs, attachments,
   users,
 } from '@/lib/schema'
 import { isAdminUser } from '@/lib/userRole'
@@ -44,7 +44,6 @@ export async function deleteAllData(): Promise<{ error?: string }> {
     await db.delete(activities)
     await db.delete(tasks)
     await db.delete(expenses)
-    await db.delete(properties)
     await db.delete(opportunities)
     await db.delete(contacts)
     await db.delete(accounts)

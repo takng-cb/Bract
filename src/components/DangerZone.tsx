@@ -40,7 +40,7 @@ export default function DangerZone() {
         <div>
           <p className="text-sm font-medium text-zinc-800">全データを削除</p>
           <p className="text-xs text-zinc-500 mt-0.5">
-            取引先・担当者・商談・活動履歴・ToDo・経費・物件のデータをすべて削除します。
+            取引先・担当者・商談・活動履歴・ToDo・経費のデータをすべて削除します。
             システム設定・タグ・ユーザー設定は保持されます。
           </p>
         </div>
