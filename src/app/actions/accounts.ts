@@ -44,6 +44,7 @@ export async function createAccount(formData: FormData): Promise<string> {
     employee_count: employee_count ? Number(employee_count) : null,
     description:    (formData.get('description') as string) || null,
     status:         (formData.get('status') as string) || 'active',
+    owner_id:       (formData.get('owner_id') as string) || null,
   }).returning({ id: accounts.id })
 
   return row.id
@@ -76,6 +77,7 @@ export async function updateAccount(id: string, formData: FormData) {
     employee_count: employee_count ? Number(employee_count) : null,
     description:    (formData.get('description') as string) || null,
     status,
+    owner_id:       (formData.get('owner_id') as string) || null,
     updated_at:     new Date(),
   }).where(eq(accounts.id, id))
 

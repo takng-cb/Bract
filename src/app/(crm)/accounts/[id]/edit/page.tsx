@@ -7,6 +7,7 @@ import AccountForm from '@/components/AccountForm'
 import { updateAccount } from '@/app/actions/accounts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
 
 export default async function EditAccountPage({
@@ -16,9 +17,10 @@ export default async function EditAccountPage({
 }) {
   const { id } = await params
   await requireEditor()
-  const [account, customData] = await Promise.all([
+  const [account, customData, allUsers] = await Promise.all([
     db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null),
     getCustomFieldsWithValues('accounts', id),
+    getAllUsers(),
   ])
   if (!account) notFound()
 
@@ -48,6 +50,7 @@ export default async function EditAccountPage({
         <AccountForm
           action={updateAccountAction}
           cancelHref={`/accounts/${id}`}
+          users={allUsers}
           defaultValues={{
             ...account,
             annual_revenue: account.annual_revenue !== null ? Number(account.annual_revenue) : null,

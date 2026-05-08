@@ -24,6 +24,7 @@ export async function createContact(formData: FormData): Promise<string> {
     birthday:    (formData.get('birthday') as string) || null,
     description: (formData.get('description') as string) || null,
     account_id:  contact_type === 'business' ? ((formData.get('account_id') as string) || null) : null,
+    owner_id:    (formData.get('owner_id') as string) || null,
   }).returning({ id: contacts.id })
 
   return row.id
@@ -50,6 +51,7 @@ export async function updateContact(id: string, formData: FormData) {
     birthday:    (formData.get('birthday') as string) || null,
     description: (formData.get('description') as string) || null,
     account_id:  contact_type === 'business' ? ((formData.get('account_id') as string) || null) : null,
+    owner_id:    (formData.get('owner_id') as string) || null,
     updated_at:  new Date(),
   }).where(eq(contacts.id, id))
 

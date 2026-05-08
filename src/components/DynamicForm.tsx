@@ -18,6 +18,10 @@ type Props = {
   accountOptions?: SelectOption[]
   /** 担当者フィールド用の選択肢（SearchableSelect に渡す） */
   contactOptions?: SelectOption[]
+  /** 担当者（ユーザー）フィールド用の選択肢 */
+  userOptions?: SelectOption[]
+  /** 現在の owner_id デフォルト値 */
+  defaultOwnerId?: string | null
 }
 
 export default function DynamicForm({
@@ -28,6 +32,8 @@ export default function DynamicForm({
   cancelHref,
   accountOptions,
   contactOptions,
+  userOptions,
+  defaultOwnerId,
 }: Props) {
   const [error, dispatch, isPending] = useActionState(
     async (_prev: unknown, fd: FormData) => {
@@ -203,6 +209,23 @@ export default function DynamicForm({
           </div>
         )
       })}
+
+      {/* ── 担当者（システムフィールド） ── */}
+      {userOptions && userOptions.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <select
+            name="owner_id"
+            defaultValue={defaultOwnerId ?? ''}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">未設定</option>
+            {userOptions.map((u) => (
+              <option key={u.value} value={u.value}>{u.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* セクションが1つもない場合、FormFillModal をフィールド群の直前に表示 */}
       {fillableFields.length > 0 && !visibleFields.some(f => f.field_type === 'section') && (

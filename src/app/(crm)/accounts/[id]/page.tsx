@@ -14,6 +14,7 @@ import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { getAllUsers } from '@/lib/userUtils'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
@@ -53,7 +54,7 @@ export default async function AccountDetailPage({
 }) {
   const { id } = await params
 
-  const [account, contactsList, opportunitiesList, activitiesList, tasksList, attachmentsList, customData, editFlag] = await Promise.all([
+  const [account, contactsList, opportunitiesList, activitiesList, tasksList, attachmentsList, customData, editFlag, allUsers] = await Promise.all([
     db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null),
     db.select().from(contacts).where(eq(contacts.account_id, id)).orderBy(desc(contacts.created_at)),
     db.select().from(opportunities).where(eq(opportunities.account_id, id)).orderBy(desc(opportunities.created_at)),
@@ -62,6 +63,7 @@ export default async function AccountDetailPage({
     db.select().from(attachments).where(eq(attachments.account_id, id)).orderBy(desc(attachments.created_at)),
     getCustomFieldsWithValues('accounts', id),
     canEdit(), // 編集ボタン表示判定（担当者リスト等に使用）
+    getAllUsers(),
   ])
 
   if (!account) notFound()
@@ -140,6 +142,7 @@ export default async function AccountDetailPage({
             { label: '住所', value: account.address },
             { label: '従業員数', value: account.employee_count ? `${account.employee_count.toLocaleString()} 名` : null },
             { label: '年間売上', value: account.annual_revenue ? `¥${Number(account.annual_revenue).toLocaleString()}` : null },
+            { label: '担当者', value: account.owner_id ? (allUsers.find((u) => u.id === account.owner_id)?.name ?? '—') : null },
             { label: '登録日', value: account.created_at ? new Date(account.created_at).toLocaleDateString('ja-JP') : '—' },
           ].map(({ label, value, isLink }) => (
             <div key={label}>

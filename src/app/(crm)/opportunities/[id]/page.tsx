@@ -14,6 +14,7 @@ import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { getAllUsers } from '@/lib/userUtils'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
@@ -53,12 +54,12 @@ function formatFileSize(bytes: number | null) {
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag] = await Promise.all([
+  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag, allUsers] = await Promise.all([
     db.select({
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
       close_date: opportunities.close_date, description: opportunities.description,
-      created_at: opportunities.created_at,
+      created_at: opportunities.created_at, owner_id: opportunities.owner_id,
       accounts: { id: accounts.id, name: accounts.name },
       contacts: { id: contacts.id, full_name: contacts.full_name },
     })
@@ -73,11 +74,13 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     db.select().from(expenses).where(eq(expenses.opportunity_id, id)).orderBy(desc(expenses.expense_date)),
     getCustomFieldsWithValues('opportunities', id),
     canEdit(),
+    getAllUsers(),
   ])
 
   if (!opportunity) notFound()
-  const account = opportunity.accounts?.id ? opportunity.accounts : null
-  const contact = opportunity.contacts?.id ? opportunity.contacts : null
+  const account   = opportunity.accounts?.id ? opportunity.accounts : null
+  const contact   = opportunity.contacts?.id ? opportunity.contacts : null
+  const ownerName = opportunity.owner_id ? (allUsers.find((u) => u.id === opportunity.owner_id)?.name ?? null) : null
 
   async function changeStage(stage: string) {
     'use server'
@@ -161,6 +164,10 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           <div>
             <dt className="text-xs text-zinc-400 mb-1">確度</dt>
             <dd className="text-sm text-zinc-800">{opportunity.probability != null ? `${opportunity.probability}%` : '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+            <dd className="text-sm text-zinc-800">{ownerName ?? '—'}</dd>
           </div>
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>

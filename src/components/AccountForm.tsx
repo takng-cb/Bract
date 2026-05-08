@@ -6,9 +6,12 @@ import type { FieldDef } from '@/lib/objectMetadata'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 
+type UserOption = { id: string; name: string }
+
 type AccountFormProps = {
   action: (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref: string
+  users?: UserOption[]
   customFields?: FieldDef[]
   customValues?: Record<string, string | null>
   defaultValues?: {
@@ -22,6 +25,7 @@ type AccountFormProps = {
     employee_count?: number | null
     description?: string | null
     status?: string
+    owner_id?: string | null
   }
 }
 
@@ -33,7 +37,7 @@ const INDUSTRIES = [
 
 const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他社', 'その他']
 
-export default function AccountForm({ action, cancelHref, defaultValues = {}, customFields = [], customValues = {} }: AccountFormProps) {
+export default function AccountForm({ action, cancelHref, users = [], defaultValues = {}, customFields = [], customValues = {} }: AccountFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -168,6 +172,20 @@ export default function AccountForm({ action, cancelHref, defaultValues = {}, cu
           />
         </div>
       </div>
+
+      {users.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <select
+            name="owner_id"
+            defaultValue={defaultValues.owner_id ?? ''}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">未設定</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">概要・メモ</label>

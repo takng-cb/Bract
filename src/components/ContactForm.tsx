@@ -7,12 +7,14 @@ import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 
-type Account = { id: string; name: string }
+type Account    = { id: string; name: string }
+type UserOption = { id: string; name: string }
 
 type ContactFormProps = {
   action: (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref: string
   accounts: Account[]
+  users?: UserOption[]
   customFields?: FieldDef[]
   customValues?: Record<string, string | null>
   defaultValues?: {
@@ -25,10 +27,11 @@ type ContactFormProps = {
     birthday?: string | null
     description?: string | null
     account_id?: string | null
+    owner_id?: string | null
   }
 }
 
-export default function ContactForm({ action, cancelHref, accounts, defaultValues = {}, customFields = [], customValues = {} }: ContactFormProps) {
+export default function ContactForm({ action, cancelHref, accounts, users = [], defaultValues = {}, customFields = [], customValues = {} }: ContactFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const [contactType, setContactType] = useState<string>(defaultValues.contact_type ?? 'business')
   const formRef = useRef<HTMLFormElement>(null)
@@ -176,6 +179,21 @@ export default function ContactForm({ action, cancelHref, accounts, defaultValue
           className={field}
         />
       </div>
+
+      {/* 担当者 */}
+      {users.length > 0 && (
+        <div>
+          <label className={lbl}>担当者</label>
+          <select
+            name="owner_id"
+            defaultValue={defaultValues.owner_id ?? ''}
+            className={`${field} bg-white`}
+          >
+            <option value="">未設定</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        </div>
+      )}
 
       {/* 共通: メモ */}
       <div>

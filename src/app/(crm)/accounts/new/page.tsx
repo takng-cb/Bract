@@ -3,12 +3,16 @@ import AccountForm from '@/components/AccountForm'
 import { createAccount } from '@/app/actions/accounts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
+import { getAllUsers } from '@/lib/userUtils'
 import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
 
 export default async function NewAccountPage() {
   await requireEditor()
-  const { fields } = await getCustomFieldsWithValues('accounts', '')
+  const [{ fields }, allUsers] = await Promise.all([
+    getCustomFieldsWithValues('accounts', ''),
+    getAllUsers(),
+  ])
 
   async function createAccountAction(_: string | null, formData: FormData): Promise<string | null> {
     'use server'
@@ -34,6 +38,7 @@ export default async function NewAccountPage() {
         <AccountForm
           action={createAccountAction}
           cancelHref="/accounts"
+          users={allUsers}
           customFields={fields}
         />
       </div>
