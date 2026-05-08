@@ -70,16 +70,12 @@ export async function resolveRecords(
           inArray(custom_records.id, ids),
         ))
 
-      return rows.map((r) => {
-        let data: Record<string, unknown> = {}
-        try { data = JSON.parse(r.data) } catch { /* ignore */ }
-        return {
-          id:    r.id,
-          label: String(data.name ?? data.title ?? r.id),
-          sub:   data.status ? String(data.status) : undefined,
-          href:  `/objects/${objectType}/${r.id}`,
-        }
-      })
+      return rows.map((r) => ({
+        id:    r.id,
+        label: String(r.data.name ?? r.data.title ?? r.id),
+        sub:   r.data.status ? String(r.data.status) : undefined,
+        href:  `/objects/${objectType}/${r.id}`,
+      }))
     }
   }
 }

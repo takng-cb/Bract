@@ -29,7 +29,7 @@ export async function createCustomRecord(
   }
 
   const [rec] = await db.insert(custom_records)
-    .values({ object_id: obj.id, data: JSON.stringify(data) })
+    .values({ object_id: obj.id, data })
     .returning({ id: custom_records.id })
 
   revalidatePath(`/objects/${objectApiName}`)
@@ -55,7 +55,7 @@ export async function updateCustomRecord(
   }
 
   await db.update(custom_records)
-    .set({ data: JSON.stringify(data), updated_at: new Date() })
+    .set({ data, updated_at: new Date() })
     .where(and(eq(custom_records.id, recordId), eq(custom_records.object_id, obj.id)))
 
   revalidatePath(`/objects/${objectApiName}/${recordId}`)

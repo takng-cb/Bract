@@ -27,8 +27,7 @@ export default async function EditCustomRecordPage({
   ])
   if (!record) notFound()
 
-  let defaultValues: Record<string, unknown> = {}
-  try { defaultValues = JSON.parse(record.data) } catch { /* ignore */ }
+  const defaultValues: Record<string, unknown> = record.data ?? {}
 
   // account_id / contact_id フィールドの有無を確認
   const visibleFields   = fields.filter((f) => f.is_visible)
