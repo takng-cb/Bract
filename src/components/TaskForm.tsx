@@ -122,7 +122,7 @@ export default function TaskForm({ action, cancelHref, accounts, contacts, oppor
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">人物</label>
           <SearchableSelect
             key={selectedAccountId}
             name="contact_id"

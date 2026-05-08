@@ -175,13 +175,13 @@ export default async function AccountDetailPage({
         </div>
       )}
 
-      {/* 担当者 */}
+      {/* 人物 */}
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-zinc-800">担当者 <span className="text-zinc-400 font-normal text-sm">({contactsList.length})</span></h2>
+          <h2 className="text-base font-semibold text-zinc-800">人物 <span className="text-zinc-400 font-normal text-sm">({contactsList.length})</span></h2>
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <TextImportModal importUrl="/api/import/contacts" title="担当者インポート" csvFormat="ID,氏名,役職,部署,メール,電話番号,誕生日,メモ" defaultContext={{ account_id: id }} />
+              <TextImportModal importUrl="/api/import/contacts" title="人物インポート" csvFormat="ID,氏名,役職,部署,メール,電話番号,誕生日,メモ" defaultContext={{ account_id: id }} />
               <Link href={`/contacts/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
             </div>
           </AuthGuard>
@@ -226,7 +226,7 @@ export default async function AccountDetailPage({
             </div>
           </>
         ) : (
-          <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center">担当者がいません</p>
+          <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center">人物がいません</p>
         )}
       </section>
 

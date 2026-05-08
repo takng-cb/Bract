@@ -83,7 +83,7 @@ export async function resolveRecords(
 /** オブジェクト種別の日本語ラベル（静的な組み込みオブジェクトのみ） */
 export const OBJECT_TYPE_LABELS: Record<string, string> = {
   accounts:      '取引先',
-  contacts:      '担当者',
+  contacts:      '人物',
   opportunities: '商談',
 }
 
