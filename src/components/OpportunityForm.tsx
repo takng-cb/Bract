@@ -108,31 +108,27 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
         />
       </div>
 
-      {contacts.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">人物</label>
-          <SearchableSelect
-            name="contact_id"
-            defaultValue={defaultValues.contact_id}
-            options={contacts.map((c) => ({ value: c.id, label: c.full_name }))}
-            placeholder="選択してください"
-          />
-        </div>
-      )}
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">人物</label>
+        <SearchableSelect
+          name="contact_id"
+          defaultValue={defaultValues.contact_id}
+          options={contacts.map((c) => ({ value: c.id, label: c.full_name }))}
+          placeholder="選択してください"
+        />
+      </div>
 
-      {users.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
-          <select
-            name="owner_id"
-            defaultValue={defaultValues.owner_id ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">未設定</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </div>
-      )}
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+        <select
+          name="owner_id"
+          defaultValue={defaultValues.owner_id ?? ''}
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">未設定</option>
+          {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">ステージ</label>

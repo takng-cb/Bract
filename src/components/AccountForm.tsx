@@ -173,19 +173,17 @@ export default function AccountForm({ action, cancelHref, users = [], defaultVal
         </div>
       </div>
 
-      {users.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
-          <select
-            name="owner_id"
-            defaultValue={defaultValues.owner_id ?? ''}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">未設定</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </div>
-      )}
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+        <select
+          name="owner_id"
+          defaultValue={defaultValues.owner_id ?? ''}
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">未設定</option>
+          {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">概要・メモ</label>

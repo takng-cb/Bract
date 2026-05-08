@@ -181,19 +181,17 @@ export default function ContactForm({ action, cancelHref, accounts, users = [], 
       </div>
 
       {/* 担当者 */}
-      {users.length > 0 && (
-        <div>
-          <label className={lbl}>担当者</label>
-          <select
-            name="owner_id"
-            defaultValue={defaultValues.owner_id ?? ''}
-            className={`${field} bg-white`}
-          >
-            <option value="">未設定</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </div>
-      )}
+      <div>
+        <label className={lbl}>担当者</label>
+        <select
+          name="owner_id"
+          defaultValue={defaultValues.owner_id ?? ''}
+          className={`${field} bg-white`}
+        >
+          <option value="">未設定</option>
+          {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+      </div>
 
       {/* 共通: メモ */}
       <div>
