@@ -4,9 +4,9 @@ import BottomNav from '@/components/BottomNav'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
 import PwaInstallBanner from '@/components/PwaInstallBanner'
 import { applyNavOrder, DEFAULT_NAV_ORDER, type NavItem } from '@/lib/navItems'
-import { getSystemSetting } from '@/lib/systemSettings'
+import { getSystemSettings } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
-import { user_preferences, system_settings } from '@/lib/schema'
+import { user_preferences } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { getCustomObjectsForNav } from '@/lib/objectMetadata'
@@ -21,7 +21,8 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   // ── Round 2: ユーザー ID が確定してから残りを並列実行 ─────────────────
   // user_preferences を1回のクエリで nav_order と display_name の両方を取得
-  const [pref, sysNavOrder, companyName, customObjects, adminFlag] = await Promise.all([
+  // system_settings も1回のクエリで nav_order と company_name の両方を取得
+  const [pref, sysSettings, customObjects, adminFlag] = await Promise.all([
     user
       ? db.select({
           nav_order:    user_preferences.nav_order,
@@ -30,11 +31,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
           .where(eq(user_preferences.user_id, user.id))
           .then((r) => r[0] ?? null)
       : Promise.resolve(null),
-    db.select({ value: system_settings.value })
-      .from(system_settings)
-      .where(eq(system_settings.key, 'nav_order'))
-      .then((r) => r[0] ?? null),
-    getSystemSetting('company_name'),
+    getSystemSettings(['nav_order', 'company_name']),
     getCustomObjectsForNav(),
     isAdmin(),
   ])
@@ -43,9 +40,11 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   let order: string[] = DEFAULT_NAV_ORDER
   if (pref?.nav_order) {
     try { order = JSON.parse(pref.nav_order) as string[] } catch { /* use default */ }
-  } else if (sysNavOrder?.value) {
-    try { order = JSON.parse(sysNavOrder.value) as string[] } catch { /* use default */ }
+  } else if (sysSettings.nav_order) {
+    try { order = JSON.parse(sysSettings.nav_order) as string[] } catch { /* use default */ }
   }
+
+  const companyName = sysSettings.company_name
 
   // 表示名の解決
   const displayName: string | null = pref?.display_name ?? user?.email ?? null

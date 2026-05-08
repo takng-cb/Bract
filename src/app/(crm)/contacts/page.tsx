@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
-import { contacts, accounts, tags, taggables } from '@/lib/schema'
+import { contacts, accounts, taggables } from '@/lib/schema'
+import { getAllTags } from '@/lib/tagUtils'
 import { desc, eq, and, inArray } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -66,7 +67,7 @@ export default async function ContactsPage({
       .leftJoin(accounts, eq(contacts.account_id, accounts.id))
       .where(eq(contacts.contact_type, view))
       .orderBy(desc(contacts.created_at)),
-    db.select({ id: tags.id, name: tags.name, color: tags.color }).from(tags).orderBy(tags.name),
+    getAllTags(),
     tagConditions.length > 0
       ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
           .from(taggables).where(and(

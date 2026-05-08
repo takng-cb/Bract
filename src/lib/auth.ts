@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { db } from './db'
 import { users } from './schema'
 import { eq } from 'drizzle-orm'
+import { unstable_cache } from 'next/cache'
 import type { Role } from './userRole'
 
 /**
@@ -19,20 +20,29 @@ export const getSupabaseUser = cache(async () => {
   return user
 })
 
+/** ユーザーIDからロールを取得（サーバー横断キャッシュ、60秒TTL）
+ *  ロール変更は最大60秒後に反映される。管理画面でロール更新時は revalidateTag する。
+ */
+const _getRoleById = unstable_cache(
+  async (userId: string): Promise<Role> => {
+    const row = await db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .then((r) => r[0] ?? null)
+    return (row?.role as Role) ?? 'viewer'
+  },
+  ['user_role'],
+  { tags: ['user_role'], revalidate: 60 },
+)
+
 /** 現在のログインユーザーのロールを返す（リクエスト内でキャッシュ）
  *  なりすまし中は対象ユーザーのロールを返す（Supabaseセッションが切り替わっているため自動的に正しい）
  */
 export const getCurrentRole = cache(async (): Promise<Role> => {
   const user = await getSupabaseUser()
   if (!user) return 'viewer'
-
-  const row = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, user.id))
-    .then((r) => r[0] ?? null)
-
-  return (row?.role as Role) ?? 'viewer'
+  return _getRoleById(user.id)
 })
 
 /** 現在なりすまし中かどうかを返す */

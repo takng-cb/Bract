@@ -7,6 +7,7 @@ import { inArray } from 'drizzle-orm'
 // ----------------------------------------------------------------
 export const SYSTEM_DEFAULTS = {
   company_name:             'Bract',
+  nav_order:                '',
   password_min_length:      '8',
   session_timeout_minutes:  '0',   // 0 = タイムアウトなし
   allow_self_registration:  'false',
