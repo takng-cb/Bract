@@ -1,9 +1,9 @@
 import { db } from '@/lib/db'
 import { contacts, accounts } from '@/lib/schema'
 import { ne, asc, eq } from 'drizzle-orm'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ContactForm from '@/components/ContactForm'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateContact } from '@/app/actions/contacts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
@@ -38,13 +38,11 @@ export default async function EditContactPage({ params }: { params: Promise<{ id
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href={`/contacts?view=${view}`} className="hover:text-zinc-600">人物</Link>
-        <span className="mx-2">/</span>
-        <Link href={`/contacts/${id}`} className="hover:text-zinc-600">{contact.full_name}</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">編集</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: '人物', href: `/contacts?view=${view}` },
+        { label: contact.full_name, href: `/contacts/${id}` },
+        { label: '編集' },
+      ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">人物を編集</h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <ContactForm

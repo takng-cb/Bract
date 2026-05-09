@@ -1,8 +1,8 @@
 import { db } from '@/lib/db'
 import { accounts } from '@/lib/schema'
 import { ne, asc } from 'drizzle-orm'
-import Link from 'next/link'
 import ContactForm from '@/components/ContactForm'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { createContact } from '@/app/actions/contacts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
@@ -41,11 +41,10 @@ export default async function NewContactPage({
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href={`/contacts?view=${contactType}`} className="hover:text-zinc-600">人物</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">新規作成</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: '人物', href: `/contacts?view=${contactType}` },
+        { label: '新規作成' },
+      ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">
         {contactType === 'consumer' ? '個人顧客を追加' : '法人担当者を追加'}
       </h1>
