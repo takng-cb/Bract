@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { expenses, accounts, contacts, opportunities } from '@/lib/schema'
+import { expenses, accounts, contacts, opportunities, custom_records, object_definitions } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -8,6 +8,21 @@ import { revalidatePath } from 'next/cache'
 import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
+
+/**
+ * カスタムレコードの表示名を導出する。
+ * data.name → data.title → "<オブジェクトラベル> #<short id>" の優先順。
+ */
+function customRecordTitle(
+  data: Record<string, unknown> | null | undefined,
+  objectLabel: string | null | undefined,
+  recordId: string,
+): string {
+  const d = (data ?? {}) as Record<string, unknown>
+  const name = typeof d.name === 'string' ? d.name : null
+  const title = typeof d.title === 'string' ? d.title : null
+  return name ?? title ?? `${objectLabel ?? 'カスタム'} #${recordId.slice(0, 8)}`
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   交通費:  'bg-blue-50 text-blue-700 border-blue-200',
@@ -26,14 +41,19 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
     id: expenses.id, title: expenses.title, amount: expenses.amount,
     category: expenses.category, expense_date: expenses.expense_date,
     notes: expenses.notes, created_at: expenses.created_at,
+    custom_record_id: expenses.custom_record_id,
     accounts:      { id: accounts.id, name: accounts.name },
     contacts:      { id: contacts.id, full_name: contacts.full_name },
     opportunities: { id: opportunities.id, name: opportunities.name },
+    custom_record: { id: custom_records.id, data: custom_records.data, object_id: custom_records.object_id },
+    object_def:    { id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label },
   })
     .from(expenses)
     .leftJoin(accounts, eq(expenses.account_id, accounts.id))
     .leftJoin(contacts, eq(expenses.contact_id, contacts.id))
     .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
+    .leftJoin(custom_records, eq(expenses.custom_record_id, custom_records.id))
+    .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
     .where(eq(expenses.id, id))
     .then((r) => r[0] ?? null)
 
@@ -42,6 +62,14 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
   const account     = expense.accounts?.id     ? expense.accounts     : null
   const contact     = expense.contacts?.id     ? expense.contacts     : null
   const opportunity = expense.opportunities?.id ? expense.opportunities : null
+  const customRecord = expense.custom_record?.id ? expense.custom_record : null
+  const objectDef    = expense.object_def?.id    ? expense.object_def    : null
+  const customLabel  = customRecord
+    ? customRecordTitle(customRecord.data as Record<string, unknown>, objectDef?.label, customRecord.id)
+    : null
+  const customHref   = customRecord && objectDef
+    ? `/objects/${objectDef.api_name}/${customRecord.id}`
+    : null
   const catColor    = CATEGORY_COLORS[expense.category] ?? CATEGORY_COLORS['その他']
 
   async function deleteAction() {
@@ -94,30 +122,38 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
             <dt className="text-xs text-zinc-400 mb-1">カテゴリ</dt>
             <dd className="text-sm text-zinc-800">{expense.category}</dd>
           </div>
-          {account && (
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
-              <dd className="text-sm">
-                <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">🏢 {account.name}</Link>
-              </dd>
-            </div>
-          )}
-          {contact && (
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">人物</dt>
-              <dd className="text-sm">
-                <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">👤 {contact.full_name}</Link>
-              </dd>
-            </div>
-          )}
-          {opportunity && (
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">商談</dt>
-              <dd className="text-sm">
-                <Link href={`/opportunities/${opportunity.id}`} className="text-blue-600 hover:underline">💼 {opportunity.name}</Link>
-              </dd>
-            </div>
-          )}
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
+            <dd className="text-sm">
+              {account
+                ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">🏢 {account.name}</Link>
+                : <span className="text-zinc-400">—</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">人物</dt>
+            <dd className="text-sm">
+              {contact
+                ? <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">👤 {contact.full_name}</Link>
+                : <span className="text-zinc-400">—</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">商談</dt>
+            <dd className="text-sm">
+              {opportunity
+                ? <Link href={`/opportunities/${opportunity.id}`} className="text-blue-600 hover:underline">💼 {opportunity.name}</Link>
+                : <span className="text-zinc-400">—</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">{objectDef?.label ?? 'カスタム'}</dt>
+            <dd className="text-sm">
+              {customRecord && customHref && customLabel
+                ? <Link href={customHref} className="text-blue-600 hover:underline">🗂️ {customLabel}</Link>
+                : <span className="text-zinc-400">—</span>}
+            </dd>
+          </div>
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
             <dd className="text-sm text-zinc-800">{expense.created_at ? new Date(expense.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
