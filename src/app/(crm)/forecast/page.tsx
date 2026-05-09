@@ -3,6 +3,8 @@ import { opportunities, expenses, accounts } from '@/lib/schema'
 import { eq, asc, ne } from 'drizzle-orm'
 import Link from 'next/link'
 import PeriodSelector from '@/components/PeriodSelector'
+import { activeIndustry } from '@/lib/industry'
+import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 
 const STAGE_LABELS: Record<string, string> = {
   prospecting: '見込み', qualification: '要件確認', proposal: '提案',
@@ -36,11 +38,16 @@ export default async function ForecastPage({
     to   = new Date(year, month, 0).toISOString().slice(0, 10)
   }
 
+  const isReal = activeIndustry === 'real-estate'
+
   const [allOpps, allExpenses] = await Promise.all([
     db.select({
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
       close_date: opportunities.close_date,
+      commission_fee: opportunities.commission_fee,
+      brokerage_type: opportunities.brokerage_type,
+      other_profit: opportunities.other_profit,
       accounts: { name: accounts.name },
     })
       .from(opportunities)
@@ -59,15 +66,27 @@ export default async function ForecastPage({
   const opps = allOpps.filter((o) => o.close_date && o.close_date >= from && o.close_date <= to)
   const exps = allExpenses.filter((e) => e.expense_date && e.expense_date >= from && e.expense_date <= to)
 
+  /**
+   * 1商談の「売上ベース額」を返す。
+   * - real-estate モード: 仲介手数料を multiplier で乗算 + その他利益（calcProfit）
+   * - base モード:        商談金額
+   */
+  const baseRevenueOf = (o: typeof opps[number]) => {
+    if (!isReal) return Number(o.amount ?? 0)
+    const fee = o.commission_fee != null ? Number(o.commission_fee) : null
+    const oth = o.other_profit != null ? Number(o.other_profit) : 0
+    return fee != null ? calcProfit(fee, o.brokerage_type, oth) : 0
+  }
+
   const weightedRevenue = opps.reduce((sum, o) => {
-    const base = Number(o.amount ?? 0)
+    const base = baseRevenueOf(o)
     const prob = o.probability != null ? o.probability / 100 : 1
     return sum + base * prob
   }, 0)
 
   const actualClosedWon = opps
     .filter((o) => o.stage === 'closed_won')
-    .reduce((s, o) => s + Number(o.amount ?? 0), 0)
+    .reduce((s, o) => s + baseRevenueOf(o), 0)
 
   const totalExpenses = exps.reduce((s, e) => s + Number(e.amount), 0)
   const grossProfit   = weightedRevenue - totalExpenses
@@ -85,8 +104,8 @@ export default async function ForecastPage({
       {/* KPI */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         {[
-          { label: '想定売上', value: `¥${Math.round(weightedRevenue).toLocaleString()}`, sub: '確度 × 金額', color: 'text-blue-600' },
-          { label: '受注済', value: `¥${actualClosedWon.toLocaleString()}`, sub: `${opps.filter(o => o.stage === 'closed_won').length} 件`, color: 'text-green-600' },
+          { label: '想定売上', value: `¥${Math.round(weightedRevenue).toLocaleString()}`, sub: isReal ? '確度 × 利益' : '確度 × 金額', color: 'text-blue-600' },
+          { label: '受注済', value: `¥${Math.round(actualClosedWon).toLocaleString()}`, sub: `${opps.filter(o => o.stage === 'closed_won').length} 件`, color: 'text-green-600' },
           { label: '経費合計', value: `¥${totalExpenses.toLocaleString()}`, sub: `${exps.length} 件`, color: 'text-orange-600' },
           { label: '想定粗利', value: `¥${Math.round(grossProfit).toLocaleString()}`, sub: '想定売上 − 経費', color: grossProfit >= 0 ? 'text-green-700' : 'text-red-600' },
         ].map((k) => (
@@ -115,14 +134,14 @@ export default async function ForecastPage({
                   <tr>
                     <th className="text-left px-3 py-2 font-medium text-zinc-600">商談名</th>
                     <th className="text-left px-3 py-2 font-medium text-zinc-600">ステージ</th>
-                    <th className="text-right px-3 py-2 font-medium text-zinc-600">金額</th>
+                    <th className="text-right px-3 py-2 font-medium text-zinc-600">{isReal ? '利益' : '金額'}</th>
                     <th className="text-right px-3 py-2 font-medium text-zinc-600">確度</th>
                     <th className="text-right px-3 py-2 font-medium text-zinc-600">想定売上</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {opps.map((o) => {
-                    const base     = Number(o.amount ?? 0)
+                    const base     = baseRevenueOf(o)
                     const prob     = o.probability != null ? o.probability / 100 : 1
                     const weighted = base * prob
                     const account  = o.accounts?.name ? o.accounts : null
@@ -136,7 +155,7 @@ export default async function ForecastPage({
                           {STAGE_LABELS[o.stage] ?? o.stage}
                         </td>
                         <td className="px-3 py-2 text-right text-zinc-700">
-                          {o.amount ? `¥${Number(o.amount).toLocaleString()}` : '—'}
+                          {base > 0 ? `¥${Math.round(base).toLocaleString()}` : '—'}
                         </td>
                         <td className="px-3 py-2 text-right text-zinc-500">
                           {o.probability != null ? `${o.probability}%` : '—'}
