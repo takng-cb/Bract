@@ -1,9 +1,9 @@
 import { db } from '@/lib/db'
 import { activities, accounts, contacts, opportunities, activity_contacts } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ActivityForm from '@/components/ActivityForm'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
 
@@ -35,13 +35,11 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/activities" className="hover:text-zinc-600">活動履歴</Link>
-        <span className="mx-2">/</span>
-        <Link href={`/activities/${id}`} className="hover:text-zinc-600 line-clamp-1">{activity.subject}</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">編集</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: '活動履歴', href: '/activities' },
+        { label: activity.subject, href: `/activities/${id}` },
+        { label: '編集' },
+      ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">活動を編集</h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <ActivityForm

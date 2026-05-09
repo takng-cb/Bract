@@ -1,9 +1,9 @@
 import { db } from '@/lib/db'
 import { tasks, accounts, contacts, opportunities } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import TaskForm from '@/components/TaskForm'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateTask } from '@/app/actions/tasks'
 import { requireEditor } from '@/lib/auth'
 
@@ -33,13 +33,11 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/tasks" className="hover:text-zinc-600">ToDo</Link>
-        <span className="mx-2">/</span>
-        <Link href={`/tasks/${id}`} className="hover:text-zinc-600 line-clamp-1">{task.title}</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">編集</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: 'ToDo', href: '/tasks' },
+        { label: task.title, href: `/tasks/${id}` },
+        { label: '編集' },
+      ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">ToDoを編集</h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <TaskForm
