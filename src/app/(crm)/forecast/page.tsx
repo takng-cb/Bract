@@ -5,6 +5,7 @@ import Link from 'next/link'
 import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
+import { calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
 
 const STAGE_LABELS: Record<string, string> = {
   prospecting: '見込み', qualification: '要件確認', proposal: '提案',
@@ -38,7 +39,8 @@ export default async function ForecastPage({
     to   = new Date(year, month, 0).toISOString().slice(0, 10)
   }
 
-  const isReal = activeIndustry === 'real-estate'
+  const isReal     = activeIndustry === 'real-estate'
+  const isAutoBody = activeIndustry === 'auto-body'
 
   const [allOpps, allExpenses] = await Promise.all([
     db.select({
@@ -48,6 +50,7 @@ export default async function ForecastPage({
       commission_fee: opportunities.commission_fee,
       brokerage_type: opportunities.brokerage_type,
       other_profit: opportunities.other_profit,
+      parts_cost: opportunities.parts_cost,
       accounts: { name: accounts.name },
     })
       .from(opportunities)
@@ -69,13 +72,21 @@ export default async function ForecastPage({
   /**
    * 1商談の「売上ベース額」を返す。
    * - real-estate モード: 仲介手数料を multiplier で乗算 + その他利益（calcProfit）
+   * - auto-body モード:   利益 = amount − parts_cost
    * - base モード:        商談金額
    */
   const baseRevenueOf = (o: typeof opps[number]) => {
-    if (!isReal) return Number(o.amount ?? 0)
-    const fee = o.commission_fee != null ? Number(o.commission_fee) : null
-    const oth = o.other_profit != null ? Number(o.other_profit) : 0
-    return fee != null ? calcProfit(fee, o.brokerage_type, oth) : 0
+    if (isReal) {
+      const fee = o.commission_fee != null ? Number(o.commission_fee) : null
+      const oth = o.other_profit != null ? Number(o.other_profit) : 0
+      return fee != null ? calcProfit(fee, o.brokerage_type, oth) : 0
+    }
+    if (isAutoBody) {
+      const amt = Number(o.amount ?? 0)
+      const pc  = o.parts_cost != null ? Number(o.parts_cost) : 0
+      return calcAutoBodyProfit(amt, pc)
+    }
+    return Number(o.amount ?? 0)
   }
 
   const weightedRevenue = opps.reduce((sum, o) => {
@@ -104,7 +115,7 @@ export default async function ForecastPage({
       {/* KPI */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         {[
-          { label: '想定売上', value: `¥${Math.round(weightedRevenue).toLocaleString()}`, sub: isReal ? '確度 × 利益' : '確度 × 金額', color: 'text-blue-600' },
+          { label: '想定売上', value: `¥${Math.round(weightedRevenue).toLocaleString()}`, sub: (isReal || isAutoBody) ? '確度 × 利益' : '確度 × 金額', color: 'text-blue-600' },
           { label: '受注済', value: `¥${Math.round(actualClosedWon).toLocaleString()}`, sub: `${opps.filter(o => o.stage === 'closed_won').length} 件`, color: 'text-green-600' },
           { label: '経費合計', value: `¥${totalExpenses.toLocaleString()}`, sub: `${exps.length} 件`, color: 'text-orange-600' },
           { label: '想定粗利', value: `¥${Math.round(grossProfit).toLocaleString()}`, sub: '想定売上 − 経費', color: grossProfit >= 0 ? 'text-green-700' : 'text-red-600' },
@@ -134,7 +145,7 @@ export default async function ForecastPage({
                   <tr>
                     <th className="text-left px-3 py-2 font-medium text-zinc-600">商談名</th>
                     <th className="text-left px-3 py-2 font-medium text-zinc-600">ステージ</th>
-                    <th className="text-right px-3 py-2 font-medium text-zinc-600">{isReal ? '利益' : '金額'}</th>
+                    <th className="text-right px-3 py-2 font-medium text-zinc-600">{(isReal || isAutoBody) ? '利益' : '金額'}</th>
                     <th className="text-right px-3 py-2 font-medium text-zinc-600">確度</th>
                     <th className="text-right px-3 py-2 font-medium text-zinc-600">想定売上</th>
                   </tr>

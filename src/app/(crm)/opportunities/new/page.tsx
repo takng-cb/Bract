@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { accounts, contacts } from '@/lib/schema'
+import { accounts, contacts, vehicles } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import OpportunityForm from '@/components/OpportunityForm'
@@ -9,22 +9,39 @@ import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
 import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
+import { activeIndustry } from '@/lib/industry'
 
 export default async function NewOpportunityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ account_id?: string }>
+  searchParams: Promise<{ account_id?: string; vehicle_id?: string }>
 }) {
-  const { account_id } = await searchParams
+  const { account_id, vehicle_id } = await searchParams
   await requireEditor()
-  const [accountsList, contactsList, { fields }, allUsers] = await Promise.all([
+  const isAutoBody = activeIndustry === 'auto-body'
+  const [accountsList, contactsList, { fields }, allUsers, vehiclesList] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
     getCustomFieldsWithValues('opportunities', ''),
     getAllUsers(),
+    isAutoBody
+      ? db.select({
+          id: vehicles.id, maker: vehicles.maker, model: vehicles.model,
+          license_plate: vehicles.license_plate, year: vehicles.year,
+        }).from(vehicles).orderBy(asc(vehicles.maker), asc(vehicles.model))
+      : Promise.resolve([] as { id: string; maker: string; model: string; license_plate: string | null; year: number | null }[]),
   ])
+
+  const vehicleOptions = vehiclesList.map((v) => ({
+    id:    v.id,
+    label: [
+      `${v.maker} ${v.model}`,
+      v.year ? `${v.year}年式` : null,
+      v.license_plate,
+    ].filter(Boolean).join(' / '),
+  }))
 
   const cancelHref = account_id ? `/accounts/${account_id}` : '/opportunities'
 
@@ -55,7 +72,8 @@ export default async function NewOpportunityPage({
           accounts={accountsList}
           contacts={contactsList}
           users={allUsers}
-          defaultValues={{ account_id: account_id ?? '' }}
+          vehicles={vehicleOptions}
+          defaultValues={{ account_id: account_id ?? '', vehicle_id: vehicle_id ?? null }}
           customFields={fields}
         />
       </div>

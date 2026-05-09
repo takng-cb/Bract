@@ -53,18 +53,33 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   // カスタムオブジェクトをナビアイテムに変換
   // INDUSTRY=real-estate のとき、`properties` は overlay の専用ルート (/properties)
   // を持つため、サイドバーリンクは /objects/properties ではなく /properties に向ける。
+  // 同様に INDUSTRY=auto-body のとき `vehicles` を /vehicles に向ける。
   const customNavItems: NavItem[] = customObjects
     .filter((o) => o.nav_enabled)
     .map((o) => ({
-      href:  activeIndustry === 'real-estate' && o.api_name === 'properties'
-        ? '/properties'
-        : `/objects/${o.api_name}`,
+      href:
+        activeIndustry === 'real-estate' && o.api_name === 'properties' ? '/properties' :
+        activeIndustry === 'auto-body'   && o.api_name === 'vehicles'   ? '/vehicles'   :
+        `/objects/${o.api_name}`,
       label: o.label_plural,
       icon:  o.icon,
     }))
 
+  // 業種オーバーレイ専用のナビ項目（object_definitions に行が無い場合のフォールバック）
+  // auto-body の vehicles は新業種なので、初期セットアップ前でもサイドバー表示できるよう
+  // ここでハードコードする。重複時は customNavItems が優先される（ユニーク化は applyNavOrder
+  // 側ではなく href の重複排除で実装）。
+  const industryNavItems: NavItem[] = activeIndustry === 'auto-body'
+    ? [{ href: '/vehicles', label: '車両', icon: '🚗' }]
+    : []
+
+  const allCustomItems: NavItem[] = [
+    ...customNavItems,
+    ...industryNavItems.filter((i) => !customNavItems.some((c) => c.href === i.href)),
+  ]
+
   // カスタムオブジェクトを含めてユーザー設定順に並び替え
-  const mainItems = applyNavOrder(order, customNavItems)
+  const mainItems = applyNavOrder(order, allCustomItems)
 
   // なりすまし中かどうか確認
   const adminSessionRaw = cookieStore.get('crm_admin_session')?.value

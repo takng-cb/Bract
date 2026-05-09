@@ -4,6 +4,7 @@
  * `NEXT_PUBLIC_INDUSTRY` 環境変数で動作する業種を選択する:
  *   - `base` (default): 業種非依存の汎用 CRM
  *   - `real-estate`: 不動産業特化（properties モジュール有効）
+ *   - `auto-body`:    板金屋・自動車整備業特化（vehicles モジュール有効）
  *   - 将来の業種を追加する際は `src/industries/<name>/` を追加し
  *     この型と `INDUSTRIES` 定数に追加する。
  *
@@ -13,9 +14,9 @@
  * で委譲する。
  */
 
-export type Industry = 'base' | 'real-estate'
+export type Industry = 'base' | 'real-estate' | 'auto-body'
 
-export const INDUSTRIES: readonly Industry[] = ['base', 'real-estate'] as const
+export const INDUSTRIES: readonly Industry[] = ['base', 'real-estate', 'auto-body'] as const
 
 /**
  * 現在ビルド/起動された業種。`base` がデフォルト。

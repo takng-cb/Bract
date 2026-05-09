@@ -38,6 +38,10 @@ export async function createOpportunity(formData: FormData): Promise<string> {
   const commission_fee   = formData.get('commission_fee') as string
   const brokerage_type   = formData.get('brokerage_type') as string
   const other_profit     = formData.get('other_profit') as string
+  // auto-body 用
+  const service_type     = formData.get('service_type') as string
+  const vehicle_id       = formData.get('vehicle_id') as string
+  const parts_cost       = formData.get('parts_cost') as string
 
   const [row] = await db.insert(opportunities).values({
     name:             name.trim(),
@@ -53,6 +57,9 @@ export async function createOpportunity(formData: FormData): Promise<string> {
     commission_fee:   commission_fee ? String(Number(commission_fee)) : null,
     brokerage_type:   brokerage_type || null,
     other_profit:     other_profit ? String(Number(other_profit)) : '0',
+    service_type:     service_type || null,
+    vehicle_id:       vehicle_id || null,
+    parts_cost:       parts_cost ? String(Number(parts_cost)) : '0',
   }).returning({ id: opportunities.id })
 
   return row.id
@@ -72,6 +79,10 @@ export async function updateOpportunity(id: string, formData: FormData) {
   const brokerage_type   = formData.get('brokerage_type') as string
   const other_profit     = formData.get('other_profit') as string
   const txTypeNormalized = transaction_type === '賃貸' ? '賃貸' : '売買'
+  // auto-body 用
+  const service_type     = formData.get('service_type') as string
+  const vehicle_id       = formData.get('vehicle_id') as string
+  const parts_cost       = formData.get('parts_cost') as string
 
   const [before] = await db.select({
     name: opportunities.name, stage: opportunities.stage,
@@ -81,6 +92,9 @@ export async function updateOpportunity(id: string, formData: FormData) {
     commission_fee: opportunities.commission_fee,
     brokerage_type: opportunities.brokerage_type,
     other_profit: opportunities.other_profit,
+    service_type: opportunities.service_type,
+    vehicle_id: opportunities.vehicle_id,
+    parts_cost: opportunities.parts_cost,
   }).from(opportunities).where(eq(opportunities.id, id))
 
   await db.update(opportunities).set({
@@ -97,6 +111,9 @@ export async function updateOpportunity(id: string, formData: FormData) {
     commission_fee:   commission_fee ? String(Number(commission_fee)) : null,
     brokerage_type:   brokerage_type || null,
     other_profit:     other_profit ? String(Number(other_profit)) : '0',
+    service_type:     service_type || null,
+    vehicle_id:       vehicle_id || null,
+    parts_cost:       parts_cost ? String(Number(parts_cost)) : '0',
     updated_at:       new Date(),
   }).where(eq(opportunities.id, id))
 
@@ -112,6 +129,9 @@ export async function updateOpportunity(id: string, formData: FormData) {
         commission_fee:   { label: '仲介手数料', value: before.commission_fee },
         brokerage_type:   { label: '仲介種別',   value: before.brokerage_type },
         other_profit:     { label: 'その他利益', value: before.other_profit },
+        service_type:     { label: 'サービス区分', value: before.service_type },
+        vehicle_id:       { label: '対象車両',     value: before.vehicle_id },
+        parts_cost:       { label: '部品仕入原価', value: before.parts_cost },
       },
       {
         name:             { label: '商談名',     value: name.trim() },
@@ -123,6 +143,9 @@ export async function updateOpportunity(id: string, formData: FormData) {
         commission_fee:   { label: '仲介手数料', value: commission_fee ? Number(commission_fee) : null },
         brokerage_type:   { label: '仲介種別',   value: brokerage_type || null },
         other_profit:     { label: 'その他利益', value: other_profit ? Number(other_profit) : 0 },
+        service_type:     { label: 'サービス区分', value: service_type || null },
+        vehicle_id:       { label: '対象車両',     value: vehicle_id || null },
+        parts_cost:       { label: '部品仕入原価', value: parts_cost ? Number(parts_cost) : 0 },
       },
     )
   }
