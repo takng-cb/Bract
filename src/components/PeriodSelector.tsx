@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { formatDateLocal } from '@/lib/dateUtils'
 
 type Props = {
   from: string  // YYYY-MM-DD
@@ -17,13 +18,15 @@ export default function PeriodSelector({ from, to }: Props) {
   const go = (f: string, t: string) =>
     router.push(`${pathname}?from=${f}&to=${t}`)
 
-  // 月ショートカット: 指定年月の初日〜末日に移動
+  // 月ショートカット: 指定年月の初日〜末日に移動。
+  // ローカルタイムの YMD から組み立てる（toISOString だと
+  // JST → UTC 変換で 1 日前にずれる）。
   const now = new Date()
   const jumpToMonth = (offset: number) => {
-    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1)
-    const f = d.toISOString().slice(0, 10)
-    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-    const t = lastDay.toISOString().slice(0, 10)
+    const first = new Date(now.getFullYear(), now.getMonth() + offset, 1)
+    const last  = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0)
+    const f = formatDateLocal(first)
+    const t = formatDateLocal(last)
     setFromVal(f)
     setToVal(t)
     go(f, t)
