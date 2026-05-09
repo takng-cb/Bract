@@ -9,6 +9,7 @@ import {
 } from '@/lib/schema'
 import { isAdminUser } from '@/lib/userRole'
 import { requireAdmin } from '@/lib/auth'
+import { activeIndustry } from '@/lib/industry'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import type { Role } from '@/lib/userRole'
@@ -44,6 +45,11 @@ export async function deleteAllData(): Promise<{ error?: string }> {
     await db.delete(activities)
     await db.delete(tasks)
     await db.delete(expenses)
+    // 業種オーバーレイ：不動産業の properties テーブルがある環境でのみ削除
+    if (activeIndustry === 'real-estate') {
+      const { properties } = await import('@/industries/real-estate/schema')
+      await db.delete(properties)
+    }
     await db.delete(opportunities)
     await db.delete(contacts)
     await db.delete(accounts)

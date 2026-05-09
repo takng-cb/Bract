@@ -19,6 +19,8 @@ import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
+import { calcProfit, commissionBreakdown, effectiveCommissionRatePct, effectiveCommissionMonths } from '@/industries/real-estate/lib/realEstateCommission'
+import { activeIndustry } from '@/lib/industry'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -60,6 +62,10 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       amount: opportunities.amount, probability: opportunities.probability,
       close_date: opportunities.close_date, description: opportunities.description,
       created_at: opportunities.created_at, owner_id: opportunities.owner_id,
+      transaction_type: opportunities.transaction_type,
+      commission_fee:  opportunities.commission_fee,
+      brokerage_type:  opportunities.brokerage_type,
+      other_profit:    opportunities.other_profit,
       accounts: { id: accounts.id, name: accounts.name },
       contacts: { id: contacts.id, full_name: contacts.full_name },
     })
@@ -158,7 +164,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             <dd className="text-sm text-zinc-800">{opportunity.close_date ?? '—'}</dd>
           </div>
           <div>
-            <dt className="text-xs text-zinc-400 mb-1">金額</dt>
+            <dt className="text-xs text-zinc-400 mb-1">{activeIndustry === 'real-estate' && opportunity.transaction_type === '賃貸' ? '月額賃料' : '金額'}</dt>
             <dd className="text-sm font-semibold text-zinc-800">{opportunity.amount ? `¥${Number(opportunity.amount).toLocaleString()}` : '—'}</dd>
           </div>
           <div>
@@ -181,19 +187,45 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </dd>
         </div>
         {(() => {
-          const base      = Number(opportunity.amount ?? 0)
-          const prob      = opportunity.probability != null ? opportunity.probability / 100 : null
-          const weighted  = prob != null ? Math.round(base * prob) : null
-          const totalExp  = expensesList.reduce((s, e) => s + Number(e.amount), 0)
-          const gross     = weighted != null ? weighted - totalExp : null
-          if (!base && totalExp === 0) return null
+          // INDUSTRY 条件で財務サマリーの計算式を切替:
+          //   base       : 想定売上 = 金額 × 確度
+          //   real-estate: 想定売上 = 仲介手数料ベース利益 × 確度
+          const isReal   = activeIndustry === 'real-estate'
+          const totalExp = expensesList.reduce((s, e) => s + Number(e.amount), 0)
+          const prob     = opportunity.probability != null ? opportunity.probability / 100 : null
+
+          let weighted: number | null = null
+          let gross: number | null = null
+          let weightedLabel = ''
+          let showWeighted = false
+          let baseValue = 0
+
+          if (isReal) {
+            const fee    = opportunity.commission_fee != null ? Number(opportunity.commission_fee) : null
+            const oth    = opportunity.other_profit != null ? Number(opportunity.other_profit) : 0
+            const profit = fee != null ? calcProfit(fee, opportunity.brokerage_type, oth) : 0
+            weighted     = prob != null && fee != null ? Math.round(profit * prob) : (fee != null ? profit : null)
+            gross        = weighted != null ? weighted - totalExp : null
+            weightedLabel = `想定売上${prob != null ? '（利益 × 確度）' : '（利益）'}`
+            showWeighted = fee != null
+            baseValue    = fee ?? 0
+          } else {
+            const amount = Number(opportunity.amount ?? 0)
+            weighted     = prob != null && amount > 0 ? Math.round(amount * prob) : null
+            gross        = weighted != null ? weighted - totalExp : null
+            weightedLabel = '想定売上（金額 × 確度）'
+            showWeighted = weighted != null
+            baseValue    = amount
+          }
+
+          if (baseValue === 0 && totalExp === 0) return null
           return (
             <div className="mt-4 pt-4 border-t border-zinc-200">
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">財務サマリー</p>
               <div className="space-y-2">
-                {weighted != null && (
+                {showWeighted && weighted != null && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-500">想定売上（金額 × 確度）</span>
+                    <span className="text-zinc-500">{weightedLabel}</span>
                     <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
                   </div>
                 )}
@@ -212,6 +244,66 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           )
         })()}
       </div>
+
+      {/* 不動産情報（INDUSTRY=real-estate のみ） */}
+      {activeIndustry === 'real-estate' && (() => {
+        const tx    = opportunity.transaction_type === '賃貸' ? '賃貸' : '売買'
+        const isRent = tx === '賃貸'
+        const price = opportunity.amount != null ? Number(opportunity.amount) : null
+        const fee   = opportunity.commission_fee != null ? Number(opportunity.commission_fee) : null
+        const oth   = opportunity.other_profit != null ? Number(opportunity.other_profit) : 0
+        const bk    = opportunity.brokerage_type ?? null
+        const hasAny = fee != null || bk != null || oth > 0
+        if (!hasAny) return null
+        const profit = calcProfit(fee, bk, oth)
+        const breakdown = commissionBreakdown(price, tx)
+        const effRate = !isRent ? effectiveCommissionRatePct(price, fee) : null
+        const effMonths = isRent ? effectiveCommissionMonths(price, fee) : null
+        return (
+          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">不動産情報</h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">取引区分</dt>
+                <dd className="text-sm text-zinc-800">{tx}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">仲介種別</dt>
+                <dd className="text-sm text-zinc-800">{bk ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">仲介手数料</dt>
+                <dd className="text-sm text-zinc-800">
+                  {fee != null ? `¥${Math.round(fee).toLocaleString('ja-JP')}` : '—'}
+                  {(breakdown || effRate != null || effMonths != null) && (
+                    <span className="block text-[11px] text-zinc-400 mt-0.5">
+                      {breakdown}
+                      {breakdown && (effRate != null || effMonths != null) && ' ・ '}
+                      {effRate != null && `実効率 ${effRate.toFixed(2)}%`}
+                      {effMonths != null && `${effMonths.toFixed(2)}ヶ月分`}
+                    </span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">その他利益</dt>
+                <dd className="text-sm text-zinc-800">¥{Math.round(oth).toLocaleString('ja-JP')}</dd>
+              </div>
+            </dl>
+            <div className="mt-4 pt-4 border-t border-zinc-200">
+              <div className="flex justify-between items-baseline">
+                <span className="text-sm font-semibold text-zinc-700">利益（自動計算）</span>
+                <span className={`text-xl font-bold ${profit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                  ¥{Math.round(profit).toLocaleString('ja-JP')}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                仲介手数料 × {bk === '両手' ? '2（両手）' : '1'} ＋ その他利益（税抜）
+              </p>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* カスタムフィールド */}
       {customData.fields.length > 0 && (

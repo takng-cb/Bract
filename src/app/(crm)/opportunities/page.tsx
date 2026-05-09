@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { opportunities, accounts, taggables } from '@/lib/schema'
+import { activeIndustry } from '@/lib/industry'
 import { getAllTags } from '@/lib/tagUtils'
 import { getAllUsers } from '@/lib/userUtils'
 import { desc, eq, and, inArray } from 'drizzle-orm'
@@ -143,9 +144,15 @@ export default async function OpportunitiesPage({
             exportUrl="/api/export/opportunities"
             importUrl="/api/import/opportunities"
             label="商談"
-            csvFormat="ID,商談名,ステージ,金額,完了予定日,確度(%),取引先名,説明"
+            csvFormat={activeIndustry === 'real-estate'
+              ? "ID,商談名,ステージ,金額,完了予定日,確度(%),取引先名,説明,取引区分,仲介手数料,仲介種別,その他利益"
+              : "ID,商談名,ステージ,金額,完了予定日,確度(%),取引先名,説明"}
             fieldOptions={{
               'ステージ': ['見込み', '要件確認', '提案', '交渉', '受注', '失注'],
+              ...(activeIndustry === 'real-estate' ? {
+                '取引区分': ['売買', '賃貸'],
+                '仲介種別': ['両手', '売り', '買い', '貸主', '借主'],
+              } : {}),
             }}
             showImport={edit}
           />

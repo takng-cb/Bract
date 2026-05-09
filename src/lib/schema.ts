@@ -67,6 +67,17 @@ export const opportunities = pgTable('opportunities', {
   close_date:  date('close_date'),
   description: text('description'),
   owner_id:    uuid('owner_id'),
+  // ─── 業種オーバーレイ：不動産業（INDUSTRY=real-estate のときのみ UI で使用） ───
+  // 共通テーブルに置く理由は industry/real-estate Neon に既存データが存在するため。
+  // base モードでは未使用（UI に出ないし、書き込みも発生しない）。
+  // 取引区分（'売買' | '賃貸'）
+  transaction_type: text('transaction_type').notNull().default('売買'),
+  // 仲介手数料（円、税抜）
+  commission_fee:  numeric('commission_fee'),
+  // 仲介種別（売買: '両手'|'売り'|'買い' / 賃貸: '両手'|'貸主'|'借主'）
+  brokerage_type:  text('brokerage_type'),
+  // その他利益（円、税抜）
+  other_profit:    numeric('other_profit').notNull().default('0'),
   created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
