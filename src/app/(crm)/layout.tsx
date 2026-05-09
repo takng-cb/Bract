@@ -11,6 +11,7 @@ import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { getCustomObjectsForNav } from '@/lib/objectMetadata'
 import { isAdmin, getSupabaseUser } from '@/lib/auth'
+import { activeIndustry } from '@/lib/industry'
 
 export default async function CrmLayout({ children }: { children: React.ReactNode }) {
   // ── Round 1: 認証を先に取得してユーザー ID を確定 ───────────────────
@@ -50,10 +51,14 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   const displayName: string | null = pref?.display_name ?? user?.email ?? null
 
   // カスタムオブジェクトをナビアイテムに変換
+  // INDUSTRY=real-estate のとき、`properties` は overlay の専用ルート (/properties)
+  // を持つため、サイドバーリンクは /objects/properties ではなく /properties に向ける。
   const customNavItems: NavItem[] = customObjects
     .filter((o) => o.nav_enabled)
     .map((o) => ({
-      href:  `/objects/${o.api_name}`,
+      href:  activeIndustry === 'real-estate' && o.api_name === 'properties'
+        ? '/properties'
+        : `/objects/${o.api_name}`,
       label: o.label_plural,
       icon:  o.icon,
     }))
