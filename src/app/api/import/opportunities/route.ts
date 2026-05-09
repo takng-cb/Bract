@@ -9,6 +9,9 @@ const STAGE_REVERSE: Record<string, string> = {
   '交渉': 'negotiation', '受注': 'closed_won', '失注': 'closed_lost',
 }
 
+const BROKERAGE_TYPES = new Set(['両手', '売り', '買い', '貸主', '借主'])
+const TRANSACTION_TYPES = new Set(['売買', '賃貸'])
+
 export async function POST(req: NextRequest) {
   const formData  = await req.formData()
   const file      = formData.get('file') as File | null
@@ -45,6 +48,12 @@ export async function POST(req: NextRequest) {
       ? (accountMap.get(accountName) ?? null)
       : (ctxAccountId ?? null)
 
+    const brokerageRaw = row['仲介種別']?.trim()
+    const brokerageType = brokerageRaw && BROKERAGE_TYPES.has(brokerageRaw) ? brokerageRaw : null
+
+    const txTypeRaw = row['取引区分']?.trim()
+    const transactionType = txTypeRaw && TRANSACTION_TYPES.has(txTypeRaw) ? txTypeRaw : undefined
+
     const record = {
       name:        name || undefined,
       stage:       (STAGE_REVERSE[stageRaw] ?? stageRaw) || undefined,
@@ -53,6 +62,10 @@ export async function POST(req: NextRequest) {
       probability: row['確度(%)'] ? Number(row['確度(%)']) : null,
       account_id:  accountId,
       description: row['説明'] || null,
+      transaction_type: transactionType,
+      commission_fee: row['仲介手数料'] ? String(Number(row['仲介手数料'])) : null,
+      brokerage_type: brokerageType,
+      other_profit:   row['その他利益'] ? String(Number(row['その他利益'])) : '0',
     }
 
     try {

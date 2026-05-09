@@ -3,6 +3,8 @@ import { opportunities, accounts } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
+import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
+import { activeIndustry } from '@/lib/industry'
 
 const STAGE_LABEL: Record<string, string> = {
   prospecting: '見込み', qualification: '要件確認', proposal: '提案',
@@ -20,24 +22,50 @@ export async function GET() {
       probability: opportunities.probability,
       description: opportunities.description,
       created_at:  opportunities.created_at,
+      transaction_type: opportunities.transaction_type,
+      commission_fee:  opportunities.commission_fee,
+      brokerage_type:  opportunities.brokerage_type,
+      other_profit:    opportunities.other_profit,
       accounts:    { name: accounts.name },
     })
       .from(opportunities)
       .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
       .orderBy(desc(opportunities.created_at))
 
-    const headers = ['ID', '商談名', 'ステージ', '金額', '完了予定日', '確度(%)', '取引先名', '説明', '登録日']
-    const rows = data.map((r) => [
-      r.id,
-      r.name,
-      STAGE_LABEL[r.stage] ?? r.stage,
-      r.amount ?? '',
-      r.close_date ? new Date(r.close_date).toLocaleDateString('ja-JP') : '',
-      r.probability ?? '',
-      r.accounts?.name ?? '',
-      r.description ?? '',
-      r.created_at ? new Date(r.created_at).toLocaleDateString('ja-JP') : '',
-    ])
+    const isReal = activeIndustry === 'real-estate'
+    const baseHeaders = [
+      'ID', '商談名', 'ステージ', '金額', '完了予定日', '確度(%)',
+      '取引先名', '説明', '登録日',
+    ]
+    const realEstateHeaders = ['取引区分', '仲介手数料', '仲介種別', 'その他利益', '利益']
+    const headers = isReal ? [...baseHeaders, ...realEstateHeaders] : baseHeaders
+    const rows = data.map((r) => {
+      const baseRow = [
+        r.id,
+        r.name,
+        STAGE_LABEL[r.stage] ?? r.stage,
+        r.amount ?? '',
+        r.close_date ? new Date(r.close_date).toLocaleDateString('ja-JP') : '',
+        r.probability ?? '',
+        r.accounts?.name ?? '',
+        r.description ?? '',
+        r.created_at ? new Date(r.created_at).toLocaleDateString('ja-JP') : '',
+      ]
+      if (!isReal) return baseRow
+      const fee  = r.commission_fee != null ? Number(r.commission_fee) : null
+      const oth  = r.other_profit != null ? Number(r.other_profit) : 0
+      const profit = fee != null
+        ? calcProfit(fee, r.brokerage_type, oth)
+        : null
+      return [
+        ...baseRow,
+        r.transaction_type ?? '',
+        fee != null ? Math.round(fee) : '',
+        r.brokerage_type ?? '',
+        oth || '',
+        profit != null ? Math.round(profit) : '',
+      ]
+    })
 
     return new NextResponse(buildCsv(headers, rows), {
       headers: {
