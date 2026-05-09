@@ -6,6 +6,7 @@ import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { getAllUsers } from '@/lib/userUtils'
+import { formatDateLocal, lastOfMonth, firstOfMonth } from '@/lib/dateUtils'
 import {
   ForecastTimeSeriesChart,
   ForecastStageStackedChart,
@@ -63,7 +64,7 @@ function enumerateBuckets(from: string, to: string, granularity: 'week' | 'month
   } else {
     const cur = new Date(start)
     while (cur <= end) {
-      result.push(bucketKey(cur.toISOString().slice(0, 10), 'week'))
+      result.push(bucketKey(formatDateLocal(cur), 'week'))
       cur.setDate(cur.getDate() + 7)
     }
     // 重複除去（同週開始日が複数の場合）
@@ -89,8 +90,8 @@ export default async function ForecastPage({
   } else {
     const year  = Number(sp.year  ?? now.getFullYear())
     const month = Number(sp.month ?? now.getMonth() + 1)
-    from = `${year}-${String(month).padStart(2, '0')}-01`
-    to   = new Date(year, month, 0).toISOString().slice(0, 10)
+    from = firstOfMonth(year, month)
+    to   = lastOfMonth(year, month)
   }
 
   const isReal = activeIndustry === 'real-estate'
