@@ -1,9 +1,9 @@
 import { db } from '@/lib/db'
 import { accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AccountForm from '@/components/AccountForm'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateAccount } from '@/app/actions/accounts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
@@ -38,13 +38,11 @@ export default async function EditAccountPage({
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/accounts" className="hover:text-zinc-600">取引先</Link>
-        <span className="mx-2">/</span>
-        <Link href={`/accounts/${id}`} className="hover:text-zinc-600">{account.name}</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">編集</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: '取引先', href: '/accounts' },
+        { label: account.name, href: `/accounts/${id}` },
+        { label: '編集' },
+      ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">取引先を編集</h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <AccountForm

@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import AccountForm from '@/components/AccountForm'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { createAccount } from '@/app/actions/accounts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
@@ -28,11 +28,10 @@ export default async function NewAccountPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/accounts" className="hover:text-zinc-600">取引先</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">新規作成</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: '取引先', href: '/accounts' },
+        { label: '新規作成' },
+      ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">取引先を追加</h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <AccountForm
