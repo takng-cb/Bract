@@ -44,17 +44,20 @@ export async function getCustomFieldsWithValues(
   if (!obj) return { fields: [], values: {} }
 
   // field_definitions と custom_field_values を並列取得
+  // recordId が空（新規作成画面など）なら値クエリは省略
   const [fields, valueRows] = await Promise.all([
     db.select()
       .from(field_definitions)
       .where(eq(field_definitions.object_id, obj.id))
       .orderBy(field_definitions.sort_order, field_definitions.created_at),
-    db.select({
-      field_id: custom_field_values.field_id,
-      value:    custom_field_values.value,
-    })
-      .from(custom_field_values)
-      .where(eq(custom_field_values.record_id, recordId)),
+    recordId
+      ? db.select({
+          field_id: custom_field_values.field_id,
+          value:    custom_field_values.value,
+        })
+          .from(custom_field_values)
+          .where(eq(custom_field_values.record_id, recordId))
+      : Promise.resolve([] as { field_id: string; value: string | null }[]),
   ])
 
   // field_id → value のマップを作成

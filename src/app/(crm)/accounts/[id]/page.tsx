@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, activities, tasks, attachments } from '@/lib/schema'
+import { activeIndustry } from '@/lib/industry'
 import { eq, asc, desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -236,7 +237,21 @@ export default async function AccountDetailPage({
           <h2 className="text-base font-semibold text-zinc-800">商談 <span className="text-zinc-400 font-normal text-sm">({opportunitiesList.length})</span></h2>
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <TextImportModal importUrl="/api/import/opportunities" title="商談インポート" csvFormat="ID,商談名,ステージ,金額,完了予定日,確度(%),説明" fieldOptions={{ 'ステージ': ['見込み','要件確認','提案','交渉','受注','失注'] }} defaultContext={{ account_id: id }} />
+              <TextImportModal
+                importUrl="/api/import/opportunities"
+                title="商談インポート"
+                csvFormat={activeIndustry === 'real-estate'
+                  ? "ID,商談名,ステージ,金額,完了予定日,確度(%),説明,取引区分,仲介手数料,仲介種別,その他利益"
+                  : "ID,商談名,ステージ,金額,完了予定日,確度(%),説明"}
+                fieldOptions={{
+                  'ステージ': ['見込み','要件確認','提案','交渉','受注','失注'],
+                  ...(activeIndustry === 'real-estate' ? {
+                    '取引区分': ['売買','賃貸'],
+                    '仲介種別': ['両手','売り','買い','貸主','借主'],
+                  } : {}),
+                }}
+                defaultContext={{ account_id: id }}
+              />
               <Link href={`/opportunities/new?account_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
             </div>
           </AuthGuard>
