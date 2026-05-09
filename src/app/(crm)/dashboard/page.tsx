@@ -7,6 +7,7 @@ import Link from 'next/link'
 import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
+import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
 
 const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700' },
@@ -37,14 +38,14 @@ export default async function DashboardPage({
 }) {
   const sp = await searchParams
   const now = new Date()
-  // 既定期間: 今月
+  // 既定期間: 今月（ローカルタイムの月初〜月末）
   const year      = now.getFullYear()
   const month     = now.getMonth() + 1
   const monthFrom = `${year}-${String(month).padStart(2, '0')}-01`
-  const monthTo   = new Date(year, month, 0).toISOString().slice(0, 10)
+  const monthTo   = lastOfMonth(year, month)
   const from = sp.from || monthFrom
   const to   = sp.to   || monthTo
-  const today     = now.toISOString().slice(0, 10)
+  const today = todayLocal()
 
   const isReal = activeIndustry === 'real-estate'
 
@@ -108,11 +109,11 @@ export default async function DashboardPage({
     (t) => t.due_date && t.due_date >= from && t.due_date <= to
   )
 
-  // 期間内の活動（occurred_at で絞る）
+  // 期間内の活動（occurred_at で絞る、ローカルタイムの日付で比較）
   const periodActivities = allActivities
     .filter((a) => {
       if (!a.occurred_at) return false
-      const d = new Date(a.occurred_at).toISOString().slice(0, 10)
+      const d = formatDateLocal(new Date(a.occurred_at))
       return d >= from && d <= to
     })
     .slice(0, 8)

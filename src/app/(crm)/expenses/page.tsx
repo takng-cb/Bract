@@ -16,6 +16,7 @@ import ExpensesTableView from '@/components/tableviews/ExpensesTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
+import { lastOfMonth } from '@/lib/dateUtils'
 
 const PAGE_SIZE = 20
 
@@ -63,7 +64,7 @@ export default async function ExpensesPage({
   const toMonth   = Number(sp.to_month   ?? now.getMonth() + 1)
 
   const from = `${fromYear}-${String(fromMonth).padStart(2, '0')}-01`
-  const to   = new Date(toYear, toMonth, 0).toISOString().slice(0, 10)
+  const to   = lastOfMonth(toYear, toMonth)
 
   const persistParams = {
     from_year: String(fromYear), from_month: String(fromMonth),
