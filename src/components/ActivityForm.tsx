@@ -4,6 +4,7 @@ import { useActionState, useState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
 import SearchableSelect from '@/components/SearchableSelect'
+import type { ActivityType } from '@/lib/activityTypes'
 
 type Account = { id: string; name: string }
 type Contact = { id: string; full_name: string; account_id?: string | null }
@@ -25,6 +26,8 @@ type ActivityFormProps = {
   contacts: Contact[]
   opportunities: Opportunity[]
   customGroups?: CustomObjectGroup[]
+  /** /admin/objects で編集される活動種別。サーバ側から流す。 */
+  activityTypes: ActivityType[]
   defaultValues?: {
     type?: string
     subject?: string
@@ -38,14 +41,14 @@ type ActivityFormProps = {
   }
 }
 
-const TYPES = [
-  { value: 'call',    label: '📞 電話' },
-  { value: 'email',   label: '✉️ メール' },
-  { value: 'meeting', label: '🤝 打合せ' },
-  { value: 'note',    label: '📝 メモ' },
-]
-
-export default function ActivityForm({ action, cancelHref, accounts, contacts, opportunities, customGroups = [], defaultValues = {} }: ActivityFormProps) {
+export default function ActivityForm({ action, cancelHref, accounts, contacts, opportunities, customGroups = [], activityTypes, defaultValues = {} }: ActivityFormProps) {
+  // 表示用に value→label / value→icon Map を作成
+  const typeValueToLabel: Record<string, string> = {}
+  const labelToValue: Record<string, string> = {}
+  for (const t of activityTypes) {
+    typeValueToLabel[t.value] = t.label
+    labelToValue[t.label] = t.value
+  }
   const [error, formAction, pending] = useActionState(action, null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     new Set(defaultValues.contact_ids ?? [])
@@ -53,9 +56,15 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
   const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
   const [customObjectId, setCustomObjectId] = useState(defaultValues.custom_object_id ?? '')
   const [customRecordId, setCustomRecordId] = useState(defaultValues.custom_record_id ?? '')
-  const filteredContacts = selectedAccountId
+  const [contactSearch, setContactSearch] = useState('')
+
+  const filteredByAccount = selectedAccountId
     ? contacts.filter((c) => c.account_id === selectedAccountId)
     : contacts
+  const searchLower = contactSearch.trim().toLowerCase()
+  const filteredContacts = searchLower
+    ? filteredByAccount.filter((c) => c.full_name.toLowerCase().includes(searchLower))
+    : filteredByAccount
   const selectedCustomGroup = customGroups.find((g) => g.object_id === customObjectId)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -97,9 +106,7 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
           formRef={formRef}
           csvFormat="種別,件名,内容,日時"
           fieldMap={{ '種別': 'type', '件名': 'subject', '内容': 'body', '日時': 'occurred_at' }}
-          valueMap={{
-            type: { '電話': 'call', 'メール': 'email', '打合せ': 'meeting', '打ち合わせ': 'meeting', 'メモ': 'note' },
-          }}
+          valueMap={{ type: labelToValue }}
         />
       </div>
 
@@ -108,16 +115,16 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
           種別 <span className="text-red-500">*</span>
         </label>
         <div className="flex gap-2 flex-wrap">
-          {TYPES.map((t) => (
+          {activityTypes.map((t) => (
             <label key={t.value} className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"
                 name="type"
                 value={t.value}
-                defaultChecked={(defaultValues.type ?? 'call') === t.value}
+                defaultChecked={(defaultValues.type ?? activityTypes[0]?.value ?? '') === t.value}
                 className="accent-blue-600"
               />
-              <span className="text-sm">{t.label}</span>
+              <span className="text-sm">{t.icon} {t.label}</span>
             </label>
           ))}
         </div>
@@ -183,8 +190,19 @@ export default function ActivityForm({ action, cancelHref, accounts, contacts, o
           {Array.from(selectedIds).map((cid) => (
             <input key={cid} type="hidden" name="contact_ids" value={cid} />
           ))}
+          {/* 検索 input（人物名フィルタ） */}
+          <input
+            type="text"
+            value={contactSearch}
+            onChange={(e) => setContactSearch(e.target.value)}
+            placeholder="🔍 人物を名前で絞り込み..."
+            className="w-full mb-2 border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           {filteredContacts.length === 0 ? (
-            <p className="text-sm text-zinc-400">{selectedAccountId ? 'この取引先の人物がいません' : '人物がいません'}</p>
+            <p className="text-sm text-zinc-400">{
+              searchLower ? '該当する人物がいません' :
+              selectedAccountId ? 'この取引先の人物がいません' : '人物がいません'
+            }</p>
           ) : (
             <div className="border border-zinc-200 rounded-md divide-y divide-zinc-100 max-h-48 overflow-y-auto">
               {filteredContacts.map((c) => {

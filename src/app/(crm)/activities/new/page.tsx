@@ -5,6 +5,7 @@ import ActivityForm, { type CustomObjectGroup } from '@/components/ActivityForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { createActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
+import { getActivityTypes } from '@/lib/activityTypes'
 
 /**
  * カスタムレコードの表示名を導出する。
@@ -51,7 +52,7 @@ export default async function NewActivityPage({
     resolvedAccountId = row?.account_id ?? ''
   }
 
-  const [accountsList, contactsList, opportunitiesList, customGroups] = await Promise.all([
+  const [accountsList, contactsList, opportunitiesList, customGroups, activityTypes] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
@@ -90,6 +91,7 @@ export default async function NewActivityPage({
           })),
       }))
     })(),
+    getActivityTypes(),
   ])
 
   // 既定の custom_record_id が渡されたら、その object_id を解決
@@ -124,6 +126,7 @@ export default async function NewActivityPage({
           contacts={contactsList}
           opportunities={opportunitiesList}
           customGroups={customGroups}
+          activityTypes={activityTypes}
           defaultValues={{
             account_id: resolvedAccountId,
             contact_ids: contact_id ? [contact_id] : [],
