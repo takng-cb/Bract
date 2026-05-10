@@ -1,10 +1,8 @@
 import PasswordForm from '@/components/PasswordForm'
-import NavOrderEditor from '@/components/NavOrderEditor'
 import ProfileForm from '@/components/ProfileForm'
 import SystemSettingsForm from '@/components/SystemSettingsForm'
 import DangerZone from '@/components/DangerZone'
 import UserManagement from '@/components/UserManagement'
-import { getNavOrderSettings } from '@/app/actions/navSettings'
 import { getSystemSettings, SYSTEM_DEFAULTS } from '@/lib/systemSettings'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { db } from '@/lib/db'
@@ -12,16 +10,12 @@ import { user_preferences } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { isAdminUser } from '@/lib/userRole'
 import { listUsers } from '@/app/actions/userManagement'
-import { getCustomObjectsForNav } from '@/lib/objectMetadata'
-import { customObjectsToNavItems } from '@/lib/navItems'
-import { activeIndustry } from '@/lib/industry'
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ userOrder, systemOrder }, systemSettings, userPref, adminFlag, customObjects] = await Promise.all([
-    getNavOrderSettings(),
+  const [systemSettings, userPref, adminFlag] = await Promise.all([
     getSystemSettings([
       'company_name', 'password_min_length',
       'session_timeout_minutes', 'allow_self_registration', 'fiscal_year_start',
@@ -33,18 +27,7 @@ export default async function SettingsPage() {
           .then((r) => r[0] ?? null)
       : null,
     user ? isAdminUser(user.id) : Promise.resolve(false),
-    getCustomObjectsForNav(),
   ])
-
-  // カスタムオブジェクトをナビアイテム形式に変換（nav_enabled のもののみ）。
-  // 業種オーバーレイ専用ルートを持つオブジェクト (例: real-estate の properties)
-  // は customObjectsToNavItems が業種別 URL を生成する。layout.tsx と
-  // 同じヘルパーを通すことで、サイドバーと NavOrderEditor の href を一致させる
-  // （ドリフトすると順序保存値が「行方不明」扱いになる）。
-  const customNavItems = customObjectsToNavItems(
-    customObjects.filter((o) => o.nav_enabled),
-    activeIndustry,
-  )
 
   const passwordMinLen = parseInt(
     systemSettings.password_min_length ?? SYSTEM_DEFAULTS.password_min_length, 10
@@ -110,8 +93,6 @@ export default async function SettingsPage() {
             </li>
           </ul>
         </div>
-
-        <NavOrderEditor userOrder={userOrder} systemOrder={systemOrder} customItems={customNavItems} />
 
         <PasswordForm passwordMinLength={passwordMinLen} />
       </div>
