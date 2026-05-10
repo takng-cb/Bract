@@ -7,6 +7,10 @@ import { properties } from '@/industries/real-estate/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import {
+  syncPropertyToCustomRecord,
+  deletePropertyCustomRecord,
+} from '@/industries/real-estate/lib/propertyCustomRecordSync'
 
 function parseForm(formData: FormData) {
   const raw    = (k: string) => (formData.get(k) as string | null) ?? ''
@@ -74,7 +78,9 @@ export async function createProperty(formData: FormData): Promise<string> {
   await requireEditor()
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
-  const [row] = await db.insert(properties).values(data).returning({ id: properties.id })
+  const [row] = await db.insert(properties).values(data).returning()
+  // custom_records ミラー（activities/tasks/expenses 等の関連先表示用）
+  await syncPropertyToCustomRecord(row)
   revalidatePath('/properties')
   return row.id
 }
@@ -83,7 +89,12 @@ export async function updateProperty(id: string, formData: FormData) {
   await requireEditor()
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
-  await db.update(properties).set({ ...data, updated_at: new Date() }).where(eq(properties.id, id))
+  const [row] = await db.update(properties)
+    .set({ ...data, updated_at: new Date() })
+    .where(eq(properties.id, id))
+    .returning()
+  // custom_records ミラーを更新
+  if (row) await syncPropertyToCustomRecord(row)
   revalidatePath('/properties')
   revalidatePath(`/properties/${id}`)
   redirect(`/properties/${id}`)
@@ -92,6 +103,8 @@ export async function updateProperty(id: string, formData: FormData) {
 export async function deleteProperty(id: string) {
   await requireEditor()
   await db.delete(properties).where(eq(properties.id, id))
+  // custom_records ミラー側も削除
+  await deletePropertyCustomRecord(id)
   revalidatePath('/properties')
   redirect('/properties')
 }
