@@ -9,7 +9,7 @@ import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import {
   parseFilterParams, applyFilters, splitTagConditions, applyTagFilter,
-  buildWhere, unresolvedConditions,
+  buildWhere, buildTagWhere, unresolvedConditions,
   type FilterColumnResolver,
 } from '@/lib/filterUtils'
 import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
@@ -72,8 +72,8 @@ export default async function AccountsPage({
     owner_id:       { col: accounts.owner_id,       type: 'select' },
   }
 
-  const useJsFallback = tagConditions.length > 0
-    || unresolvedConditions(otherConditions, resolver).length > 0
+  // tag フィルタは buildTagWhere で SQL 化。resolver で解決できない条件のみ JS フォールバック。
+  const useJsFallback = unresolvedConditions(otherConditions, resolver).length > 0
 
   let displayList: SelectRow[]
   let totalCount: number
@@ -108,7 +108,9 @@ export default async function AccountsPage({
     totalCount = sorted.length
     displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   } else {
-    const where = buildWhere(otherConditions, resolver)
+    const userWhere = buildWhere(otherConditions, resolver)
+    const tagWhere = buildTagWhere(tagConditions, 'account', accounts.id)
+    const where = and(userWhere, tagWhere)
     const orderBy = buildOrderBy(sortDefs, resolver)
     const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(accounts.created_at)]
 
