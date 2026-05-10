@@ -8,7 +8,11 @@ import { notFound } from 'next/navigation'
 import { activeIndustry } from '@/lib/industry'
 import AutoBodyVehiclesPage from '@/industries/auto-body/pages/vehicles/page'
 
-export default async function VehiclesPage() {
+export default async function VehiclesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
+}) {
   if (activeIndustry !== 'auto-body') notFound()
-  return <AutoBodyVehiclesPage />
+  return <AutoBodyVehiclesPage searchParams={searchParams} />
 }
