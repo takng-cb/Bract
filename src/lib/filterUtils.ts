@@ -3,7 +3,9 @@
 // URL形式: ?f=field|op|value&f=field|op|value ...
 // ============================================================
 
-import { and, eq, ne, gte, lte, ilike, notIlike, type AnyColumn, type SQL } from 'drizzle-orm'
+import { and, eq, ne, gte, lte, ilike, notIlike, inArray, notInArray, type AnyColumn, type SQL } from 'drizzle-orm'
+import { taggables } from '@/lib/schema'
+import { db } from '@/lib/db'
 
 export type FilterCondition = {
   field: string
@@ -192,4 +194,43 @@ export function unresolvedConditions(
   resolver: FilterColumnResolver,
 ): FilterCondition[] {
   return conditions.filter((c) => !resolver[c.field])
+}
+
+/**
+ * タグ条件を Drizzle の WHERE 句（サブクエリ）に変換する。
+ *
+ * 各タグ条件を独立したサブクエリ ( EXISTS / NOT EXISTS 相当 ) に展開し、
+ * AND 結合する。
+ *   - tag eq <id>:  対象レコードがそのタグを持つ
+ *   - tag neq <id>: 対象レコードがそのタグを持たない
+ * 複数条件は全て満たす必要がある（AND）。
+ *
+ * @param tagConditions splitTagConditions で分離された tag フィールドの条件
+ * @param objectType    'opportunity' | 'account' | 'contact' 等 (taggables.object_type)
+ * @param recordIdCol   レコード ID の Drizzle カラム参照（例: opportunities.id）
+ */
+export function buildTagWhere(
+  tagConditions: FilterCondition[],
+  objectType: string,
+  recordIdCol: AnyColumn,
+): SQL | undefined {
+  const clauses: SQL[] = []
+  for (const c of tagConditions) {
+    if (c.field !== 'tag') continue
+    if (!c.value) continue
+    // 該当タグを持つレコード ID のサブクエリ
+    const taggedSubquery = db.select({ id: taggables.object_id })
+      .from(taggables)
+      .where(and(
+        eq(taggables.object_type, objectType),
+        eq(taggables.tag_id, c.value),
+      ))
+    if (c.op === 'eq') {
+      clauses.push(inArray(recordIdCol, taggedSubquery))
+    } else if (c.op === 'neq') {
+      clauses.push(notInArray(recordIdCol, taggedSubquery))
+    }
+  }
+  if (clauses.length === 0) return undefined
+  return clauses.length === 1 ? clauses[0] : and(...clauses)
 }

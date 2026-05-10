@@ -9,7 +9,7 @@ import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import {
   parseFilterParams, applyFilters, splitTagConditions, applyTagFilter,
-  buildWhere, unresolvedConditions,
+  buildWhere, buildTagWhere, unresolvedConditions,
   type FilterColumnResolver,
 } from '@/lib/filterUtils'
 import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
@@ -86,8 +86,8 @@ export default async function ContactsPage({
     owner_id:        { col: contacts.owner_id,   type: 'select' },
   }
 
-  const useJsFallback = tagConditions.length > 0
-    || unresolvedConditions(otherConditions, resolver).length > 0
+  // tag フィルタは buildTagWhere で SQL 化。resolver で解決できない条件のみ JS フォールバック。
+  const useJsFallback = unresolvedConditions(otherConditions, resolver).length > 0
   // 法人/個人 切替は SQL/JS 両方で適用
   const viewWhere = eq(contacts.contact_type, view)
 
@@ -127,7 +127,8 @@ export default async function ContactsPage({
     displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   } else {
     const userWhere = buildWhere(otherConditions, resolver)
-    const where = userWhere ? and(viewWhere, userWhere) : viewWhere
+    const tagWhere = buildTagWhere(tagConditions, 'contact', contacts.id)
+    const where = and(viewWhere, userWhere, tagWhere)
     const orderBy = buildOrderBy(sortDefs, resolver)
     const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(contacts.created_at)]
 
