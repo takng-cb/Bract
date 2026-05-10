@@ -5,6 +5,7 @@ import { desc } from 'drizzle-orm'
 
 const ROUTE_LABELS: Record<string, string> = {
   '/api/import/properties':     '物件',
+  '/api/import/vehicles':       '車両',
   '/api/import/contacts':       '人物',
   '/api/import/accounts':       '取引先',
   '/api/import/opportunities':  '商談',

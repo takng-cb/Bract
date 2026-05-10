@@ -34,7 +34,7 @@ type OpportunityFormProps = {
   customFields?: FieldDef[]
   customValues?: Record<string, string | null>
   /** 車両一覧（INDUSTRY=auto-body のとき必要） */
-  vehicles?: { id: string; label: string }[]
+  vehicles?: { id: string; label: string; purchase_price?: number | string | null }[]
   defaultValues?: {
     name?: string
     account_id?: string | null
@@ -98,10 +98,25 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
   const [partsCost, setPartsCost] = useState<string>(
     defaultValues.parts_cost != null ? String(defaultValues.parts_cost) : '',
   )
+  // ユーザが parts_cost を手動編集したら以後の auto-fill を停止
+  const [partsCostAutoSync, setPartsCostAutoSync] = useState<boolean>(
+    defaultValues.parts_cost == null || defaultValues.parts_cost === '0' || defaultValues.parts_cost === 0,
+  )
   const autoBodyProfit = calcAutoBodyProfit(
     amount ? Number(amount) : null,
     partsCost ? Number(partsCost) : null,
   )
+
+  /** 車両販売 + 車両選択時に parts_cost を vehicle.purchase_price で初期化 */
+  const tryAutoFillPartsCost = (svcType: string, vid: string) => {
+    if (!partsCostAutoSync) return
+    if (svcType !== '車両販売') return
+    if (!vid) return
+    const v = vehicles.find((x) => x.id === vid)
+    const price = v?.purchase_price
+    if (price == null) return
+    setPartsCost(String(price))
+  }
 
   const isRent = transactionType === '賃貸'
 
@@ -423,7 +438,11 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
           <select
             name="service_type"
             value={serviceType}
-            onChange={(e) => setServiceType(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              setServiceType(v)
+              tryAutoFillPartsCost(v, vehicleId)
+            }}
             className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             <option value="">— 未選択 —</option>
@@ -437,6 +456,10 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
             defaultValue={vehicleId || null}
             options={vehicles.map((v) => ({ value: v.id, label: v.label }))}
             placeholder="車両を選択"
+            onSelect={(v) => {
+              setVehicleId(v)
+              tryAutoFillPartsCost(serviceType, v)
+            }}
           />
         </div>
       </div>
@@ -445,7 +468,9 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
         <label className="block text-sm font-medium text-zinc-700 mb-1">
           部品仕入原価（円）
           <span className="ml-2 text-xs font-normal text-zinc-400">
-            {serviceType === '車両販売' ? '車両仕入価格を含めて入力' : '税抜'}
+            {serviceType === '車両販売'
+              ? (partsCostAutoSync ? '車両仕入価格を自動補完' : '車両仕入価格を含めて入力')
+              : '税抜'}
           </span>
         </label>
         <input
@@ -453,7 +478,10 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
           type="number"
           min="0"
           value={partsCost}
-          onChange={(e) => setPartsCost(e.target.value)}
+          onChange={(e) => {
+            setPartsCost(e.target.value)
+            setPartsCostAutoSync(false)
+          }}
           className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="0"
         />

@@ -30,8 +30,9 @@ export default async function NewOpportunityPage({
       ? db.select({
           id: vehicles.id, maker: vehicles.maker, model: vehicles.model,
           license_plate: vehicles.license_plate, year: vehicles.year,
+          purchase_price: vehicles.purchase_price,
         }).from(vehicles).orderBy(asc(vehicles.maker), asc(vehicles.model))
-      : Promise.resolve([] as { id: string; maker: string; model: string; license_plate: string | null; year: number | null }[]),
+      : Promise.resolve([] as { id: string; maker: string; model: string; license_plate: string | null; year: number | null; purchase_price: string | null }[]),
   ])
 
   const vehicleOptions = vehiclesList.map((v) => ({
@@ -41,6 +42,7 @@ export default async function NewOpportunityPage({
       v.year ? `${v.year}年式` : null,
       v.license_plate,
     ].filter(Boolean).join(' / '),
+    purchase_price: v.purchase_price,
   }))
 
   const cancelHref = account_id ? `/accounts/${account_id}` : '/opportunities'

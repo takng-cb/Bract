@@ -209,6 +209,41 @@ export const vehiclesRelations = relations(vehicles, ({ one }) => ({
 }))
 
 // ----------------------------------------------------------------
+// parts（部品マスタ）— 業種オーバーレイ：板金屋・自動車整備業
+//   INDUSTRY=auto-body のときのみ UI で使用
+// ----------------------------------------------------------------
+export const parts = pgTable('parts', {
+  id:                  uuid('id').primaryKey().defaultRandom(),
+  part_number:         text('part_number').notNull().unique(),
+  name:                text('name').notNull(),
+  category:            text('category'),
+  supplier_account_id: uuid('supplier_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  unit_price:          numeric('unit_price'),
+  description:         text('description'),
+  reorder_level:       integer('reorder_level').notNull().default(0),
+  owner_id:            uuid('owner_id'),
+  created_at:          timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:          timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// part_movements（部品入出庫履歴）— 業種オーバーレイ：auto-body
+// ----------------------------------------------------------------
+export const part_movements = pgTable('part_movements', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  part_id:        uuid('part_id').notNull().references(() => parts.id, { onDelete: 'cascade' }),
+  movement_type:  text('movement_type').notNull(),
+  quantity:       integer('quantity').notNull(),
+  unit_price:     numeric('unit_price'),
+  occurred_at:    date('occurred_at').notNull().defaultNow(),
+  opportunity_id: uuid('opportunity_id'),
+  vehicle_id:     uuid('vehicle_id'),
+  notes:          text('notes'),
+  owner_id:       uuid('owner_id'),
+  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
 // tags（タグマスタ）
 // ----------------------------------------------------------------
 export const tags = pgTable('tags', {

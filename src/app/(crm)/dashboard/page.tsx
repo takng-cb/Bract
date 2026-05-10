@@ -1,14 +1,15 @@
 export const dynamic = 'force-dynamic'
 
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, activities, tasks } from '@/lib/schema'
-import { eq, desc, asc, ne, count } from 'drizzle-orm'
+import { accounts, contacts, opportunities, activities, tasks, vehicles } from '@/lib/schema'
+import { eq, desc, asc, ne, count, and, isNotNull, lte } from 'drizzle-orm'
 import Link from 'next/link'
 import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { daysUntilInspection } from '@/industries/auto-body/lib/autoBodyService'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'bg-red-50 text-red-600' },
@@ -52,7 +53,31 @@ export default async function DashboardPage({
     }
   }
 
-  const isReal = activeIndustry === 'real-estate'
+  const isReal     = activeIndustry === 'real-estate'
+  const isAutoBody = activeIndustry === 'auto-body'
+
+  // 30日先までの車検期限車両（auto-body widget 用）
+  const inspectionLimitDate = new Date()
+  inspectionLimitDate.setDate(inspectionLimitDate.getDate() + 30)
+  const inspectionLimit = formatDateLocal(inspectionLimitDate)
+  const upcomingInspections = isAutoBody
+    ? await db.select({
+        id:                   vehicles.id,
+        maker:                vehicles.maker,
+        model:                vehicles.model,
+        license_plate:        vehicles.license_plate,
+        next_inspection_date: vehicles.next_inspection_date,
+        status:               vehicles.status,
+      })
+        .from(vehicles)
+        .where(and(
+          isNotNull(vehicles.next_inspection_date),
+          lte(vehicles.next_inspection_date, inspectionLimit),
+          ne(vehicles.status, '廃車'),
+        ))
+        .orderBy(asc(vehicles.next_inspection_date))
+        .limit(20)
+    : []
 
   const [
     accountCountRows,
@@ -346,6 +371,52 @@ export default async function DashboardPage({
 
         {/* 右カラム */}
         <div className="col-span-1 md:col-span-2 space-y-6">
+
+          {/* 車検期限アラート（auto-body のみ） */}
+          {isAutoBody && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-zinc-800">
+                  🚗 車検期限アラート
+                  <span className="ml-2 text-zinc-400 font-normal text-sm">(30日以内・経過)</span>
+                </h2>
+                <Link href="/vehicles" className="text-xs text-blue-600 hover:text-blue-800">車両一覧 →</Link>
+              </div>
+              {upcomingInspections.length === 0 ? (
+                <div className="bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center text-sm text-zinc-400">
+                  対象車両はありません 🎉
+                </div>
+              ) : (
+                <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
+                  {upcomingInspections.map((v) => {
+                    const days = daysUntilInspection(v.next_inspection_date)
+                    const expired = days != null && days < 0
+                    const urgent  = days != null && days >= 0 && days <= 7
+                    return (
+                      <Link key={v.id} href={`/vehicles/${v.id}`} className="block px-4 py-3 hover:bg-zinc-50">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-zinc-900 truncate">
+                              {v.maker} {v.model}
+                              {v.license_plate && <span className="text-xs text-zinc-400 ml-2">{v.license_plate}</span>}
+                            </p>
+                            <p className="text-xs text-zinc-400">{v.next_inspection_date} ・ {v.status}</p>
+                          </div>
+                          <span className={`text-xs font-medium px-2 py-1 rounded ${
+                            expired ? 'bg-red-50 text-red-700' :
+                            urgent  ? 'bg-orange-50 text-orange-700' :
+                                      'bg-yellow-50 text-yellow-700'
+                          }`}>
+                            {days != null && (expired ? `${-days}日経過` : `あと${days}日`)}
+                          </span>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )}
 
           {/* 期間内の活動 */}
           <section>
