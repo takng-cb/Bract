@@ -3,13 +3,17 @@ import { opportunities, accounts, taggables } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getAllTags } from '@/lib/tagUtils'
 import { getAllUsers } from '@/lib/userUtils'
-import { desc, eq, and, inArray } from 'drizzle-orm'
+import { desc, eq, and, inArray, count } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
-import { parseSortParams, applySort } from '@/lib/sortUtils'
+import {
+  parseFilterParams, applyFilters, splitTagConditions, applyTagFilter,
+  buildWhere, unresolvedConditions,
+  type FilterColumnResolver,
+} from '@/lib/filterUtils'
+import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -54,40 +58,107 @@ export default async function OpportunitiesPage({
   }
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
+  const sortRaw = sp.sort ?? ''
+  const sortDefs = parseSortParams(sortRaw)
 
-  const [raw, allTags, taggableRows, allUsers] = await Promise.all([
-    db.select({
-      id:          opportunities.id,
-      name:        opportunities.name,
-      stage:       opportunities.stage,
-      amount:      opportunities.amount,
-      probability: opportunities.probability,
-      close_date:  opportunities.close_date,
-      account_id:  opportunities.account_id,
-      owner_id:    opportunities.owner_id,
-      accounts: {
-        id:   accounts.id,
-        name: accounts.name,
-      },
-    })
+  // SQL ベースのページング・フィルタ・ソートに使う resolver
+  const resolver: FilterColumnResolver = {
+    name:             { col: opportunities.name,        type: 'text' },
+    'accounts.name':  { col: accounts.name,             type: 'text' },
+    stage:            { col: opportunities.stage,       type: 'select' },
+    amount:           { col: opportunities.amount,      type: 'number' },
+    probability:      { col: opportunities.probability, type: 'number' },
+    close_date:       { col: opportunities.close_date,  type: 'date' },
+    owner_id:         { col: opportunities.owner_id,    type: 'select' },
+  }
+
+  // tag フィルタ or resolver で解決できないフィルタが含まれる場合は JS フォールバックパス。
+  // それ以外は SQL で全件絞り込み + ページング。
+  const useJsFallback = tagConditions.length > 0
+    || unresolvedConditions(otherConditions, resolver).length > 0
+
+  // 共通の SELECT 形（ページデータ取得用）
+  const selectShape = {
+    id:          opportunities.id,
+    name:        opportunities.name,
+    stage:       opportunities.stage,
+    amount:      opportunities.amount,
+    probability: opportunities.probability,
+    close_date:  opportunities.close_date,
+    account_id:  opportunities.account_id,
+    owner_id:    opportunities.owner_id,
+    accounts: {
+      id:   accounts.id,
+      name: accounts.name,
+    },
+  } as const
+
+  // 行型を Drizzle に推論させるためのダミー（実行はしない）
+  const _typeProbe = () => db.select(selectShape)
+    .from(opportunities)
+    .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
+  let displayList: SelectRow[]
+  let totalCount: number
+  let allTags: Awaited<ReturnType<typeof getAllTags>>
+  let allUsers: Awaited<ReturnType<typeof getAllUsers>>
+
+  if (useJsFallback) {
+    // ── JS フォールバック（既存の挙動と同じ）──
+    const [raw, tags, taggableRows, users] = await Promise.all([
+      db.select(selectShape)
+        .from(opportunities)
+        .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+        .orderBy(desc(opportunities.created_at)),
+      getAllTags(),
+      tagConditions.length > 0
+        ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
+            .from(taggables).where(and(
+              eq(taggables.object_type, 'opportunity'),
+              inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
+            ))
+        : Promise.resolve([] as { tag_id: string; object_id: string }[]),
+      getAllUsers(),
+    ])
+    allTags = tags
+    allUsers = users
+
+    const taggedIdsByTagId = new Map<string, Set<string>>()
+    for (const t of taggableRows) {
+      if (!taggedIdsByTagId.has(t.tag_id)) taggedIdsByTagId.set(t.tag_id, new Set())
+      taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
+    }
+
+    let list = applyFilters(raw as Record<string, unknown>[], otherConditions) as SelectRow[]
+    list = applyTagFilter(list, tagConditions, taggedIdsByTagId)
+    const sorted = applySort(list as Record<string, unknown>[], sortDefs) as SelectRow[]
+    totalCount = sorted.length
+    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  } else {
+    // ── SQL fast path ──
+    const where = buildWhere(otherConditions, resolver)
+    const orderBy = buildOrderBy(sortDefs, resolver)
+    const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(opportunities.created_at)]
+
+    const baseQuery = db.select(selectShape)
       .from(opportunities)
       .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
-      .orderBy(desc(opportunities.created_at)),
-    getAllTags(),
-    tagConditions.length > 0
-      ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
-          .from(taggables).where(and(
-            eq(taggables.object_type, 'opportunity'),
-            inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
-          ))
-      : Promise.resolve([]),
-    getAllUsers(),
-  ])
+      .where(where)
+      .orderBy(...finalOrderBy)
 
-  const taggedIdsByTagId = new Map<string, Set<string>>()
-  for (const t of taggableRows) {
-    if (!taggedIdsByTagId.has(t.tag_id)) taggedIdsByTagId.set(t.tag_id, new Set())
-    taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
+    const [pageRows, totalRow, tags, users] = await Promise.all([
+      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
+      db.select({ count: count() })
+        .from(opportunities)
+        .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+        .where(where),
+      getAllTags(),
+      getAllUsers(),
+    ])
+    allTags = tags
+    allUsers = users
+    totalCount = Number(totalRow[0]?.count ?? 0)
+    displayList = pageRows
   }
 
   const FIELDS: FieldDef[] = [
@@ -114,16 +185,8 @@ export default async function OpportunitiesPage({
     },
   ]
 
-  let opportunitiesList = applyFilters(raw as Record<string, unknown>[], otherConditions)
-  opportunitiesList     = applyTagFilter(opportunitiesList, tagConditions, taggedIdsByTagId)
-  const sortRaw         = sp.sort ?? ''
-  const sorted          = applySort(opportunitiesList as Record<string, unknown>[], parseSortParams(sortRaw))
-  const hasFilter       = conditions.length > 0
-  const totalCount      = sorted.length
-  const totalPages      = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
-  const displayList     = isGrouped
-    ? sorted
-    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const hasFilter  = conditions.length > 0
+  const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -214,7 +277,7 @@ export default async function OpportunitiesPage({
               groupBy={groupBy}
               fields={FIELDS}
               renderCard={(rec) => {
-                const o = rec as typeof raw[0]
+                const o = rec as SelectRow
                 const stageConf = STAGE_LABELS[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
                 const account   = o.accounts?.id ? o.accounts : null
                 return (

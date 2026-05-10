@@ -1,12 +1,16 @@
 import { db } from '@/lib/db'
 import { tasks, accounts, opportunities } from '@/lib/schema'
-import { asc, desc, eq } from 'drizzle-orm'
+import { asc, desc, eq, and, count } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
-import { parseSortParams, applySort } from '@/lib/sortUtils'
+import {
+  parseFilterParams, applyFilters,
+  buildWhere, unresolvedConditions,
+  type FilterColumnResolver,
+} from '@/lib/filterUtils'
+import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
@@ -69,14 +73,16 @@ export default async function TasksPage({
     }
   }
   const conditions = parseFilterParams(filterRaw)
+  const sortRaw  = sp.sort ?? ''
+  const sortDefs = parseSortParams(sortRaw)
 
-  const raw = await db.select({
-    id:          tasks.id,
-    title:       tasks.title,
-    done:        tasks.done,
-    priority:    tasks.priority,
-    due_date:    tasks.due_date,
-    account_id:  tasks.account_id,
+  const selectShape = {
+    id:         tasks.id,
+    title:      tasks.title,
+    done:       tasks.done,
+    priority:   tasks.priority,
+    due_date:   tasks.due_date,
+    account_id: tasks.account_id,
     accounts: {
       id:   accounts.id,
       name: accounts.name,
@@ -85,26 +91,73 @@ export default async function TasksPage({
       id:   opportunities.id,
       name: opportunities.name,
     },
-  })
+  } as const
+
+  const _typeProbe = () => db.select(selectShape)
     .from(tasks)
     .leftJoin(accounts, eq(tasks.account_id, accounts.id))
     .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
-    .orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
+  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
 
-  const tasksList  = applyFilters(raw as Record<string, unknown>[], conditions) as typeof raw
-  const sortRaw    = sp.sort ?? ''
-  const sorted     = applySort(tasksList as Record<string, unknown>[], parseSortParams(sortRaw)) as typeof raw
+  const resolver: FilterColumnResolver = {
+    title:           { col: tasks.title,    type: 'text' },
+    'accounts.name': { col: accounts.name,  type: 'text' },
+    priority:        { col: tasks.priority, type: 'select' },
+    done:            { col: tasks.done,     type: 'boolean' },
+    due_date:        { col: tasks.due_date, type: 'date' },
+  }
+
+  const useJsFallback = unresolvedConditions(conditions, resolver).length > 0
+  const today = new Date().toISOString().slice(0, 10)
+
+  let displayList: SelectRow[]
+  let totalCount: number
+  let undoneCount: number
+
+  if (useJsFallback) {
+    const raw = await _typeProbe().orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
+    const tasksList = applyFilters(raw as Record<string, unknown>[], conditions) as SelectRow[]
+    const sorted    = applySort(tasksList as Record<string, unknown>[], sortDefs) as SelectRow[]
+    totalCount  = sorted.length
+    undoneCount = sorted.filter((t) => !t.done).length
+    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  } else {
+    const where = buildWhere(conditions, resolver)
+    const orderBy = buildOrderBy(sortDefs, resolver)
+    const finalOrderBy = orderBy.length > 0
+      ? orderBy
+      : [asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at)]
+
+    const baseQuery = db.select(selectShape)
+      .from(tasks)
+      .leftJoin(accounts, eq(tasks.account_id, accounts.id))
+      .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
+      .where(where)
+      .orderBy(...finalOrderBy)
+
+    const [pageRows, totalRow, undoneRow] = await Promise.all([
+      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
+      db.select({ count: count() })
+        .from(tasks)
+        .leftJoin(accounts, eq(tasks.account_id, accounts.id))
+        .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
+        .where(where),
+      db.select({ count: count() })
+        .from(tasks)
+        .leftJoin(accounts, eq(tasks.account_id, accounts.id))
+        .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
+        .where(where ? and(where, eq(tasks.done, false)) : eq(tasks.done, false)),
+    ])
+    totalCount  = Number(totalRow[0]?.count ?? 0)
+    undoneCount = Number(undoneRow[0]?.count ?? 0)
+    displayList = pageRows
+  }
+
   const hasFilter  = conditions.length > 0
-  const totalCount = sorted.length
   const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
-  const today      = new Date().toISOString().slice(0, 10)
 
-  const displayList = isGrouped
-    ? sorted
-    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
-
-  const pending = (displayList as typeof raw).filter((t) => !t.done)
-  const done    = (displayList as typeof raw).filter((t) =>  t.done)
+  const pending = displayList.filter((t) => !t.done)
+  const done    = displayList.filter((t) =>  t.done)
 
   async function toggleDone(formData: FormData) {
     'use server'
@@ -117,7 +170,7 @@ export default async function TasksPage({
     .filter((f) => f.value !== 'done')
     .map((f) => ({ key: f.value, label: f.label }))
 
-  const TaskTable = ({ rows, label }: { rows: typeof tasksList; label: string }) => (
+  const TaskTable = ({ rows, label }: { rows: SelectRow[]; label: string }) => (
     <div>
       {/* PC: テーブル */}
       <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
@@ -242,7 +295,7 @@ export default async function TasksPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">ToDo</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            全 {totalCount} 件（未完了 {sorted.filter((t) => !t.done).length} 件）
+            全 {totalCount} 件（未完了 {undoneCount} 件）
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
             {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
@@ -316,7 +369,7 @@ export default async function TasksPage({
               groupBy={groupBy}
               fields={FIELDS}
               renderCard={(rec) => {
-                const task = rec as typeof tasksList[0]
+                const task = rec as SelectRow
                 const account     = task.accounts?.id     ? task.accounts     : null
                 const opportunity = task.opportunities?.id ? task.opportunities : null
                 const priority    = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium

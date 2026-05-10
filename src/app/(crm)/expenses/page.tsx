@@ -1,12 +1,16 @@
 import { db } from '@/lib/db'
 import { expenses, accounts, opportunities } from '@/lib/schema'
-import { desc, eq, gte } from 'drizzle-orm'
+import { desc, eq, gte, lte, and, count, sum } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
-import { parseSortParams, applySort } from '@/lib/sortUtils'
+import {
+  parseFilterParams, applyFilters,
+  buildWhere, unresolvedConditions,
+  type FilterColumnResolver,
+} from '@/lib/filterUtils'
+import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -88,7 +92,10 @@ export default async function ExpensesPage({
     }
   }
 
-  const raw = await db.select({
+  const sortRaw  = sp.sort ?? ''
+  const sortDefs = parseSortParams(sortRaw)
+
+  const selectShape = {
     id:           expenses.id,
     title:        expenses.title,
     amount:       expenses.amount,
@@ -102,27 +109,76 @@ export default async function ExpensesPage({
       id:   opportunities.id,
       name: opportunities.name,
     },
-  })
+  } as const
+
+  const _typeProbe = () => db.select(selectShape)
     .from(expenses)
     .leftJoin(accounts, eq(expenses.account_id, accounts.id))
     .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
-    .where(gte(expenses.expense_date, from))
-    .orderBy(desc(expenses.expense_date))
+  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
 
-  // to の日付フィルタは JS 側で適用
-  const filtered = raw.filter((e) => e.expense_date! <= to)
+  const resolver: FilterColumnResolver = {
+    title:                 { col: expenses.title,        type: 'text' },
+    'accounts.name':       { col: accounts.name,         type: 'text' },
+    'opportunities.name':  { col: opportunities.name,    type: 'text' },
+    category:              { col: expenses.category,     type: 'select' },
+    amount:                { col: expenses.amount,       type: 'number' },
+    expense_date:          { col: expenses.expense_date, type: 'date' },
+  }
 
-  const expensesList = applyFilters(filtered as Record<string, unknown>[], conditions) as typeof raw
-  const sortRaw      = sp.sort ?? ''
-  const sorted       = applySort(expensesList as Record<string, unknown>[], parseSortParams(sortRaw)) as typeof raw
-  const total        = sorted.reduce((s, e) => s + Number(e.amount), 0)
-  const hasFilter    = conditions.length > 0
-  const totalCount   = sorted.length
-  const totalPages   = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
-  const displayList  = isGrouped
-    ? sorted
-    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as typeof raw
-  const pagedTotal   = (displayList as typeof raw).reduce((s, e) => s + Number(e.amount), 0)
+  const useJsFallback = unresolvedConditions(conditions, resolver).length > 0
+  // 期間条件 (from/to) は SQL/JS 双方で適用
+  const dateRangeWhere = and(gte(expenses.expense_date, from), lte(expenses.expense_date, to))!
+
+  let displayList: SelectRow[]
+  let totalCount: number
+  let total: number       // 期間内の全合計
+  let pagedTotal: number  // ページ表示分の合計
+
+  if (useJsFallback) {
+    const raw = await _typeProbe()
+      .where(dateRangeWhere)
+      .orderBy(desc(expenses.expense_date))
+    const list = applyFilters(raw as Record<string, unknown>[], conditions) as SelectRow[]
+    const sorted = applySort(list as Record<string, unknown>[], sortDefs) as SelectRow[]
+    totalCount = sorted.length
+    total      = sorted.reduce((s, e) => s + Number(e.amount), 0)
+    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    pagedTotal = displayList.reduce((s, e) => s + Number(e.amount), 0)
+  } else {
+    const userWhere = buildWhere(conditions, resolver)
+    const where = userWhere ? and(dateRangeWhere, userWhere) : dateRangeWhere
+    const orderBy = buildOrderBy(sortDefs, resolver)
+    const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(expenses.expense_date)]
+
+    const baseQuery = db.select(selectShape)
+      .from(expenses)
+      .leftJoin(accounts, eq(expenses.account_id, accounts.id))
+      .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
+      .where(where)
+      .orderBy(...finalOrderBy)
+
+    const [pageRows, totalRow, sumRow] = await Promise.all([
+      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
+      db.select({ count: count() })
+        .from(expenses)
+        .leftJoin(accounts, eq(expenses.account_id, accounts.id))
+        .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
+        .where(where),
+      db.select({ total: sum(expenses.amount) })
+        .from(expenses)
+        .leftJoin(accounts, eq(expenses.account_id, accounts.id))
+        .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
+        .where(where),
+    ])
+    totalCount  = Number(totalRow[0]?.count ?? 0)
+    total       = Number(sumRow[0]?.total ?? 0)
+    displayList = pageRows
+    pagedTotal  = displayList.reduce((s, e) => s + Number(e.amount), 0)
+  }
+
+  const hasFilter  = conditions.length > 0
+  const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
   const yearOptions  = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i)
@@ -249,7 +305,7 @@ export default async function ExpensesPage({
               groupBy={groupBy}
               fields={FIELDS}
               renderCard={(rec) => {
-                const e = rec as typeof raw[0]
+                const e = rec as SelectRow
                 const account     = e.accounts?.id     ? e.accounts     : null
                 const opportunity = e.opportunities?.id ? e.opportunities : null
                 const catColor    = CATEGORY_COLORS[e.category] ?? CATEGORY_COLORS['その他']

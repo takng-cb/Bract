@@ -1,12 +1,16 @@
 import { db } from '@/lib/db'
 import { activities, accounts } from '@/lib/schema'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, count } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
-import { parseSortParams, applySort } from '@/lib/sortUtils'
+import {
+  parseFilterParams, applyFilters,
+  buildWhere, unresolvedConditions,
+  type FilterColumnResolver,
+} from '@/lib/filterUtils'
+import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -64,8 +68,10 @@ export default async function ActivitiesPage({
     }
   }
   const conditions = parseFilterParams(filterRaw)
+  const sortRaw  = sp.sort ?? ''
+  const sortDefs = parseSortParams(sortRaw)
 
-  const raw = await db.select({
+  const selectShape = {
     id:          activities.id,
     type:        activities.type,
     subject:     activities.subject,
@@ -76,20 +82,56 @@ export default async function ActivitiesPage({
       id:   accounts.id,
       name: accounts.name,
     },
-  })
+  } as const
+
+  const _typeProbe = () => db.select(selectShape)
     .from(activities)
     .leftJoin(accounts, eq(activities.account_id, accounts.id))
-    .orderBy(desc(activities.occurred_at))
+  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
 
-  const activitiesList = applyFilters(raw as Record<string, unknown>[], conditions)
-  const sortRaw        = sp.sort ?? ''
-  const sorted         = applySort(activitiesList as Record<string, unknown>[], parseSortParams(sortRaw))
-  const hasFilter      = conditions.length > 0
-  const totalCount     = sorted.length
-  const totalPages     = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
-  const displayList    = isGrouped
-    ? sorted
-    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const resolver: FilterColumnResolver = {
+    subject:         { col: activities.subject,     type: 'text' },
+    body:            { col: activities.body,        type: 'text' },
+    'accounts.name': { col: accounts.name,          type: 'text' },
+    type:            { col: activities.type,        type: 'select' },
+    occurred_at:     { col: activities.occurred_at, type: 'date' },
+  }
+
+  const useJsFallback = unresolvedConditions(conditions, resolver).length > 0
+
+  let displayList: SelectRow[]
+  let totalCount: number
+
+  if (useJsFallback) {
+    const raw = await _typeProbe().orderBy(desc(activities.occurred_at))
+    const list = applyFilters(raw as Record<string, unknown>[], conditions) as SelectRow[]
+    const sorted = applySort(list as Record<string, unknown>[], sortDefs) as SelectRow[]
+    totalCount = sorted.length
+    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  } else {
+    const where = buildWhere(conditions, resolver)
+    const orderBy = buildOrderBy(sortDefs, resolver)
+    const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(activities.occurred_at)]
+
+    const baseQuery = db.select(selectShape)
+      .from(activities)
+      .leftJoin(accounts, eq(activities.account_id, accounts.id))
+      .where(where)
+      .orderBy(...finalOrderBy)
+
+    const [pageRows, totalRow] = await Promise.all([
+      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
+      db.select({ count: count() })
+        .from(activities)
+        .leftJoin(accounts, eq(activities.account_id, accounts.id))
+        .where(where),
+    ])
+    totalCount = Number(totalRow[0]?.count ?? 0)
+    displayList = pageRows
+  }
+
+  const hasFilter  = conditions.length > 0
+  const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
 
   const groupableFields = FIELDS.map((f) => ({ key: f.value, label: f.label }))
 
@@ -172,7 +214,7 @@ export default async function ActivitiesPage({
               groupBy={groupBy}
               fields={FIELDS}
               renderCard={(rec) => {
-                const a = rec as typeof raw[0]
+                const a = rec as SelectRow
                 const type    = TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
                 const account = a.accounts?.id ? a.accounts : null
                 return (
