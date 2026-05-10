@@ -17,10 +17,9 @@ import { getAllUsers } from '@/lib/userUtils'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
+import { getActivityTypes } from '@/lib/activityTypes'
 
-const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  call: '📞 電話', email: '✉️ メール', meeting: '🤝 打合せ', note: '📝 メモ',
-}
+// ACTIVITY_TYPE_LABELS は getActivityTypes() で動的構築（page 内）
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -42,7 +41,7 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params
 
-  const [contact, activitiesList, tasksList, attachmentsList, customData, editFlag, allUsers] = await Promise.all([
+  const [contact, activitiesList, tasksList, attachmentsList, customData, editFlag, allUsers, activityTypes] = await Promise.all([
     db.select({
       id: contacts.id, contact_type: contacts.contact_type, full_name: contacts.full_name, email: contacts.email,
       phone: contacts.phone, title: contacts.title, department: contacts.department,
@@ -60,7 +59,11 @@ export default async function ContactDetailPage({
     getCustomFieldsWithValues('contacts', id),
     canEdit(),
     getAllUsers(),
+    getActivityTypes(),
   ])
+
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
 
   if (!contact) notFound()
   const account   = contact.accounts?.id ? contact.accounts : null

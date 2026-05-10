@@ -23,6 +23,7 @@ import { calcProfit, commissionBreakdown, effectiveCommissionRatePct, effectiveC
 import { calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
 import { vehicles } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
+import { getActivityTypes } from '@/lib/activityTypes'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -38,9 +39,7 @@ const STAGE_LABEL: Record<string, string> = {
   negotiation: '交渉', closed_won: '受注', closed_lost: '失注',
 }
 
-const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  call: '📞 電話', email: '✉️ メール', meeting: '🤝 打合せ', note: '📝 メモ',
-}
+// ACTIVITY_TYPE_LABELS は getActivityTypes() で動的構築（page 内）
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -58,7 +57,7 @@ function formatFileSize(bytes: number | null) {
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag, allUsers] = await Promise.all([
+  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag, allUsers, activityTypes] = await Promise.all([
     db.select({
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
@@ -86,7 +85,11 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     getCustomFieldsWithValues('opportunities', id),
     canEdit(),
     getAllUsers(),
+    getActivityTypes(),
   ])
+
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
 
   if (!opportunity) notFound()
   const account   = opportunity.accounts?.id ? opportunity.accounts : null
