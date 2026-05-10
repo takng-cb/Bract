@@ -3,7 +3,7 @@ import MobileNav from '@/components/MobileNav'
 import BottomNav from '@/components/BottomNav'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
 import PwaInstallBanner from '@/components/PwaInstallBanner'
-import { applyNavOrder, DEFAULT_NAV_ORDER, type NavItem } from '@/lib/navItems'
+import { applyNavOrder, DEFAULT_NAV_ORDER, customObjectsToNavItems } from '@/lib/navItems'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
 import { user_preferences } from '@/lib/schema'
@@ -51,17 +51,13 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   const displayName: string | null = pref?.display_name ?? user?.email ?? null
 
   // カスタムオブジェクトをナビアイテムに変換
-  // INDUSTRY=real-estate のとき、`properties` は overlay の専用ルート (/properties)
-  // を持つため、サイドバーリンクは /objects/properties ではなく /properties に向ける。
-  const customNavItems: NavItem[] = customObjects
-    .filter((o) => o.nav_enabled)
-    .map((o) => ({
-      href:  activeIndustry === 'real-estate' && o.api_name === 'properties'
-        ? '/properties'
-        : `/objects/${o.api_name}`,
-      label: o.label_plural,
-      icon:  o.icon,
-    }))
+  // 業種オーバーレイで専用ルートを持つもの (例: real-estate の properties → /properties)
+  // は customObjectsToNavItems が自動的に業種別 URL を生成する。
+  // 同じヘルパーを設定画面 (NavOrderEditor) でも使うことで href ドリフトを防止。
+  const customNavItems = customObjectsToNavItems(
+    customObjects.filter((o) => o.nav_enabled),
+    activeIndustry,
+  )
 
   // カスタムオブジェクトを含めてユーザー設定順に並び替え
   const mainItems = applyNavOrder(order, customNavItems)

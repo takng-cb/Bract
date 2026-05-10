@@ -13,6 +13,8 @@ import { eq } from 'drizzle-orm'
 import { isAdminUser } from '@/lib/userRole'
 import { listUsers } from '@/app/actions/userManagement'
 import { getCustomObjectsForNav } from '@/lib/objectMetadata'
+import { customObjectsToNavItems } from '@/lib/navItems'
+import { activeIndustry } from '@/lib/industry'
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
@@ -34,10 +36,15 @@ export default async function SettingsPage() {
     getCustomObjectsForNav(),
   ])
 
-  // カスタムオブジェクトをナビアイテム形式に変換（nav_enabled のもののみ）
-  const customNavItems = customObjects
-    .filter((o) => o.nav_enabled)
-    .map((o) => ({ href: `/objects/${o.api_name}`, label: o.label_plural, icon: o.icon }))
+  // カスタムオブジェクトをナビアイテム形式に変換（nav_enabled のもののみ）。
+  // 業種オーバーレイ専用ルートを持つオブジェクト (例: real-estate の properties)
+  // は customObjectsToNavItems が業種別 URL を生成する。layout.tsx と
+  // 同じヘルパーを通すことで、サイドバーと NavOrderEditor の href を一致させる
+  // （ドリフトすると順序保存値が「行方不明」扱いになる）。
+  const customNavItems = customObjectsToNavItems(
+    customObjects.filter((o) => o.nav_enabled),
+    activeIndustry,
+  )
 
   const passwordMinLen = parseInt(
     systemSettings.password_min_length ?? SYSTEM_DEFAULTS.password_min_length, 10
