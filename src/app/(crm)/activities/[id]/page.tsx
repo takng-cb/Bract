@@ -8,13 +8,7 @@ import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
-
-const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-  call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  email:   { label: 'メール', icon: '✉️', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-  meeting: { label: '打合せ', icon: '🤝', color: 'bg-green-50 text-green-700 border-green-200' },
-  note:    { label: 'メモ',   icon: '📝', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-}
+import { getActivityTypes } from '@/lib/activityTypes'
 
 /**
  * カスタムレコードの表示名を導出する。
@@ -56,6 +50,16 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       .innerJoin(contacts, eq(activity_contacts.contact_id, contacts.id))
       .where(eq(activity_contacts.activity_id, id)),
   ])
+
+  const activityTypes = await getActivityTypes()
+  const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
+  for (const t of activityTypes) {
+    TYPE_CONFIG[t.value] = {
+      label: t.label,
+      icon: t.icon,
+      color: t.color ?? 'bg-zinc-50 text-zinc-700 border-zinc-200',
+    }
+  }
 
   if (!activityRow) notFound()
 

@@ -7,14 +7,17 @@ import NavOrderEditor from '@/components/NavOrderEditor'
 import { getNavOrderSettings } from '@/app/actions/navSettings'
 import { customObjectsToNavItems } from '@/lib/navItems'
 import { activeIndustry } from '@/lib/industry'
+import ActivityTypesEditor from '@/components/ActivityTypesEditor'
+import { getActivityTypes } from '@/lib/activityTypes'
 
 export default async function AdminObjectsPage() {
   await requireAdmin()
 
-  const [objects, { userOrder, systemOrder }, customObjects] = await Promise.all([
+  const [objects, { userOrder, systemOrder }, customObjects, activityTypes] = await Promise.all([
     getAllObjectDefs(),
     getNavOrderSettings(),
     getCustomObjectsForNav(),
+    getActivityTypes(),
   ])
 
   // ナビ並び替えに渡すカスタムオブジェクトのアイテム（業種オーバーレイ対応 URL）。
@@ -78,6 +81,18 @@ export default async function AdminObjectsPage() {
       </div>
 
       <NavOrderEditor userOrder={userOrder} systemOrder={systemOrder} customItems={customNavItems} />
+
+      {/* 活動種別の管理（builtin object のピックリスト値） */}
+      <section className="bg-white rounded-lg border border-zinc-200 p-5">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-zinc-900">📋 活動種別</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            活動履歴フォームで選べる種別の一覧。既存の活動レコードに影響する場合があるので、
+            value の変更は慎重に。
+          </p>
+        </div>
+        <ActivityTypesEditor initial={activityTypes} />
+      </section>
     </div>
   )
 }

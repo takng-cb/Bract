@@ -6,6 +6,10 @@ import { vehicles } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { logChanges } from '@/lib/changeLog'
+import {
+  syncVehicleToCustomRecord,
+  deleteVehicleCustomRecord,
+} from '@/industries/auto-body/lib/vehicleCustomRecordSync'
 
 function s(formData: FormData, key: string): string | null {
   const v = formData.get(key)
@@ -31,6 +35,8 @@ export async function createVehicle(formData: FormData): Promise<string> {
   if (!maker) throw new Error('メーカーは必須です')
   if (!model) throw new Error('車種は必須です')
 
+  const ownerId = s(formData, 'owner_id')
+
   const [row] = await db.insert(vehicles).values({
     maker,
     model,
@@ -49,8 +55,20 @@ export async function createVehicle(formData: FormData): Promise<string> {
     buyer_account_id:     s(formData, 'buyer_account_id'),
     next_inspection_date: s(formData, 'next_inspection_date'),
     description:          s(formData, 'description'),
-    owner_id:             s(formData, 'owner_id'),
+    owner_id:             ownerId,
   }).returning({ id: vehicles.id })
+
+  // custom_records ミラー（activities/tasks/expenses 等の関連先表示用）
+  await syncVehicleToCustomRecord({
+    id: row.id, maker, model,
+    year: i(formData, 'year'),
+    mileage: i(formData, 'mileage'),
+    color: s(formData, 'color'),
+    license_plate: s(formData, 'license_plate'),
+    vin: s(formData, 'vin'),
+    status: s(formData, 'status') ?? '在庫',
+    owner_id: ownerId,
+  })
 
   return row.id
 }
@@ -87,6 +105,20 @@ export async function updateVehicle(id: string, formData: FormData) {
   }
   await db.update(vehicles).set(next).where(eq(vehicles.id, id))
 
+  // custom_records ミラーを更新
+  await syncVehicleToCustomRecord({
+    id,
+    maker:         next.maker,
+    model:         next.model,
+    year:          next.year,
+    mileage:       next.mileage,
+    color:         next.color,
+    license_plate: next.license_plate,
+    vin:           next.vin,
+    status:        next.status,
+    owner_id:      next.owner_id,
+  })
+
   if (before) {
     await logChanges('vehicle', id,
       {
@@ -116,5 +148,7 @@ export async function updateVehicle(id: string, formData: FormData) {
 export async function deleteVehicle(id: string) {
   await requireEditor()
   await db.delete(vehicles).where(eq(vehicles.id, id))
+  // custom_records ミラー側も削除（cascade ではないので明示的に）
+  await deleteVehicleCustomRecord(id)
   redirect('/vehicles')
 }
