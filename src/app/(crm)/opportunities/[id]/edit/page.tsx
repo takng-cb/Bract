@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { opportunities, accounts, contacts } from '@/lib/schema'
+import { opportunities, accounts, contacts, vehicles } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import OpportunityForm from '@/components/OpportunityForm'
@@ -9,11 +9,13 @@ import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
+import { activeIndustry } from '@/lib/industry'
 
 export default async function EditOpportunityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [opportunity, accountsList, contactsList, customData, allUsers] = await Promise.all([
+  const isAutoBody = activeIndustry === 'auto-body'
+  const [opportunity, accountsList, contactsList, customData, allUsers, vehiclesList] = await Promise.all([
     db.select().from(opportunities).where(eq(opportunities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
@@ -21,6 +23,12 @@ export default async function EditOpportunityPage({ params }: { params: Promise<
       .from(contacts).orderBy(asc(contacts.full_name)),
     getCustomFieldsWithValues('opportunities', id),
     getAllUsers(),
+    isAutoBody
+      ? db.select({
+          id: vehicles.id, maker: vehicles.maker, model: vehicles.model,
+          license_plate: vehicles.license_plate, year: vehicles.year,
+        }).from(vehicles).orderBy(asc(vehicles.maker), asc(vehicles.model))
+      : Promise.resolve([] as { id: string; maker: string; model: string; license_plate: string | null; year: number | null }[]),
   ])
   if (!opportunity) notFound()
 
@@ -51,6 +59,10 @@ export default async function EditOpportunityPage({ params }: { params: Promise<
           accounts={accountsList}
           contacts={contactsList}
           users={allUsers}
+          vehicles={vehiclesList.map((v) => ({
+            id: v.id,
+            label: [`${v.maker} ${v.model}`, v.year ? `${v.year}年式` : null, v.license_plate].filter(Boolean).join(' / '),
+          }))}
           defaultValues={{
             ...opportunity,
             close_date: opportunity.close_date ?? null,

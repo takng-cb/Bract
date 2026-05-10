@@ -36,8 +36,9 @@ export function customObjectsToNavItems(
 
 /** カスタムオブジェクトの api_name + 業種 → URL */
 function hrefForCustomObject(apiName: string, activeIndustry: Industry): string {
-  // 不動産業の properties は overlay の専用ルートを持つ
+  // 業種オーバーレイ専用ルートを持つものは overlay の URL に向ける
   if (activeIndustry === 'real-estate' && apiName === 'properties') return '/properties'
+  if (activeIndustry === 'auto-body'   && apiName === 'vehicles')   return '/vehicles'
   return `/objects/${apiName}`
 }
 

@@ -3,7 +3,7 @@ import MobileNav from '@/components/MobileNav'
 import BottomNav from '@/components/BottomNav'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
 import PwaInstallBanner from '@/components/PwaInstallBanner'
-import { applyNavOrder, DEFAULT_NAV_ORDER, customObjectsToNavItems } from '@/lib/navItems'
+import { applyNavOrder, DEFAULT_NAV_ORDER, customObjectsToNavItems, type NavItem } from '@/lib/navItems'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
 import { user_preferences } from '@/lib/schema'
@@ -51,16 +51,28 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   const displayName: string | null = pref?.display_name ?? user?.email ?? null
 
   // カスタムオブジェクトをナビアイテムに変換
-  // 業種オーバーレイで専用ルートを持つもの (例: real-estate の properties → /properties)
-  // は customObjectsToNavItems が自動的に業種別 URL を生成する。
-  // 同じヘルパーを設定画面 (NavOrderEditor) でも使うことで href ドリフトを防止。
+  // 業種オーバーレイで専用ルートを持つもの（real-estate の properties → /properties、
+  // auto-body の vehicles → /vehicles）は customObjectsToNavItems が自動的に業種別
+  // URL を生成する。同じヘルパーを設定画面 (NavOrderEditor) でも使うことで href ドリフトを防止。
   const customNavItems = customObjectsToNavItems(
     customObjects.filter((o) => o.nav_enabled),
     activeIndustry,
   )
 
+  // 業種オーバーレイ専用のナビ項目（object_definitions に行が無い場合のフォールバック）
+  // auto-body の vehicles は新業種なので、初期セットアップ前でもサイドバー表示できるよう
+  // ここでハードコードする。重複時は customNavItems が優先される（href 重複排除で実装）。
+  const industryNavItems: NavItem[] = activeIndustry === 'auto-body'
+    ? [{ href: '/vehicles', label: '車両', icon: '🚗' }]
+    : []
+
+  const allCustomItems: NavItem[] = [
+    ...customNavItems,
+    ...industryNavItems.filter((i) => !customNavItems.some((c) => c.href === i.href)),
+  ]
+
   // カスタムオブジェクトを含めてユーザー設定順に並び替え
-  const mainItems = applyNavOrder(order, customNavItems)
+  const mainItems = applyNavOrder(order, allCustomItems)
 
   // なりすまし中かどうか確認
   const adminSessionRaw = cookieStore.get('crm_admin_session')?.value
