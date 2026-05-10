@@ -36,6 +36,38 @@ function ts(days: number, hour = 10, minute = 0): string {
 async function main() {
   console.log('🌱 Seeding auto-body data...')
 
+  // ════════════════════════════════════════════════════════════
+  // 1. 業種マスタデータ（必須・冪等）
+  //    新 auto-body Neon を立てた時にも必ず投入される。
+  //    object_definitions に 'vehicles' 行が無いと
+  //    /admin/objects に車両オブジェクトが出てこない。
+  // ════════════════════════════════════════════════════════════
+  console.log('  Ensuring auto-body master data...')
+  await sql`
+    INSERT INTO object_definitions (
+      api_name, label, label_plural, icon,
+      is_builtin, nav_enabled, sort_order,
+      enable_activities, enable_tasks, enable_expenses
+    )
+    VALUES (
+      'vehicles', '車両', '車両', '🚗',
+      false, true, 100,
+      true, true, true
+    )
+    ON CONFLICT (api_name) DO NOTHING
+  `
+  console.log('    ✓ object_definitions: vehicles')
+
+  // ════════════════════════════════════════════════════════════
+  // 2. 試験データ（任意・dev/demo 用）
+  //    本番セットアップ時に飛ばしたい場合は SEED_TEST_DATA=false で実行
+  // ════════════════════════════════════════════════════════════
+  if (process.env.SEED_TEST_DATA === 'false') {
+    console.log('  SEED_TEST_DATA=false なので試験データはスキップ')
+    console.log('\n✅ Master data only seed complete.')
+    return
+  }
+
   // ────────────────────────────────────────────────
   // 取引先 (accounts)
   // ────────────────────────────────────────────────
