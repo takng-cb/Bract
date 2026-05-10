@@ -10,7 +10,7 @@ import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
 import {
   parseFilterParams, applyFilters, splitTagConditions, applyTagFilter,
-  buildWhere, unresolvedConditions,
+  buildWhere, buildTagWhere, unresolvedConditions,
   type FilterColumnResolver,
 } from '@/lib/filterUtils'
 import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
@@ -72,10 +72,9 @@ export default async function OpportunitiesPage({
     owner_id:         { col: opportunities.owner_id,    type: 'select' },
   }
 
-  // tag フィルタ or resolver で解決できないフィルタが含まれる場合は JS フォールバックパス。
-  // それ以外は SQL で全件絞り込み + ページング。
-  const useJsFallback = tagConditions.length > 0
-    || unresolvedConditions(otherConditions, resolver).length > 0
+  // resolver で解決できないフィルタがある場合のみ JS フォールバック。
+  // tag フィルタは buildTagWhere で SQL に押し下げる。
+  const useJsFallback = unresolvedConditions(otherConditions, resolver).length > 0
 
   // 共通の SELECT 形（ページデータ取得用）
   const selectShape = {
@@ -136,7 +135,10 @@ export default async function OpportunitiesPage({
     displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   } else {
     // ── SQL fast path ──
-    const where = buildWhere(otherConditions, resolver)
+    const userWhere = buildWhere(otherConditions, resolver)
+    const tagWhere = buildTagWhere(tagConditions, 'opportunity', opportunities.id)
+    // and(undefined, x, y) は drizzle が undefined を無視するため安全
+    const where = and(userWhere, tagWhere)
     const orderBy = buildOrderBy(sortDefs, resolver)
     const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(opportunities.created_at)]
 
