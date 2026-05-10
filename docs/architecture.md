@@ -392,17 +392,39 @@ cp ../../../.env.local .env.local  # worktree から見た親リポジトリの 
 
 2. `src/industries/medical/` を作成し、業種専用コードを置く
 
-3. 共通ルートで業種特化を出したい場合、`src/app/(crm)/<route>/page.tsx` の proxy に分岐を追加 + `next.config.ts` の `redirects()` も必要に応じて
+3. 共通ルートで業種特化を出したい場合、`src/app/(crm)/<route>/page.tsx` の proxy に分岐を追加 + `next.config.ts` の `redirects()` も必要に応じて。`src/lib/navItems.ts` の `customObjectsToNavItems` ヘルパーにも業種別 URL 対応を追加（例: real-estate の properties → /properties、auto-body の vehicles → /vehicles）
 
 4. DB スキーマ追加（必要なら）: `src/lib/schema.ts` の該当テーブルに業種固有カラムを追加 + `supabase/migrations/<timestamp>_<name>.sql` 作成
 
-5. Vercel project を新規作成:
+5. **業種専用オブジェクトのマスタデータを seed スクリプトに記述**:
+   業種専用のテーブル（例: `vehicles`）を `object_definitions` に登録しないと
+   `/admin/objects` に出ず、サイドバーのカスタムオブジェクト経由のリンクも生成されない。
+   マイグレーションには入れず（他業種 Neon に不要なデータが入るため）、
+   業種別 seed スクリプト `scripts/seed-<業種>.ts` の冒頭で **冪等な INSERT** として記述:
+   ```ts
+   await sql`
+     INSERT INTO object_definitions (
+       api_name, label, label_plural, icon,
+       is_builtin, nav_enabled, sort_order,
+       enable_activities, enable_tasks, enable_expenses
+     )
+     VALUES (
+       'vehicles', '車両', '車両', '🚗',
+       false, true, 100,
+       true, true, true
+     )
+     ON CONFLICT (api_name) DO NOTHING
+   `
+   ```
+   試験データ部分は `if (process.env.SEED_TEST_DATA === 'false') return` でスキップ可にしておくと、本番セットアップ時にもマスタのみ投入できる。
+
+6. Vercel project を新規作成:
    - Production Branch: `main`
    - Environment Variable: `NEXT_PUBLIC_INDUSTRY=medical`
    - Database: 医療業向け Neon project
    - Domain: 医療向けドメイン
 
-6. ビルド検証:
+7. ビルド検証:
    ```bash
    NEXT_PUBLIC_INDUSTRY=base       npx next build --webpack
    NEXT_PUBLIC_INDUSTRY=real-estate npx next build --webpack
