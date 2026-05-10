@@ -3,10 +3,29 @@
 // URL形式: ?f=field|op|value&f=field|op|value ...
 // ============================================================
 
+import { and, eq, ne, gte, lte, ilike, notIlike, type AnyColumn, type SQL } from 'drizzle-orm'
+
 export type FilterCondition = {
   field: string
   op: string
   value: string
+}
+
+/** カラムの型ヒント（演算子の解釈に使用） */
+export type FilterColumnType = 'text' | 'number' | 'date' | 'boolean' | 'select'
+
+/** 1カラムのSQL生成スペック */
+export type FilterColumnSpec = {
+  col:  AnyColumn
+  type: FilterColumnType
+}
+
+/** field名 → ColumnSpec のマップ。各ページで定義し buildWhere/buildOrderBy に渡す */
+export type FilterColumnResolver = Record<string, FilterColumnSpec>
+
+/** PostgreSQL の LIKE/ILIKE で使う特殊文字 (% _ \) をエスケープ */
+function escapeLike(v: string): string {
+  return v.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
 }
 
 /** URLの f パラメータ（1つ or 配列）を FilterCondition[] に変換 */
@@ -104,4 +123,73 @@ export function applyFilters<T extends Record<string, unknown>>(
   return records.filter((r) =>
     conditions.every((c) => matchesCondition(r, c)),
   )
+}
+
+// ============================================================
+// SQL 生成: FilterCondition[] → Drizzle WHERE 句
+// ============================================================
+
+/** 1 条件を Drizzle SQL 式に変換。未対応なら null を返す（呼び出し側で除外） */
+function conditionToSQL(c: FilterCondition, spec: FilterColumnSpec): SQL | null {
+  const v = c.value
+  const isText = spec.type === 'text' || spec.type === 'select'
+
+  switch (c.op) {
+    case 'contains':
+      if (!isText) return null
+      return ilike(spec.col, `%${escapeLike(v)}%`)
+    case 'not_contains':
+      if (!isText) return null
+      return notIlike(spec.col, `%${escapeLike(v)}%`)
+    case 'starts_with':
+      if (!isText) return null
+      return ilike(spec.col, `${escapeLike(v)}%`)
+    case 'eq':
+      // text/select は大小文字を無視（JS版の挙動に合わせる）
+      if (isText) return ilike(spec.col, escapeLike(v))
+      return eq(spec.col, v)
+    case 'neq':
+      if (isText) return notIlike(spec.col, escapeLike(v))
+      return ne(spec.col, v)
+    case 'gte':
+      return gte(spec.col, v)
+    case 'lte':
+      return lte(spec.col, v)
+    default:
+      return null
+  }
+}
+
+/**
+ * FilterCondition[] を Drizzle の WHERE 句に変換する。
+ *
+ * - resolver に定義されていない field は **黙ってスキップ**する
+ *   （tag や custom field 等、別経路で扱う想定の field のため）
+ * - 全条件は AND 結合
+ * - 該当条件がなければ undefined を返す（呼び出し側で `where(undefined)` は無効化される）
+ */
+export function buildWhere(
+  conditions: FilterCondition[],
+  resolver: FilterColumnResolver,
+): SQL | undefined {
+  const clauses: SQL[] = []
+  for (const c of conditions) {
+    const spec = resolver[c.field]
+    if (!spec) continue
+    const clause = conditionToSQL(c, spec)
+    if (clause) clauses.push(clause)
+  }
+  if (clauses.length === 0) return undefined
+  return clauses.length === 1 ? clauses[0] : and(...clauses)
+}
+
+/**
+ * resolver に解決できない条件のみを抜き出す（JS フォールバック用）。
+ * tag/custom field 等が今後追加される際に、SQL で扱えなかった分を JS で適用するために使う。
+ */
+export function unresolvedConditions(
+  conditions: FilterCondition[],
+  resolver: FilterColumnResolver,
+): FilterCondition[] {
+  return conditions.filter((c) => !resolver[c.field])
 }
