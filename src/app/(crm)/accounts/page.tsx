@@ -2,13 +2,17 @@ import { db } from '@/lib/db'
 import { accounts, taggables } from '@/lib/schema'
 import { getAllTags } from '@/lib/tagUtils'
 import { getAllUsers } from '@/lib/userUtils'
-import { desc, eq, and, inArray } from 'drizzle-orm'
+import { desc, eq, and, inArray, count } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
-import { parseSortParams, applySort } from '@/lib/sortUtils'
+import {
+  parseFilterParams, applyFilters, splitTagConditions, applyTagFilter,
+  buildWhere, unresolvedConditions,
+  type FilterColumnResolver,
+} from '@/lib/filterUtils'
+import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -52,24 +56,74 @@ export default async function AccountsPage({
 
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
+  const sortRaw  = sp.sort ?? ''
+  const sortDefs = parseSortParams(sortRaw)
 
-  const [raw, allTags, taggableRows, allUsers] = await Promise.all([
-    db.select().from(accounts).orderBy(desc(accounts.created_at)),
-    getAllTags(),
-    tagConditions.length > 0
-      ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
-          .from(taggables).where(and(
-            eq(taggables.object_type, 'account'),
-            inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
-          ))
-      : Promise.resolve([]),
-    getAllUsers(),
-  ])
+  const _typeProbe = () => db.select().from(accounts)
+  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
 
-  const taggedIdsByTagId = new Map<string, Set<string>>()
-  for (const t of taggableRows) {
-    if (!taggedIdsByTagId.has(t.tag_id)) taggedIdsByTagId.set(t.tag_id, new Set())
-    taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
+  const resolver: FilterColumnResolver = {
+    name:           { col: accounts.name,           type: 'text' },
+    industry:       { col: accounts.industry,       type: 'text' },
+    type:           { col: accounts.type,           type: 'select' },
+    status:         { col: accounts.status,         type: 'select' },
+    annual_revenue: { col: accounts.annual_revenue, type: 'number' },
+    employee_count: { col: accounts.employee_count, type: 'number' },
+    owner_id:       { col: accounts.owner_id,       type: 'select' },
+  }
+
+  const useJsFallback = tagConditions.length > 0
+    || unresolvedConditions(otherConditions, resolver).length > 0
+
+  let displayList: SelectRow[]
+  let totalCount: number
+  let allTags: Awaited<ReturnType<typeof getAllTags>>
+  let allUsers: Awaited<ReturnType<typeof getAllUsers>>
+
+  if (useJsFallback) {
+    const [raw, tags, taggableRows, users] = await Promise.all([
+      db.select().from(accounts).orderBy(desc(accounts.created_at)),
+      getAllTags(),
+      tagConditions.length > 0
+        ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
+            .from(taggables).where(and(
+              eq(taggables.object_type, 'account'),
+              inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
+            ))
+        : Promise.resolve([] as { tag_id: string; object_id: string }[]),
+      getAllUsers(),
+    ])
+    allTags  = tags
+    allUsers = users
+
+    const taggedIdsByTagId = new Map<string, Set<string>>()
+    for (const t of taggableRows) {
+      if (!taggedIdsByTagId.has(t.tag_id)) taggedIdsByTagId.set(t.tag_id, new Set())
+      taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
+    }
+
+    let list = applyFilters(raw as Record<string, unknown>[], otherConditions) as SelectRow[]
+    list = applyTagFilter(list, tagConditions, taggedIdsByTagId)
+    const sorted = applySort(list as Record<string, unknown>[], sortDefs) as SelectRow[]
+    totalCount = sorted.length
+    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  } else {
+    const where = buildWhere(otherConditions, resolver)
+    const orderBy = buildOrderBy(sortDefs, resolver)
+    const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(accounts.created_at)]
+
+    const baseQuery = db.select().from(accounts).where(where).orderBy(...finalOrderBy)
+
+    const [pageRows, totalRow, tags, users] = await Promise.all([
+      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
+      db.select({ count: count() }).from(accounts).where(where),
+      getAllTags(),
+      getAllUsers(),
+    ])
+    allTags  = tags
+    allUsers = users
+    totalCount  = Number(totalRow[0]?.count ?? 0)
+    displayList = pageRows
   }
 
   const FIELDS: FieldDef[] = [
@@ -102,16 +156,8 @@ export default async function AccountsPage({
     },
   ]
 
-  let accountsList = applyFilters(raw as Record<string, unknown>[], otherConditions)
-  accountsList     = applyTagFilter(accountsList, tagConditions, taggedIdsByTagId)
-  const sortRaw    = sp.sort ?? ''
-  const sorted     = applySort(accountsList as Record<string, unknown>[], parseSortParams(sortRaw))
   const hasFilter  = conditions.length > 0
-  const totalCount = sorted.length
   const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
-  const displayList = isGrouped
-    ? sorted
-    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -198,7 +244,7 @@ export default async function AccountsPage({
               groupBy={groupBy}
               fields={FIELDS}
               renderCard={(rec) => {
-                const a = rec as typeof raw[0]
+                const a = rec as SelectRow
                 return (
                   <Link href={`/accounts/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
                     <div className="flex items-start justify-between gap-2">
