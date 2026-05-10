@@ -6,11 +6,12 @@ import ActivityForm from '@/components/ActivityForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
+import { getActivityTypes } from '@/lib/activityTypes'
 
 export default async function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [activity, accountsList, contactsList, opportunitiesList, activityContactRows] = await Promise.all([
+  const [activity, accountsList, contactsList, opportunitiesList, activityContactRows, activityTypes] = await Promise.all([
     db.select().from(activities).where(eq(activities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
@@ -20,6 +21,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
       .from(opportunities).orderBy(asc(opportunities.name)),
     db.select({ contact_id: activity_contacts.contact_id })
       .from(activity_contacts).where(eq(activity_contacts.activity_id, id)),
+    getActivityTypes(),
   ])
 
   if (!activity) notFound()
@@ -48,6 +50,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
           accounts={accountsList}
           contacts={contactsList}
           opportunities={opportunitiesList}
+          activityTypes={activityTypes}
           defaultValues={{
             type: activity.type,
             subject: activity.subject,

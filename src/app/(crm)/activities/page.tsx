@@ -20,38 +20,36 @@ import ActivitiesTableView from '@/components/tableviews/ActivitiesTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
+import { getActivityTypes } from '@/lib/activityTypes'
 
 const PAGE_SIZE = 20
-
-const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-  call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700' },
-  email:   { label: 'メール', icon: '✉️', color: 'bg-purple-50 text-purple-700' },
-  meeting: { label: '打合せ', icon: '🤝', color: 'bg-green-50 text-green-700' },
-  note:    { label: 'メモ',   icon: '📝', color: 'bg-yellow-50 text-yellow-700' },
-}
-
-const FIELDS: FieldDef[] = [
-  { value: 'subject',       label: '件名',    type: 'text' },
-  { value: 'body',          label: '内容',    type: 'text' },
-  { value: 'accounts.name', label: '取引先',  type: 'text' },
-  {
-    value: 'type', label: '種別', type: 'select',
-    options: [
-      { value: 'call',    label: '📞 電話' },
-      { value: 'email',   label: '✉️ メール' },
-      { value: 'meeting', label: '🤝 打合せ' },
-      { value: 'note',    label: '📝 メモ' },
-    ],
-  },
-  { value: 'occurred_at', label: '実施日', type: 'date' },
-]
 
 export default async function ActivitiesPage({
   searchParams,
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
-  const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('activities'), getCurrentUserId()])
+  const [sp, edit, colConfig, userId, activityTypes] = await Promise.all([searchParams, canEdit(), getListViewColumns('activities'), getCurrentUserId(), getActivityTypes()])
+
+  // 動的活動種別から FilterBuilder の field 定義と TYPE_CONFIG を生成
+  const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
+  for (const t of activityTypes) {
+    TYPE_CONFIG[t.value] = {
+      label: t.label,
+      icon: t.icon,
+      color: t.color ?? 'bg-zinc-50 text-zinc-700',
+    }
+  }
+  const FIELDS: FieldDef[] = [
+    { value: 'subject',       label: '件名',    type: 'text' },
+    { value: 'body',          label: '内容',    type: 'text' },
+    { value: 'accounts.name', label: '取引先',  type: 'text' },
+    {
+      value: 'type', label: '種別', type: 'select',
+      options: activityTypes.map((t) => ({ value: t.value, label: `${t.icon} ${t.label}` })),
+    },
+    { value: 'occurred_at', label: '実施日', type: 'date' },
+  ]
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
   const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
