@@ -1,3 +1,6 @@
+import { asc, desc, type SQL } from 'drizzle-orm'
+import type { FilterColumnResolver } from '@/lib/filterUtils'
+
 export type SortDef = { field: string; dir: 'asc' | 'desc' }
 
 /** "name:asc,status:desc" → SortDef[] */
@@ -34,6 +37,25 @@ export function toggleSort(sorts: SortDef[], field: string, maxSorts = 3): SortD
     // desc → 解除
     return sorts.filter((_, i) => i !== idx)
   }
+}
+
+/**
+ * SortDef[] を Drizzle の ORDER BY 句に変換する。
+ *
+ * - resolver に定義されていない field は **黙ってスキップ**する
+ * - 解決可能なソートが 1 つもなければ空配列を返す（呼び出し側で .orderBy(...[]) は無効化される）
+ */
+export function buildOrderBy(
+  sorts: SortDef[],
+  resolver: FilterColumnResolver,
+): SQL[] {
+  return sorts
+    .map((s) => {
+      const spec = resolver[s.field]
+      if (!spec) return null
+      return s.dir === 'asc' ? asc(spec.col) : desc(spec.col)
+    })
+    .filter((s): s is SQL => s !== null)
 }
 
 /** フロントエンド向けソート適用（サーバーサイドでも使用） */
