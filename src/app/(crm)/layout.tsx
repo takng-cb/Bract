@@ -3,7 +3,7 @@ import MobileNav from '@/components/MobileNav'
 import BottomNav from '@/components/BottomNav'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
 import PwaInstallBanner from '@/components/PwaInstallBanner'
-import { applyNavOrder, DEFAULT_NAV_ORDER, type NavItem } from '@/lib/navItems'
+import { applyNavOrder, DEFAULT_NAV_ORDER, customObjectsToNavItems, type NavItem } from '@/lib/navItems'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
 import { user_preferences } from '@/lib/schema'
@@ -51,24 +51,17 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   const displayName: string | null = pref?.display_name ?? user?.email ?? null
 
   // カスタムオブジェクトをナビアイテムに変換
-  // INDUSTRY=real-estate のとき、`properties` は overlay の専用ルート (/properties)
-  // を持つため、サイドバーリンクは /objects/properties ではなく /properties に向ける。
-  // 同様に INDUSTRY=auto-body のとき `vehicles` を /vehicles に向ける。
-  const customNavItems: NavItem[] = customObjects
-    .filter((o) => o.nav_enabled)
-    .map((o) => ({
-      href:
-        activeIndustry === 'real-estate' && o.api_name === 'properties' ? '/properties' :
-        activeIndustry === 'auto-body'   && o.api_name === 'vehicles'   ? '/vehicles'   :
-        `/objects/${o.api_name}`,
-      label: o.label_plural,
-      icon:  o.icon,
-    }))
+  // 業種オーバーレイで専用ルートを持つもの（real-estate の properties → /properties、
+  // auto-body の vehicles → /vehicles）は customObjectsToNavItems が自動的に業種別
+  // URL を生成する。同じヘルパーを設定画面 (NavOrderEditor) でも使うことで href ドリフトを防止。
+  const customNavItems = customObjectsToNavItems(
+    customObjects.filter((o) => o.nav_enabled),
+    activeIndustry,
+  )
 
   // 業種オーバーレイ専用のナビ項目（object_definitions に行が無い場合のフォールバック）
   // auto-body の vehicles は新業種なので、初期セットアップ前でもサイドバー表示できるよう
-  // ここでハードコードする。重複時は customNavItems が優先される（ユニーク化は applyNavOrder
-  // 側ではなく href の重複排除で実装）。
+  // ここでハードコードする。重複時は customNavItems が優先される（href 重複排除で実装）。
   const industryNavItems: NavItem[] = activeIndustry === 'auto-body'
     ? [{ href: '/vehicles', label: '車両', icon: '🚗' }]
     : []

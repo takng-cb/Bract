@@ -1,8 +1,8 @@
 import { db } from '@/lib/db'
 import { accounts, contacts, vehicles } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
-import Link from 'next/link'
 import OpportunityForm from '@/components/OpportunityForm'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { createOpportunity } from '@/app/actions/opportunities'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
@@ -59,11 +59,10 @@ export default async function NewOpportunityPage({
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/opportunities" className="hover:text-zinc-600">商談</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">新規作成</span>
-      </div>
+      <Breadcrumbs items={[
+        { label: '商談', href: '/opportunities' },
+        { label: '新規作成' },
+      ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">商談を追加</h1>
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <OpportunityForm

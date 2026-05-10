@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { activities, accounts, opportunities, activity_contacts, contacts } from '@/lib/schema'
+import { activities, accounts, opportunities, activity_contacts, contacts, custom_records, object_definitions } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -16,6 +16,21 @@ const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }
   note:    { label: 'メモ',   icon: '📝', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
 }
 
+/**
+ * カスタムレコードの表示名を導出する。
+ * data.name → data.title → "<オブジェクトラベル> #<short id>" の優先順。
+ */
+function customRecordTitle(
+  data: Record<string, unknown> | null | undefined,
+  objectLabel: string | null | undefined,
+  recordId: string,
+): string {
+  const d = (data ?? {}) as Record<string, unknown>
+  const name = typeof d.name === 'string' ? d.name : null
+  const title = typeof d.title === 'string' ? d.title : null
+  return name ?? title ?? `${objectLabel ?? 'カスタム'} #${recordId.slice(0, 8)}`
+}
+
 export default async function ActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
@@ -23,12 +38,17 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
     db.select({
       id: activities.id, type: activities.type, subject: activities.subject,
       body: activities.body, occurred_at: activities.occurred_at, created_at: activities.created_at,
-      accounts:      { id: accounts.id, name: accounts.name },
-      opportunities: { id: opportunities.id, name: opportunities.name },
+      custom_record_id: activities.custom_record_id,
+      accounts:       { id: accounts.id, name: accounts.name },
+      opportunities:  { id: opportunities.id, name: opportunities.name },
+      custom_record:  { id: custom_records.id, data: custom_records.data, object_id: custom_records.object_id },
+      object_def:     { id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label },
     })
       .from(activities)
       .leftJoin(accounts, eq(activities.account_id, accounts.id))
       .leftJoin(opportunities, eq(activities.opportunity_id, opportunities.id))
+      .leftJoin(custom_records, eq(activities.custom_record_id, custom_records.id))
+      .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
       .where(eq(activities.id, id))
       .then((r) => r[0] ?? null),
     db.select({ contact_id: activity_contacts.contact_id, full_name: contacts.full_name })
@@ -41,7 +61,27 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
 
   const account     = activityRow.accounts?.id     ? activityRow.accounts     : null
   const opportunity = activityRow.opportunities?.id ? activityRow.opportunities : null
-  const typeConf    = TYPE_CONFIG[activityRow.type] ?? { label: activityRow.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600 border-zinc-200' }
+  const customRecord = activityRow.custom_record?.id ? activityRow.custom_record : null
+  const objectDef    = activityRow.object_def?.id    ? activityRow.object_def    : null
+  const customLabel  = customRecord
+    ? customRecordTitle(customRecord.data as Record<string, unknown>, objectDef?.label, customRecord.id)
+    : null
+  const customHref   = customRecord && objectDef
+    ? `/objects/${objectDef.api_name}/${customRecord.id}`
+    : null
+
+  // 親レコードのリンク（紐づくものを全部）
+  const parentLinks: { icon: string; label: string; href: string }[] = []
+  if (account)     parentLinks.push({ icon: '🏢', label: account.name,     href: `/accounts/${account.id}` })
+  for (const c of linkedContactRows) {
+    parentLinks.push({ icon: '👤', label: c.full_name, href: `/contacts/${c.contact_id}` })
+  }
+  if (opportunity) parentLinks.push({ icon: '💼', label: opportunity.name, href: `/opportunities/${opportunity.id}` })
+  if (customRecord && customHref && customLabel) {
+    parentLinks.push({ icon: objectDef?.label ? '🗂️' : '🗂️', label: customLabel, href: customHref })
+  }
+
+  const typeConf = TYPE_CONFIG[activityRow.type] ?? { label: activityRow.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600 border-zinc-200' }
 
   async function handleDelete() {
     'use server'
@@ -64,6 +104,22 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
           </AuthGuard>
         }
       />
+
+      {/* 親レコード（どのレコードに紐づく活動か） */}
+      <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-md px-4 py-3">
+        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">関連レコード</p>
+        {parentLinks.length > 0 ? (
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {parentLinks.map((p, i) => (
+              <Link key={`${p.href}-${i}`} href={p.href} className="text-sm text-blue-600 hover:underline">
+                {p.icon} {p.label}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-400">紐づくレコードなし</p>
+        )}
+      </div>
 
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
@@ -90,37 +146,47 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">関連情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {account && (
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
-              <dd className="text-sm">
-                <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">🏢 {account.name}</Link>
-              </dd>
-            </div>
-          )}
-          {linkedContactRows.length > 0 && (
-            <div className="col-span-2">
-              <dt className="text-xs text-zinc-400 mb-1">人物</dt>
-              <dd className="flex flex-wrap gap-2 mt-1">
-                {linkedContactRows.map((c) => (
-                  <Link key={c.contact_id} href={`/contacts/${c.contact_id}`} className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-                    👤 {c.full_name}
-                  </Link>
-                ))}
-              </dd>
-            </div>
-          )}
-          {opportunity && (
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">商談</dt>
-              <dd className="text-sm">
-                <Link href={`/opportunities/${opportunity.id}`} className="text-blue-600 hover:underline">💼 {opportunity.name}</Link>
-              </dd>
-            </div>
-          )}
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
+            <dd className="text-sm">
+              {account
+                ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">🏢 {account.name}</Link>
+                : <span className="text-zinc-400">—</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">商談</dt>
+            <dd className="text-sm">
+              {opportunity
+                ? <Link href={`/opportunities/${opportunity.id}`} className="text-blue-600 hover:underline">💼 {opportunity.name}</Link>
+                : <span className="text-zinc-400">—</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">{objectDef?.label ?? 'カスタム'}</dt>
+            <dd className="text-sm">
+              {customRecord && customHref && customLabel
+                ? <Link href={customHref} className="text-blue-600 hover:underline">🗂️ {customLabel}</Link>
+                : <span className="text-zinc-400">—</span>}
+            </dd>
+          </div>
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
             <dd className="text-sm text-zinc-800">{activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
+          </div>
+          <div className="col-span-1 sm:col-span-2">
+            <dt className="text-xs text-zinc-400 mb-1">人物</dt>
+            <dd className="text-sm">
+              {linkedContactRows.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {linkedContactRows.map((c) => (
+                    <Link key={c.contact_id} href={`/contacts/${c.contact_id}`} className="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                      👤 {c.full_name}
+                    </Link>
+                  ))}
+                </div>
+              ) : <span className="text-zinc-400">—</span>}
+            </dd>
           </div>
         </dl>
       </div>

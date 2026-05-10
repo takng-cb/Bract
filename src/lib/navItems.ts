@@ -1,7 +1,45 @@
+import type { Industry } from '@/lib/industry'
+
 export type NavItem = {
   href:  string
   label: string
   icon:  string
+}
+
+/** カスタムオブジェクト定義の最小スキーマ（NavItem 化に必要なフィールドのみ） */
+type ObjectForNav = {
+  api_name:     string
+  label_plural: string
+  icon:         string
+}
+
+/**
+ * カスタムオブジェクトを NavItem に変換する共通ヘルパー。
+ *
+ * 業種オーバーレイで業種専用ルートを持つオブジェクト
+ * (例: real-estate モードの properties) は `/objects/<api>` ではなく
+ * 業種専用 URL (`/properties` 等) に向ける。
+ *
+ * これを共通化することで、サイドバー（layout.tsx）と
+ * 並び替え画面（settings/page.tsx）の URL がドリフトしないようにする。
+ */
+export function customObjectsToNavItems(
+  objects: ObjectForNav[],
+  activeIndustry: Industry,
+): NavItem[] {
+  return objects.map((o) => ({
+    href:  hrefForCustomObject(o.api_name, activeIndustry),
+    label: o.label_plural,
+    icon:  o.icon,
+  }))
+}
+
+/** カスタムオブジェクトの api_name + 業種 → URL */
+function hrefForCustomObject(apiName: string, activeIndustry: Industry): string {
+  // 業種オーバーレイ専用ルートを持つものは overlay の URL に向ける
+  if (activeIndustry === 'real-estate' && apiName === 'properties') return '/properties'
+  if (activeIndustry === 'auto-body'   && apiName === 'vehicles')   return '/vehicles'
+  return `/objects/${apiName}`
 }
 
 /** メインナビに並べられる全アイテム（マスター定義） */

@@ -2,8 +2,12 @@ export const dynamic = 'force-dynamic'
 
 import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, activities, tasks } from '@/lib/schema'
-import { eq, desc, asc, lte, gte, ne, count } from 'drizzle-orm'
+import { eq, desc, asc, ne, count } from 'drizzle-orm'
 import Link from 'next/link'
+import PeriodSelector from '@/components/PeriodSelector'
+import { activeIndustry } from '@/lib/industry'
+import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
+import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
 
 const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700' },
@@ -27,23 +31,32 @@ const STAGE_CONFIG: Record<string, { label: string; color: string }> = {
   closed_lost:   { label: '失注',     color: 'bg-red-100 text-red-600' },
 }
 
-export default async function DashboardPage() {
-  const now       = new Date()
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>
+}) {
+  const sp = await searchParams
+  const now = new Date()
+  // 既定期間: 今月（ローカルタイムの月初〜月末）
   const year      = now.getFullYear()
   const month     = now.getMonth() + 1
   const monthFrom = `${year}-${String(month).padStart(2, '0')}-01`
-  const monthTo   = new Date(year, month, 0).toISOString().slice(0, 10)
-  const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  const today     = now.toISOString().slice(0, 10)
+  const monthTo   = lastOfMonth(year, month)
+  const from = sp.from || monthFrom
+  const to   = sp.to   || monthTo
+  const today = todayLocal()
+
+  const isReal = activeIndustry === 'real-estate'
 
   const [
     accountCountRows,
     pendingTasks,
-    monthOpportunities,
+    allOpportunities,
     recentAccounts,
     recentContacts,
     recentOpportunities,
-    recentActivities,
+    allActivities,
   ] = await Promise.all([
     db.select({ count: count() }).from(accounts).where(ne(accounts.status, 'inactive')),
     db.select({
@@ -61,6 +74,9 @@ export default async function DashboardPage() {
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
       close_date: opportunities.close_date,
+      commission_fee: opportunities.commission_fee,
+      brokerage_type: opportunities.brokerage_type,
+      other_profit: opportunities.other_profit,
       accounts: { name: accounts.name },
     })
       .from(opportunities)
@@ -80,23 +96,40 @@ export default async function DashboardPage() {
     })
       .from(activities)
       .leftJoin(accounts, eq(activities.account_id, accounts.id))
-      .orderBy(desc(activities.occurred_at)).limit(5),
+      .orderBy(desc(activities.occurred_at)),
   ])
 
-  // 今月分フィルタ（close_date で絞る）
-  const thisMonthOpps = monthOpportunities.filter(
-    (o) => o.close_date && o.close_date >= monthFrom && o.close_date <= monthTo
+  // 期間内の商談（close_date で絞る）
+  const periodOpps = allOpportunities.filter(
+    (o) => o.close_date && o.close_date >= from && o.close_date <= to
   )
 
-  // 今週の期限タスク
-  const weekTasks = pendingTasks.filter(
-    (t) => t.due_date && t.due_date >= today && t.due_date <= weekLater
+  // 期間内の期限タスク
+  const periodTasks = pendingTasks.filter(
+    (t) => t.due_date && t.due_date >= from && t.due_date <= to
   )
+
+  // 期間内の活動（occurred_at で絞る、ローカルタイムの日付で比較）
+  const periodActivities = allActivities
+    .filter((a) => {
+      if (!a.occurred_at) return false
+      const d = formatDateLocal(new Date(a.occurred_at))
+      return d >= from && d <= to
+    })
+    .slice(0, 8)
 
   const accountCount = accountCountRows[0]?.count ?? 0
 
-  const forecast = thisMonthOpps.reduce((sum, o) => {
-    return sum + Number(o.amount ?? 0) * (o.probability != null ? o.probability / 100 : 1)
+  const baseRevenueOf = (o: typeof periodOpps[number]) => {
+    if (!isReal) return Number(o.amount ?? 0)
+    const fee = o.commission_fee != null ? Number(o.commission_fee) : null
+    const oth = o.other_profit != null ? Number(o.other_profit) : 0
+    return fee != null ? calcProfit(fee, o.brokerage_type, oth) : 0
+  }
+
+  const forecast = periodOpps.reduce((sum, o) => {
+    const base = baseRevenueOf(o)
+    return sum + base * (o.probability != null ? o.probability / 100 : 1)
   }, 0)
 
   const recent = [
@@ -109,20 +142,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900">ダッシュボード</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          {now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900">ダッシュボード</h1>
+          <p className="text-sm text-zinc-500 mt-1">{from} 〜 {to}</p>
+        </div>
+        <PeriodSelector from={from} to={to} />
       </div>
 
       {/* KPIカード */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'アクティブな取引先', value: accountCount, unit: '社', href: '/accounts', color: 'text-zinc-800' },
-          { label: '今週締切のToDo', value: weekTasks.length, unit: '件', href: '/tasks', color: weekTasks.length > 0 ? 'text-orange-600' : 'text-zinc-800' },
-          { label: '今月完了予定の商談', value: thisMonthOpps.length, unit: '件', href: '/opportunities', color: 'text-blue-600' },
-          { label: '今月の想定売上', value: `¥${Math.round(forecast).toLocaleString()}`, unit: '', href: '/forecast', color: 'text-green-700' },
+          { label: 'アクティブな取引先', value: accountCount, unit: '社', href: '/accounts', color: 'text-zinc-800', sub: '期間外集計' },
+          { label: '期間内のToDo', value: periodTasks.length, unit: '件', href: '/tasks', color: periodTasks.length > 0 ? 'text-orange-600' : 'text-zinc-800', sub: '未完了・期限が期間内' },
+          { label: '期間内の商談', value: periodOpps.length, unit: '件', href: `/forecast?from=${from}&to=${to}`, color: 'text-blue-600', sub: '完了予定が期間内' },
+          { label: '期間内の想定売上', value: `¥${Math.round(forecast).toLocaleString()}`, unit: '', href: `/forecast?from=${from}&to=${to}`, color: 'text-green-700', sub: isReal ? '確度 × 利益' : '確度 × 金額' },
         ].map((k) => (
           <Link key={k.label} href={k.href} className="bg-white border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
             <p className="text-xs text-zinc-400 mb-2">{k.label}</p>
@@ -130,6 +164,7 @@ export default async function DashboardPage() {
               {typeof k.value === 'number' ? k.value.toLocaleString() : k.value}
               {k.unit && <span className="text-sm font-normal text-zinc-500 ml-1">{k.unit}</span>}
             </p>
+            {k.sub && <p className="text-xs text-zinc-400 mt-1">{k.sub}</p>}
           </Link>
         ))}
       </div>
@@ -142,14 +177,14 @@ export default async function DashboardPage() {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-zinc-800">
-                今週締切のToDo
-                <span className="ml-2 text-zinc-400 font-normal text-sm">({weekTasks.length})</span>
+                期間内のToDo
+                <span className="ml-2 text-zinc-400 font-normal text-sm">({periodTasks.length})</span>
               </h2>
               <Link href="/tasks" className="text-xs text-blue-600 hover:text-blue-800">すべて見る →</Link>
             </div>
-            {weekTasks.length === 0 ? (
+            {periodTasks.length === 0 ? (
               <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
-                今週締切のToDoはありません 🎉
+                期間内のToDoはありません 🎉
               </div>
             ) : (
               <>
@@ -166,7 +201,7 @@ export default async function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                      {weekTasks.map((t) => {
+                      {periodTasks.map((t) => {
                         const account     = t.accounts?.id     ? t.accounts     : null
                         const opportunity = t.opportunities?.id ? t.opportunities : null
                         const priority    = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
@@ -197,7 +232,7 @@ export default async function DashboardPage() {
                 </div>
                 {/* モバイル: カード */}
                 <div className="md:hidden space-y-2">
-                  {weekTasks.map((t) => {
+                  {periodTasks.map((t) => {
                     const account  = t.accounts?.id ? t.accounts : null
                     const priority = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
                     const isOverdue = t.due_date && t.due_date < today
@@ -219,18 +254,18 @@ export default async function DashboardPage() {
             )}
           </section>
 
-          {/* 今月の商談 */}
+          {/* 期間内の商談 */}
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-zinc-800">
-                今月完了予定の商談
-                <span className="ml-2 text-zinc-400 font-normal text-sm">({thisMonthOpps.length})</span>
+                期間内の商談
+                <span className="ml-2 text-zinc-400 font-normal text-sm">({periodOpps.length})</span>
               </h2>
-              <Link href="/forecast" className="text-xs text-blue-600 hover:text-blue-800">売上予測へ →</Link>
+              <Link href={`/forecast?from=${from}&to=${to}`} className="text-xs text-blue-600 hover:text-blue-800">売上予測へ →</Link>
             </div>
-            {thisMonthOpps.length === 0 ? (
+            {periodOpps.length === 0 ? (
               <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
-                今月完了予定の商談がありません
+                期間内に完了予定の商談がありません
               </div>
             ) : (
               <>
@@ -242,13 +277,13 @@ export default async function DashboardPage() {
                         <th className="text-left px-4 py-3 font-medium text-zinc-600">商談名</th>
                         <th className="text-left px-4 py-3 font-medium text-zinc-600">ステージ</th>
                         <th className="text-left px-4 py-3 font-medium text-zinc-600">完了予定日</th>
-                        <th className="text-right px-4 py-3 font-medium text-zinc-600">想定金額</th>
+                        <th className="text-right px-4 py-3 font-medium text-zinc-600">想定売上</th>
                         <th className="px-4 py-3"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                      {thisMonthOpps.slice(0, 5).map((o) => {
-                        const base     = Number(o.amount ?? 0)
+                      {periodOpps.slice(0, 5).map((o) => {
+                        const base     = baseRevenueOf(o)
                         const prob     = o.probability != null ? o.probability / 100 : 1
                         const weighted = Math.round(base * prob)
                         const account  = o.accounts?.name ? o.accounts : null
@@ -278,8 +313,8 @@ export default async function DashboardPage() {
                 </div>
                 {/* モバイル: カード */}
                 <div className="md:hidden space-y-2">
-                  {thisMonthOpps.slice(0, 5).map((o) => {
-                    const base     = Number(o.amount ?? 0)
+                  {periodOpps.slice(0, 5).map((o) => {
+                    const base     = baseRevenueOf(o)
                     const prob     = o.probability != null ? o.probability / 100 : 1
                     const weighted = Math.round(base * prob)
                     const account  = o.accounts?.name ? o.accounts : null
@@ -307,14 +342,14 @@ export default async function DashboardPage() {
         {/* 右カラム */}
         <div className="col-span-1 md:col-span-2 space-y-6">
 
-          {/* 最近の活動 */}
+          {/* 期間内の活動 */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-zinc-800">最近の活動</h2>
+              <h2 className="font-semibold text-zinc-800">期間内の活動</h2>
               <Link href="/activities" className="text-xs text-blue-600 hover:text-blue-800">すべて見る →</Link>
             </div>
-            {recentActivities.length === 0 ? (
-              <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">活動がありません</div>
+            {periodActivities.length === 0 ? (
+              <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">期間内の活動がありません</div>
             ) : (
               <>
                 {/* PC: テーブル */}
@@ -328,7 +363,7 @@ export default async function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                      {recentActivities.map((a) => {
+                      {periodActivities.map((a) => {
                         const account = a.accounts?.name ? a.accounts : null
                         const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
                         return (
@@ -351,7 +386,7 @@ export default async function DashboardPage() {
                 </div>
                 {/* モバイル: カード */}
                 <div className="md:hidden space-y-2">
-                  {recentActivities.map((a) => {
+                  {periodActivities.map((a) => {
                     const account = a.accounts?.name ? a.accounts : null
                     const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
                     return (

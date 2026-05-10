@@ -1,21 +1,36 @@
-import { getAllObjectDefs } from '@/lib/objectMetadata'
+import { getAllObjectDefs, getCustomObjectsForNav } from '@/lib/objectMetadata'
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
 import { deleteObjectDef } from '@/app/actions/objectDefinitions'
 import DeleteButton from '@/components/DeleteButton'
+import NavOrderEditor from '@/components/NavOrderEditor'
+import { getNavOrderSettings } from '@/app/actions/navSettings'
+import { customObjectsToNavItems } from '@/lib/navItems'
+import { activeIndustry } from '@/lib/industry'
 
 export default async function AdminObjectsPage() {
   await requireAdmin()
 
-  const objects = await getAllObjectDefs()
+  const [objects, { userOrder, systemOrder }, customObjects] = await Promise.all([
+    getAllObjectDefs(),
+    getNavOrderSettings(),
+    getCustomObjectsForNav(),
+  ])
+
+  // ナビ並び替えに渡すカスタムオブジェクトのアイテム（業種オーバーレイ対応 URL）。
+  // layout.tsx と同じヘルパーを使い href ドリフトを防ぐ。
+  const customNavItems = customObjectsToNavItems(
+    customObjects.filter((o) => o.nav_enabled),
+    activeIndustry,
+  )
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-8 max-w-4xl space-y-8">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">🗂️ オブジェクト管理</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            オブジェクト（テーブル）とフィールドの追加・編集ができます
+            オブジェクト（テーブル）とフィールドの追加・編集、サイドバーの並び替えができます
           </p>
         </div>
         <Link
@@ -61,6 +76,8 @@ export default async function AdminObjectsPage() {
           </div>
         ))}
       </div>
+
+      <NavOrderEditor userOrder={userOrder} systemOrder={systemOrder} customItems={customNavItems} />
     </div>
   )
 }
