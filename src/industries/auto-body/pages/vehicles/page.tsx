@@ -5,9 +5,11 @@ import { desc, eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 import AuthGuard from '@/components/AuthGuard'
+import CsvToolbar from '@/components/CsvToolbar'
 import {
   vehicleStatusColor,
   daysUntilInspection,
+  VEHICLE_STATUSES,
 } from '@/industries/auto-body/lib/autoBodyService'
 
 export default async function VehiclesListPage() {
@@ -41,14 +43,26 @@ export default async function VehiclesListPage() {
             在庫・販売済・整備中の車両一覧（{rows.length} 件）
           </p>
         </div>
-        {edit && (
-          <Link
-            href="/vehicles/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-          >
-            ＋ 新規追加
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <CsvToolbar
+            exportUrl="/api/export/vehicles"
+            importUrl="/api/import/vehicles"
+            label="車両"
+            csvFormat="ID,メーカー,車種,年式,走行距離(km),色,ナンバー,車台番号,状態,仕入日,仕入価格,仕入元,希望売価,売却日,売却価格,売却先,次回車検期日,備考"
+            fieldOptions={{
+              '状態': [...VEHICLE_STATUSES],
+            }}
+            showImport={edit}
+          />
+          {edit && (
+            <Link
+              href="/vehicles/new"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+            >
+              ＋ 新規追加
+            </Link>
+          )}
+        </div>
       </div>
 
       {rows.length === 0 ? (

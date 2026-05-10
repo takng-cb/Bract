@@ -63,7 +63,10 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   // auto-body の vehicles は新業種なので、初期セットアップ前でもサイドバー表示できるよう
   // ここでハードコードする。重複時は customNavItems が優先される（href 重複排除で実装）。
   const industryNavItems: NavItem[] = activeIndustry === 'auto-body'
-    ? [{ href: '/vehicles', label: '車両', icon: '🚗' }]
+    ? [
+        { href: '/vehicles', label: '車両', icon: '🚗' },
+        { href: '/parts',    label: '部品', icon: '🔧' },
+      ]
     : []
 
   const allCustomItems: NavItem[] = [

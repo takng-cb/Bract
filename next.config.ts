@@ -29,13 +29,17 @@ const nextConfig: NextConfig = {
       )
     }
 
-    // vehicles: auto-body のみ overlay。それ以外は /objects/vehicles へ
+    // vehicles / parts: auto-body のみ overlay。それ以外は /objects/* へ
     if (industry !== 'auto-body') {
       rules.push(
         { source: '/vehicles/new',      destination: '/objects/vehicles/new',      permanent: false },
         { source: '/vehicles/:id/edit', destination: '/objects/vehicles/:id/edit', permanent: false },
         { source: '/vehicles/:id',      destination: '/objects/vehicles/:id',      permanent: false },
         { source: '/vehicles',          destination: '/objects/vehicles',          permanent: false },
+        { source: '/parts/new',         destination: '/objects/parts/new',         permanent: false },
+        { source: '/parts/:id/edit',    destination: '/objects/parts/:id/edit',    permanent: false },
+        { source: '/parts/:id',         destination: '/objects/parts/:id',         permanent: false },
+        { source: '/parts',             destination: '/objects/parts',             permanent: false },
       )
     }
 

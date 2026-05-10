@@ -39,6 +39,7 @@ function hrefForCustomObject(apiName: string, activeIndustry: Industry): string 
   // 業種オーバーレイ専用ルートを持つものは overlay の URL に向ける
   if (activeIndustry === 'real-estate' && apiName === 'properties') return '/properties'
   if (activeIndustry === 'auto-body'   && apiName === 'vehicles')   return '/vehicles'
+  if (activeIndustry === 'auto-body'   && apiName === 'parts')      return '/parts'
   return `/objects/${apiName}`
 }
 
