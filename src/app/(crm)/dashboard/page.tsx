@@ -8,13 +8,7 @@ import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
-
-const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-  call:    { label: '電話',   icon: '📞', color: 'bg-blue-50 text-blue-700' },
-  email:   { label: 'メール', icon: '✉️', color: 'bg-purple-50 text-purple-700' },
-  meeting: { label: '打合せ', icon: '🤝', color: 'bg-green-50 text-green-700' },
-  note:    { label: 'メモ',   icon: '📝', color: 'bg-yellow-50 text-yellow-700' },
-}
+import { getActivityTypes } from '@/lib/activityTypes'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'bg-red-50 text-red-600' },
@@ -46,6 +40,17 @@ export default async function DashboardPage({
   const from = sp.from || monthFrom
   const to   = sp.to   || monthTo
   const today = todayLocal()
+
+  // 動的活動種別（admin/objects で編集可能）
+  const activityTypes = await getActivityTypes()
+  const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
+  for (const t of activityTypes) {
+    ACTIVITY_TYPE_CONFIG[t.value] = {
+      label: t.label,
+      icon:  t.icon,
+      color: t.color ?? 'bg-zinc-50 text-zinc-700',
+    }
+  }
 
   const isReal = activeIndustry === 'real-estate'
 
