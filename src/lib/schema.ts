@@ -78,6 +78,13 @@ export const opportunities = pgTable('opportunities', {
   brokerage_type:  text('brokerage_type'),
   // その他利益（円、税抜）
   other_profit:    numeric('other_profit').notNull().default('0'),
+  // ─── 業種オーバーレイ：板金屋・自動車整備業（INDUSTRY=auto-body のときのみ UI で使用） ───
+  // service_type: '車両販売' | '板金修理' | '整備' | '車検' | 'その他'
+  service_type: text('service_type'),
+  // 対象車両への参照（vehicles テーブル、auto-body 用）。型は uuid だが他業種で vehicles 不在のためビルド時 references を使わない。
+  vehicle_id:   uuid('vehicle_id'),
+  // 部品仕入原価（円、税抜）。利益 = amount - parts_cost
+  parts_cost:   numeric('parts_cost').notNull().default('0'),
   created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
@@ -161,6 +168,45 @@ export const expenses = pgTable('expenses', {
   created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
+
+// ----------------------------------------------------------------
+// vehicles（車両）— 業種オーバーレイ：板金屋・自動車整備業
+//   INDUSTRY=auto-body のときのみ UI で使用。base モードでは未使用。
+// ----------------------------------------------------------------
+export const vehicles = pgTable('vehicles', {
+  id:            uuid('id').primaryKey().defaultRandom(),
+  // 車両情報
+  maker:         text('maker').notNull(),
+  model:         text('model').notNull(),
+  year:          integer('year'),
+  mileage:       integer('mileage'),
+  color:         text('color'),
+  license_plate: text('license_plate'),
+  vin:           text('vin'),
+  // 状態
+  status:        text('status').notNull().default('在庫'),
+  // 仕入
+  purchase_date:        date('purchase_date'),
+  purchase_price:       numeric('purchase_price'),
+  supplier_account_id:  uuid('supplier_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  // 販売
+  sale_price:           numeric('sale_price'),
+  sold_date:            date('sold_date'),
+  sold_price:           numeric('sold_price'),
+  buyer_account_id:     uuid('buyer_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  // 車検
+  next_inspection_date: date('next_inspection_date'),
+  // メタ
+  description:   text('description'),
+  owner_id:      uuid('owner_id'),
+  created_at:    timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:    timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+export const vehiclesRelations = relations(vehicles, ({ one }) => ({
+  supplier: one(accounts, { fields: [vehicles.supplier_account_id], references: [accounts.id], relationName: 'vehicle_supplier' }),
+  buyer:    one(accounts, { fields: [vehicles.buyer_account_id],    references: [accounts.id], relationName: 'vehicle_buyer' }),
+}))
 
 // ----------------------------------------------------------------
 // tags（タグマスタ）

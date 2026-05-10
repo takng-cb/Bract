@@ -15,6 +15,10 @@ import {
   effectiveCommissionMonths,
   calcProfit,
 } from '@/industries/real-estate/lib/realEstateCommission'
+import {
+  SERVICE_TYPES,
+  calcAutoBodyProfit,
+} from '@/industries/auto-body/lib/autoBodyService'
 import { activeIndustry } from '@/lib/industry'
 
 type Account    = { id: string; name: string }
@@ -29,6 +33,8 @@ type OpportunityFormProps = {
   users?: UserOption[]
   customFields?: FieldDef[]
   customValues?: Record<string, string | null>
+  /** 車両一覧（INDUSTRY=auto-body のとき必要） */
+  vehicles?: { id: string; label: string }[]
   defaultValues?: {
     name?: string
     account_id?: string | null
@@ -43,6 +49,9 @@ type OpportunityFormProps = {
     commission_fee?: number | string | null
     brokerage_type?: string | null
     other_profit?: number | string | null
+    service_type?: string | null
+    vehicle_id?: string | null
+    parts_cost?: number | string | null
   }
 }
 
@@ -57,7 +66,7 @@ const STAGES = [
 
 const yen = (n: number) => `¥${Math.round(n).toLocaleString('ja-JP')}`
 
-export default function OpportunityForm({ action, cancelHref, accounts, contacts = [], users = [], defaultValues = {}, customFields = [], customValues = {} }: OpportunityFormProps) {
+export default function OpportunityForm({ action, cancelHref, accounts, contacts = [], users = [], vehicles = [], defaultValues = {}, customFields = [], customValues = {} }: OpportunityFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -81,6 +90,17 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
   )
   const [otherProfit, setOtherProfit] = useState<string>(
     defaultValues.other_profit != null ? String(defaultValues.other_profit) : '',
+  )
+
+  // ── 板金屋・自動車整備業 (auto-body) ステート ──────
+  const [serviceType, setServiceType] = useState<string>(defaultValues.service_type ?? '')
+  const [vehicleId, setVehicleId] = useState<string>(defaultValues.vehicle_id ?? '')
+  const [partsCost, setPartsCost] = useState<string>(
+    defaultValues.parts_cost != null ? String(defaultValues.parts_cost) : '',
+  )
+  const autoBodyProfit = calcAutoBodyProfit(
+    amount ? Number(amount) : null,
+    partsCost ? Number(partsCost) : null,
   )
 
   const isRent = transactionType === '賃貸'
@@ -388,6 +408,68 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
       </div>
       </>)}
       {/* ── 不動産情報ここまで ─────────────────────── */}
+
+      {/* ── 自動車整備情報（INDUSTRY=auto-body のみ） ─── */}
+      {activeIndustry === 'auto-body' && (<>
+      <div className="flex items-center gap-3 pt-2">
+        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
+        <span className="text-sm font-bold text-zinc-700 tracking-wide">自動車整備情報</span>
+        <div className="flex-1 h-px bg-zinc-200" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">サービス区分</label>
+          <select
+            name="service_type"
+            value={serviceType}
+            onChange={(e) => setServiceType(e.target.value)}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">— 未選択 —</option>
+            {SERVICE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">対象車両</label>
+          <SearchableSelect
+            name="vehicle_id"
+            defaultValue={vehicleId || null}
+            options={vehicles.map((v) => ({ value: v.id, label: v.label }))}
+            placeholder="車両を選択"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
+          部品仕入原価（円）
+          <span className="ml-2 text-xs font-normal text-zinc-400">
+            {serviceType === '車両販売' ? '車両仕入価格を含めて入力' : '税抜'}
+          </span>
+        </label>
+        <input
+          name="parts_cost"
+          type="number"
+          min="0"
+          value={partsCost}
+          onChange={(e) => setPartsCost(e.target.value)}
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="0"
+        />
+      </div>
+
+      <div className="bg-zinc-50 border border-zinc-200 rounded-md px-4 py-3">
+        <div className="flex justify-between items-baseline">
+          <span className="text-xs text-zinc-500">利益（自動計算）</span>
+          <span className={`text-lg font-bold ${autoBodyProfit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+            {yen(autoBodyProfit)}
+          </span>
+        </div>
+        <p className="text-[11px] text-zinc-400 mt-1">売上 − 部品仕入原価</p>
+      </div>
+      </>)}
+      {/* ── 自動車整備情報ここまで ──────────────────── */}
 
       <CustomFieldsFields fields={customFields} values={customValues} />
 

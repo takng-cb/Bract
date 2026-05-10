@@ -20,6 +20,8 @@ import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import { calcProfit, commissionBreakdown, effectiveCommissionRatePct, effectiveCommissionMonths } from '@/industries/real-estate/lib/realEstateCommission'
+import { calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
+import { vehicles } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
@@ -66,6 +68,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       commission_fee:  opportunities.commission_fee,
       brokerage_type:  opportunities.brokerage_type,
       other_profit:    opportunities.other_profit,
+      service_type:    opportunities.service_type,
+      vehicle_id:      opportunities.vehicle_id,
+      parts_cost:      opportunities.parts_cost,
       accounts: { id: accounts.id, name: accounts.name },
       contacts: { id: contacts.id, full_name: contacts.full_name },
     })
@@ -87,6 +92,15 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const account   = opportunity.accounts?.id ? opportunity.accounts : null
   const contact   = opportunity.contacts?.id ? opportunity.contacts : null
   const ownerName = opportunity.owner_id ? (allUsers.find((u) => u.id === opportunity.owner_id)?.name ?? null) : null
+
+  // auto-body 用の対象車両情報を取得
+  const vehicleInfo =
+    activeIndustry === 'auto-body' && opportunity.vehicle_id
+      ? await db.select({
+          id: vehicles.id, maker: vehicles.maker, model: vehicles.model,
+          license_plate: vehicles.license_plate, year: vehicles.year,
+        }).from(vehicles).where(eq(vehicles.id, opportunity.vehicle_id)).then((r) => r[0] ?? null)
+      : null
 
   async function changeStage(stage: string) {
     'use server'
@@ -190,7 +204,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           // INDUSTRY 条件で財務サマリーの計算式を切替:
           //   base       : 想定売上 = 金額 × 確度
           //   real-estate: 想定売上 = 仲介手数料ベース利益 × 確度
-          const isReal   = activeIndustry === 'real-estate'
+          //   auto-body  : 想定売上 = 整備利益 (amount - parts_cost) × 確度
+          const isReal     = activeIndustry === 'real-estate'
+          const isAutoBody = activeIndustry === 'auto-body'
           const totalExp = expensesList.reduce((s, e) => s + Number(e.amount), 0)
           const prob     = opportunity.probability != null ? opportunity.probability / 100 : null
 
@@ -209,6 +225,15 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             weightedLabel = `想定売上${prob != null ? '（利益 × 確度）' : '（利益）'}`
             showWeighted = fee != null
             baseValue    = fee ?? 0
+          } else if (isAutoBody) {
+            const amt    = opportunity.amount != null ? Number(opportunity.amount) : null
+            const pc     = opportunity.parts_cost != null ? Number(opportunity.parts_cost) : 0
+            const profit = amt != null ? calcAutoBodyProfit(amt, pc) : 0
+            weighted     = prob != null && amt != null ? Math.round(profit * prob) : (amt != null ? profit : null)
+            gross        = weighted != null ? weighted - totalExp : null
+            weightedLabel = `想定売上${prob != null ? '（利益 × 確度）' : '（利益）'}`
+            showWeighted = amt != null
+            baseValue    = amt ?? 0
           } else {
             const amount = Number(opportunity.amount ?? 0)
             weighted     = prob != null && amount > 0 ? Math.round(amount * prob) : null
@@ -300,6 +325,56 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
               <p className="text-[11px] text-zinc-400 mt-1">
                 仲介手数料 × {bk === '両手' ? '2（両手）' : '1'} ＋ その他利益（税抜）
               </p>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 自動車整備情報（INDUSTRY=auto-body のみ） */}
+      {activeIndustry === 'auto-body' && (() => {
+        const st  = opportunity.service_type
+        const amt = opportunity.amount != null ? Number(opportunity.amount) : 0
+        const pc  = opportunity.parts_cost != null ? Number(opportunity.parts_cost) : 0
+        const profit = calcAutoBodyProfit(amt, pc)
+        const hasAny = st || vehicleInfo || pc > 0
+        if (!hasAny) return null
+        return (
+          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">自動車整備情報</h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">サービス区分</dt>
+                <dd className="text-sm text-zinc-800">{st ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">対象車両</dt>
+                <dd className="text-sm text-zinc-800">
+                  {vehicleInfo ? (
+                    <Link href={`/vehicles/${vehicleInfo.id}`} className="text-blue-600 hover:underline">
+                      🚗 {vehicleInfo.maker} {vehicleInfo.model}
+                      {vehicleInfo.year && <span className="text-xs text-zinc-400 ml-1">({vehicleInfo.year}年式)</span>}
+                      {vehicleInfo.license_plate && <span className="text-xs text-zinc-400 ml-1">{vehicleInfo.license_plate}</span>}
+                    </Link>
+                  ) : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">売上（金額）</dt>
+                <dd className="text-sm text-zinc-800">{amt > 0 ? `¥${amt.toLocaleString()}` : '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">部品仕入原価</dt>
+                <dd className="text-sm text-zinc-800">¥{pc.toLocaleString()}</dd>
+              </div>
+            </dl>
+            <div className="mt-4 pt-4 border-t border-zinc-200">
+              <div className="flex justify-between items-baseline">
+                <span className="text-sm font-semibold text-zinc-700">利益（自動計算）</span>
+                <span className={`text-xl font-bold ${profit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                  ¥{profit.toLocaleString()}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-1">売上 − 部品仕入原価（税抜）</p>
             </div>
           </div>
         )
