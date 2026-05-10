@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, activities, tasks, attachments } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
+import { getActivityTypes } from '@/lib/activityTypes'
 import { eq, asc, desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -31,9 +32,7 @@ const OPPORTUNITY_STAGE_LABELS: Record<string, string> = {
   negotiation: '交渉', closed_won: '受注', closed_lost: '失注',
 }
 
-const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  call: '📞 電話', email: '✉️ メール', meeting: '🤝 打合せ', note: '📝 メモ',
-}
+// ACTIVITY_TYPE_LABELS は getActivityTypes() で動的に取得（page 内で構築）
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -55,7 +54,7 @@ export default async function AccountDetailPage({
 }) {
   const { id } = await params
 
-  const [account, contactsList, opportunitiesList, activitiesList, tasksList, attachmentsList, customData, editFlag, allUsers] = await Promise.all([
+  const [account, contactsList, opportunitiesList, activitiesList, tasksList, attachmentsList, customData, editFlag, allUsers, activityTypes] = await Promise.all([
     db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null),
     db.select().from(contacts).where(eq(contacts.account_id, id)).orderBy(desc(contacts.created_at)),
     db.select().from(opportunities).where(eq(opportunities.account_id, id)).orderBy(desc(opportunities.created_at)),
@@ -65,7 +64,12 @@ export default async function AccountDetailPage({
     getCustomFieldsWithValues('accounts', id),
     canEdit(), // 編集ボタン表示判定（担当者リスト等に使用）
     getAllUsers(),
+    getActivityTypes(),
   ])
+
+  // 活動種別 value → "icon label" の表示用 Map
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
 
   if (!account) notFound()
 

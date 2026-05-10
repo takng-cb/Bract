@@ -11,10 +11,9 @@ import { toggleTaskDone } from '@/app/actions/tasks'
 import DeleteButton from '@/components/DeleteButton'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import { evalFormula } from '@/lib/formulaEval'
+import { getActivityTypes } from '@/lib/activityTypes'
 
-const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  call: '📞 電話', email: '✉️ メール', meeting: '🤝 打合せ', note: '📝 メモ',
-}
+// ACTIVITY_TYPE_LABELS は getActivityTypes() で動的構築（page 内）
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
   medium: { label: '中', color: 'text-yellow-700 bg-yellow-50' },
@@ -59,7 +58,7 @@ export default async function CustomRecordDetailPage({
   const contactIdList = [...contactIdApiNames].map((cn) => String(data[cn] ?? '')).filter(Boolean)
 
   // ── 有効化されている関連機能のデータを並列取得 ──
-  const [accountRows, contactRows, activitiesList, tasksList, expensesList] = await Promise.all([
+  const [accountRows, contactRows, activitiesList, tasksList, expensesList, activityTypes] = await Promise.all([
     accountIdList.length > 0
       ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(inArray(accounts.id, accountIdList))
       : Promise.resolve([]),
@@ -75,9 +74,12 @@ export default async function CustomRecordDetailPage({
     obj.enable_expenses
       ? db.select().from(expenses).where(eq(expenses.custom_record_id, recordId)).orderBy(desc(expenses.expense_date))
       : Promise.resolve([]),
+    getActivityTypes(),
   ])
   const accountMap = new Map(accountRows.map((a) => [a.id, a.name]))
   const contactMap = new Map(contactRows.map((c) => [c.id, c.name]))
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
 
   const recordTitle = String(data.name ?? data.title ?? `${obj.label} #${recordId.slice(0, 8)}`)
   const returnTo    = `/objects/${objectApiName}/${recordId}`
