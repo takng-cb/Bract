@@ -2,13 +2,17 @@ import { db } from '@/lib/db'
 import { contacts, accounts, taggables } from '@/lib/schema'
 import { getAllTags } from '@/lib/tagUtils'
 import { getAllUsers } from '@/lib/userUtils'
-import { desc, eq, and, inArray } from 'drizzle-orm'
+import { desc, eq, and, inArray, count } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import { parseFilterParams, applyFilters, splitTagConditions, applyTagFilter } from '@/lib/filterUtils'
-import { parseSortParams, applySort } from '@/lib/sortUtils'
+import {
+  parseFilterParams, applyFilters, splitTagConditions, applyTagFilter,
+  buildWhere, unresolvedConditions,
+  type FilterColumnResolver,
+} from '@/lib/filterUtils'
+import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import TextImportModal from '@/components/TextImportModal'
 import Pagination from '@/components/Pagination'
@@ -47,43 +51,105 @@ export default async function ContactsPage({
   }
   const conditions = parseFilterParams(filterRaw)
   const { tagConditions, otherConditions } = splitTagConditions(conditions)
+  const sortRaw  = sp.sort ?? ''
+  const sortDefs = parseSortParams(sortRaw)
 
-  const [raw, allTags, taggableRows, allUsers] = await Promise.all([
-    db.select({
-      id:           contacts.id,
-      contact_type: contacts.contact_type,
-      full_name:    contacts.full_name,
-      email:        contacts.email,
-      phone:        contacts.phone,
-      title:        contacts.title,
-      department:   contacts.department,
-      birthday:     contacts.birthday,
-      account_id:   contacts.account_id,
-      owner_id:     contacts.owner_id,
-      accounts: {
-        id:   accounts.id,
-        name: accounts.name,
-      },
-    })
+  const selectShape = {
+    id:           contacts.id,
+    contact_type: contacts.contact_type,
+    full_name:    contacts.full_name,
+    email:        contacts.email,
+    phone:        contacts.phone,
+    title:        contacts.title,
+    department:   contacts.department,
+    birthday:     contacts.birthday,
+    account_id:   contacts.account_id,
+    owner_id:     contacts.owner_id,
+    accounts: {
+      id:   accounts.id,
+      name: accounts.name,
+    },
+  } as const
+
+  const _typeProbe = () => db.select(selectShape)
+    .from(contacts)
+    .leftJoin(accounts, eq(contacts.account_id, accounts.id))
+  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
+
+  const resolver: FilterColumnResolver = {
+    full_name:       { col: contacts.full_name,  type: 'text' },
+    email:           { col: contacts.email,      type: 'text' },
+    phone:           { col: contacts.phone,      type: 'text' },
+    title:           { col: contacts.title,      type: 'text' },
+    department:      { col: contacts.department, type: 'text' },
+    'accounts.name': { col: accounts.name,       type: 'text' },
+    owner_id:        { col: contacts.owner_id,   type: 'select' },
+  }
+
+  const useJsFallback = tagConditions.length > 0
+    || unresolvedConditions(otherConditions, resolver).length > 0
+  // 法人/個人 切替は SQL/JS 両方で適用
+  const viewWhere = eq(contacts.contact_type, view)
+
+  let displayList: SelectRow[]
+  let totalCount: number
+  let allTags: Awaited<ReturnType<typeof getAllTags>>
+  let allUsers: Awaited<ReturnType<typeof getAllUsers>>
+
+  if (useJsFallback) {
+    const [raw, tags, taggableRows, users] = await Promise.all([
+      _typeProbe()
+        .where(viewWhere)
+        .orderBy(desc(contacts.created_at)),
+      getAllTags(),
+      tagConditions.length > 0
+        ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
+            .from(taggables).where(and(
+              eq(taggables.object_type, 'contact'),
+              inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
+            ))
+        : Promise.resolve([] as { tag_id: string; object_id: string }[]),
+      getAllUsers(),
+    ])
+    allTags  = tags
+    allUsers = users
+
+    const taggedIdsByTagId = new Map<string, Set<string>>()
+    for (const t of taggableRows) {
+      if (!taggedIdsByTagId.has(t.tag_id)) taggedIdsByTagId.set(t.tag_id, new Set())
+      taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
+    }
+
+    let list = applyFilters(raw as Record<string, unknown>[], otherConditions) as SelectRow[]
+    list = applyTagFilter(list, tagConditions, taggedIdsByTagId)
+    const sorted = applySort(list as Record<string, unknown>[], sortDefs) as SelectRow[]
+    totalCount = sorted.length
+    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  } else {
+    const userWhere = buildWhere(otherConditions, resolver)
+    const where = userWhere ? and(viewWhere, userWhere) : viewWhere
+    const orderBy = buildOrderBy(sortDefs, resolver)
+    const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(contacts.created_at)]
+
+    const baseQuery = db.select(selectShape)
       .from(contacts)
       .leftJoin(accounts, eq(contacts.account_id, accounts.id))
-      .where(eq(contacts.contact_type, view))
-      .orderBy(desc(contacts.created_at)),
-    getAllTags(),
-    tagConditions.length > 0
-      ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
-          .from(taggables).where(and(
-            eq(taggables.object_type, 'contact'),
-            inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
-          ))
-      : Promise.resolve([]),
-    getAllUsers(),
-  ])
+      .where(where)
+      .orderBy(...finalOrderBy)
 
-  const taggedIdsByTagId = new Map<string, Set<string>>()
-  for (const t of taggableRows) {
-    if (!taggedIdsByTagId.has(t.tag_id)) taggedIdsByTagId.set(t.tag_id, new Set())
-    taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
+    const [pageRows, totalRow, tags, users] = await Promise.all([
+      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
+      db.select({ count: count() })
+        .from(contacts)
+        .leftJoin(accounts, eq(contacts.account_id, accounts.id))
+        .where(where),
+      getAllTags(),
+      getAllUsers(),
+    ])
+    allTags  = tags
+    allUsers = users
+    totalCount  = Number(totalRow[0]?.count ?? 0)
+    displayList = pageRows
   }
 
   const FIELDS_BUSINESS: FieldDef[] = [
@@ -104,16 +170,8 @@ export default async function ContactsPage({
   ]
   const FIELDS = view === 'business' ? FIELDS_BUSINESS : FIELDS_CONSUMER
 
-  let contactsList = applyFilters(raw as Record<string, unknown>[], otherConditions)
-  contactsList     = applyTagFilter(contactsList, tagConditions, taggedIdsByTagId)
-  const sortRaw    = sp.sort ?? ''
-  const sorted     = applySort(contactsList as Record<string, unknown>[], parseSortParams(sortRaw))
   const hasFilter  = conditions.length > 0
-  const totalCount = sorted.length
   const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
-  const displayList = isGrouped
-    ? sorted
-    : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const groupableFields = FIELDS
     .filter((f) => f.value !== 'tag')
@@ -235,7 +293,7 @@ export default async function ContactsPage({
               groupBy={groupBy}
               fields={FIELDS}
               renderCard={(rec) => {
-                const c = rec as typeof raw[0]
+                const c = rec as SelectRow
                 const account = c.accounts?.id ? c.accounts : null
                 return (
                   <Link href={`/contacts/${c.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
