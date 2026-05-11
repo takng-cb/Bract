@@ -10,9 +10,6 @@ import TagsSection from '@/components/TagsSection'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
-import CustomFieldsCard from '@/components/CustomFieldsCard'
-import { getCustomFieldsWithValues } from '@/lib/customFields'
-import { canEdit } from '@/lib/auth'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -65,10 +62,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   if (!row) notFound()
 
-  const [customData, editFlag] = await Promise.all([
-    getCustomFieldsWithValues('properties', id),
-    canEdit(),
-  ])
+  // properties は専用 UI で全フィールドを表示するため、
+  // 汎用カスタムフィールドカードは出さない（過去の migrate スクリプトが残した
+  // schema 列の field_definitions 複製が二重表示の原因になっていたため）。
 
   const p        = row.properties
   const account  = row.accounts?.id ? row.accounts : null
@@ -288,16 +284,6 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
             </Section>
           )}
         </>
-      )}
-
-      {/* カスタムフィールド */}
-      {customData.fields.length > 0 && (
-        <div className="mb-6">
-          <CustomFieldsCard
-            fields={customData.fields}
-            values={customData.values}
-          />
-        </div>
       )}
 
       {/* 関係性（多対多） */}

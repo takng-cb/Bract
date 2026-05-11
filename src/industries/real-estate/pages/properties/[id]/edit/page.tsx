@@ -6,15 +6,17 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import PropertyForm from '@/industries/real-estate/components/PropertyForm'
 import { updateProperty } from '@/industries/real-estate/actions/properties'
-import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
-import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { requireEditor } from '@/lib/auth'
 import RecordHeader from '@/components/RecordHeader'
 
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [property, accountsList, contactsList, scrivenerAccounts, scrivenerContacts, customData] = await Promise.all([
+  // properties は real-estate overlay の専用 UI で全フィールドを扱うため、
+  // 汎用カスタムフィールド (field_definitions/custom_field_values) システムは使わない。
+  // 過去の migrate スクリプトが schema 列を field_definitions に複製登録した残骸が
+  // 二重表示の原因になっていたため、ここでは取得・保存しない。
+  const [property, accountsList, contactsList, scrivenerAccounts, scrivenerContacts] = await Promise.all([
     db.select().from(properties).where(eq(properties.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
@@ -29,7 +31,6 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
       .innerJoin(accounts, eq(contacts.account_id, accounts.id))
       .where(and(eq(contacts.contact_type, 'business'), eq(accounts.industry, '司法書士')))
       .orderBy(asc(contacts.full_name)),
-    getCustomFieldsWithValues('properties', id),
   ])
 
   if (!property) notFound()
@@ -37,7 +38,6 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
   async function updatePropertyAction(_: string | null, formData: FormData): Promise<string | null> {
     'use server'
     try {
-      await saveCustomFieldValues('properties', id, formData)
       await updateProperty(id, formData)
       return null
     } catch (e) {
@@ -76,8 +76,6 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
             building_damage_rate:    property.building_damage_rate     != null ? Number(property.building_damage_rate)    : null,
             building_debt_amount:    property.building_debt_amount     != null ? Number(property.building_debt_amount)    : null,
           }}
-          customFields={customData.fields}
-          customValues={customData.values}
         />
       </div>
     </div>
