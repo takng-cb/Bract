@@ -63,7 +63,8 @@ async function main() {
   }
 
   // 対応する custom_field_values の件数を確認
-  const fieldIds = fields.map((f: { id: string }) => f.id)
+  // neon の sql は Record<string, any>[] を返すため、型キャストで参照する。
+  const fieldIds = (fields as Array<{ id: string }>).map((f) => f.id)
   const valueCount = await sql`
     SELECT COUNT(*)::int AS count FROM custom_field_values
     WHERE field_id = ANY(${fieldIds})
