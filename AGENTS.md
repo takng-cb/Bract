@@ -18,6 +18,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | `develop` | 次期リリース統合 |
 | `feature/<name>` `fix/<name>` | 新規開発・修正。develop に向けてマージ |
 | `claude/<adjective-name-hash>` | Claude Code が worktree 用に作る一時ブランチ |
+| `worktree/<name>` | 業種別の常駐 worktree（`re-base` / `ab-base`）が居座るための駐車場ブランチ。マージしない。詳細は [worktree 慣習](#worktree-慣習) |
 
 **廃止済み**: `base`, `industry/real-estate`（タグ `base-archived`, `industry-real-estate-archived` でアーカイブ済。新規開発しないこと）
 
@@ -49,6 +50,28 @@ src/industries/<業種名>/
 ### 共通ファイル内の業種分岐
 
 `src/components/`, `src/app/(crm)/<共通ルート>/page.tsx` など共通箇所では、業種特化セクションを `if (activeIndustry === '<業種>')` ガードで囲む。例: `OpportunityForm.tsx` の不動産情報セクション。
+
+## 業種オーバーレイのペア確認（必読）
+
+業種特化テーブル（`vehicles` / `parts` / `properties` / `part_movements` など）や、両業種にまたがる共通パターンを修正したら、**必ずもう片方の業種に同じ問題がないか確認** する。確認結果は Issue 本文の「副次タスク」セクションに記載する。
+
+### 該当する修正パターン
+
+- typed table + `custom_records` ミラー同期の追加・修正（例: vehicles ⇔ properties）
+- 共通機能の挙動修正（活動種別フォールバック、フィルタ resolver、表示列定義 など）
+- `src/components/` 配下の共通コンポーネント、`src/app/(crm)/<共通ルート>` の修正
+- listViewDefs / filterUtils / sortUtils / FilterBuilder など、全業種共有モジュール
+
+### 過去の事故例
+
+- vehicles の `custom_records` 同期を実装した際、properties で同じバグ（新規 INSERT 時にミラー作成漏れ）が放置されていた
+- 活動種別ラベルを 1 画面で動的化した時、他 5 画面でハードコード fallback が残留
+
+### チェック手順
+
+1. 修正対象が業種特化機能なら、対称の業種（vehicles ⇔ properties、real-estate ⇔ auto-body）の同種コードを `grep` で洗い出す
+2. 共通機能の修正なら、3 mode build（base / real-estate / auto-body）を merge 前に必須実行
+3. 検証結果を Issue / commit message に記録（「他業種側は別問題のため対応不要」と判定した場合もその旨を残す）
 
 ## 重要規律
 
@@ -125,17 +148,46 @@ npm run check:schema   # tsx scripts/check-schema-vs-db.ts
 
 ## worktree 慣習
 
-長期作業や並列作業では worktree:
+### 業種別の常駐 worktree（必読）
+
+**並行開発で `.env.local` を取り違える事故を防ぐため**、業種ごとに専用の常駐 worktree を1つずつ持つ。新規会話/作業はここから派生させる。
+
+| worktree | branch | `.env.local` の DATABASE_URL | 用途 |
+|---|---|---|---|
+| `.claude/worktrees/re-base` | `worktree/re-base` | real-estate Neon (`ep-soft-poetry-ao4xdfqm`) | 不動産関連の作業の起点 |
+| `.claude/worktrees/ab-base` | `worktree/ab-base` | auto-body Neon (`ep-young-meadow-aoo7z9eq`) | 板金関連の作業の起点 |
+
+これら自体は **マージしない駐車場ブランチ**。常駐 worktree の中で:
+
+```bash
+cd .claude/worktrees/re-base    # or ab-base
+git fetch origin
+git switch -c feature/<name> origin/develop   # ここから feature を切る
+# 作業 …
+```
+
+`.env.local` は worktree 専用に保存されているので、業種を意識せずに `npm run dev` / `npm run check:schema` / migration 適用が正しい DB に向く。
+
+### 一時 worktree（feature ごと）
+
+短期作業は別 worktree を切る:
 ```bash
 git worktree add -b feature/<name> .claude/worktrees/<name> origin/develop
 # 作業後に削除（.env.local 等の untracked が残る場合は --force）
 git worktree remove --force .claude/worktrees/<name>
 ```
 
-`.env.local` は worktree ごとにコピーが必要（gitignore のため）:
+`.env.local` は 常駐 worktree からコピーする（業種を取り違えないため）:
 ```bash
-cp ../../../.env.local .env.local
+cp ../re-base/.env.local .env.local   # or ab-base/.env.local
 ```
+
+### 新しい会話を開始する時のチェックリスト
+
+1. **どの業種の作業か** を最初に宣言する
+2. その業種の常駐 worktree（`re-base` or `ab-base`）に `cd` する
+3. `git fetch origin && git switch -c feature/<name> origin/develop` で feature を切る
+4. 作業中も他の会話が同じ feature を触っていないか `git ls-remote` などで適宜確認する
 
 ## Issue 運用（必読）
 
