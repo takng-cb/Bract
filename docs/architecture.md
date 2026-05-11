@@ -13,6 +13,7 @@
 7. [worktree 慣習](#worktree-慣習)
 8. [新しい業種を追加する手順](#新しい業種を追加する手順)
 9. [既知の制限](#既知の制限)
+10. [将来検討事項](#将来検討事項)
 
 ---
 
@@ -439,8 +440,87 @@ cp ../../../.env.local .env.local  # worktree から見た親リポジトリの 
 |---|---|---|
 | 業種ごとに別タイミングでリリースできない | main 1 本のため、push すると全業種 deploy が再ビルドされる | release tag による pinning、Vercel Preview による段階的 rollout 等を必要に応じて検討 |
 | カスタムフィールド絞り込みは URL filter で SQL 化されていない | 一覧ページで `cf_*` field を URL に指定すると JS フォールバックパスに落ちる | 当面 URL からのカスタムフィールド絞り込み機能は未提供。要件発生時に `field_definitions` を読んで SQL 化する実装を追加 |
-| DB スキーマは全業種共通 | 一つの ALTER ですべての業種 Neon DB に流す必要がある（業種ごとに別 migration はできない） | 業種固有カラムは nullable/DEFAULT で base モードに無害化。完全分離が必要なら JSONB 拡張カラム等を検討 |
+| DB スキーマは全業種共通 | 一つの ALTER ですべての業種 Neon DB に流す必要がある（業種ごとに別 migration はできない） | 業種固有カラムは nullable/DEFAULT で base モードに無害化。完全分離が必要なら下記「将来検討事項」の schema 分割案を参照 |
 | `accounts` ブランチは Tagging 専用 (?) | 現状無関係。ブランチ整理時に削除候補 | — |
+
+---
+
+## 将来検討事項
+
+未着手の設計タスク。バグではないので Issue ではなくここに記録する。優先度が上がったタイミングで個別検討する。
+
+### 業種別 schema 分割（"Option 2" リファクタ）
+
+#### 背景
+
+現状は **「全 Neon に全マイグレを適用する」** ポリシー（AGENTS.md「DB マイグレーション運用」参照）。
+
+- 結果として、real-estate 顧客の Neon にも `vehicles` / `parts` / `part_movements` テーブルと `opportunities` の `service_type` / `vehicle_id` / `parts_cost` カラムが空のまま存在する
+- 空テーブル/列なのでストレージ・パフォーマンスへの実害はないが、「使わないテーブルが顧客 DB に見える」状態
+- 業種が増えるほど未使用テーブルの「ノイズ」が比例して肥大する
+
+#### 検討すべき再構成
+
+業種固有テーブルを `src/lib/schema.ts` から **業種フォルダ配下の本物の宣言** に移す:
+
+```
+src/lib/schema.ts                    ← 全業種共通テーブルのみ
+                                       (accounts, contacts, opportunities, activities,
+                                        tasks, expenses, tags, custom_*, object/field
+                                        definitions, ...)
+src/industries/real-estate/schema.ts ← properties など real-estate 専用
+src/industries/auto-body/schema.ts   ← vehicles / parts / part_movements
+```
+
+ビルド時に `activeIndustry` で **必要な schema だけを Drizzle registry に登録**する仕組みにすれば:
+
+- real-estate ビルドは auto-body テーブルを Drizzle が知らない → SELECT が生成されない → DB にも要らない
+- 顧客 Neon は使うテーブルだけを持つ「クリーン」な状態にできる
+- 新しい業種を増やしても、他業種 DB が肥大しない
+
+#### 同時に必要になる対応
+
+`opportunities` テーブルのように **共通テーブルに業種固有カラム** を持たせている現状はそのままだと破綻する:
+
+- `service_type` / `vehicle_id` / `parts_cost` は `opportunities` に直接生やしている（auto-body 専用）
+- `transaction_type` / `commission_fee` / `brokerage_type` / `other_profit` は同じく `opportunities` に直接生やしている（real-estate 専用）
+
+これらを **業種拡張テーブル** に分離するリファクタが必要:
+
+```sql
+CREATE TABLE opportunities_real_estate_ext (
+  opportunity_id   uuid PRIMARY KEY REFERENCES opportunities(id) ON DELETE CASCADE,
+  transaction_type text NOT NULL DEFAULT '売買',
+  commission_fee   numeric,
+  brokerage_type   text,
+  other_profit     numeric NOT NULL DEFAULT '0'
+);
+
+CREATE TABLE opportunities_auto_body_ext (
+  opportunity_id  uuid PRIMARY KEY REFERENCES opportunities(id) ON DELETE CASCADE,
+  service_type    text,
+  vehicle_id      uuid REFERENCES vehicles(id) ON DELETE SET NULL,
+  parts_cost      numeric NOT NULL DEFAULT 0
+);
+```
+
+詳細ページや一覧ページの SELECT で LEFT JOIN を追加する必要がある。
+
+#### トリガー条件（やる判断基準）
+
+このリファクタを着手すべきタイミング:
+
+1. **業種が 4 つ以上に増えるとき** — `opportunities` の業種別カラムが破綻寸前になる
+2. **顧客から DB 構造の説明を求められたとき** — 「なぜ real-estate CRM に vehicles テーブルが？」への説明コストが上がる
+3. **業種特化機能のテーブルが大規模化したとき** — 空テーブルとはいえ運用上の認知負荷が高まる
+
+#### 着手しない判断（現状）
+
+- 3 業種までは未使用テーブルが残っても実害ほぼゼロ
+- `vercel-build` フックで schema↔DB の整合性は自動担保されているため、現状のポリシーで構造的バグは出ない
+- リファクタコストが（中規模・1〜2 日）大きい
+
+→ **当面は現行ポリシー継続**。トリガー条件のいずれかが満たされた段階で再検討する。
 
 ---
 
