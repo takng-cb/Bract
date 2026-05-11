@@ -43,6 +43,9 @@ next-env.d.ts
 # backup scripts (DB URL が含まれるためgit管理外)
 /scripts/backup.ps1
 
+# DB バックアップダンプ（本番データ含むため git 管理外）
+/backups
+
 # next-pwa が生成するService Workerファイル（ビルド時に自動生成）
 /public/sw.js
 /public/swe-worker-*.js
