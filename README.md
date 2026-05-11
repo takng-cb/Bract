@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bract CRM
 
-## Getting Started
+業種オーバーレイ構造を持つ汎用 CRM。**同一コードベース (`main`) から `NEXT_PUBLIC_INDUSTRY` 環境変数を切り替えて複数業種版をビルド・デプロイ**する設計。
 
-First, run the development server:
+Salesforce 風の汎用 CRM 基盤（取引先・人物・商談・活動履歴・ToDo・経費）に、業種ごとの専用機能を重ねて提供する。
+
+## 業種バリアント
+
+| 業種版 | `NEXT_PUBLIC_INDUSTRY` | 主な特化機能 |
+|---|---|---|
+| 汎用 | `base` | 共通 CRM のみ |
+| 不動産 | `real-estate` | 物件管理（土地・建物の登記、司法書士情報）、仲介手数料の自動計算（売買 3%+6 万円式 / 賃貸の月額換算）、不動産情報セクション |
+| 板金・自動車整備 | `auto-body` | 車両管理（仕入・販売・整備・車検）、部品マスタ + 入出庫履歴、サービス区分別の利益計算 |
+
+## 技術スタック
+
+- **フレームワーク**: Next.js 16.2.6（App Router、webpack ビルド）
+- **UI**: React 19.2 + Tailwind CSS 4 + Recharts
+- **DB**: Neon Postgres + Drizzle ORM（業種ごとに別 Neon プロジェクト）
+- **認証**: Supabase Auth（SSR cookie ベース）
+- **ストレージ**: Supabase Storage（添付ファイル）
+- **PWA**: `@ducanh2912/next-pwa`
+- **言語**: TypeScript 5（strict）
+
+## セットアップ
+
+### 1. 依存インストール
+
+```bash
+npm install
+```
+
+### 2. `.env.local` を作成
+
+リポジトリ直下に `.env.local` を作成し、以下のキーを設定する（`.env.example` は [Issue #12](https://github.com/takng-cb/Bract-CRM/issues/12) で別途追加予定）:
+
+```ini
+# Database (Neon Postgres)
+DATABASE_URL=postgresql://<user>:<password>@<host>/neondb?sslmode=require
+
+# 業種選択: base / real-estate / auto-body
+NEXT_PUBLIC_INDUSTRY=real-estate
+
+# アプリ自身のオリジン URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Supabase (Auth + Storage)
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+```
+
+### 3. 開発サーバ起動
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) で確認。`NEXT_PUBLIC_INDUSTRY` を変えて再起動すれば別業種版で動く。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## よく使うコマンド
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev               # 開発サーバ
+npm run build             # 本番ビルド (webpack)
+npm run start             # 本番モード起動
+npm run lint              # ESLint
+npm run check:schema      # schema.ts ↔ DB のカラム整合チェック
+```
 
-## Learn More
+`vercel-build` フックで Vercel デプロイ時に自動的に `check:schema` が走り、schema 不整合があるとビルドが失敗する仕組みになっている（AGENTS.md「DB マイグレーション運用」参照）。
 
-To learn more about Next.js, take a look at the following resources:
+## デプロイ
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Vercel project は **業種ごとに別 project**（同じ `main` ブランチを監視）:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| 業種版 | Vercel project | Neon ホスト |
+|---|---|---|
+| real-estate | `bract-crm` (`bract-crm.vercel.app`) | `ep-soft-poetry-ao4xdfqm` |
+| auto-body | `bract-crm-auto-body` | `ep-young-meadow-aoo7z9eq` |
+| base | （将来追加予定） | `ep-proud-band-ao22d0oc` |
 
-## Deploy on Vercel
+`main` への push で全業種が同時に再デプロイされる。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 詳細リファレンス
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **[AGENTS.md](./AGENTS.md)** — 日々の作業で必読の運用ルール（ブランチ戦略、業種オーバーレイのペア確認、DB マイグレーション運用、機能追加時の検証チェックリスト、Issue 運用、worktree 慣習）
+- **[docs/architecture.md](./docs/architecture.md)** — 業種オーバーレイ詳細、Vercel デプロイ構成、DB スキーマ運用、SQL pushdown 構造、既知の制限、将来検討事項
+
+## ライセンス・状態
+
+- リポジトリは現在 **Private**
+- 1 顧客 = 1 Vercel project + 1 Neon の単一テナント構成
+- 想定顧客: 不動産業 / 板金整備業ほか
