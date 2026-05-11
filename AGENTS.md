@@ -108,7 +108,7 @@ src/industries/<業種名>/
 | 業種版 | Neon ホスト | Vercel project |
 |---|---|---|
 | `real-estate` | `ep-soft-poetry-ao4xdfqm` | bract-crm（メイン本番、稼働中） |
-| `auto-body` | `ep-young-meadow-aoo7z9eq` | bract-crm-auto-body（稼働状況未確認） |
+| `auto-body` | `ep-young-meadow-aoo7z9eq` | bract-crm-auto-body（稼働中） |
 | `base` | `ep-proud-band-ao22d0oc` | **未設置（将来追加予定）** |
 
 Neon は 3 つとも実在し、`scripts/check-schema-vs-db.ts` で schema 一致を確認済み（base 用 Neon は Vercel project 未作成だが、追加した時に即運用できるよう全マイグレ適用済みの状態を維持する）。
@@ -190,6 +190,59 @@ cp ../re-base/.env.local .env.local   # or ab-base/.env.local
 2. その業種の常駐 worktree（`re-base` or `ab-base`）に `cd` する
 3. `git fetch origin && git switch -c feature/<name> origin/develop` で feature を切る
 4. 作業中も他の会話が同じ feature を触っていないか `git ls-remote` などで適宜確認する
+
+## 機能追加・修正時の検証チェックリスト（必読）
+
+main へマージする前に以下を必ず通す。Issue #5 / #6 / #7 のような本番障害（手動検証だけでは検出できなかったクラスのバグ）の再発防止のため、機械的に確認する。
+
+### 1. ローカル静的検証
+
+- [ ] **schema↔DB 整合**: 3 Neon すべてに対して `npm run check:schema` を pass する
+  ```bash
+  # .env.local を順に差し替えて実行（re-base / ab-base / bract-base）
+  npm run check:schema
+  ```
+- [ ] **3 業種ビルド**: 共通機能の修正は 3 業種すべてでビルド成功すること
+  ```bash
+  NEXT_PUBLIC_INDUSTRY=base        npm run build
+  NEXT_PUBLIC_INDUSTRY=real-estate npm run build
+  NEXT_PUBLIC_INDUSTRY=auto-body   npm run build
+  ```
+  業種特化機能の修正は最低でも該当業種 + base の 2 通り。
+- [ ] **ユニットテスト**: `npm run test` が pass する（Vitest、ロジック層）
+
+### 2. Vercel deploy 後の実機検証
+
+main マージ後、Vercel の deploy ステータスが緑になったことを確認してから、影響範囲に応じて以下ページを Chrome で目視確認する。
+
+#### 共通機能（base / real-estate / auto-body すべての修正）
+
+- [ ] `/dashboard` — KPI / 期間内ToDo / 期間内活動 / 最近のレコード描画
+- [ ] `/accounts` 一覧 + 任意レコードの詳細ページ
+- [ ] `/contacts` 一覧 + 任意レコードの詳細ページ
+- [ ] `/opportunities` 一覧 + 任意レコードの詳細ページ
+- [ ] `/activities` 一覧 + 任意レコードの詳細ページ
+- [ ] `/tasks` 一覧 + 任意レコードの詳細ページ
+- [ ] `/forecast` — Recharts のグラフ描画
+
+#### real-estate 特化機能の修正時に追加で確認
+
+- [ ] `/properties` 一覧 + 任意物件の詳細
+- [ ] 商談詳細の **不動産情報セクション**（取引区分・仲介手数料・仲介種別・その他利益）
+- [ ] 商談詳細の **財務サマリー**（想定売上・粗利の自動計算）
+- [ ] 仲介手数料の自動計算が UI 上で正しく動く（売買 3% + 6 万円式、賃貸の月額換算）
+
+#### auto-body 特化機能の修正時に追加で確認
+
+- [ ] `/vehicles` 一覧 + 任意車両の詳細
+- [ ] `/parts` 一覧 + 任意部品の詳細
+- [ ] 商談詳細の **自動車整備情報セクション**（サービス区分・対象車両・部品仕入原価）
+- [ ] 商談詳細の **財務サマリー**（amount − parts_cost の利益計算）
+
+### 3. 検証結果の記録
+
+- 不具合 Issue を Close する際は、最終コメントに **「本番 Vercel の deploy 緑確認 + 該当ページの Chrome 確認」を必ず書く**
+- スクリーンショット添付は任意だが、UI 変更を伴う修正では推奨
 
 ## Issue 運用（必読）
 
