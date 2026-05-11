@@ -4,8 +4,6 @@ import { ne, eq, and, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import PropertyForm from '@/industries/real-estate/components/PropertyForm'
 import { createProperty } from '@/industries/real-estate/actions/properties'
-import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
-import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
 
@@ -17,7 +15,9 @@ export default async function NewPropertyPage({
   const { view } = await searchParams
   const category = view === 'other' ? 'other' : 'real_estate'
   await requireEditor()
-  const [accountsList, contactsList, scrivenerAccounts, scrivenerContacts, { fields }] = await Promise.all([
+  // properties は real-estate overlay の専用 UI で全フィールドを扱うため、
+  // 汎用カスタムフィールドシステムは使わない（edit ページと同様）。
+  const [accountsList, contactsList, scrivenerAccounts, scrivenerContacts] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(ne(accounts.status, 'inactive')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
@@ -33,14 +33,12 @@ export default async function NewPropertyPage({
       .innerJoin(accounts, eq(contacts.account_id, accounts.id))
       .where(and(eq(contacts.contact_type, 'business'), eq(accounts.industry, '司法書士')))
       .orderBy(asc(contacts.full_name)),
-    getCustomFieldsWithValues('properties', ''),
   ])
 
   async function createPropertyAction(_: string | null, formData: FormData): Promise<string | null> {
     'use server'
     try {
       const newId = await createProperty(formData)
-      if (fields.length > 0) await saveCustomFieldValues('properties', newId, formData)
       redirect(`/properties/${newId}`)
     } catch (e) {
       if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
@@ -67,7 +65,6 @@ export default async function NewPropertyPage({
           scrivenerAccounts={scrivenerAccounts}
           scrivenerContacts={scrivenerContacts}
           defaultValues={{ product_category: category }}
-          customFields={fields}
         />
       </div>
     </div>
