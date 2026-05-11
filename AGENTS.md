@@ -107,9 +107,11 @@ src/industries/<業種名>/
 
 | 業種版 | Neon ホスト | Vercel project |
 |---|---|---|
-| `real-estate` | `ep-soft-poetry-ao4xdfqm` | bract-crm（メイン本番） |
-| `auto-body` | `ep-young-meadow-aoo7z9eq` | bract-crm-auto-body |
-| `base`（社内テスト） | `ep-proud-band-ao22d0oc` | bract-base 用 |
+| `real-estate` | `ep-soft-poetry-ao4xdfqm` | bract-crm（メイン本番、稼働中） |
+| `auto-body` | `ep-young-meadow-aoo7z9eq` | bract-crm-auto-body（稼働状況未確認） |
+| `base` | `ep-proud-band-ao22d0oc` | **未設置（将来追加予定）** |
+
+Neon は 3 つとも実在し、`scripts/check-schema-vs-db.ts` で schema 一致を確認済み（base 用 Neon は Vercel project 未作成だが、追加した時に即運用できるよう全マイグレ適用済みの状態を維持する）。
 
 新規業種追加時はここに行を足し、その Neon にも既存マイグレを全部適用してから運用開始する。
 
