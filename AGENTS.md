@@ -63,6 +63,66 @@ src/industries/<業種名>/
 - ✅ DB スキーマは `src/lib/schema.ts` に **1 本に統合**。業種固有カラムは nullable or DEFAULT で base モードでも整合
 - ✅ 一覧ページの新フィルタ field 追加は `FilterColumnResolver` に entry を追加すれば SQL で動く（詳細は architecture.md）
 
+## DB マイグレーション運用（最重要・必読）
+
+### 大原則: 「全 Neon に全マイグレを適用する」
+
+`src/lib/schema.ts` は **全業種共有**（main から各業種版が同じコードでビルドされる）。
+一方で接続先 Neon は **業種ごとに別物**。両者の状態が乖離するとサーバーコンポーネントの SELECT が `column does not exist` で落ちる（実例: Issue #6）。
+
+そのため:
+
+- ❌ マイグレーション SQL のヘッダに「適用先: <X> のみ」と書かない（混乱の元）
+- ❌ 「この業種で使わないからこの DB には流さない」という判断をしない
+- ✅ **すべての `supabase/migrations/*.sql` を、運用中の全 Neon に適用する**（base / real-estate / auto-body / 将来の業種すべて）
+- ✅ マイグレーションは必ず `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` / `ON CONFLICT DO NOTHING` で冪等に書く
+- ✅ schema.ts に追加するカラムは nullable または `DEFAULT` 付きで、未使用業種でも空のままで害ないように設計
+
+業種特化テーブル（`vehicles` / `parts` / `part_movements` など）が他業種 Neon に空のまま存在することは害ではない。逆に「無い」と Drizzle が生成する SELECT が落ちる。
+
+### 接続先 Neon 一覧（運用中）
+
+| 業種版 | Neon ホスト | Vercel project |
+|---|---|---|
+| `real-estate` | `ep-soft-poetry-ao4xdfqm` | bract-crm（メイン本番） |
+| `auto-body` | `ep-young-meadow-aoo7z9eq` | bract-crm-auto-body |
+| `base`（社内テスト） | `ep-proud-band-ao22d0oc` | bract-base 用 |
+
+新規業種追加時はここに行を足し、その Neon にも既存マイグレを全部適用してから運用開始する。
+
+### 自動防御（Vercel build フック）
+
+`package.json` の `vercel-build` スクリプトが `npm run check:schema` を実行してから build する。
+schema.ts に宣言したカラムが対象 Neon に存在しない場合、build が exit 1 で失敗してデプロイがブロックされる。
+
+```json
+"vercel-build": "tsx scripts/check-schema-vs-db.ts && next build --webpack"
+```
+
+ローカルで Vercel 相当のチェックを走らせる場合:
+
+```bash
+npm run check:schema   # tsx scripts/check-schema-vs-db.ts
+```
+
+`.env.local` の `DATABASE_URL` が指す DB に対して diff を取る。複数 Neon を確認するには `.env.local` を差し替えて繰り返し実行（または将来 multi-DB 対応に改造）。
+
+### マイグレ追加〜デプロイの手順
+
+新しい `supabase/migrations/<timestamp>_<name>.sql` を追加する時:
+
+1. SQL を書く（必ず冪等）
+2. schema.ts を同時に更新（カラム追加 / 新テーブル）
+3. ローカルから **全 Neon に順次適用**:
+   ```bash
+   # 各業種の .env.local に差し替えながら
+   npx tsx scripts/snapshot-db.ts                          # 事前バックアップ
+   npx tsx scripts/apply-migration.ts <path-to-sql>        # 適用
+   npm run check:schema                                    # 検証
+   ```
+4. main にマージ → Vercel が各業種版を再デプロイ。`vercel-build` の check:schema が再度走り、漏れがあれば deploy が止まる
+5. 本番実機で対応ページの動作確認
+
 ## worktree 慣習
 
 長期作業や並列作業では worktree:
