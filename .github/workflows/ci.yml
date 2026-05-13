@@ -8,6 +8,12 @@ on:
     branches: [main, develop]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      smoke_url:
+        description: 'Smoke test BASE_URL (e.g. https://bract-crm.vercel.app)'
+        required: false
+        default: 'https://bract-crm.vercel.app'
 
 permissions:
   contents: read
@@ -98,3 +104,21 @@ jobs:
             exit 0
           fi
           npm run check:schema
+
+  # ── Smoke test (workflow_dispatch 手動 or push main で本番に対して実行) ─
+  smoke:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Smoke test against ${{ github.event.inputs.smoke_url || 'https://bract-crm.vercel.app' }}
+        env:
+          BASE_URL: ${{ github.event.inputs.smoke_url || 'https://bract-crm.vercel.app' }}
+        run: npm run smoke
