@@ -47,7 +47,7 @@ export default defineConfig({
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
     },
-    // ── 2) 認証必須テスト（admin として実行）───────────────────────
+    // ── 2) admin として実行（既存の smoke / CRUD + admin role-matrix） ─
     {
       name: 'chromium-admin',
       use: {
@@ -57,18 +57,25 @@ export default defineConfig({
       dependencies: ['setup'],
       testIgnore: [/auth\.setup\.ts/, /.*\.viewer\.spec\.ts/, /.*\.editor\.spec\.ts/],
     },
-    // 将来 editor / viewer ロールでのシナリオが増えたら個別 project 追加
-    // {
-    //   name: 'chromium-editor',
-    //   use: { ...devices['Desktop Chrome'], storageState: 'tests/e2e/.auth/editor.json' },
-    //   dependencies: ['setup'],
-    //   testMatch: /.*\.editor\.spec\.ts/,
-    // },
-    // {
-    //   name: 'chromium-viewer',
-    //   use: { ...devices['Desktop Chrome'], storageState: 'tests/e2e/.auth/viewer.json' },
-    //   dependencies: ['setup'],
-    //   testMatch: /.*\.viewer\.spec\.ts/,
-    // },
+    // ── 3) editor として実行（編集可、admin 画面に弾かれる検証） ─────
+    {
+      name: 'chromium-editor',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'tests/e2e/.auth/editor.json',
+      },
+      dependencies: ['setup'],
+      testMatch: /.*\.editor\.spec\.ts/,
+    },
+    // ── 4) viewer として実行（読み取り専用、編集 URL で redirect 検証）─
+    {
+      name: 'chromium-viewer',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'tests/e2e/.auth/viewer.json',
+      },
+      dependencies: ['setup'],
+      testMatch: /.*\.viewer\.spec\.ts/,
+    },
   ],
 })
