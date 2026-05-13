@@ -191,6 +191,55 @@ cp ../re-base/.env.local .env.local   # or ab-base/.env.local
 3. `git fetch origin && git switch -c feature/<name> origin/develop` で feature を切る
 4. 作業中も他の会話が同じ feature を触っていないか `git ls-remote` などで適宜確認する
 
+### worktree クリーンアップ運用（必読）
+
+`git worktree list` が常時 5〜7 個に収まることを目安にする。それ以上に膨れると業種混同・古い `.env.local` の取り違え事故のリスクが高まる。
+
+**保持すべき worktree（常時 4〜5 個）**:
+
+| worktree | 役割 |
+|---|---|
+| `OriginalCRM` (parent) | メイン作業ディレクトリ、`main` |
+| `.claude/worktrees/re-base` | 不動産業の常駐 |
+| `.claude/worktrees/ab-base` | 板金業の常駐 |
+| `.claude/worktrees/auto-body-lv` | `develop` 用作業 worktree |
+| `.claude/worktrees/<進行中の作業>` | 進行中の feature/fix/chore 1〜2 個 |
+
+**会話 / 作業終了時に削除すべき worktree**:
+
+- `claude/<adjective-name-hash>` 系 — Claude Code が自動生成した一時 worktree
+- `feature/*` / `fix/*` / `chore/*` で **main にマージ済み** のもの（remote ブランチも削除済みなら同時に worktree も削除）
+
+**削除手順**:
+
+```bash
+# 1. 該当 worktree に未コミット / 未 push の変更が無いか確認
+cd .claude/worktrees/<name>
+git status                            # working tree clean が望ましい
+git log @{u}..HEAD                    # 未 push commit が無いことを確認
+
+# 2. 親リポに戻って削除
+cd ../../..
+git worktree remove .claude/worktrees/<name>
+
+# 3. untracked files (.env.local, .claude/launch.json, build artifact 等) で
+#    削除拒否された場合は内容を確認したうえで --force
+git worktree remove --force .claude/worktrees/<name>
+```
+
+**削除前に内容を救出するべき判断基準**:
+
+- `docs/` 配下の untracked ドキュメント → 過去事例: crazy-greider-96ddc3 に法務ドラフト 7 ファイルが放置されていた (Issue #21 で救出)
+- `scripts/` 配下の untracked ユーティリティスクリプト → 再利用可能なら main にコミット検討
+- `.env.local` → 削除する（git 管理外、業種を取り違える原因）
+
+**運用タイミング**:
+
+- 各セッション終了時に `git worktree list` を確認、不要なものを整理
+- 月 1 回程度で全体棚卸し（10 個超えていたら警告）
+
+詳細: [Issue #10](https://github.com/takng-cb/Bract-CRM/issues/10)
+
 ## 機能追加・修正時の検証チェックリスト（必読）
 
 main へマージする前に以下を必ず通す。Issue #5 / #6 / #7 のような本番障害（手動検証だけでは検出できなかったクラスのバグ）の再発防止のため、機械的に確認する。
