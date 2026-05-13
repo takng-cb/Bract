@@ -26,6 +26,9 @@
  * 終了コード: 0 漏洩なし / 1 漏洩あり
  */
 
+// `export {}` を最初に置いて ES module 化（同名トップレベル変数の衝突回避）
+export {}
+
 const BASE_URL = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 const ALLOWED_ANON_KEY = (process.env.ALLOWED_ANON_KEY ?? '').trim()
 const FORBIDDEN_PATTERNS_RAW: { name: string; pattern: RegExp }[] = [

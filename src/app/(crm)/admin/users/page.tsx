@@ -1,9 +1,10 @@
 import { db } from '@/lib/db'
 import { users } from '@/lib/schema'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdmin, getSupabaseUser } from '@/lib/auth'
 import { updateUserRole } from '@/app/actions/admin'
 import { asc } from 'drizzle-orm'
 import RoleSelect from './RoleSelect'
+import DeleteUserButton from './DeleteUserButton'
 
 const ROLE_LABELS: Record<string, string> = {
   admin:  '管理者',
@@ -19,10 +20,10 @@ const ROLE_COLORS: Record<string, string> = {
 export default async function AdminUsersPage() {
   await requireAdmin()
 
-  const allUsers = await db
-    .select()
-    .from(users)
-    .orderBy(asc(users.created_at))
+  const [allUsers, me] = await Promise.all([
+    db.select().from(users).orderBy(asc(users.created_at)),
+    getSupabaseUser(),
+  ])
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
@@ -36,6 +37,7 @@ export default async function AdminUsersPage() {
               <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500">メールアドレス</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500">現在の権限</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500">変更</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500">削除</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -54,6 +56,13 @@ export default async function AdminUsersPage() {
                     updateAction={updateUserRole}
                   />
                 </td>
+                <td className="px-4 py-3">
+                  <DeleteUserButton
+                    userId={u.id}
+                    email={u.email}
+                    isSelf={u.id === me?.id}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -67,6 +76,7 @@ export default async function AdminUsersPage() {
         <p><span className="font-semibold text-red-600">管理者</span>：全操作 ＋ ユーザー管理</p>
         <p><span className="font-semibold text-blue-600">編集者</span>：データの登録・編集・削除</p>
         <p><span className="font-semibold text-zinc-600">閲覧者</span>：データの閲覧のみ</p>
+        <p className="pt-2 border-t border-zinc-200 mt-2"><span className="font-semibold text-red-600">削除</span>：Supabase Auth と CRM の両方から完全削除します。自分自身は削除できません。</p>
       </div>
     </div>
   )
