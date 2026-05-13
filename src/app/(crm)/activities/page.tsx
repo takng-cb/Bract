@@ -29,7 +29,12 @@ export default async function ActivitiesPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
-  const [sp, edit, colConfig, userId, activityTypes] = await Promise.all([searchParams, canEdit(), getListViewColumns('activities'), getCurrentUserId(), getActivityTypes()])
+  // パフォーマンス最適化: getDefaultView を Round 1 と並列化
+  const userIdPromise = getCurrentUserId()
+  const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('activities', uid) : null)
+  const [sp, edit, colConfig, userId, activityTypes, dv] = await Promise.all([
+    searchParams, canEdit(), getListViewColumns('activities'), userIdPromise, getActivityTypes(), dvPromise,
+  ])
 
   // 動的活動種別から FilterBuilder の field 定義と TYPE_CONFIG を生成
   const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
@@ -56,7 +61,6 @@ export default async function ActivitiesPage({
   const isGrouped  = groupBy.length > 0
 
   if (filterRaw.length === 0 && groupBy.length === 0) {
-    const dv = await getDefaultView('activities', userId)
     if (dv && (dv.filter_params.length > 0 || dv.group_params)) {
       const p = new URLSearchParams()
       dv.filter_params.forEach((f) => p.append('f', f))

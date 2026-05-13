@@ -31,7 +31,12 @@ export default async function ContactsPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string; sort?: string }>
 }) {
-  const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('contacts'), getCurrentUserId()])
+  // パフォーマンス最適化: getDefaultView を Round 1 と並列化
+  const userIdPromise = getCurrentUserId()
+  const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('contacts', uid) : null)
+  const [sp, edit, colConfig, userId, dv] = await Promise.all([
+    searchParams, canEdit(), getListViewColumns('contacts'), userIdPromise, dvPromise,
+  ])
   const view       = (sp.view === 'consumer') ? 'consumer' : 'business'
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
@@ -40,7 +45,6 @@ export default async function ContactsPage({
 
   // デフォルトビュー適用
   if (filterRaw.length === 0 && groupBy.length === 0) {
-    const dv = await getDefaultView('contacts', userId)
     if (dv && (dv.filter_params.length > 0 || dv.group_params)) {
       const p = new URLSearchParams({ view })
       dv.filter_params.forEach((f) => p.append('f', f))

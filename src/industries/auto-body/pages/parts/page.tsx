@@ -25,11 +25,15 @@ export default async function PartsListPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
-  const [sp, edit, colConfig, userId] = await Promise.all([
+  // パフォーマンス最適化: getDefaultView を Round 1 と並列化
+  const userIdPromise = getCurrentUserId()
+  const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('parts', uid) : null)
+  const [sp, edit, colConfig, userId, dv] = await Promise.all([
     searchParams,
     canEdit(),
     getListViewColumns('parts'),
-    getCurrentUserId(),
+    userIdPromise,
+    dvPromise,
   ])
 
   const filterRaw = [sp.f].flat().filter(Boolean) as string[]
@@ -39,7 +43,6 @@ export default async function PartsListPage({
 
   // デフォルトビュー適用
   if (filterRaw.length === 0 && groupBy.length === 0) {
-    const dv = await getDefaultView('parts', userId)
     if (dv && (dv.filter_params.length > 0 || dv.group_params)) {
       const p = new URLSearchParams()
       dv.filter_params.forEach((f) => p.append('f', f))

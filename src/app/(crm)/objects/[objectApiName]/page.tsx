@@ -37,11 +37,15 @@ export default async function CustomObjectListPage({
 }) {
   const [{ objectApiName }, sp] = await Promise.all([params, searchParams])
 
-  // ── Round 1: オブジェクト定義・フィールド定義取得 ──
-  const [obj, edit, userId] = await Promise.all([
+  // ── Round 1: オブジェクト定義・フィールド定義・デフォルトビューを並列取得 ──
+  // パフォーマンス最適化: getDefaultView を Round 1 に含めて RTT 削減
+  const userIdPromise = getCurrentUserId()
+  const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView(objectApiName, uid) : null)
+  const [obj, edit, userId, dv] = await Promise.all([
     getObjectDef(objectApiName),
     canEdit(),
-    getCurrentUserId(),
+    userIdPromise,
+    dvPromise,
   ])
   if (!obj) notFound()
 
@@ -62,9 +66,8 @@ export default async function CustomObjectListPage({
   // ── URL パラメータ解析 ──
   const filterRawRaw = [sp.f].flat().filter(Boolean) as string[]
 
-  // デフォルトビュー適用
+  // デフォルトビュー適用 (Round 1 で並列取得済み)
   if (filterRawRaw.length === 0 && !sp.group && !sp.sort) {
-    const dv = await getDefaultView(objectApiName, userId)
     if (dv && (dv.filter_params.length > 0 || dv.group_params || dv.sort_params)) {
       const p = new URLSearchParams()
       dv.filter_params.forEach((f) => p.append('f', f))
