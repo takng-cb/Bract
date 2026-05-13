@@ -25,6 +25,9 @@
  *   1 1 件以上 fail
  */
 
+// `export {}` を最初に置いて ES module 化（同名トップレベル変数の衝突回避）
+export {}
+
 const BASE_URL = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 
 type Expect = {
