@@ -59,7 +59,12 @@ export default async function ExpensesPage({
 }: {
   searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
-  const [sp, edit, colConfig, userId] = await Promise.all([searchParams, canEdit(), getListViewColumns('expenses'), getCurrentUserId()])
+  // パフォーマンス最適化: getDefaultView を Round 1 と並列化
+  const userIdPromise = getCurrentUserId()
+  const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('expenses', uid) : null)
+  const [sp, edit, colConfig, userId, dv] = await Promise.all([
+    searchParams, canEdit(), getListViewColumns('expenses'), userIdPromise, dvPromise,
+  ])
   const now = new Date()
 
   const fromYear  = Number(sp.from_year  ?? now.getFullYear())
@@ -82,7 +87,6 @@ export default async function ExpensesPage({
   const conditions = parseFilterParams(filterRaw)
 
   if (filterRaw.length === 0 && groupBy.length === 0) {
-    const dv = await getDefaultView('expenses', userId)
     if (dv && (dv.filter_params.length > 0 || dv.group_params)) {
       const p = new URLSearchParams(persistParams)
       dv.filter_params.forEach((f) => p.append('f', f))
