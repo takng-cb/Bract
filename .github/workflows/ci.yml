@@ -64,6 +64,11 @@ jobs:
         # `vercel-build` (= check:schema + next build) は Vercel 側で走る。
         # ここでは DB 接続なしで純粋に webpack ビルドの整合性を確認する。
         run: npx next build --webpack
+      - name: Bundle size report (${{ matrix.industry }})
+        if: matrix.industry == 'real-estate'
+        run: |
+          echo "### Bundle size (${{ matrix.industry }})" >> $GITHUB_STEP_SUMMARY
+          npm run bundle:report >> $GITHUB_STEP_SUMMARY
 
   # ── schema check (main push のみ) ─────────────────────────
   # 各 Neon の DATABASE_URL は GitHub Secrets に登録（Issue #19）
@@ -185,4 +190,31 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
+          retention-days: 7
+
+  # ── Lighthouse CI (workflow_dispatch のみ) ─────────────────────
+  # 主要公開ページ 4 つに対して Performance / Accessibility / Best Practices /
+  # SEO スコアを計測。閾値は緩めに設定し、回帰検知（差分監視）に使う。
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.14.x
+          lhci autorun --config=lighthouserc.json
+        continue-on-error: true
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
           retention-days: 7

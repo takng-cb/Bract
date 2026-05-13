@@ -349,6 +349,59 @@ gh issue create --title "..." --body-file ./body.md
 gh issue close 123 --comment "本番で /opportunities/<id> 表示確認。スクリーンショット添付。"
 ```
 
+## リリース判定 go/no-go チェックリスト（必読）
+
+正式リリース（顧客サブスク開始）の前に必ず確認。Issue #40 を umbrella として運用。
+
+### 必須（NoGo 条件：1 つでも未達ならリリース見送り）
+
+#### コード品質
+- [ ] **priority:blocker Issue がゼロ**
+- [ ] **CI 全 green**:
+  - [ ] `lint` (ESLint)
+  - [ ] `test` (Vitest 全件 pass)
+  - [ ] `build` (base / real-estate / auto-body の 3 業種)
+  - [ ] `schema-check` (3 Neon すべてで pass)
+  - [ ] `smoke` (本番 32 ページ 200 / redirect 確認)
+  - [ ] `secret-leak-check` (公開 HTML/JS に秘匿情報なし)
+- [ ] **Playwright E2E** 主要シナリオ全 pass (#18)
+  - [ ] auth.setup.ts で 3 ロール分の storageState 生成成功
+  - [ ] smoke-authenticated.spec.ts (admin で 9 シナリオ)
+  - [ ] accounts-crud.spec.ts (CRUD 完全フロー)
+  - [ ] real-estate 業種シナリオ（仲介手数料計算）
+  - [ ] auto-body 業種シナリオ（利益計算）
+
+#### 運用
+- [ ] **法務ドキュメント (`docs/legal/`) 弁護士レビュー完了** (#21)
+- [ ] **バックアップ運用稼働中** (#24)
+  - [ ] 日次 dump スクリプトが GitHub Actions schedule で動いている
+  - [ ] 月 1 restore リハーサル成功
+- [ ] **障害連絡経路確立** (#23)
+  - [ ] SLA 数値合意
+  - [ ] 顧客→開発者の通報窓口開設
+- [ ] **Vercel deploy 失敗通知運用中** (#25)
+
+#### セキュリティ
+- [ ] Server Action 権限チェック網羅レビュー完了（Sprint 1-3a で実施）
+- [ ] `npm audit` で high severity ゼロ
+- [ ] テストユーザー credentials (`TEST_USER_PASSWORD`) が GitHub Secrets に登録
+
+### 推奨（リリース時に未達でも判断次第で可）
+
+- [ ] **Phase 5 モバイル UX 主要シナリオ pass** (#27)
+- [ ] **Lighthouse スコア 80 以上** (主要 4 ページ、Sprint 3 で計測基盤整備)
+- [ ] **バンドルサイズ baseline 記録済み** (`npm run bundle:report` で)
+- [ ] **Status ページ稼働** (Statuspage.io / Better Uptime / 自前)
+- [ ] **オンボーディングフロー整備** (#22)
+- [ ] **Stripe 連携** (#16、収益化前提)
+- [ ] **Neon compute hour 監視** (#17)
+
+### 判定プロセス
+
+1. リリース候補日の **1 週間前** に本チェックリストを走らせる
+2. すべて pass なら release tag を切る（`git tag v1.0.0 && git push --tags`）
+3. NoGo があれば Issue 化して着手、必須項目が達成されるまで延期
+
 ## 詳細リファレンス
 
 - **[docs/architecture.md](./docs/architecture.md)** — 業種オーバーレイ詳細、Vercel 構成、DB スキーマ運用、SQL pushdown 構造、マイグレーション手順、既知の制限
