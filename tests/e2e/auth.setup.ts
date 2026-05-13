@@ -1,0 +1,47 @@
+/**
+ * Playwright auth setup: ログイン state を storageState として保存。
+ * `dependencies: ['setup']` を持つ project の前に 1 回だけ実行される。
+ *
+ * 必要 env:
+ *   TEST_USER_PASSWORD   3 ユーザー共通パスワード（scripts/seed-test-users.ts で
+ *                        投入したもの）。未指定だと skip。
+ *
+ * 対象ユーザー（scripts/seed-test-users.ts で投入される 3 種）:
+ *   test-admin@bract-crm.local
+ *   test-editor@bract-crm.local
+ *   test-viewer@bract-crm.local
+ */
+import { test as setup } from '@playwright/test'
+import { mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
+
+const PASSWORD = process.env.TEST_USER_PASSWORD
+
+const ROLES = [
+  { name: 'admin',  email: 'test-admin@bract-crm.local',  file: 'tests/e2e/.auth/admin.json'  },
+  { name: 'editor', email: 'test-editor@bract-crm.local', file: 'tests/e2e/.auth/editor.json' },
+  { name: 'viewer', email: 'test-viewer@bract-crm.local', file: 'tests/e2e/.auth/viewer.json' },
+]
+
+for (const role of ROLES) {
+  setup(`auth state for ${role.name}`, async ({ page }) => {
+    if (!PASSWORD) {
+      console.warn(`⚠ TEST_USER_PASSWORD 未設定、${role.name} の auth state を生成しません`)
+      setup.skip()
+    }
+
+    // /login へ移動 → email/password 入力 → submit → /dashboard 等への遷移
+    await page.goto('/login')
+    // フォームの実装に合わせて input[name=email] / input[name=password] が想定
+    await page.locator('input[type="email"], input[name="email"]').first().fill(role.email)
+    await page.locator('input[type="password"], input[name="password"]').first().fill(PASSWORD!)
+    await page.locator('button[type="submit"], button:has-text("ログイン")').first().click()
+
+    // ログイン後の遷移を待つ（dashboard か任意の認証ページ）
+    await page.waitForURL(/\/dashboard|\/$/, { timeout: 15_000 })
+
+    // storageState 保存
+    mkdirSync(dirname(role.file), { recursive: true })
+    await page.context().storageState({ path: role.file })
+  })
+}

@@ -47,6 +47,11 @@ next-env.d.ts
 # DB バックアップダンプ（本番データ含むため git 管理外）
 /backups
 
+# Playwright E2E
+/playwright-report
+/test-results
+/tests/e2e/.auth
+
 # next-pwa が生成するService Workerファイル（ビルド時に自動生成）
 /public/sw.js
 /public/swe-worker-*.js
