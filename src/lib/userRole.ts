@@ -1,8 +1,11 @@
 import { db } from './db'
 import { users } from './schema'
 import { eq, count } from 'drizzle-orm'
+import { canEditRole, isAdminRole, type Role } from './role'
 
-export type Role = 'admin' | 'editor' | 'viewer'
+// 純粋判定関数は './role' に分離。Vitest が DB を呼ばずにテストできるよう
+// するため。互換性のためここから re-export して既存 import を維持。
+export { canEditRole, isAdminRole, type Role }
 
 /** ユーザーの DB ロールを返す（未登録なら null）*/
 export async function getDbRole(userId: string): Promise<Role | null> {
@@ -16,13 +19,12 @@ export async function getDbRole(userId: string): Promise<Role | null> {
 
 /** admin かどうか */
 export async function isAdminUser(userId: string): Promise<boolean> {
-  return (await getDbRole(userId)) === 'admin'
+  return isAdminRole(await getDbRole(userId))
 }
 
 /** 編集可能かどうか（admin または editor） */
 export async function canEditUser(userId: string): Promise<boolean> {
-  const role = await getDbRole(userId)
-  return role === 'admin' || role === 'editor'
+  return canEditRole(await getDbRole(userId))
 }
 
 /**
