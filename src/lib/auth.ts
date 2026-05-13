@@ -6,7 +6,7 @@ import { db } from './db'
 import { users } from './schema'
 import { eq } from 'drizzle-orm'
 import { unstable_cache } from 'next/cache'
-import type { Role } from './userRole'
+import { canEditRole, isAdminRole, type Role } from './userRole'
 
 /**
  * リクエストごとに一度だけ Supabase Auth を呼ぶ共有キャッシュ関数。
@@ -53,13 +53,12 @@ export async function isImpersonating(): Promise<boolean> {
 
 /** 編集可能かどうか（admin または editor） */
 export async function canEdit(): Promise<boolean> {
-  const role = await getCurrentRole()
-  return role === 'admin' || role === 'editor'
+  return canEditRole(await getCurrentRole())
 }
 
 /** 管理者かどうか */
 export async function isAdmin(): Promise<boolean> {
-  return (await getCurrentRole()) === 'admin'
+  return isAdminRole(await getCurrentRole())
 }
 
 /** 編集権限がなければダッシュボードへリダイレクト（Server Action 保護用は例外を投げる） */
