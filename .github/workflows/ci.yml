@@ -1,0 +1,100 @@
+name: CI
+
+# Issue #19 で導入。PR と main push で lint / test / 3 業種ビルド検証を回す。
+# Issue #20 のようなクラスの本番障害を main マージ前に検出するための安全網。
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# 同じ branch で複数 push があった時、古い run はキャンセル
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── lint / 型チェック / Vitest ───────────────────────────────
+  static:
+    name: Lint + Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: Vitest
+        run: npm run test
+
+  # ── 3 業種ビルド検証 ────────────────────────────────────────
+  build:
+    name: Build (${{ matrix.industry }})
+    runs-on: ubuntu-latest
+    needs: static
+    strategy:
+      fail-fast: false
+      matrix:
+        industry: [base, real-estate, auto-body]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build for INDUSTRY=${{ matrix.industry }}
+        env:
+          NEXT_PUBLIC_INDUSTRY: ${{ matrix.industry }}
+        # `npm run build` ではなく `next build` を直接叩く。
+        # `vercel-build` (= check:schema + next build) は Vercel 側で走る。
+        # ここでは DB 接続なしで純粋に webpack ビルドの整合性を確認する。
+        run: npx next build --webpack
+
+  # ── schema check (main push のみ) ─────────────────────────
+  # 各 Neon の DATABASE_URL は GitHub Secrets に登録（Issue #19）
+  # secrets:
+  #   - DATABASE_URL_REAL_ESTATE
+  #   - DATABASE_URL_AUTO_BODY
+  #   - DATABASE_URL_BASE
+  schema-check:
+    name: Schema ↔ DB (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: real-estate
+            secret: DATABASE_URL_REAL_ESTATE
+          - target: auto-body
+            secret: DATABASE_URL_AUTO_BODY
+          - target: base
+            secret: DATABASE_URL_BASE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Check schema for ${{ matrix.target }}
+        env:
+          DATABASE_URL: ${{ secrets[matrix.secret] }}
+        # secret が未設定の Neon はスキップ（一時的に空文字を許容）。
+        # secret 設定後は必ず check 通過を要件にする。
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::Secret ${{ matrix.secret }} not set, skipping ${{ matrix.target }}"
+            exit 0
+          fi
+          npm run check:schema

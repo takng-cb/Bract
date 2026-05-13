@@ -1,0 +1,69 @@
+# Dependabot config — 依存パッケージの自動更新 PR を週次で作成。
+# Issue #32 で導入。
+#
+# 動作:
+#   - 毎週月曜 09:00 JST に npm の更新を検出
+#   - 同時に開く PR は最大 5 件まで
+#   - React / Vitest / Tailwind など関連深いパッケージはグループ化
+#
+# 自動マージ:
+#   - minor / patch は GitHub Actions の CI (#19) が緑なら自動マージ予定（別 workflow で実装）
+#   - major は手動レビュー
+#   - セキュリティアラートは即時 PR（GitHub Security Advisories 連携）
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    groups:
+      # React の core はセット更新
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Next.js とその関連 lint config
+      nextjs:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+      # Vitest 関連
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      # Tailwind 関連
+      tailwind:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+      # Supabase 関連
+      supabase:
+        patterns:
+          - "@supabase/*"
+
+  # GitHub Actions も同様に更新
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(ci)"

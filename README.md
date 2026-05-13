@@ -1,5 +1,7 @@
 # Bract CRM
 
+![CI](https://github.com/takng-cb/Bract-CRM/actions/workflows/ci.yml/badge.svg?branch=main)
+
 業種オーバーレイ構造を持つ汎用 CRM。**同一コードベース (`main`) から `NEXT_PUBLIC_INDUSTRY` 環境変数を切り替えて複数業種版をビルド・デプロイ**する設計。
 
 Salesforce 風の汎用 CRM 基盤（取引先・人物・商談・活動履歴・ToDo・経費）に、業種ごとの専用機能を重ねて提供する。
@@ -32,23 +34,13 @@ npm install
 
 ### 2. `.env.local` を作成
 
-リポジトリ直下に `.env.local` を作成し、以下のキーを設定する（`.env.example` は [Issue #12](https://github.com/takng-cb/Bract-CRM/issues/12) で別途追加予定）:
+`.env.example` をコピーして `.env.local` を作り、Neon / Supabase の credentials を埋める:
 
-```ini
-# Database (Neon Postgres)
-DATABASE_URL=postgresql://<user>:<password>@<host>/neondb?sslmode=require
-
-# 業種選択: base / real-estate / auto-body
-NEXT_PUBLIC_INDUSTRY=real-estate
-
-# アプリ自身のオリジン URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# Supabase (Auth + Storage)
-NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+```bash
+cp .env.example .env.local
 ```
+
+必要キーの詳細は [`.env.example`](./.env.example) を参照。worktree ごとに `.env.local` が必要（gitignore のため）。
 
 ### 3. 開発サーバ起動
 
