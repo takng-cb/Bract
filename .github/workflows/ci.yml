@@ -147,3 +147,42 @@ jobs:
           # 検出されて fail する可能性がある（その場合は secret を登録すること）。
           ALLOWED_ANON_KEY: ${{ secrets.ALLOWED_ANON_KEY }}
         run: npm run test:secret-leaks
+
+  # ── Playwright E2E (workflow_dispatch 専用、認証が必要なので) ───────
+  # 実行前に user 側で以下を準備:
+  #   1. scripts/seed-test-users.ts で 3 テストユーザーを各 Neon に投入
+  #   2. GitHub Secrets に TEST_USER_PASSWORD を登録
+  # 設定が揃わない時は skip（fail しない）。
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Skip if TEST_USER_PASSWORD secret not set
+        if: ${{ !secrets.TEST_USER_PASSWORD }}
+        run: |
+          echo "::warning::TEST_USER_PASSWORD secret 未設定のため E2E skip"
+          exit 0
+      - name: Install Playwright browsers
+        if: ${{ secrets.TEST_USER_PASSWORD }}
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E
+        if: ${{ secrets.TEST_USER_PASSWORD }}
+        env:
+          BASE_URL: ${{ github.event.inputs.smoke_url || 'https://bract-crm.vercel.app' }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: npm run test:e2e
+      - name: Upload Playwright report
+        if: always() && secrets.TEST_USER_PASSWORD
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
