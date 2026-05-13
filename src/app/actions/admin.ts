@@ -15,6 +15,64 @@ import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import type { Role } from '@/lib/userRole'
 
+/**
+ * 他のユーザーのパスワードを管理者権限で強制上書きする。
+ *
+ * 想定ユースケース:
+ *   - ユーザーがパスワード失念し、メールリセットも届かないとき
+ *   - テストユーザーのパスワードを再投入したいとき
+ *   - 退職者のアカウントを残しつつアクセスを止めたいとき
+ *
+ * 制限:
+ *   - 自分自身のパスワードは /settings ページから変更する（混乱回避）
+ *   - 最低 8 文字、または system_settings.password_min_length に従う
+ *
+ * 戻り値: useActionState 連携のため `string`。
+ *   'success' = 成功、それ以外 = エラーメッセージ。
+ *   useActionState の初期 state は null とし、UI 側は 'success' と一致するか
+ *   どうかで成功判定する。
+ */
+export async function resetUserPassword(
+  _prev: string | null,
+  formData: FormData,
+): Promise<string> {
+  await requireAdmin()
+
+  const userId   = (formData.get('userId') as string)?.trim()
+  const password = (formData.get('password') as string) ?? ''
+
+  if (!userId) return 'userId is required'
+
+  const me = await getSupabaseUser()
+  if (!me) return '認証エラー'
+  if (userId === me.id) {
+    return '自分自身のパスワードは「設定」画面から変更してください'
+  }
+
+  // パスワード最低文字数: system_settings.password_min_length（既定 8）
+  const { system_settings: ss } = await import('@/lib/schema')
+  const { SYSTEM_DEFAULTS } = await import('@/lib/systemSettings')
+  const minRow = await db.select({ value: ss.value })
+    .from(ss)
+    .where(eq(ss.key, 'password_min_length'))
+    .then((r) => r[0] ?? null)
+  const minLen = parseInt(minRow?.value ?? SYSTEM_DEFAULTS.password_min_length, 10)
+
+  if (!password || password.length < minLen) {
+    return `パスワードは ${minLen} 文字以上にしてください`
+  }
+
+  // Supabase Admin API で強制上書き
+  const adminClient = createSupabaseAdminClient()
+  const { error } = await adminClient.auth.admin.updateUserById(userId, { password })
+  if (error) {
+    return `更新に失敗しました: ${error.message}`
+  }
+
+  revalidatePath('/admin/users')
+  return 'success'
+}
+
 /** ユーザーのロールを変更する（管理者専用） */
 export async function updateUserRole(formData: FormData): Promise<void> {
   await requireAdmin()
