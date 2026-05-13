@@ -5,8 +5,10 @@ import { db } from '@/lib/db'
 import { attachments } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { requireEditor } from '@/lib/auth'
 
 export async function uploadAttachment(formData: FormData) {
+  await requireEditor()
   const file = formData.get('file') as File
   if (!file || file.size === 0) throw new Error('ファイルを選択してください')
   if (file.size > 20 * 1024 * 1024) throw new Error('ファイルサイズは20MB以下にしてください')
@@ -52,6 +54,7 @@ export async function uploadAttachment(formData: FormData) {
 }
 
 export async function deleteAttachment(id: string, storagePath: string, revalidate: string) {
+  await requireEditor()
   await supabase.storage.from('attachments').remove([storagePath])
   await db.delete(attachments).where(eq(attachments.id, id))
   revalidatePath(revalidate)

@@ -6,6 +6,7 @@ import { user_preferences, system_settings } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { SYSTEM_DEFAULTS, type SystemSettingKey } from '@/lib/systemSettings'
+import { requireAdmin } from '@/lib/auth'
 
 // ----------------------------------------------------------------
 // パスワード変更
@@ -67,6 +68,7 @@ export async function saveSystemSettings(
   _: string | null,
   formData: FormData
 ): Promise<string | null> {
+  await requireAdmin()
   const keys: SystemSettingKey[] = [
     'company_name',
     'password_min_length',

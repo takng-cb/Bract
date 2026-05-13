@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 import { DEFAULT_NAV_ORDER } from '@/lib/navItems'
+import { requireAdmin } from '@/lib/auth'
 
 // ----------------------------------------------------------------
 // 現在の有効なナビ順序を取得（ユーザー設定 → システム設定 → デフォルト）
@@ -103,6 +104,7 @@ export async function resetUserNavOrder(): Promise<void> {
 // システム全体のデフォルト順序を保存
 // ----------------------------------------------------------------
 export async function saveSystemNavOrder(order: string[]): Promise<void> {
+  await requireAdmin()
   await db.insert(system_settings)
     .values({ key: 'nav_order', value: JSON.stringify(order) })
     .onConflictDoUpdate({
@@ -117,6 +119,7 @@ export async function saveSystemNavOrder(order: string[]): Promise<void> {
 // システム設定をデフォルトにリセット
 // ----------------------------------------------------------------
 export async function resetSystemNavOrder(): Promise<void> {
+  await requireAdmin()
   await db.delete(system_settings)
     .where(eq(system_settings.key, 'nav_order'))
 

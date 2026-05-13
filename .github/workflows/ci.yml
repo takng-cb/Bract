@@ -8,6 +8,12 @@ on:
     branches: [main, develop]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      smoke_url:
+        description: 'Smoke test BASE_URL (e.g. https://bract-crm.vercel.app)'
+        required: false
+        default: 'https://bract-crm.vercel.app'
 
 permissions:
   contents: read
@@ -98,3 +104,46 @@ jobs:
             exit 0
           fi
           npm run check:schema
+
+  # ── Smoke test (workflow_dispatch 手動 or push main で本番に対して実行) ─
+  smoke:
+    name: Smoke test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Smoke test against ${{ github.event.inputs.smoke_url || 'https://bract-crm.vercel.app' }}
+        env:
+          BASE_URL: ${{ github.event.inputs.smoke_url || 'https://bract-crm.vercel.app' }}
+        run: npm run smoke
+
+  # ── Secret leak check (push main で本番に対して実行) ───────────
+  # public な HTML / JS chunk に service_role や DATABASE_URL credentials が
+  # 漏洩していないか検査する。意図せず秘匿情報が client bundle に混入した
+  # ケースを検知する安全網。
+  secret-leak-check:
+    name: Secret leak check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Secret leak check against ${{ github.event.inputs.smoke_url || 'https://bract-crm.vercel.app' }}
+        env:
+          BASE_URL: ${{ github.event.inputs.smoke_url || 'https://bract-crm.vercel.app' }}
+          # 意図して公開している anon key を許容するために secret 経由で渡す。
+          # ALLOWED_ANON_KEY secret が未設定だと JWT-like token として
+          # 検出されて fail する可能性がある（その場合は secret を登録すること）。
+          ALLOWED_ANON_KEY: ${{ secrets.ALLOWED_ANON_KEY }}
+        run: npm run test:secret-leaks
