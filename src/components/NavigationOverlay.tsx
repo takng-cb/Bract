@@ -24,8 +24,13 @@ import { usePathname } from 'next/navigation'
  * pathname 変化後 spinner を残す時間（ms）。
  * 0 だと pathname 変化 = spinner 消失だが、新ページの実コンテンツ paint まで
  * 数百 ms ラグがあり、その間白フラッシュが見える。GRACE_MS 滞留させて隠す。
+ *
+ * 350ms → 700ms に延長 (Sprint 3+ 2nd iteration): 350ms では loading.tsx
+ * Suspense fallback が描画される程度で、実コンテンツ paint には届かない
+ * ケースが多かったため。長すぎる場合は値を下げる、または MutationObserver
+ * ベースの「実コンテンツ検知」に切り替える。
  */
-const GRACE_MS = 350
+const GRACE_MS = 700
 
 export default function NavigationOverlay() {
   const pathname = usePathname()
