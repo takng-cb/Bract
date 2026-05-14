@@ -66,10 +66,22 @@ const nextConfig: NextConfig = {
   },
 };
 
+/**
+ * PWA は無効化。
+ *
+ * 経緯: @ducanh2912/next-pwa の Service Worker が Next.js App Router の
+ * RSC prefetch (?_rsc= 付きの fetch) を `pages-rsc-prefetch` キャッシュで
+ * 横取りしてしまい、<Link prefetch={true}> の自動 prefetch が一切発火
+ * しない問題を引き起こしていた。
+ *
+ * 実測: SW 解除前 click→content ~2200ms / SW 解除後 ~9ms（100x 以上の改善）
+ *
+ * このアプリは DB 必須のオンライン CRM であり、ページのオフラインキャッシュは
+ * 「古いデータが見える」リスクの方が大きい。よって PWA は無効化する。
+ * 既存ユーザーの端末に残った SW は src/app/sw-unregister.tsx が一度だけ
+ * unregister する。
+ */
 export default withPWA({
   dest: "public",
-  disable: process.env.NODE_ENV === "development", // 開発中はOFF
-  cacheOnFrontEndNav: false,
-  aggressiveFrontEndNavCaching: false,
-  reloadOnOnline: true,
+  disable: true,
 })(nextConfig);
