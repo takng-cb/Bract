@@ -1,6 +1,7 @@
 import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { db } from '@/lib/db'
 import { custom_records, accounts, contacts, activities, tasks, expenses } from '@/lib/schema'
+import { activityIdsRelatedTo } from '@/lib/relatedRecords'
 import { eq, and, inArray, desc, asc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -65,8 +66,11 @@ export default async function CustomRecordDetailPage({
     contactIdList.length > 0
       ? db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).where(inArray(contacts.id, contactIdList))
       : Promise.resolve([]),
+    // 関連活動: junction 経由（api_name=このオブジェクトの api_name）
     obj.enable_activities
-      ? db.select().from(activities).where(eq(activities.custom_record_id, recordId)).orderBy(desc(activities.occurred_at))
+      ? db.select().from(activities)
+          .where(inArray(activities.id, activityIdsRelatedTo(objectApiName, recordId)))
+          .orderBy(desc(activities.occurred_at))
       : Promise.resolve([]),
     obj.enable_tasks
       ? db.select().from(tasks).where(eq(tasks.custom_record_id, recordId)).orderBy(asc(tasks.done), asc(tasks.due_date))

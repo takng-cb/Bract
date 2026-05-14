@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses } from '@/lib/schema'
-import { eq, asc, desc } from 'drizzle-orm'
+import { activityIdsRelatedTo } from '@/lib/relatedRecords'
+import { eq, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
@@ -78,7 +79,10 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       .leftJoin(contacts, eq(opportunities.contact_id, contacts.id))
       .where(eq(opportunities.id, id))
       .then((r) => r[0] ?? null),
-    db.select().from(activities).where(eq(activities.opportunity_id, id)).orderBy(desc(activities.occurred_at)),
+    // 関連活動: junction 経由（複数商談関連の活動も含む）
+    db.select().from(activities)
+      .where(inArray(activities.id, activityIdsRelatedTo('opportunity', id)))
+      .orderBy(desc(activities.occurred_at)),
     db.select().from(tasks).where(eq(tasks.opportunity_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.opportunity_id, id)).orderBy(desc(attachments.created_at)),
     db.select().from(expenses).where(eq(expenses.opportunity_id, id)).orderBy(desc(expenses.expense_date)),

@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { contacts, accounts, activities, tasks, attachments } from '@/lib/schema'
-import { eq, asc, desc } from 'drizzle-orm'
+import { activityIdsRelatedTo } from '@/lib/relatedRecords'
+import { eq, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
@@ -53,7 +54,10 @@ export default async function ContactDetailPage({
       .leftJoin(accounts, eq(contacts.account_id, accounts.id))
       .where(eq(contacts.id, id))
       .then((r) => r[0] ?? null),
-    db.select().from(activities).where(eq(activities.contact_id, id)).orderBy(desc(activities.occurred_at)),
+    // 関連活動: junction 経由（複数人物関連の活動も含む）
+    db.select().from(activities)
+      .where(inArray(activities.id, activityIdsRelatedTo('contact', id)))
+      .orderBy(desc(activities.occurred_at)),
     db.select().from(tasks).where(eq(tasks.contact_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.contact_id, id)).orderBy(desc(attachments.created_at)),
     getCustomFieldsWithValues('contacts', id),

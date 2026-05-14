@@ -2,7 +2,8 @@ import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, activities, tasks, attachments } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
-import { eq, asc, desc } from 'drizzle-orm'
+import { activityIdsRelatedTo } from '@/lib/relatedRecords'
+import { eq, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
@@ -58,7 +59,10 @@ export default async function AccountDetailPage({
     db.select().from(accounts).where(eq(accounts.id, id)).then((r) => r[0] ?? null),
     db.select().from(contacts).where(eq(contacts.account_id, id)).orderBy(desc(contacts.created_at)),
     db.select().from(opportunities).where(eq(opportunities.account_id, id)).orderBy(desc(opportunities.created_at)),
-    db.select().from(activities).where(eq(activities.account_id, id)).orderBy(desc(activities.occurred_at)),
+    // 関連活動: junction 経由（複数取引先関連の活動も含む）
+    db.select().from(activities)
+      .where(inArray(activities.id, activityIdsRelatedTo('account', id)))
+      .orderBy(desc(activities.occurred_at)),
     db.select().from(tasks).where(eq(tasks.account_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.account_id, id)).orderBy(desc(attachments.created_at)),
     getCustomFieldsWithValues('accounts', id),

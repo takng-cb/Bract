@@ -16,8 +16,47 @@
  * 一括実行する（N+1 を避ける）。
  */
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, custom_records, object_definitions } from '@/lib/schema'
-import { inArray, eq } from 'drizzle-orm'
+import {
+  accounts, contacts, opportunities,
+  custom_records, object_definitions,
+  activity_related_records, task_related_records, expense_related_records,
+} from '@/lib/schema'
+import { inArray, eq, and } from 'drizzle-orm'
+
+/**
+ * 逆引きサブクエリ: 指定オブジェクト・レコードに関連付けられた activity ID 一覧。
+ * 親レコード詳細ページの「関連活動」表示で使う:
+ *   db.select().from(activities)
+ *     .where(inArray(activities.id, activityIdsRelatedTo('account', accountId)))
+ */
+export function activityIdsRelatedTo(objectApi: string, recordId: string) {
+  return db.select({ id: activity_related_records.activity_id })
+    .from(activity_related_records)
+    .where(and(
+      eq(activity_related_records.related_object_api, objectApi),
+      eq(activity_related_records.related_record_id, recordId),
+    ))
+}
+
+/** タスク逆引き（task 用 junction が populated されたら使える） */
+export function taskIdsRelatedTo(objectApi: string, recordId: string) {
+  return db.select({ id: task_related_records.task_id })
+    .from(task_related_records)
+    .where(and(
+      eq(task_related_records.related_object_api, objectApi),
+      eq(task_related_records.related_record_id, recordId),
+    ))
+}
+
+/** 経費逆引き（expense 用 junction が populated されたら使える） */
+export function expenseIdsRelatedTo(objectApi: string, recordId: string) {
+  return db.select({ id: expense_related_records.expense_id })
+    .from(expense_related_records)
+    .where(and(
+      eq(expense_related_records.related_object_api, objectApi),
+      eq(expense_related_records.related_record_id, recordId),
+    ))
+}
 
 export type RelatedPair = {
   object_api: string
