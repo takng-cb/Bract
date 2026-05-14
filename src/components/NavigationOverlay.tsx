@@ -9,11 +9,13 @@
  * 体感的に短く感じさせる。
  *
  * 動作:
- *   - <a> / <Link> クリック直後に即時表示開始
- *   - 200ms 遅延後にフェードイン（瞬間的に消える短時間遷移には出さない）
+ *   - <a> / <Link> クリック直後に即時表示開始（遅延なし）
  *   - usePathname() 変化を navigation 完了とみなし、即時消える
  *   - pointer-events-none で表示中もユーザー操作を阻害しない
  *   - 修飾キー押下 / 外部リンク / 同一 URL / target=_blank は無視（NavigationProgress と同じロジック）
+ *
+ * 注: 以前は 200ms 遅延後に表示していたが、Phase A+ Sprint 3+ で「常時表示」に変更。
+ * 瞬間的なナビでも一瞬チラつくが、必ずフィードバックが出る方をユーザーが希望したため。
  *
  * Phase A+ perceived performance 改善 (#40 Sprint 3+)。
  */
@@ -23,9 +25,7 @@ import { usePathname } from 'next/navigation'
 export default function NavigationOverlay() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
-  const [showDelayed, setShowDelayed] = useState(false)
   const navigatingRef = useRef(false)
-  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 1. <a> / <Link> クリックを document レベルで補足
   useEffect(() => {
@@ -47,14 +47,9 @@ export default function NavigationOverlay() {
         return
       }
 
+      // クリック直後に即時表示（遅延なし）
       navigatingRef.current = true
       setVisible(true)
-      // 200ms 経って遷移がまだ続いていればフェードイン表示。
-      // 瞬間的なナビでは出さない（チラつき防止）。
-      if (delayTimerRef.current) clearTimeout(delayTimerRef.current)
-      delayTimerRef.current = setTimeout(() => {
-        if (navigatingRef.current) setShowDelayed(true)
-      }, 200)
     }
     document.addEventListener('click', handler, true)
     return () => document.removeEventListener('click', handler, true)
@@ -63,13 +58,11 @@ export default function NavigationOverlay() {
   // 2. pathname 変化 = navigation 完了
   useEffect(() => {
     if (!navigatingRef.current) return
-    if (delayTimerRef.current) clearTimeout(delayTimerRef.current)
-    setShowDelayed(false)
     setVisible(false)
     navigatingRef.current = false
   }, [pathname])
 
-  if (!visible || !showDelayed) return null
+  if (!visible) return null
 
   return (
     <div
