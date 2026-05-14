@@ -1,7 +1,7 @@
 import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { db } from '@/lib/db'
 import { custom_records, accounts, contacts, activities, tasks, expenses } from '@/lib/schema'
-import { activityIdsRelatedTo } from '@/lib/relatedRecords'
+import { activityIdsRelatedTo, taskIdsRelatedTo } from '@/lib/relatedRecords'
 import { eq, and, inArray, desc, asc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -73,7 +73,9 @@ export default async function CustomRecordDetailPage({
           .orderBy(desc(activities.occurred_at))
       : Promise.resolve([]),
     obj.enable_tasks
-      ? db.select().from(tasks).where(eq(tasks.custom_record_id, recordId)).orderBy(asc(tasks.done), asc(tasks.due_date))
+      ? db.select().from(tasks)
+          .where(inArray(tasks.id, taskIdsRelatedTo(objectApiName, recordId)))
+          .orderBy(asc(tasks.done), asc(tasks.due_date))
       : Promise.resolve([]),
     obj.enable_expenses
       ? db.select().from(expenses).where(eq(expenses.custom_record_id, recordId)).orderBy(desc(expenses.expense_date))

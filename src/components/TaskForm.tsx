@@ -1,27 +1,24 @@
 'use client'
 
-import { useActionState, useRef, useState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
-import SearchableSelect from '@/components/SearchableSelect'
-
-type Account = { id: string; name: string }
-type Contact = { id: string; full_name: string; account_id?: string | null }
-type Opportunity = { id: string; name: string }
+import RelatedRecordsPicker, {
+  type ObjectTypeOption,
+  type RecordOption,
+  type RelatedRecordSelection,
+} from '@/components/RelatedRecordsPicker'
 
 type TaskFormProps = {
-  action: (prevState: string | null, formData: FormData) => Promise<string | null>
-  cancelHref: string
-  accounts: Account[]
-  contacts: Contact[]
-  opportunities: Opportunity[]
+  action:          (prevState: string | null, formData: FormData) => Promise<string | null>
+  cancelHref:      string
+  objectTypes:     ObjectTypeOption[]
+  recordsByObject: Record<string, RecordOption[]>
   defaultValues?: {
-    title?: string
-    due_date?: string | null
-    priority?: string
-    account_id?: string | null
-    contact_id?: string | null
-    opportunity_id?: string | null
+    title?:           string
+    due_date?:        string | null
+    priority?:        string
+    related_records?: RelatedRecordSelection[]
   }
 }
 
@@ -31,13 +28,9 @@ const PRIORITIES = [
   { value: 'low',    label: '🟢 低', color: 'text-green-600' },
 ]
 
-export default function TaskForm({ action, cancelHref, accounts, contacts, opportunities, defaultValues = {} }: TaskFormProps) {
+export default function TaskForm({ action, cancelHref, objectTypes, recordsByObject, defaultValues = {} }: TaskFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
-  const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
-  const filteredContacts = selectedAccountId
-    ? contacts.filter((c) => c.account_id === selectedAccountId)
-    : contacts
 
   return (
     <form ref={formRef} action={formAction} className="space-y-5">
@@ -64,6 +57,20 @@ export default function TaskForm({ action, cancelHref, accounts, contacts, oppor
           csvFormat="タイトル,期日,優先度"
           fieldMap={{ 'タイトル': 'title', '期日': 'due_date', '優先度': 'priority' }}
           valueMap={{ priority: { '高': 'high', '中': 'medium', '低': 'low' } }}
+        />
+      </div>
+
+      {/* ── 関連レコード（画面最上部） ─────────────────────────────── */}
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-2">
+          関連レコード
+          <span className="ml-2 text-xs text-zinc-500 font-normal">標準 / カスタムオブジェクトのレコードを複数選択できます</span>
+        </label>
+        <RelatedRecordsPicker
+          name="related_records"
+          objectTypes={objectTypes}
+          recordsByObject={recordsByObject}
+          defaultValue={defaultValues.related_records ?? []}
         />
       </div>
 
@@ -106,39 +113,6 @@ export default function TaskForm({ action, cancelHref, accounts, contacts, oppor
               </label>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">取引先</label>
-        <SearchableSelect
-          name="account_id"
-          defaultValue={defaultValues.account_id}
-          options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-          placeholder="選択してください"
-          onSelect={setSelectedAccountId}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">人物</label>
-          <SearchableSelect
-            key={selectedAccountId}
-            name="contact_id"
-            defaultValue={defaultValues.contact_id}
-            options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
-            placeholder="選択してください"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">商談</label>
-          <SearchableSelect
-            name="opportunity_id"
-            defaultValue={defaultValues.opportunity_id}
-            options={opportunities.map((o) => ({ value: o.id, label: o.name }))}
-            placeholder="選択してください"
-          />
         </div>
       </div>
 

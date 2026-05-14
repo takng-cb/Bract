@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { tasks, accounts, contacts, opportunities, custom_records, object_definitions } from '@/lib/schema'
+import { tasks, accounts, contacts, opportunities, custom_records, object_definitions, task_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -8,6 +8,7 @@ import { deleteTask, toggleTaskDone } from '@/app/actions/tasks'
 import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
+import { resolveRelatedRecords } from '@/lib/relatedRecords'
 
 /**
  * カスタムレコードの表示名を導出する。
@@ -33,26 +34,36 @@ const PRIORITY_CONFIG: Record<string, { label: string; bg: string; text: string 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const task = await db.select({
-    id: tasks.id, title: tasks.title, done: tasks.done,
-    priority: tasks.priority, due_date: tasks.due_date, created_at: tasks.created_at,
-    custom_record_id: tasks.custom_record_id,
-    accounts:      { id: accounts.id, name: accounts.name },
-    contacts:      { id: contacts.id, full_name: contacts.full_name },
-    opportunities: { id: opportunities.id, name: opportunities.name },
-    custom_record: { id: custom_records.id, data: custom_records.data, object_id: custom_records.object_id },
-    object_def:    { id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label },
-  })
-    .from(tasks)
-    .leftJoin(accounts, eq(tasks.account_id, accounts.id))
-    .leftJoin(contacts, eq(tasks.contact_id, contacts.id))
-    .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
-    .leftJoin(custom_records, eq(tasks.custom_record_id, custom_records.id))
-    .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
-    .where(eq(tasks.id, id))
-    .then((r) => r[0] ?? null)
+  const [task, relatedPairs] = await Promise.all([
+    db.select({
+      id: tasks.id, title: tasks.title, done: tasks.done,
+      priority: tasks.priority, due_date: tasks.due_date, created_at: tasks.created_at,
+      custom_record_id: tasks.custom_record_id,
+      accounts:      { id: accounts.id, name: accounts.name },
+      contacts:      { id: contacts.id, full_name: contacts.full_name },
+      opportunities: { id: opportunities.id, name: opportunities.name },
+      custom_record: { id: custom_records.id, data: custom_records.data, object_id: custom_records.object_id },
+      object_def:    { id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label },
+    })
+      .from(tasks)
+      .leftJoin(accounts, eq(tasks.account_id, accounts.id))
+      .leftJoin(contacts, eq(tasks.contact_id, contacts.id))
+      .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
+      .leftJoin(custom_records, eq(tasks.custom_record_id, custom_records.id))
+      .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
+      .where(eq(tasks.id, id))
+      .then((r) => r[0] ?? null),
+    db.select({
+      object_api: task_related_records.related_object_api,
+      record_id:  task_related_records.related_record_id,
+    })
+      .from(task_related_records)
+      .where(eq(task_related_records.task_id, id)),
+  ])
 
   if (!task) notFound()
+
+  const allRelated = await resolveRelatedRecords(relatedPairs)
 
   const account     = task.accounts?.id     ? task.accounts     : null
   const contact     = task.contacts?.id     ? task.contacts     : null
@@ -115,6 +126,22 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priority.bg} ${priority.text}`}>優先度: {priority.label}</span>
           {task.done && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">完了</span>}
         </div>
+      </div>
+
+      {/* 関連レコード（junction 経由で全件表示） */}
+      <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-md px-4 py-3">
+        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">関連レコード</p>
+        {allRelated.length > 0 ? (
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {allRelated.map((r, i) => (
+              <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-blue-600 hover:underline">
+                {r.icon} {r.label}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-400">紐づくレコードなし</p>
+        )}
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg p-6">

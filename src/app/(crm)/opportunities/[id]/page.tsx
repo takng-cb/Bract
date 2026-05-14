@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses } from '@/lib/schema'
-import { activityIdsRelatedTo } from '@/lib/relatedRecords'
+import { activityIdsRelatedTo, taskIdsRelatedTo } from '@/lib/relatedRecords'
 import { eq, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -83,7 +83,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     db.select().from(activities)
       .where(inArray(activities.id, activityIdsRelatedTo('opportunity', id)))
       .orderBy(desc(activities.occurred_at)),
-    db.select().from(tasks).where(eq(tasks.opportunity_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
+    db.select().from(tasks)
+      .where(inArray(tasks.id, taskIdsRelatedTo('opportunity', id)))
+      .orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.opportunity_id, id)).orderBy(desc(attachments.created_at)),
     db.select().from(expenses).where(eq(expenses.opportunity_id, id)).orderBy(desc(expenses.expense_date)),
     getCustomFieldsWithValues('opportunities', id),

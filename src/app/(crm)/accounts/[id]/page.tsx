@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, activities, tasks, attachments } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
-import { activityIdsRelatedTo } from '@/lib/relatedRecords'
+import { activityIdsRelatedTo, taskIdsRelatedTo } from '@/lib/relatedRecords'
 import { eq, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -63,7 +63,9 @@ export default async function AccountDetailPage({
     db.select().from(activities)
       .where(inArray(activities.id, activityIdsRelatedTo('account', id)))
       .orderBy(desc(activities.occurred_at)),
-    db.select().from(tasks).where(eq(tasks.account_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
+    db.select().from(tasks)
+      .where(inArray(tasks.id, taskIdsRelatedTo('account', id)))
+      .orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.account_id, id)).orderBy(desc(attachments.created_at)),
     getCustomFieldsWithValues('accounts', id),
     canEdit(), // 編集ボタン表示判定（担当者リスト等に使用）

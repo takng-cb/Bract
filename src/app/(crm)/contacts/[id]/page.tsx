@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { contacts, accounts, activities, tasks, attachments } from '@/lib/schema'
-import { activityIdsRelatedTo } from '@/lib/relatedRecords'
+import { activityIdsRelatedTo, taskIdsRelatedTo } from '@/lib/relatedRecords'
 import { eq, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -58,7 +58,9 @@ export default async function ContactDetailPage({
     db.select().from(activities)
       .where(inArray(activities.id, activityIdsRelatedTo('contact', id)))
       .orderBy(desc(activities.occurred_at)),
-    db.select().from(tasks).where(eq(tasks.contact_id, id)).orderBy(asc(tasks.done), asc(tasks.due_date)),
+    db.select().from(tasks)
+      .where(inArray(tasks.id, taskIdsRelatedTo('contact', id)))
+      .orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.contact_id, id)).orderBy(desc(attachments.created_at)),
     getCustomFieldsWithValues('contacts', id),
     canEdit(),
