@@ -11,6 +11,7 @@ import {
   unique,
   index,
   jsonb,
+  primaryKey,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -108,6 +109,9 @@ export const activities = pgTable('activities', {
 
 // ----------------------------------------------------------------
 // activity_contacts（活動 ↔ 担当者 中間テーブル）
+//
+// 注: activity_related_records への統合作業中。Phase 1 終盤で
+// 廃止予定（5 ファイルが依存しているため段階的に移行）。
 // ----------------------------------------------------------------
 export const activity_contacts = pgTable('activity_contacts', {
   id:          uuid('id').primaryKey().defaultRandom(),
@@ -116,6 +120,61 @@ export const activity_contacts = pgTable('activity_contacts', {
   created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
   unique().on(t.activity_id, t.contact_id),
+])
+
+// ----------------------------------------------------------------
+// activity_related_records（活動 ↔ 関連レコード 多態性 junction）
+//
+// activities/tasks/expenses が「複数の任意オブジェクトのレコード」と
+// 紐づくための多態性関連テーブル。標準オブジェクト（account/contact/
+// opportunity）もカスタムオブジェクトも同じスキーマで扱う。
+//
+// related_object_api の値:
+//   - 'account' / 'contact' / 'opportunity'（標準オブジェクト）
+//   - object_definitions.api_name（カスタムオブジェクト、例: 'properties'）
+//
+// related_record_id の参照先:
+//   - 標準: それぞれの accounts/contacts/opportunities テーブルの id
+//   - カスタム: custom_records.id
+//
+// FK 制約は多態性のため設定できない。レコード削除時のクリーンアップは
+// app 層で実施する（accounts/contacts/opportunities/custom_records の
+// delete 時に対応する junction 行も削除）。
+// ----------------------------------------------------------------
+export const activity_related_records = pgTable('activity_related_records', {
+  activity_id:        uuid('activity_id').notNull().references(() => activities.id, { onDelete: 'cascade' }),
+  related_object_api: text('related_object_api').notNull(),
+  related_record_id:  uuid('related_record_id').notNull(),
+  created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.activity_id, t.related_object_api, t.related_record_id] }),
+  index('activity_related_lookup_idx').on(t.related_object_api, t.related_record_id),
+])
+
+// ----------------------------------------------------------------
+// task_related_records（タスク ↔ 関連レコード）— activity_related_records と同じスキーマ
+// ----------------------------------------------------------------
+export const task_related_records = pgTable('task_related_records', {
+  task_id:            uuid('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  related_object_api: text('related_object_api').notNull(),
+  related_record_id:  uuid('related_record_id').notNull(),
+  created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.task_id, t.related_object_api, t.related_record_id] }),
+  index('task_related_lookup_idx').on(t.related_object_api, t.related_record_id),
+])
+
+// ----------------------------------------------------------------
+// expense_related_records（経費 ↔ 関連レコード）— activity_related_records と同じスキーマ
+// ----------------------------------------------------------------
+export const expense_related_records = pgTable('expense_related_records', {
+  expense_id:         uuid('expense_id').notNull().references(() => expenses.id, { onDelete: 'cascade' }),
+  related_object_api: text('related_object_api').notNull(),
+  related_record_id:  uuid('related_record_id').notNull(),
+  created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.expense_id, t.related_object_api, t.related_record_id] }),
+  index('expense_related_lookup_idx').on(t.related_object_api, t.related_record_id),
 ])
 
 // ----------------------------------------------------------------

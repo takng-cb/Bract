@@ -1,11 +1,12 @@
 import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, custom_records, object_definitions } from '@/lib/schema'
 import { eq, asc, and } from 'drizzle-orm'
-import ActivityForm, { type CustomObjectGroup } from '@/components/ActivityForm'
+import ActivityForm from '@/components/ActivityForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { createActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
 import { getActivityTypes } from '@/lib/activityTypes'
+import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
 /**
  * カスタムレコードの表示名を導出する。
@@ -39,7 +40,61 @@ export default async function NewActivityPage({
     }
   }
   await requireEditor()
-  // contact_id / opportunity_id から account_id を補完する
+
+  // 標準 + 有効カスタムオブジェクトとそれぞれのレコード一覧を並列取得
+  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, activityTypes] = await Promise.all([
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
+    db.select({ id: opportunities.id, name: opportunities.name })
+      .from(opportunities).orderBy(asc(opportunities.name)),
+    db.select({
+      id:           object_definitions.id,
+      api_name:     object_definitions.api_name,
+      label:        object_definitions.label,
+      icon:         object_definitions.icon,
+    })
+      .from(object_definitions)
+      .where(and(eq(object_definitions.is_builtin, false), eq(object_definitions.enable_activities, true)))
+      .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label)),
+    db.select({
+      id:        custom_records.id,
+      object_id: custom_records.object_id,
+      data:      custom_records.data,
+    }).from(custom_records),
+  ])
+
+  // 関連レコード Picker の入力データを組み立て
+  const objectTypes: ObjectTypeOption[] = [
+    { api: 'account',     label: '取引先', icon: '🏢' },
+    { api: 'contact',     label: '人物',   icon: '👤' },
+    { api: 'opportunity', label: '商談',   icon: '💼' },
+    ...enabledCustomObjects.map((o) => ({ api: o.api_name, label: o.label, icon: o.icon })),
+  ]
+
+  // 標準オブジェクトのレコード
+  const recordsByObject: Record<string, RecordOption[]> = {
+    account:     accountsList.map((a) => ({ id: a.id, label: a.name })),
+    contact:     contactsList.map((c) => ({ id: c.id, label: c.full_name })),
+    opportunity: opportunitiesList.map((o) => ({ id: o.id, label: o.name })),
+  }
+
+  // カスタムオブジェクトのレコードを api_name でグルーピング
+  const objectIdToApiName = new Map(enabledCustomObjects.map((o) => [o.id, o.api_name]))
+  const objectIdToLabel   = new Map(enabledCustomObjects.map((o) => [o.id, o.label]))
+  for (const r of allCustomRecords) {
+    const api = objectIdToApiName.get(r.object_id)
+    if (!api) continue  // enable_activities=false のオブジェクトは除外
+    if (!recordsByObject[api]) recordsByObject[api] = []
+    recordsByObject[api].push({
+      id:    r.id,
+      label: customRecordTitle(r.data as Record<string, unknown>, objectIdToLabel.get(r.object_id), r.id),
+    })
+  }
+
+  // URL パラメータをデフォルト選択値に変換
+  // contact_id / opportunity_id から account_id を補完する旧挙動を維持
   let resolvedAccountId = account_id ?? ''
   if (!resolvedAccountId && contact_id) {
     const row = await db.select({ account_id: contacts.account_id })
@@ -52,64 +107,31 @@ export default async function NewActivityPage({
     resolvedAccountId = row?.account_id ?? ''
   }
 
-  const [accountsList, contactsList, opportunitiesList, customGroups, activityTypes] = await Promise.all([
-    db.select({ id: accounts.id, name: accounts.name })
-      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
-    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
-      .from(contacts).orderBy(asc(contacts.full_name)),
-    db.select({ id: opportunities.id, name: opportunities.name })
-      .from(opportunities).orderBy(asc(opportunities.name)),
-    // 活動を関連付け可能なカスタムオブジェクトとそのレコード一覧
-    (async (): Promise<CustomObjectGroup[]> => {
-      const objs = await db.select({
-        id: object_definitions.id,
-        api_name: object_definitions.api_name,
-        label: object_definitions.label,
-        label_plural: object_definitions.label_plural,
-        icon: object_definitions.icon,
-      })
-        .from(object_definitions)
-        .where(and(eq(object_definitions.is_builtin, false), eq(object_definitions.enable_activities, true)))
-        .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label))
-      if (objs.length === 0) return []
-      const records = await db.select({
-        id: custom_records.id,
-        object_id: custom_records.object_id,
-        data: custom_records.data,
-      }).from(custom_records)
-      return objs.map((obj) => ({
-        object_id: obj.id,
-        api_name: obj.api_name,
-        label: obj.label,
-        label_plural: obj.label_plural,
-        icon: obj.icon,
-        records: records
-          .filter((r) => r.object_id === obj.id)
-          .map((r) => ({
-            id: r.id,
-            label: customRecordTitle(r.data as Record<string, unknown>, obj.label, r.id),
-          })),
-      }))
-    })(),
-    getActivityTypes(),
-  ])
-
-  // 既定の custom_record_id が渡されたら、その object_id を解決
-  let defaultCustomObjectId = ''
+  // custom_record_id が渡されたら api_name を解決
+  let customDefault: { api: string; record_id: string } | null = null
   if (custom_record_id) {
-    const row = await db.select({ object_id: custom_records.object_id })
-      .from(custom_records).where(eq(custom_records.id, custom_record_id)).then((r) => r[0] ?? null)
-    defaultCustomObjectId = row?.object_id ?? ''
+    const row = await db.select({
+      object_id: custom_records.object_id,
+      api_name:  object_definitions.api_name,
+    })
+      .from(custom_records)
+      .innerJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
+      .where(eq(custom_records.id, custom_record_id))
+      .then((r) => r[0] ?? null)
+    if (row) customDefault = { api: row.api_name, record_id: custom_record_id }
   }
 
+  const defaultRelated: RelatedRecordSelection[] = []
+  if (resolvedAccountId) defaultRelated.push({ object_api: 'account', record_id: resolvedAccountId })
+  if (contact_id)         defaultRelated.push({ object_api: 'contact', record_id: contact_id })
+  if (opportunity_id)     defaultRelated.push({ object_api: 'opportunity', record_id: opportunity_id })
+  if (customDefault)      defaultRelated.push({ object_api: customDefault.api, record_id: customDefault.record_id })
+
   const cancelHref = return_to
-    ?? (account_id
-    ? `/accounts/${account_id}`
-    : contact_id
-    ? `/contacts/${contact_id}`
-    : opportunity_id
-    ? `/opportunities/${opportunity_id}`
-    : '/activities')
+    ?? (account_id     ? `/accounts/${account_id}`
+    :   contact_id     ? `/contacts/${contact_id}`
+    :   opportunity_id ? `/opportunities/${opportunity_id}`
+    :                    '/activities')
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
@@ -122,18 +144,10 @@ export default async function NewActivityPage({
         <ActivityForm
           action={createActivityAction}
           cancelHref={cancelHref}
-          accounts={accountsList}
-          contacts={contactsList}
-          opportunities={opportunitiesList}
-          customGroups={customGroups}
+          objectTypes={objectTypes}
+          recordsByObject={recordsByObject}
           activityTypes={activityTypes}
-          defaultValues={{
-            account_id: resolvedAccountId,
-            contact_ids: contact_id ? [contact_id] : [],
-            opportunity_id: opportunity_id ?? '',
-            custom_object_id: defaultCustomObjectId,
-            custom_record_id: custom_record_id ?? '',
-          }}
+          defaultValues={{ related_records: defaultRelated }}
         />
       </div>
     </div>
