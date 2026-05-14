@@ -85,6 +85,8 @@ src/industries/<業種名>/
   ```
 - ✅ DB スキーマは `src/lib/schema.ts` に **1 本に統合**。業種固有カラムは nullable or DEFAULT で base モードでも整合
 - ✅ 一覧ページの新フィルタ field 追加は `FilterColumnResolver` に entry を追加すれば SQL で動く（詳細は architecture.md）
+- ✅ **新規 list page には必ず `loading.tsx` を置く**（perceived performance）。`<ListPageSkeleton>` を import するだけで OK。dashboard / forecast 等の独自レイアウトページは手書きで実レイアウトに近いスケルトンを書く
+- ✅ ナビゲーション体感は `src/components/NavigationProgress.tsx` が `(crm)/layout.tsx` 経由で全 CRM ページに適用済み。Link クリック直後から青いバーが表示される
 
 ## DB マイグレーション運用（最重要・必読）
 
