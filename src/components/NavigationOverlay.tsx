@@ -10,8 +10,10 @@
  *
  * 動作:
  *   - <a> / <Link> クリック直後に即時表示開始（遅延なし）
- *   - usePathname() 変化後 GRACE_MS 経ってから消える
- *     （pathname 変化と実コンテンツ paint の間の白フラッシュを覆い隠す）
+ *   - pathname 変化後、<main> の DOM ミューテーションが SETTLE_MS 止まったら消える
+ *     （loading.tsx Suspense fallback → 実コンテンツ paint まで spinner を持続）
+ *   - mutation が全く来なければ SETTLE_MS 経過で消える（即着替えケース）
+ *   - 4 秒の hard cap で必ず消える（無限スピナー防止）
  *   - pointer-events-none で表示中もユーザー操作を阻害しない
  *   - 修飾キー押下 / 外部リンク / 同一 URL / target=_blank は無視（NavigationProgress と同じロジック）
  *
@@ -20,23 +22,22 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
-/**
- * pathname 変化後 spinner を残す時間（ms）。
- * 0 だと pathname 変化 = spinner 消失だが、新ページの実コンテンツ paint まで
- * 数百 ms ラグがあり、その間白フラッシュが見える。GRACE_MS 滞留させて隠す。
- *
- * 350ms → 700ms に延長 (Sprint 3+ 2nd iteration): 350ms では loading.tsx
- * Suspense fallback が描画される程度で、実コンテンツ paint には届かない
- * ケースが多かったため。長すぎる場合は値を下げる、または MutationObserver
- * ベースの「実コンテンツ検知」に切り替える。
- */
-const GRACE_MS = 700
+/** mutation が SETTLE_MS 間無ければ「実コンテンツ paint 完了」とみなす */
+const SETTLE_MS = 200
+
+/** 念のための上限。これを超えたら強制的に spinner を消す */
+const HARD_CAP_MS = 4000
+
+/** <main> が見つからなかった時のフォールバック表示時間 */
+const FALLBACK_MS = 700
 
 export default function NavigationOverlay() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
   const navigatingRef = useRef(false)
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const obsRef = useRef<MutationObserver | null>(null)
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hardCapRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 1. <a> / <Link> クリックを document レベルで補足
   useEffect(() => {
@@ -58,12 +59,11 @@ export default function NavigationOverlay() {
         return
       }
 
-      // クリック直後に即時表示（遅延なし）
-      // 前回 navigation の hide タイマーが動いていればキャンセル
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current)
-        hideTimerRef.current = null
-      }
+      // 前回 navigation の hide 処理が動いていれば全部キャンセル
+      if (obsRef.current) { obsRef.current.disconnect(); obsRef.current = null }
+      if (settleTimerRef.current) { clearTimeout(settleTimerRef.current); settleTimerRef.current = null }
+      if (hardCapRef.current) { clearTimeout(hardCapRef.current); hardCapRef.current = null }
+
       navigatingRef.current = true
       setVisible(true)
     }
@@ -71,20 +71,47 @@ export default function NavigationOverlay() {
     return () => document.removeEventListener('click', handler, true)
   }, [])
 
-  // 2. pathname 変化 = navigation 完了。GRACE_MS 滞留させてから消す。
+  // 2. pathname 変化 = navigation 完了の最初のシグナル
+  //    実コンテンツ paint まで MutationObserver で待つ
   useEffect(() => {
     if (!navigatingRef.current) return
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
-    hideTimerRef.current = setTimeout(() => {
+
+    const settle = () => {
       setVisible(false)
       navigatingRef.current = false
-      hideTimerRef.current = null
-    }, GRACE_MS)
-    return () => {
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current)
-        hideTimerRef.current = null
+      if (obsRef.current) { obsRef.current.disconnect(); obsRef.current = null }
+      if (settleTimerRef.current) { clearTimeout(settleTimerRef.current); settleTimerRef.current = null }
+      if (hardCapRef.current) { clearTimeout(hardCapRef.current); hardCapRef.current = null }
+    }
+
+    const main = document.querySelector('main')
+    if (!main) {
+      // <main> が見つからない場合は単純な timer フォールバック
+      settleTimerRef.current = setTimeout(settle, FALLBACK_MS)
+      return () => {
+        if (settleTimerRef.current) { clearTimeout(settleTimerRef.current); settleTimerRef.current = null }
       }
+    }
+
+    // 初期 settle timer（mutation が一度も来なくても消えるように）
+    settleTimerRef.current = setTimeout(settle, SETTLE_MS)
+
+    // <main> 配下の子要素変化を監視。mutation が来たら settle timer をリセット。
+    // loading.tsx skeleton → 実コンテンツの差し替えも含めて待つ。
+    const obs = new MutationObserver(() => {
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current)
+      settleTimerRef.current = setTimeout(settle, SETTLE_MS)
+    })
+    obs.observe(main, { childList: true, subtree: true })
+    obsRef.current = obs
+
+    // 念のための hard cap
+    hardCapRef.current = setTimeout(settle, HARD_CAP_MS)
+
+    return () => {
+      if (obsRef.current) { obsRef.current.disconnect(); obsRef.current = null }
+      if (settleTimerRef.current) { clearTimeout(settleTimerRef.current); settleTimerRef.current = null }
+      if (hardCapRef.current) { clearTimeout(hardCapRef.current); hardCapRef.current = null }
     }
   }, [pathname])
 
