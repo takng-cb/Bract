@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
+import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 
 export async function updateOpportunityStage(id: string, stage: string) {
   await requireEditor()
@@ -155,6 +156,7 @@ export async function updateOpportunity(id: string, formData: FormData) {
 
 export async function deleteOpportunity(id: string) {
   await requireEditor()
+  await cleanupRelatedRecordsForParent('opportunity', id)
   await db.delete(opportunities).where(eq(opportunities.id, id))
   redirect('/opportunities')
 }

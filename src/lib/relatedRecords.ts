@@ -58,6 +58,41 @@ export function expenseIdsRelatedTo(objectApi: string, recordId: string) {
     ))
 }
 
+/**
+ * 親レコード削除時に呼ぶ junction クリーンアップ。
+ *
+ * Phase 2 で FK 列を削除すると DB レベルの ON DELETE CASCADE が消えるため、
+ * アプリ層で「親レコードを参照していた junction 行」を削除する必要がある。
+ *
+ * 使い方:
+ *   await cleanupRelatedRecordsForParent('account', accountId)
+ *   await db.delete(accounts).where(eq(accounts.id, accountId))
+ *
+ * 業務挙動の変化:
+ *   旧: 取引先削除 → ON DELETE CASCADE で関連活動・ToDo・経費も削除
+ *   新: 取引先削除 → junction 行のみ削除、活動・ToDo・経費は他の関連先が
+ *       残っていれば残存（ユーザー承認済みの新仕様）
+ */
+export async function cleanupRelatedRecordsForParent(objectApi: string, recordId: string) {
+  await Promise.all([
+    db.delete(activity_related_records)
+      .where(and(
+        eq(activity_related_records.related_object_api, objectApi),
+        eq(activity_related_records.related_record_id, recordId),
+      )),
+    db.delete(task_related_records)
+      .where(and(
+        eq(task_related_records.related_object_api, objectApi),
+        eq(task_related_records.related_record_id, recordId),
+      )),
+    db.delete(expense_related_records)
+      .where(and(
+        eq(expense_related_records.related_object_api, objectApi),
+        eq(expense_related_records.related_record_id, recordId),
+      )),
+  ])
+}
+
 export type RelatedPair = {
   object_api: string
   record_id:  string

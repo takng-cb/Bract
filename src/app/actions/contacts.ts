@@ -7,6 +7,7 @@ import { contacts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { logChanges } from '@/lib/changeLog'
+import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 
 export async function createContact(formData: FormData): Promise<string> {
   await requireEditor()
@@ -79,6 +80,7 @@ export async function updateContact(id: string, formData: FormData) {
 
 export async function deleteContact(id: string) {
   await requireEditor()
+  await cleanupRelatedRecordsForParent('contact', id)
   await db.delete(contacts).where(eq(contacts.id, id))
   redirect('/contacts')
 }
