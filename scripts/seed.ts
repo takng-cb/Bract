@@ -172,16 +172,16 @@ async function seed() {
   console.log('  ✅ 活動履歴 4件')
 
   // ----------------------------------------------------------------
-  // activity_contacts の紐づけ
+  // activity_related_records の紐づけ（旧 activity_contacts の代替）
   // ----------------------------------------------------------------
   const activityRows = await db.select({ id: schema.activities.id })
     .from(schema.activities)
     .orderBy(schema.activities.occurred_at)
 
   if (activityRows.length >= 1) {
-    await db.insert(schema.activity_contacts).values([
-      { activity_id: activityRows[0].id, contact_id: con1.id },
-      { activity_id: activityRows[0].id, contact_id: con2.id },
+    await db.insert(schema.activity_related_records).values([
+      { activity_id: activityRows[0].id, related_object_api: 'contact', related_record_id: con1.id },
+      { activity_id: activityRows[0].id, related_object_api: 'contact', related_record_id: con2.id },
     ]).onConflictDoNothing()
   }
 

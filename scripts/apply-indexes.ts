@@ -22,9 +22,8 @@ const INDEXES = [
   'CREATE INDEX IF NOT EXISTS idx_activities_opportunity_id ON activities(opportunity_id)',
   'CREATE INDEX IF NOT EXISTS idx_activities_custom_record_id ON activities(custom_record_id)',
   'CREATE INDEX IF NOT EXISTS idx_activities_occurred_at ON activities(occurred_at DESC)',
-  // activity_contacts
-  'CREATE INDEX IF NOT EXISTS idx_activity_contacts_activity_id ON activity_contacts(activity_id)',
-  'CREATE INDEX IF NOT EXISTS idx_activity_contacts_contact_id ON activity_contacts(contact_id)',
+  // activity_related_records (Phase 1: activity_contacts を統合)
+  'CREATE INDEX IF NOT EXISTS idx_activity_related_activity_id ON activity_related_records(activity_id)',
   // tasks
   'CREATE INDEX IF NOT EXISTS idx_tasks_account_id ON tasks(account_id)',
   'CREATE INDEX IF NOT EXISTS idx_tasks_contact_id ON tasks(contact_id)',
