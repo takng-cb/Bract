@@ -1,25 +1,50 @@
 import { db } from '@/lib/db'
-import { expenses, accounts, opportunities } from '@/lib/schema'
-import { eq, desc } from 'drizzle-orm'
+import { expenses, accounts, opportunities, expense_related_records } from '@/lib/schema'
+import { eq, desc, inArray, and } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 
 export async function GET() {
   try {
     const data = await db.select({
-      id:            expenses.id,
-      title:         expenses.title,
-      amount:        expenses.amount,
-      category:      expenses.category,
-      expense_date:  expenses.expense_date,
-      notes:         expenses.notes,
-      accounts:      { name: accounts.name },
-      opportunities: { name: opportunities.name },
+      id:           expenses.id,
+      title:        expenses.title,
+      amount:       expenses.amount,
+      category:     expenses.category,
+      expense_date: expenses.expense_date,
+      notes:        expenses.notes,
     })
       .from(expenses)
-      .leftJoin(accounts,      eq(expenses.account_id,     accounts.id))
-      .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
       .orderBy(desc(expenses.expense_date))
+
+    const ids = data.map((d) => d.id)
+    const [accRows, oppRows] = await Promise.all([
+      ids.length === 0 ? Promise.resolve([]) : db.select({
+        host_id: expense_related_records.expense_id,
+        name:    accounts.name,
+      })
+        .from(expense_related_records)
+        .innerJoin(accounts, eq(accounts.id, expense_related_records.related_record_id))
+        .where(and(inArray(expense_related_records.expense_id, ids), eq(expense_related_records.related_object_api, 'account'))),
+      ids.length === 0 ? Promise.resolve([]) : db.select({
+        host_id: expense_related_records.expense_id,
+        name:    opportunities.name,
+      })
+        .from(expense_related_records)
+        .innerJoin(opportunities, eq(opportunities.id, expense_related_records.related_record_id))
+        .where(and(inArray(expense_related_records.expense_id, ids), eq(expense_related_records.related_object_api, 'opportunity'))),
+    ])
+
+    const namesByApi = (rows: Array<{ host_id: string; name: string }>) => {
+      const m = new Map<string, string[]>()
+      for (const r of rows) {
+        if (!m.has(r.host_id)) m.set(r.host_id, [])
+        m.get(r.host_id)!.push(r.name)
+      }
+      return m
+    }
+    const accNamesById = namesByApi(accRows)
+    const oppNamesById = namesByApi(oppRows)
 
     const headers = ['ID', '件名', '金額', 'カテゴリ', '日付', '取引先名', '商談名', '備考']
     const rows = data.map((r) => [
@@ -28,8 +53,8 @@ export async function GET() {
       r.amount,
       r.category,
       r.expense_date ?? '',
-      r.accounts?.name      ?? '',
-      r.opportunities?.name ?? '',
+      (accNamesById.get(r.id) ?? []).join(', '),
+      (oppNamesById.get(r.id) ?? []).join(', '),
       r.notes ?? '',
     ])
 

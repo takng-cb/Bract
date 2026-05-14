@@ -1,26 +1,59 @@
 import { db } from '@/lib/db'
-import { activities, accounts, contacts, opportunities } from '@/lib/schema'
-import { eq, desc } from 'drizzle-orm'
+import { activities, accounts, contacts, opportunities, activity_related_records } from '@/lib/schema'
+import { eq, desc, inArray, and } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 
 export async function GET() {
   try {
+    // 全活動を取得（FK 列に依存しない）
     const data = await db.select({
-      id:            activities.id,
-      occurred_at:   activities.occurred_at,
-      type:          activities.type,
-      subject:       activities.subject,
-      body:          activities.body,
-      accounts:      { name: accounts.name },
-      contacts:      { full_name: contacts.full_name },
-      opportunities: { name: opportunities.name },
+      id:          activities.id,
+      occurred_at: activities.occurred_at,
+      type:        activities.type,
+      subject:     activities.subject,
+      body:        activities.body,
     })
       .from(activities)
-      .leftJoin(accounts,      eq(activities.account_id,     accounts.id))
-      .leftJoin(contacts,      eq(activities.contact_id,     contacts.id))
-      .leftJoin(opportunities, eq(activities.opportunity_id, opportunities.id))
       .orderBy(desc(activities.occurred_at))
+
+    // junction 経由で関連レコード名を bulk fetch
+    const ids = data.map((d) => d.id)
+    const [accRows, contRows, oppRows] = await Promise.all([
+      ids.length === 0 ? Promise.resolve([]) : db.select({
+        host_id: activity_related_records.activity_id,
+        name:    accounts.name,
+      })
+        .from(activity_related_records)
+        .innerJoin(accounts, eq(accounts.id, activity_related_records.related_record_id))
+        .where(and(inArray(activity_related_records.activity_id, ids), eq(activity_related_records.related_object_api, 'account'))),
+      ids.length === 0 ? Promise.resolve([]) : db.select({
+        host_id: activity_related_records.activity_id,
+        name:    contacts.full_name,
+      })
+        .from(activity_related_records)
+        .innerJoin(contacts, eq(contacts.id, activity_related_records.related_record_id))
+        .where(and(inArray(activity_related_records.activity_id, ids), eq(activity_related_records.related_object_api, 'contact'))),
+      ids.length === 0 ? Promise.resolve([]) : db.select({
+        host_id: activity_related_records.activity_id,
+        name:    opportunities.name,
+      })
+        .from(activity_related_records)
+        .innerJoin(opportunities, eq(opportunities.id, activity_related_records.related_record_id))
+        .where(and(inArray(activity_related_records.activity_id, ids), eq(activity_related_records.related_object_api, 'opportunity'))),
+    ])
+
+    const namesByApi = (rows: Array<{ host_id: string; name: string }>) => {
+      const m = new Map<string, string[]>()
+      for (const r of rows) {
+        if (!m.has(r.host_id)) m.set(r.host_id, [])
+        m.get(r.host_id)!.push(r.name)
+      }
+      return m
+    }
+    const accNamesById  = namesByApi(accRows)
+    const contNamesById = namesByApi(contRows)
+    const oppNamesById  = namesByApi(oppRows)
 
     const headers = ['ID', '実施日時', '種別', '件名', '内容', '取引先名', '担当者名', '商談名']
     const rows = data.map((r) => [
@@ -29,9 +62,9 @@ export async function GET() {
       r.type,
       r.subject,
       r.body ?? '',
-      r.accounts?.name      ?? '',
-      r.contacts?.full_name ?? '',
-      r.opportunities?.name ?? '',
+      (accNamesById.get(r.id)  ?? []).join(', '),
+      (contNamesById.get(r.id) ?? []).join(', '),
+      (oppNamesById.get(r.id)  ?? []).join(', '),
     ])
 
     return new NextResponse(buildCsv(headers, rows), {
