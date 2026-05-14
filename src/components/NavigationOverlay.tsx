@@ -10,22 +10,28 @@
  *
  * 動作:
  *   - <a> / <Link> クリック直後に即時表示開始（遅延なし）
- *   - usePathname() 変化を navigation 完了とみなし、即時消える
+ *   - usePathname() 変化後 GRACE_MS 経ってから消える
+ *     （pathname 変化と実コンテンツ paint の間の白フラッシュを覆い隠す）
  *   - pointer-events-none で表示中もユーザー操作を阻害しない
  *   - 修飾キー押下 / 外部リンク / 同一 URL / target=_blank は無視（NavigationProgress と同じロジック）
- *
- * 注: 以前は 200ms 遅延後に表示していたが、Phase A+ Sprint 3+ で「常時表示」に変更。
- * 瞬間的なナビでも一瞬チラつくが、必ずフィードバックが出る方をユーザーが希望したため。
  *
  * Phase A+ perceived performance 改善 (#40 Sprint 3+)。
  */
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
+/**
+ * pathname 変化後 spinner を残す時間（ms）。
+ * 0 だと pathname 変化 = spinner 消失だが、新ページの実コンテンツ paint まで
+ * 数百 ms ラグがあり、その間白フラッシュが見える。GRACE_MS 滞留させて隠す。
+ */
+const GRACE_MS = 350
+
 export default function NavigationOverlay() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
   const navigatingRef = useRef(false)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 1. <a> / <Link> クリックを document レベルで補足
   useEffect(() => {
@@ -48,6 +54,11 @@ export default function NavigationOverlay() {
       }
 
       // クリック直後に即時表示（遅延なし）
+      // 前回 navigation の hide タイマーが動いていればキャンセル
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current)
+        hideTimerRef.current = null
+      }
       navigatingRef.current = true
       setVisible(true)
     }
@@ -55,11 +66,21 @@ export default function NavigationOverlay() {
     return () => document.removeEventListener('click', handler, true)
   }, [])
 
-  // 2. pathname 変化 = navigation 完了
+  // 2. pathname 変化 = navigation 完了。GRACE_MS 滞留させてから消す。
   useEffect(() => {
     if (!navigatingRef.current) return
-    setVisible(false)
-    navigatingRef.current = false
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = setTimeout(() => {
+      setVisible(false)
+      navigatingRef.current = false
+      hideTimerRef.current = null
+    }, GRACE_MS)
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current)
+        hideTimerRef.current = null
+      }
+    }
   }, [pathname])
 
   if (!visible) return null
