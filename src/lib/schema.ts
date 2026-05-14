@@ -108,21 +108,6 @@ export const activities = pgTable('activities', {
 })
 
 // ----------------------------------------------------------------
-// activity_contacts（活動 ↔ 担当者 中間テーブル）
-//
-// 注: activity_related_records への統合作業中。Phase 1 終盤で
-// 廃止予定（5 ファイルが依存しているため段階的に移行）。
-// ----------------------------------------------------------------
-export const activity_contacts = pgTable('activity_contacts', {
-  id:          uuid('id').primaryKey().defaultRandom(),
-  activity_id: uuid('activity_id').notNull().references(() => activities.id, { onDelete: 'cascade' }),
-  contact_id:  uuid('contact_id').notNull().references(() => contacts.id, { onDelete: 'cascade' }),
-  created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
-}, (t) => [
-  unique().on(t.activity_id, t.contact_id),
-])
-
-// ----------------------------------------------------------------
 // activity_related_records（活動 ↔ 関連レコード 多態性 junction）
 //
 // activities/tasks/expenses が「複数の任意オブジェクトのレコード」と
@@ -423,10 +408,9 @@ export const accountsRelations = relations(accounts, ({ many }) => ({
   attachments:   many(attachments),
 }))
 
-export const contactsRelations = relations(contacts, ({ one, many }) => ({
+export const contactsRelations = relations(contacts, ({ one }) => ({
   // named 'accounts' to match Supabase's embedded select naming
-  accounts:          one(accounts, { fields: [contacts.account_id], references: [accounts.id] }),
-  activity_contacts: many(activity_contacts),
+  accounts: one(accounts, { fields: [contacts.account_id], references: [accounts.id] }),
 }))
 
 export const opportunitiesRelations = relations(opportunities, ({ one, many }) => ({
@@ -438,16 +422,10 @@ export const opportunitiesRelations = relations(opportunities, ({ one, many }) =
 }))
 
 export const activitiesRelations = relations(activities, ({ one, many }) => ({
-  accounts:          one(accounts, { fields: [activities.account_id], references: [accounts.id] }),
-  contacts:          one(contacts, { fields: [activities.contact_id], references: [contacts.id] }),
-  opportunities:     one(opportunities, { fields: [activities.opportunity_id], references: [opportunities.id] }),
-  activity_contacts: many(activity_contacts),
-  attachments:       many(attachments),
-}))
-
-export const activityContactsRelations = relations(activity_contacts, ({ one }) => ({
-  activities: one(activities, { fields: [activity_contacts.activity_id], references: [activities.id] }),
-  contacts:   one(contacts, { fields: [activity_contacts.contact_id], references: [contacts.id] }),
+  accounts:      one(accounts, { fields: [activities.account_id], references: [accounts.id] }),
+  contacts:      one(contacts, { fields: [activities.contact_id], references: [contacts.id] }),
+  opportunities: one(opportunities, { fields: [activities.opportunity_id], references: [opportunities.id] }),
+  attachments:   many(attachments),
 }))
 
 export const tasksRelations = relations(tasks, ({ one }) => ({

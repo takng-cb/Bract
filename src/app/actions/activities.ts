@@ -5,7 +5,6 @@ import { requireEditor } from '@/lib/auth'
 import { db } from '@/lib/db'
 import {
   activities,
-  activity_contacts,
   activity_related_records,
   object_definitions,
   custom_records,
@@ -83,19 +82,6 @@ async function syncActivityRelatedRecords(
     custom_record_id: customRecordId,
   }).where(eq(activities.id, activityId))
 
-  // 3. activity_contacts も同期（Phase 1: 廃止前の暫定）
-  //    junction で選ばれた contact 全部を activity_contacts にも書く
-  await db.delete(activity_contacts).where(eq(activity_contacts.activity_id, activityId))
-  const contactIds = selections.filter((s) => s.object_api === 'contact').map((s) => s.record_id)
-  if (contactIds.length > 0) {
-    const seen = new Set<string>()
-    const rows = contactIds.filter((cid) => {
-      if (seen.has(cid)) return false
-      seen.add(cid)
-      return true
-    }).map((cid) => ({ activity_id: activityId, contact_id: cid }))
-    await db.insert(activity_contacts).values(rows)
-  }
 }
 
 export async function updateActivity(id: string, formData: FormData) {

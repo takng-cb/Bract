@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { activities, accounts, opportunities, activity_contacts, contacts, custom_records, object_definitions, activity_related_records } from '@/lib/schema'
+import { activities, accounts, opportunities, custom_records, object_definitions, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -29,7 +29,7 @@ function customRecordTitle(
 export default async function ActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [activityRow, linkedContactRows, relatedPairs] = await Promise.all([
+  const [activityRow, relatedPairs] = await Promise.all([
     db.select({
       id: activities.id, type: activities.type, subject: activities.subject,
       body: activities.body, occurred_at: activities.occurred_at, created_at: activities.created_at,
@@ -46,11 +46,6 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
       .where(eq(activities.id, id))
       .then((r) => r[0] ?? null),
-    db.select({ contact_id: activity_contacts.contact_id, full_name: contacts.full_name })
-      .from(activity_contacts)
-      .innerJoin(contacts, eq(activity_contacts.contact_id, contacts.id))
-      .where(eq(activity_contacts.activity_id, id)),
-    // junction から全関連レコードを取得（複数選択された全部を表示するため）
     db.select({
       object_api: activity_related_records.related_object_api,
       record_id:  activity_related_records.related_record_id,
@@ -61,6 +56,8 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
 
   // junction の (object_api, record_id) ペアをラベル + href に解決
   const allRelated = await resolveRelatedRecords(relatedPairs)
+  // 「人物」セクション表示用: junction の contact 関連のみ抽出
+  const linkedContacts = allRelated.filter((r) => r.object_api === 'contact')
 
   const activityTypes = await getActivityTypes()
   const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
@@ -86,17 +83,13 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
     : null
 
   // 親レコードのリンク: junction から取得した全レコードを優先
-  // junction が空の場合（マイグレーション直後など）は FK 列・activity_contacts
-  // からフォールバック生成する
+  // junction が空の場合（マイグレーション直後など）は FK 列からフォールバック
   let parentLinks: { icon: string; label: string; href: string }[]
   if (allRelated.length > 0) {
     parentLinks = allRelated.map((r) => ({ icon: r.icon, label: r.label, href: r.href }))
   } else {
     parentLinks = []
     if (account)     parentLinks.push({ icon: '🏢', label: account.name,     href: `/accounts/${account.id}` })
-    for (const c of linkedContactRows) {
-      parentLinks.push({ icon: '👤', label: c.full_name, href: `/contacts/${c.contact_id}` })
-    }
     if (opportunity) parentLinks.push({ icon: '💼', label: opportunity.name, href: `/opportunities/${opportunity.id}` })
     if (customRecord && customHref && customLabel) {
       parentLinks.push({ icon: objectDef?.label ? '🗂️' : '🗂️', label: customLabel, href: customHref })
@@ -199,11 +192,11 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
           <div className="col-span-1 sm:col-span-2">
             <dt className="text-xs text-zinc-400 mb-1">人物</dt>
             <dd className="text-sm">
-              {linkedContactRows.length > 0 ? (
+              {linkedContacts.length > 0 ? (
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {linkedContactRows.map((c) => (
-                    <Link key={c.contact_id} href={`/contacts/${c.contact_id}`} className="inline-flex items-center gap-1 text-blue-600 hover:underline">
-                      👤 {c.full_name}
+                  {linkedContacts.map((c) => (
+                    <Link key={c.record_id} href={c.href} className="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                      👤 {c.label}
                     </Link>
                   ))}
                 </div>
