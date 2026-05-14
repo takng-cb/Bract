@@ -25,6 +25,7 @@ async function syncExpenseRelatedRecords(
   expenseId: string,
   selections: { object_api: string; record_id: string }[],
 ) {
+  // Phase 2: junction が唯一の関連先情報（FK 列への dual-write は撤廃）
   await db.delete(expense_related_records).where(eq(expense_related_records.expense_id, expenseId))
   if (selections.length > 0) {
     const seen = new Set<string>()
@@ -44,25 +45,6 @@ async function syncExpenseRelatedRecords(
       await db.insert(expense_related_records).values(rows).onConflictDoNothing()
     }
   }
-
-  // 後方互換 FK 列の更新
-  const firstByApi = new Map<string, string>()
-  for (const s of selections) {
-    if (!firstByApi.has(s.object_api)) firstByApi.set(s.object_api, s.record_id)
-  }
-  const accountId     = firstByApi.get('account')     ?? null
-  const contactId     = firstByApi.get('contact')     ?? null
-  const opportunityId = firstByApi.get('opportunity') ?? null
-  const customApis    = [...firstByApi.keys()].filter((api) => !['account', 'contact', 'opportunity'].includes(api))
-  let customRecordId: string | null = null
-  if (customApis.length > 0) customRecordId = firstByApi.get(customApis[0]) ?? null
-  await db.update(expenses).set({
-    account_id:       accountId,
-    contact_id:       contactId,
-    opportunity_id:   opportunityId,
-    custom_record_id: customRecordId,
-    updated_at:       new Date(),
-  }).where(eq(expenses.id, expenseId))
 }
 
 export async function createExpense(formData: FormData) {

@@ -31,18 +31,14 @@ function parseRelatedRecords(formData: FormData): { object_api: string; record_i
  * 既存行を全削除 → 新規挿入の素朴な実装。activity 単位の件数は通常少ない
  * (~数十件) ので問題ない。
  *
- * dual-write: 後方互換のため、標準オブジェクト (account/contact/opportunity)
- * と最初に見つけたカスタムオブジェクトレコードを activities テーブルの
- * 既存 FK 列にも書き戻す。Phase 2 で FK 列を撤廃する想定。
+ * Phase 2 で FK 列への dual-write は撤廃済み。junction が唯一の関連先情報。
  */
 async function syncActivityRelatedRecords(
   activityId: string,
   selections: { object_api: string; record_id: string }[],
 ) {
-  // 1. junction の差し替え
   await db.delete(activity_related_records).where(eq(activity_related_records.activity_id, activityId))
   if (selections.length > 0) {
-    // 重複は ON CONFLICT で防ぐ（DB 側 PK 制約があるため一応 dedup しておく）
     const seen = new Set<string>()
     const rows = selections
       .filter((s) => {
@@ -60,28 +56,6 @@ async function syncActivityRelatedRecords(
       await db.insert(activity_related_records).values(rows).onConflictDoNothing()
     }
   }
-
-  // 2. 後方互換: 既存 FK 列の更新
-  const firstByApi = new Map<string, string>()
-  for (const s of selections) {
-    if (!firstByApi.has(s.object_api)) firstByApi.set(s.object_api, s.record_id)
-  }
-  const accountId      = firstByApi.get('account')      ?? null
-  const opportunityId  = firstByApi.get('opportunity')  ?? null
-  const contactId      = firstByApi.get('contact')      ?? null
-  // カスタムオブジェクトの最初の選択を custom_record_id に書く
-  const customApis = [...firstByApi.keys()].filter((api) => !['account', 'contact', 'opportunity'].includes(api))
-  let customRecordId: string | null = null
-  if (customApis.length > 0) {
-    customRecordId = firstByApi.get(customApis[0]) ?? null
-  }
-  await db.update(activities).set({
-    account_id:       accountId,
-    contact_id:       contactId,
-    opportunity_id:   opportunityId,
-    custom_record_id: customRecordId,
-  }).where(eq(activities.id, activityId))
-
 }
 
 export async function updateActivity(id: string, formData: FormData) {
