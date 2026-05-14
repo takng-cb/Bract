@@ -22,6 +22,7 @@ export default function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
               isActive ? 'text-blue-600' : 'text-zinc-500'
             }`}

@@ -4,6 +4,25 @@ import withPWA from "@ducanh2912/next-pwa";
 const nextConfig: NextConfig = {
   turbopack: {},
   /**
+   * Client cache の TTL を伸ばす（Next.js 16）。
+   *
+   * デフォルトでは dynamic ページ（DB を叩く Server Component を含むページ）の
+   * client cache は 0 秒（無効）で、戻る/再訪のたびにサーバーに行ってしまう。
+   * 体感パフォーマンス改善 (#40) の文脈で、本 CRM の主要ナビは「短期間で同じ
+   * 画面を行き来する」ユースが多いため、dynamic も 30 秒キャッシュする。
+   *
+   * static は prefetch={true} 付きの Link でも適用される。
+   * Sidebar / MobileNav / BottomNav はすべて prefetch={true} で 5 分キャッシュ。
+   *
+   * docs: node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/staleTimes.md
+   */
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
+  },
+  /**
    * /properties/* と /vehicles/* リダイレクト（INDUSTRY 切替）
    *
    * - INDUSTRY=real-estate: /properties は overlay 専用ルートへ。

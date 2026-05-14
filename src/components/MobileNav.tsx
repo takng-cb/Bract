@@ -69,6 +69,7 @@ export default function MobileNav({ mainItems, companyName, isAdmin = false }: P
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 onClick={() => setOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
                   isActive
