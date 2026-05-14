@@ -1,26 +1,57 @@
 import { db } from '@/lib/db'
-import { tasks, accounts, contacts, opportunities } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import { tasks, accounts, contacts, opportunities, task_related_records } from '@/lib/schema'
+import { eq, asc, inArray, and } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 
 export async function GET() {
   try {
     const data = await db.select({
-      id:            tasks.id,
-      title:         tasks.title,
-      due_date:      tasks.due_date,
-      priority:      tasks.priority,
-      done:          tasks.done,
-      accounts:      { name: accounts.name },
-      contacts:      { full_name: contacts.full_name },
-      opportunities: { name: opportunities.name },
+      id:       tasks.id,
+      title:    tasks.title,
+      due_date: tasks.due_date,
+      priority: tasks.priority,
+      done:     tasks.done,
     })
       .from(tasks)
-      .leftJoin(accounts,      eq(tasks.account_id,     accounts.id))
-      .leftJoin(contacts,      eq(tasks.contact_id,     contacts.id))
-      .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
       .orderBy(asc(tasks.done), asc(tasks.due_date))
+
+    const ids = data.map((d) => d.id)
+    const [accRows, contRows, oppRows] = await Promise.all([
+      ids.length === 0 ? Promise.resolve([]) : db.select({
+        host_id: task_related_records.task_id,
+        name:    accounts.name,
+      })
+        .from(task_related_records)
+        .innerJoin(accounts, eq(accounts.id, task_related_records.related_record_id))
+        .where(and(inArray(task_related_records.task_id, ids), eq(task_related_records.related_object_api, 'account'))),
+      ids.length === 0 ? Promise.resolve([]) : db.select({
+        host_id: task_related_records.task_id,
+        name:    contacts.full_name,
+      })
+        .from(task_related_records)
+        .innerJoin(contacts, eq(contacts.id, task_related_records.related_record_id))
+        .where(and(inArray(task_related_records.task_id, ids), eq(task_related_records.related_object_api, 'contact'))),
+      ids.length === 0 ? Promise.resolve([]) : db.select({
+        host_id: task_related_records.task_id,
+        name:    opportunities.name,
+      })
+        .from(task_related_records)
+        .innerJoin(opportunities, eq(opportunities.id, task_related_records.related_record_id))
+        .where(and(inArray(task_related_records.task_id, ids), eq(task_related_records.related_object_api, 'opportunity'))),
+    ])
+
+    const namesByApi = (rows: Array<{ host_id: string; name: string }>) => {
+      const m = new Map<string, string[]>()
+      for (const r of rows) {
+        if (!m.has(r.host_id)) m.set(r.host_id, [])
+        m.get(r.host_id)!.push(r.name)
+      }
+      return m
+    }
+    const accNamesById  = namesByApi(accRows)
+    const contNamesById = namesByApi(contRows)
+    const oppNamesById  = namesByApi(oppRows)
 
     const PRIORITY_LABEL: Record<string, string> = { high: '高', medium: '中', low: '低' }
 
@@ -31,9 +62,9 @@ export async function GET() {
       r.due_date ?? '',
       PRIORITY_LABEL[r.priority] ?? r.priority,
       r.done ? '完了' : '未完了',
-      r.accounts?.name      ?? '',
-      r.contacts?.full_name ?? '',
-      r.opportunities?.name ?? '',
+      (accNamesById.get(r.id)  ?? []).join(', '),
+      (contNamesById.get(r.id) ?? []).join(', '),
+      (oppNamesById.get(r.id)  ?? []).join(', '),
     ])
 
     return new NextResponse(buildCsv(headers, rows), {

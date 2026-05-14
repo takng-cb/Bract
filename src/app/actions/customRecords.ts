@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { canEdit } from '@/lib/auth'
 import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { redirect } from 'next/navigation'
+import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 
 // ────────────────────────────────────────────────────────────────
 // カスタムレコード CRUD
@@ -76,6 +77,9 @@ export async function deleteCustomRecord(
   const obj = await getObjectDef(objectApiName)
   if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
 
+  // Phase 2: junction クリーンアップ。api_name 経由で参照されているため
+  // objectApiName (= object_definitions.api_name) を渡す。
+  await cleanupRelatedRecordsForParent(objectApiName, recordId)
   await db.delete(custom_records)
     .where(and(eq(custom_records.id, recordId), eq(custom_records.object_id, obj.id)))
 

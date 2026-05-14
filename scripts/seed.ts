@@ -135,106 +135,92 @@ async function seed() {
   // ----------------------------------------------------------------
   // 活動履歴
   // ----------------------------------------------------------------
-  await db.insert(schema.activities).values([
+  const activityRows = await db.insert(schema.activities).values([
     {
-      account_id: acc1.id,
-      opportunity_id: opp1.id,
       type: 'meeting',
       subject: '要件定義ミーティング',
       body: '現行システムの課題をヒアリング。移行データ量は約50万件。スケジュールは3ヶ月を想定。次回は提案書レビューを実施する。',
       occurred_at: new Date('2026-04-20T10:00:00'),
     },
     {
-      account_id: acc2.id,
-      opportunity_id: opp2.id,
       type: 'call',
       subject: '価格交渉の電話',
       body: '佐藤部長より10%値引き要求あり。社内確認の上、来週中に回答する旨を伝えた。',
       occurred_at: new Date('2026-04-25T14:30:00'),
     },
     {
-      account_id: acc3.id,
-      opportunity_id: opp3.id,
       type: 'email',
       subject: '提案資料の送付',
       body: '要件ヒアリング結果に基づいた提案書を送付。競合との差別化ポイントとしてサポート体制を強調した。',
       occurred_at: new Date('2026-04-22T09:00:00'),
     },
     {
-      account_id: acc1.id,
       type: 'note',
       subject: '展示会での接触メモ',
       body: 'IT-EXPOにて田中CTOと名刺交換。次世代開発環境に興味あり。後日デモのアポを取ること。',
       occurred_at: new Date('2026-04-15T16:00:00'),
     },
-  ])
+  ]).returning({ id: schema.activities.id })
 
   console.log('  ✅ 活動履歴 4件')
 
-  // ----------------------------------------------------------------
-  // activity_related_records の紐づけ（旧 activity_contacts の代替）
-  // ----------------------------------------------------------------
-  const activityRows = await db.select({ id: schema.activities.id })
-    .from(schema.activities)
-    .orderBy(schema.activities.occurred_at)
-
-  if (activityRows.length >= 1) {
+  // 関連レコードを junction に登録（Phase 2: FK 列が無いので junction が唯一の関連先）
+  if (activityRows.length >= 4) {
     await db.insert(schema.activity_related_records).values([
-      { activity_id: activityRows[0].id, related_object_api: 'contact', related_record_id: con1.id },
-      { activity_id: activityRows[0].id, related_object_api: 'contact', related_record_id: con2.id },
+      // 0: 要件定義 → acc1 + opp1 + con1 + con2
+      { activity_id: activityRows[0].id, related_object_api: 'account',     related_record_id: acc1.id },
+      { activity_id: activityRows[0].id, related_object_api: 'opportunity', related_record_id: opp1.id },
+      { activity_id: activityRows[0].id, related_object_api: 'contact',     related_record_id: con1.id },
+      { activity_id: activityRows[0].id, related_object_api: 'contact',     related_record_id: con2.id },
+      // 1: 価格交渉 → acc2 + opp2
+      { activity_id: activityRows[1].id, related_object_api: 'account',     related_record_id: acc2.id },
+      { activity_id: activityRows[1].id, related_object_api: 'opportunity', related_record_id: opp2.id },
+      // 2: 提案資料 → acc3 + opp3
+      { activity_id: activityRows[2].id, related_object_api: 'account',     related_record_id: acc3.id },
+      { activity_id: activityRows[2].id, related_object_api: 'opportunity', related_record_id: opp3.id },
+      // 3: 展示会メモ → acc1
+      { activity_id: activityRows[3].id, related_object_api: 'account',     related_record_id: acc1.id },
     ]).onConflictDoNothing()
   }
 
   // ----------------------------------------------------------------
   // ToDo
   // ----------------------------------------------------------------
-  await db.insert(schema.tasks).values([
-    {
-      title: '提案書レビューのフォローアップ',
-      priority: 'high',
-      due_date: '2026-05-07',
-      done: false,
-      account_id: acc1.id,
-      contact_id: con1.id,
-      opportunity_id: opp1.id,
-    },
-    {
-      title: '価格交渉の回答を送付',
-      priority: 'high',
-      due_date: '2026-05-02',
-      done: false,
-      account_id: acc2.id,
-      contact_id: con3.id,
-      opportunity_id: opp2.id,
-    },
-    {
-      title: '大阪製造への競合比較資料を作成',
-      priority: 'medium',
-      due_date: '2026-05-15',
-      done: false,
-      account_id: acc3.id,
-      contact_id: con4.id,
-    },
-    {
-      title: '月次営業レポートの作成',
-      priority: 'low',
-      due_date: '2026-04-30',
-      done: true,
-    },
-  ])
+  const taskRows = await db.insert(schema.tasks).values([
+    { title: '提案書レビューのフォローアップ', priority: 'high',   due_date: '2026-05-07', done: false },
+    { title: '価格交渉の回答を送付',           priority: 'high',   due_date: '2026-05-02', done: false },
+    { title: '大阪製造への競合比較資料を作成', priority: 'medium', due_date: '2026-05-15', done: false },
+    { title: '月次営業レポートの作成',         priority: 'low',    due_date: '2026-04-30', done: true  },
+  ]).returning({ id: schema.tasks.id })
 
   console.log('  ✅ ToDo 4件')
+
+  if (taskRows.length >= 4) {
+    await db.insert(schema.task_related_records).values([
+      // 0: 提案書レビュー → acc1 + con1 + opp1
+      { task_id: taskRows[0].id, related_object_api: 'account',     related_record_id: acc1.id },
+      { task_id: taskRows[0].id, related_object_api: 'contact',     related_record_id: con1.id },
+      { task_id: taskRows[0].id, related_object_api: 'opportunity', related_record_id: opp1.id },
+      // 1: 価格交渉 → acc2 + con3 + opp2
+      { task_id: taskRows[1].id, related_object_api: 'account',     related_record_id: acc2.id },
+      { task_id: taskRows[1].id, related_object_api: 'contact',     related_record_id: con3.id },
+      { task_id: taskRows[1].id, related_object_api: 'opportunity', related_record_id: opp2.id },
+      // 2: 競合比較 → acc3 + con4
+      { task_id: taskRows[2].id, related_object_api: 'account',     related_record_id: acc3.id },
+      { task_id: taskRows[2].id, related_object_api: 'contact',     related_record_id: con4.id },
+      // 3: 月次営業レポートは関連なし
+    ]).onConflictDoNothing()
+  }
 
   // ----------------------------------------------------------------
   // 経費
   // ----------------------------------------------------------------
-  await db.insert(schema.expenses).values([
+  const expenseRows = await db.insert(schema.expenses).values([
     {
       title: 'テックイノベーション訪問 交通費',
       amount: '2840',
       category: '交通費',
       expense_date: '2026-04-20',
-      account_id: acc1.id,
       notes: '往復 新宿〜渋谷',
     },
     {
@@ -242,9 +228,6 @@ async function seed() {
       amount: '18500',
       category: '接待費',
       expense_date: '2026-04-25',
-      account_id: acc2.id,
-      contact_id: con3.id,
-      opportunity_id: opp2.id,
       notes: '価格交渉前の関係構築。2名。',
     },
     {
@@ -254,9 +237,21 @@ async function seed() {
       expense_date: '2026-04-15',
       notes: '業界展示会への出展費用',
     },
-  ])
+  ]).returning({ id: schema.expenses.id })
 
   console.log('  ✅ 経費 3件')
+
+  if (expenseRows.length >= 3) {
+    await db.insert(schema.expense_related_records).values([
+      // 0: 交通費 → acc1
+      { expense_id: expenseRows[0].id, related_object_api: 'account', related_record_id: acc1.id },
+      // 1: 会食 → acc2 + con3 + opp2
+      { expense_id: expenseRows[1].id, related_object_api: 'account',     related_record_id: acc2.id },
+      { expense_id: expenseRows[1].id, related_object_api: 'contact',     related_record_id: con3.id },
+      { expense_id: expenseRows[1].id, related_object_api: 'opportunity', related_record_id: opp2.id },
+      // 2: 展示会参加費は関連なし
+    ]).onConflictDoNothing()
+  }
 
   console.log('\n🎉 テストデータの投入が完了しました！')
 }

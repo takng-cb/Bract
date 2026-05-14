@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { activities, accounts, opportunities, custom_records, object_definitions, activity_related_records } from '@/lib/schema'
+import { activities, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -11,21 +11,6 @@ import RecordHeader from '@/components/RecordHeader'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
 
-/**
- * カスタムレコードの表示名を導出する。
- * data.name → data.title → "<オブジェクトラベル> #<short id>" の優先順。
- */
-function customRecordTitle(
-  data: Record<string, unknown> | null | undefined,
-  objectLabel: string | null | undefined,
-  recordId: string,
-): string {
-  const d = (data ?? {}) as Record<string, unknown>
-  const name = typeof d.name === 'string' ? d.name : null
-  const title = typeof d.title === 'string' ? d.title : null
-  return name ?? title ?? `${objectLabel ?? 'カスタム'} #${recordId.slice(0, 8)}`
-}
-
 export default async function ActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
@@ -33,17 +18,8 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
     db.select({
       id: activities.id, type: activities.type, subject: activities.subject,
       body: activities.body, occurred_at: activities.occurred_at, created_at: activities.created_at,
-      custom_record_id: activities.custom_record_id,
-      accounts:       { id: accounts.id, name: accounts.name },
-      opportunities:  { id: opportunities.id, name: opportunities.name },
-      custom_record:  { id: custom_records.id, data: custom_records.data, object_id: custom_records.object_id },
-      object_def:     { id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label },
     })
       .from(activities)
-      .leftJoin(accounts, eq(activities.account_id, accounts.id))
-      .leftJoin(opportunities, eq(activities.opportunity_id, opportunities.id))
-      .leftJoin(custom_records, eq(activities.custom_record_id, custom_records.id))
-      .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
       .where(eq(activities.id, id))
       .then((r) => r[0] ?? null),
     db.select({
@@ -54,9 +30,10 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       .where(eq(activity_related_records.activity_id, id)),
   ])
 
-  // junction の (object_api, record_id) ペアをラベル + href に解決
+  if (!activityRow) notFound()
+
+  // junction 経由で全関連レコードを解決
   const allRelated = await resolveRelatedRecords(relatedPairs)
-  // 「人物」セクション表示用: junction の contact 関連のみ抽出
   const linkedContacts = allRelated.filter((r) => r.object_api === 'contact')
 
   const activityTypes = await getActivityTypes()
@@ -66,33 +43,6 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       label: t.label,
       icon: t.icon,
       color: t.color ?? 'bg-zinc-50 text-zinc-700 border-zinc-200',
-    }
-  }
-
-  if (!activityRow) notFound()
-
-  const account     = activityRow.accounts?.id     ? activityRow.accounts     : null
-  const opportunity = activityRow.opportunities?.id ? activityRow.opportunities : null
-  const customRecord = activityRow.custom_record?.id ? activityRow.custom_record : null
-  const objectDef    = activityRow.object_def?.id    ? activityRow.object_def    : null
-  const customLabel  = customRecord
-    ? customRecordTitle(customRecord.data as Record<string, unknown>, objectDef?.label, customRecord.id)
-    : null
-  const customHref   = customRecord && objectDef
-    ? `/objects/${objectDef.api_name}/${customRecord.id}`
-    : null
-
-  // 親レコードのリンク: junction から取得した全レコードを優先
-  // junction が空の場合（マイグレーション直後など）は FK 列からフォールバック
-  let parentLinks: { icon: string; label: string; href: string }[]
-  if (allRelated.length > 0) {
-    parentLinks = allRelated.map((r) => ({ icon: r.icon, label: r.label, href: r.href }))
-  } else {
-    parentLinks = []
-    if (account)     parentLinks.push({ icon: '🏢', label: account.name,     href: `/accounts/${account.id}` })
-    if (opportunity) parentLinks.push({ icon: '💼', label: opportunity.name, href: `/opportunities/${opportunity.id}` })
-    if (customRecord && customHref && customLabel) {
-      parentLinks.push({ icon: objectDef?.label ? '🗂️' : '🗂️', label: customLabel, href: customHref })
     }
   }
 
@@ -120,14 +70,14 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
         }
       />
 
-      {/* 親レコード（どのレコードに紐づく活動か） */}
+      {/* 関連レコード（全関連先を junction から表示） */}
       <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-md px-4 py-3">
         <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">関連レコード</p>
-        {parentLinks.length > 0 ? (
+        {allRelated.length > 0 ? (
           <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {parentLinks.map((p, i) => (
-              <Link key={`${p.href}-${i}`} href={p.href} className="text-sm text-blue-600 hover:underline">
-                {p.icon} {p.label}
+            {allRelated.map((r, i) => (
+              <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-blue-600 hover:underline">
+                {r.icon} {r.label}
               </Link>
             ))}
           </div>
@@ -159,38 +109,14 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">関連情報</h2>
+        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">メタ情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
-            <dd className="text-sm">
-              {account
-                ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">🏢 {account.name}</Link>
-                : <span className="text-zinc-400">—</span>}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">商談</dt>
-            <dd className="text-sm">
-              {opportunity
-                ? <Link href={`/opportunities/${opportunity.id}`} className="text-blue-600 hover:underline">💼 {opportunity.name}</Link>
-                : <span className="text-zinc-400">—</span>}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">{objectDef?.label ?? 'カスタム'}</dt>
-            <dd className="text-sm">
-              {customRecord && customHref && customLabel
-                ? <Link href={customHref} className="text-blue-600 hover:underline">🗂️ {customLabel}</Link>
-                : <span className="text-zinc-400">—</span>}
-            </dd>
-          </div>
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
             <dd className="text-sm text-zinc-800">{activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
           </div>
           <div className="col-span-1 sm:col-span-2">
-            <dt className="text-xs text-zinc-400 mb-1">人物</dt>
+            <dt className="text-xs text-zinc-400 mb-1">人物（複数選択された場合）</dt>
             <dd className="text-sm">
               {linkedContacts.length > 0 ? (
                 <div className="flex flex-wrap gap-2 mt-1">

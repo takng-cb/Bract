@@ -94,17 +94,14 @@ export const opportunities = pgTable('opportunities', {
 // activities（活動履歴）
 // ----------------------------------------------------------------
 export const activities = pgTable('activities', {
-  id:               uuid('id').primaryKey().defaultRandom(),
-  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
-  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
-  opportunity_id:   uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
-  custom_record_id: uuid('custom_record_id').references(() => custom_records.id, { onDelete: 'cascade' }),
-  type:             text('type').notNull(),
-  subject:          text('subject').notNull(),
-  body:             text('body'),
-  occurred_at:      timestamp('occurred_at', { withTimezone: true }).defaultNow(),
-  owner_id:         uuid('owner_id'),
-  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+  id:          uuid('id').primaryKey().defaultRandom(),
+  type:        text('type').notNull(),
+  subject:     text('subject').notNull(),
+  body:        text('body'),
+  occurred_at: timestamp('occurred_at', { withTimezone: true }).defaultNow(),
+  owner_id:    uuid('owner_id'),
+  created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
+  // 関連先は activity_related_records junction で管理（Phase 2 で FK 列撤廃）
 })
 
 // ----------------------------------------------------------------
@@ -166,17 +163,14 @@ export const expense_related_records = pgTable('expense_related_records', {
 // tasks（タスク / ToDo）
 // ----------------------------------------------------------------
 export const tasks = pgTable('tasks', {
-  id:               uuid('id').primaryKey().defaultRandom(),
-  title:            text('title').notNull(),
-  due_date:         date('due_date'),
-  done:             boolean('done').notNull().default(false),
-  priority:         text('priority').notNull().default('medium'),
-  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
-  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
-  opportunity_id:   uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
-  custom_record_id: uuid('custom_record_id').references(() => custom_records.id, { onDelete: 'cascade' }),
-  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:         uuid('id').primaryKey().defaultRandom(),
+  title:      text('title').notNull(),
+  due_date:   date('due_date'),
+  done:       boolean('done').notNull().default(false),
+  priority:   text('priority').notNull().default('medium'),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  // 関連先は task_related_records junction で管理（Phase 2 で FK 列撤廃）
 })
 
 // ----------------------------------------------------------------
@@ -199,18 +193,15 @@ export const attachments = pgTable('attachments', {
 // expenses（経費申請）
 // ----------------------------------------------------------------
 export const expenses = pgTable('expenses', {
-  id:               uuid('id').primaryKey().defaultRandom(),
-  title:            text('title').notNull(),
-  amount:           numeric('amount').notNull(),
-  category:         text('category').notNull().default('その他'),
-  expense_date:     date('expense_date').notNull(),
-  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
-  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
-  opportunity_id:   uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'set null' }),
-  custom_record_id: uuid('custom_record_id').references(() => custom_records.id, { onDelete: 'set null' }),
-  notes:            text('notes'),
-  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:           uuid('id').primaryKey().defaultRandom(),
+  title:        text('title').notNull(),
+  amount:       numeric('amount').notNull(),
+  category:     text('category').notNull().default('その他'),
+  expense_date: date('expense_date').notNull(),
+  notes:        text('notes'),
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:   timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  // 関連先は expense_related_records junction で管理（Phase 2 で FK 列撤廃）
 })
 
 // ----------------------------------------------------------------
@@ -421,17 +412,13 @@ export const opportunitiesRelations = relations(opportunities, ({ one, many }) =
   attachments: many(attachments),
 }))
 
-export const activitiesRelations = relations(activities, ({ one, many }) => ({
-  accounts:      one(accounts, { fields: [activities.account_id], references: [accounts.id] }),
-  contacts:      one(contacts, { fields: [activities.contact_id], references: [contacts.id] }),
-  opportunities: one(opportunities, { fields: [activities.opportunity_id], references: [opportunities.id] }),
-  attachments:   many(attachments),
+export const activitiesRelations = relations(activities, ({ many }) => ({
+  // 関連先は activity_related_records 経由（Phase 2 で FK relation 撤廃）
+  attachments: many(attachments),
 }))
 
-export const tasksRelations = relations(tasks, ({ one }) => ({
-  accounts:      one(accounts, { fields: [tasks.account_id], references: [accounts.id] }),
-  contacts:      one(contacts, { fields: [tasks.contact_id], references: [contacts.id] }),
-  opportunities: one(opportunities, { fields: [tasks.opportunity_id], references: [opportunities.id] }),
+export const tasksRelations = relations(tasks, () => ({
+  // 関連先は task_related_records 経由（Phase 2 で FK relation 撤廃）
 }))
 
 export const attachmentsRelations = relations(attachments, ({ one }) => ({
@@ -441,10 +428,8 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
   activities:    one(activities, { fields: [attachments.activity_id], references: [activities.id] }),
 }))
 
-export const expensesRelations = relations(expenses, ({ one }) => ({
-  accounts:      one(accounts, { fields: [expenses.account_id], references: [accounts.id] }),
-  contacts:      one(contacts, { fields: [expenses.contact_id], references: [contacts.id] }),
-  opportunities: one(opportunities, { fields: [expenses.opportunity_id], references: [opportunities.id] }),
+export const expensesRelations = relations(expenses, () => ({
+  // 関連先は expense_related_records 経由（Phase 2 で FK relation 撤廃）
 }))
 
 

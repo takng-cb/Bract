@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { tasks, accounts, contacts, opportunities, custom_records, object_definitions, task_related_records } from '@/lib/schema'
+import { tasks, task_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -9,21 +9,6 @@ import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
-
-/**
- * カスタムレコードの表示名を導出する。
- * data.name → data.title → "<オブジェクトラベル> #<short id>" の優先順。
- */
-function customRecordTitle(
-  data: Record<string, unknown> | null | undefined,
-  objectLabel: string | null | undefined,
-  recordId: string,
-): string {
-  const d = (data ?? {}) as Record<string, unknown>
-  const name = typeof d.name === 'string' ? d.name : null
-  const title = typeof d.title === 'string' ? d.title : null
-  return name ?? title ?? `${objectLabel ?? 'カスタム'} #${recordId.slice(0, 8)}`
-}
 
 const PRIORITY_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   high:   { label: '高', bg: 'bg-red-100',    text: 'text-red-700' },
@@ -38,19 +23,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     db.select({
       id: tasks.id, title: tasks.title, done: tasks.done,
       priority: tasks.priority, due_date: tasks.due_date, created_at: tasks.created_at,
-      custom_record_id: tasks.custom_record_id,
-      accounts:      { id: accounts.id, name: accounts.name },
-      contacts:      { id: contacts.id, full_name: contacts.full_name },
-      opportunities: { id: opportunities.id, name: opportunities.name },
-      custom_record: { id: custom_records.id, data: custom_records.data, object_id: custom_records.object_id },
-      object_def:    { id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label },
     })
       .from(tasks)
-      .leftJoin(accounts, eq(tasks.account_id, accounts.id))
-      .leftJoin(contacts, eq(tasks.contact_id, contacts.id))
-      .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
-      .leftJoin(custom_records, eq(tasks.custom_record_id, custom_records.id))
-      .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
       .where(eq(tasks.id, id))
       .then((r) => r[0] ?? null),
     db.select({
@@ -64,19 +38,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   if (!task) notFound()
 
   const allRelated = await resolveRelatedRecords(relatedPairs)
-
-  const account     = task.accounts?.id     ? task.accounts     : null
-  const contact     = task.contacts?.id     ? task.contacts     : null
-  const opportunity = task.opportunities?.id ? task.opportunities : null
-  const customRecord = task.custom_record?.id ? task.custom_record : null
-  const objectDef    = task.object_def?.id    ? task.object_def    : null
-  const customLabel  = customRecord
-    ? customRecordTitle(customRecord.data as Record<string, unknown>, objectDef?.label, customRecord.id)
-    : null
-  const customHref   = customRecord && objectDef
-    ? `/objects/${objectDef.api_name}/${customRecord.id}`
-    : null
-  const priority    = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
+  const priority   = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
 
   async function handleDelete() {
     'use server'
@@ -161,38 +123,6 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           <div>
             <dt className="text-xs text-zinc-400 mb-1">ステータス</dt>
             <dd className="text-sm text-zinc-800">{task.done ? '✅ 完了' : '⏳ 未完了'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
-            <dd className="text-sm">
-              {account
-                ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">🏢 {account.name}</Link>
-                : <span className="text-zinc-400">—</span>}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">人物</dt>
-            <dd className="text-sm">
-              {contact
-                ? <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">👤 {contact.full_name}</Link>
-                : <span className="text-zinc-400">—</span>}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">商談</dt>
-            <dd className="text-sm">
-              {opportunity
-                ? <Link href={`/opportunities/${opportunity.id}`} className="text-blue-600 hover:underline">💼 {opportunity.name}</Link>
-                : <span className="text-zinc-400">—</span>}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">{objectDef?.label ?? 'カスタム'}</dt>
-            <dd className="text-sm">
-              {customRecord && customHref && customLabel
-                ? <Link href={customHref} className="text-blue-600 hover:underline">🗂️ {customLabel}</Link>
-                : <span className="text-zinc-400">—</span>}
-            </dd>
           </div>
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>

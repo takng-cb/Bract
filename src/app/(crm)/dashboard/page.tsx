@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, activities, tasks, vehicles } from '@/lib/schema'
-import { eq, desc, asc, ne, count, and, isNotNull, lte } from 'drizzle-orm'
+import { accounts, contacts, opportunities, activities, tasks, vehicles, task_related_records, activity_related_records } from '@/lib/schema'
+import { eq, desc, asc, ne, count, and, isNotNull, lte, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
@@ -89,15 +89,12 @@ export default async function DashboardPage({
     allActivities,
   ] = await Promise.all([
     db.select({ count: count() }).from(accounts).where(ne(accounts.status, 'inactive')),
+    // tasks 単体を取得（関連は junction 経由で後段で attach）
     db.select({
       id: tasks.id, title: tasks.title, done: tasks.done,
       priority: tasks.priority, due_date: tasks.due_date,
-      accounts:      { id: accounts.id, name: accounts.name },
-      opportunities: { id: opportunities.id, name: opportunities.name },
     })
       .from(tasks)
-      .leftJoin(accounts, eq(tasks.account_id, accounts.id))
-      .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
       .where(eq(tasks.done, false))
       .orderBy(asc(tasks.due_date)),
     db.select({
@@ -119,15 +116,73 @@ export default async function DashboardPage({
       .from(contacts).orderBy(desc(contacts.updated_at)).limit(4),
     db.select({ id: opportunities.id, name: opportunities.name, stage: opportunities.stage, updated_at: opportunities.updated_at })
       .from(opportunities).orderBy(desc(opportunities.updated_at)).limit(4),
+    // activities 単体（関連は junction 経由で後段で attach）
     db.select({
       id: activities.id, type: activities.type, subject: activities.subject,
       occurred_at: activities.occurred_at,
-      accounts: { name: accounts.name },
     })
       .from(activities)
-      .leftJoin(accounts, eq(activities.account_id, accounts.id))
       .orderBy(desc(activities.occurred_at)),
   ])
+
+  // ── junction 経由で関連 account/opportunity を取得 ──────────────────────
+  // 表示で実際に必要な範囲（期間内に絞る前）にバッチ問い合わせ
+  const taskIds     = pendingTasks.map((t) => t.id)
+  const activityIds = allActivities.map((a) => a.id)
+
+  const [taskRelRows, activityRelRows] = await Promise.all([
+    taskIds.length > 0
+      ? db.select({
+          host_id: task_related_records.task_id,
+          api:     task_related_records.related_object_api,
+          rec_id:  task_related_records.related_record_id,
+        })
+          .from(task_related_records)
+          .where(and(
+            inArray(task_related_records.task_id, taskIds),
+            inArray(task_related_records.related_object_api, ['account', 'opportunity']),
+          ))
+      : Promise.resolve([]),
+    activityIds.length > 0
+      ? db.select({
+          host_id: activity_related_records.activity_id,
+          api:     activity_related_records.related_object_api,
+          rec_id:  activity_related_records.related_record_id,
+        })
+          .from(activity_related_records)
+          .where(and(
+            inArray(activity_related_records.activity_id, activityIds),
+            eq(activity_related_records.related_object_api, 'account'),
+          ))
+      : Promise.resolve([]),
+  ])
+
+  const refAccountIds     = [...new Set([...taskRelRows, ...activityRelRows].filter((r) => r.api === 'account').map((r) => r.rec_id))]
+  const refOpportunityIds = [...new Set(taskRelRows.filter((r) => r.api === 'opportunity').map((r) => r.rec_id))]
+  const [refAccountRows, refOpportunityRows] = await Promise.all([
+    refAccountIds.length > 0
+      ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(inArray(accounts.id, refAccountIds))
+      : Promise.resolve([]),
+    refOpportunityIds.length > 0
+      ? db.select({ id: opportunities.id, name: opportunities.name }).from(opportunities).where(inArray(opportunities.id, refOpportunityIds))
+      : Promise.resolve([]),
+  ])
+  const accountNameById     = new Map(refAccountRows.map((r) => [r.id, r.name]))
+  const opportunityNameById = new Map(refOpportunityRows.map((r) => [r.id, r.name]))
+
+  /** 行に「関連 account / opportunity 名一覧」を attach */
+  const taskById     = new Map<string, { accounts: { id: string; name: string }[]; opportunities: { id: string; name: string }[] }>()
+  for (const r of taskRelRows) {
+    if (!taskById.has(r.host_id)) taskById.set(r.host_id, { accounts: [], opportunities: [] })
+    const e = taskById.get(r.host_id)!
+    if (r.api === 'account')     e.accounts.push({ id: r.rec_id, name: accountNameById.get(r.rec_id) ?? '—' })
+    if (r.api === 'opportunity') e.opportunities.push({ id: r.rec_id, name: opportunityNameById.get(r.rec_id) ?? '—' })
+  }
+  const activityById = new Map<string, { accounts: { id: string; name: string }[] }>()
+  for (const r of activityRelRows) {
+    if (!activityById.has(r.host_id)) activityById.set(r.host_id, { accounts: [] })
+    activityById.get(r.host_id)!.accounts.push({ id: r.rec_id, name: accountNameById.get(r.rec_id) ?? '—' })
+  }
 
   // 期間内の商談（close_date で絞る）
   const periodOpps = allOpportunities.filter(
@@ -232,15 +287,18 @@ export default async function DashboardPage({
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                       {periodTasks.map((t) => {
-                        const account     = t.accounts?.id     ? t.accounts     : null
-                        const opportunity = t.opportunities?.id ? t.opportunities : null
+                        const rel = taskById.get(t.id) ?? { accounts: [], opportunities: [] }
                         const priority    = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
                         const isOverdue   = t.due_date && t.due_date < today
                         return (
                           <tr key={t.id} className="hover:bg-zinc-50 transition-colors">
                             <td className="px-4 py-3 font-medium text-zinc-900">
                               <Link href={`/tasks/${t.id}`} className="hover:text-blue-600 block truncate max-w-xs">{t.title}</Link>
-                              {opportunity && <p className="text-xs text-zinc-400 mt-0.5 truncate">💼 {opportunity.name}</p>}
+                              {rel.opportunities.length > 0 && (
+                                <p className="text-xs text-zinc-400 mt-0.5 truncate">
+                                  💼 {rel.opportunities.map((o) => o.name).join(', ')}
+                                </p>
+                              )}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priority.color}`}>{priority.label}</span>
@@ -249,7 +307,16 @@ export default async function DashboardPage({
                               {t.due_date ?? '—'}{isOverdue ? ' ⚠️' : ''}
                             </td>
                             <td className="px-4 py-3 text-zinc-600 text-sm">
-                              {account ? <Link href={`/accounts/${account.id}`} className="hover:text-blue-600 truncate block max-w-[12rem]">{account.name}</Link> : <span className="text-zinc-300">—</span>}
+                              {rel.accounts.length > 0 ? (
+                                <span className="block truncate max-w-[12rem]">
+                                  {rel.accounts.map((a, i) => (
+                                    <span key={a.id}>
+                                      <Link href={`/accounts/${a.id}`} className="hover:text-blue-600">{a.name}</Link>
+                                      {i < rel.accounts.length - 1 && ', '}
+                                    </span>
+                                  ))}
+                                </span>
+                              ) : <span className="text-zinc-300">—</span>}
                             </td>
                             <td className="px-4 py-3 text-right">
                               <Link href={`/tasks/${t.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
@@ -263,7 +330,7 @@ export default async function DashboardPage({
                 {/* モバイル: カード */}
                 <div className="md:hidden space-y-2">
                   {periodTasks.map((t) => {
-                    const account  = t.accounts?.id ? t.accounts : null
+                    const rel = taskById.get(t.id) ?? { accounts: [], opportunities: [] }
                     const priority = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
                     const isOverdue = t.due_date && t.due_date < today
                     return (
@@ -274,7 +341,7 @@ export default async function DashboardPage({
                         </div>
                         <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
                           {t.due_date && <span className={isOverdue ? 'text-red-500 font-medium' : ''}>📅 {t.due_date}{isOverdue ? ' ⚠️' : ''}</span>}
-                          {account && <span>🏢 {account.name}</span>}
+                          {rel.accounts.length > 0 && <span>🏢 {rel.accounts.map((a) => a.name).join(', ')}</span>}
                         </div>
                       </Link>
                     )
@@ -440,8 +507,8 @@ export default async function DashboardPage({
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
                       {periodActivities.map((a) => {
-                        const account = a.accounts?.name ? a.accounts : null
-                        const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
+                        const rel  = activityById.get(a.id) ?? { accounts: [] }
+                        const type = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
                         return (
                           <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
                             <td className="px-4 py-3 whitespace-nowrap">
@@ -449,7 +516,11 @@ export default async function DashboardPage({
                             </td>
                             <td className="px-4 py-3 min-w-0">
                               <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-xs">{a.subject}</Link>
-                              {account && <p className="text-xs text-zinc-400 mt-0.5 truncate">{account.name}</p>}
+                              {rel.accounts.length > 0 && (
+                                <p className="text-xs text-zinc-400 mt-0.5 truncate">
+                                  {rel.accounts.map((x) => x.name).join(', ')}
+                                </p>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-sm">
                               {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
@@ -463,8 +534,8 @@ export default async function DashboardPage({
                 {/* モバイル: カード */}
                 <div className="md:hidden space-y-2">
                   {periodActivities.map((a) => {
-                    const account = a.accounts?.name ? a.accounts : null
-                    const type    = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
+                    const rel  = activityById.get(a.id) ?? { accounts: [] }
+                    const type = ACTIVITY_TYPE_CONFIG[a.type] ?? { label: a.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600' }
                     return (
                       <Link key={a.id} href={`/activities/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300">
                         <div className="flex items-center justify-between gap-2">
@@ -472,7 +543,9 @@ export default async function DashboardPage({
                           <span className="text-xs text-zinc-400">{a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}</span>
                         </div>
                         <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>
-                        {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
+                        {rel.accounts.length > 0 && (
+                          <p className="text-xs text-zinc-400 mt-0.5">🏢 {rel.accounts.map((x) => x.name).join(', ')}</p>
+                        )}
                       </Link>
                     )
                   })}

@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
+import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 
 export async function updateAccountStatus(id: string, status: string) {
   await requireEditor()
@@ -107,6 +108,10 @@ export async function updateAccount(id: string, formData: FormData) {
 
 export async function deleteAccount(id: string) {
   await requireEditor()
+  // Phase 2: FK 列削除に伴い、DB 側 ON DELETE CASCADE が無くなる。
+  // 関連活動・ToDo・経費の junction 行を明示削除する（活動・ToDo・経費の
+  // 本体は他の関連先があれば残存する新仕様）。
+  await cleanupRelatedRecordsForParent('account', id)
   await db.delete(accounts).where(eq(accounts.id, id))
   redirect('/accounts')
 }
