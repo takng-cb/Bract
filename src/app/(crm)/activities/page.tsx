@@ -1,16 +1,12 @@
 import { db } from '@/lib/db'
-import { activities, accounts } from '@/lib/schema'
-import { desc, eq, count } from 'drizzle-orm'
+import { activities, accounts, activity_related_records } from '@/lib/schema'
+import { desc, eq, inArray, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import {
-  parseFilterParams, applyFilters,
-  buildWhere, unresolvedConditions,
-  type FilterColumnResolver,
-} from '@/lib/filterUtils'
-import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -24,19 +20,27 @@ import { getActivityTypes } from '@/lib/activityTypes'
 
 const PAGE_SIZE = 20
 
+type SelectRow = {
+  id:          string
+  type:        string
+  subject:     string
+  body:        string | null
+  occurred_at: Date | null
+  account_id:  string | null
+  accounts:    { id: string; name: string } | null
+}
+
 export default async function ActivitiesPage({
   searchParams,
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
-  // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('activities', uid) : null)
-  const [sp, edit, colConfig, userId, activityTypes, dv] = await Promise.all([
+  const [sp, edit, colConfig, , activityTypes, dv] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('activities'), userIdPromise, getActivityTypes(), dvPromise,
   ])
 
-  // 動的活動種別から FilterBuilder の field 定義と TYPE_CONFIG を生成
   const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
   for (const t of activityTypes) {
     TYPE_CONFIG[t.value] = {
@@ -70,66 +74,68 @@ export default async function ActivitiesPage({
     }
   }
   const conditions = parseFilterParams(filterRaw)
-  const sortRaw  = sp.sort ?? ''
-  const sortDefs = parseSortParams(sortRaw)
+  const sortRaw    = sp.sort ?? ''
+  const sortDefs   = parseSortParams(sortRaw)
 
-  const selectShape = {
+  // ── ステップ1: 全活動を取得（FK 列に依存しない） ─────────────────────
+  const allActivities = await db.select({
     id:          activities.id,
     type:        activities.type,
     subject:     activities.subject,
     body:        activities.body,
     occurred_at: activities.occurred_at,
-    account_id:  activities.account_id,
-    accounts: {
-      id:   accounts.id,
-      name: accounts.name,
-    },
-  } as const
+  }).from(activities).orderBy(desc(activities.occurred_at))
 
-  const _typeProbe = () => db.select(selectShape)
-    .from(activities)
-    .leftJoin(accounts, eq(activities.account_id, accounts.id))
-  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
+  // ── ステップ2: junction 経由で関連 account を bulk fetch ─────────────
+  const allIds = allActivities.map((a) => a.id)
+  const relRows = allIds.length === 0
+    ? []
+    : await db.select({
+        activity_id:  activity_related_records.activity_id,
+        account_id:   activity_related_records.related_record_id,
+        account_name: accounts.name,
+      })
+        .from(activity_related_records)
+        .innerJoin(accounts, eq(accounts.id, activity_related_records.related_record_id))
+        .where(and(
+          inArray(activity_related_records.activity_id, allIds),
+          eq(activity_related_records.related_object_api, 'account'),
+        ))
 
-  const resolver: FilterColumnResolver = {
-    subject:         { col: activities.subject,     type: 'text' },
-    body:            { col: activities.body,        type: 'text' },
-    'accounts.name': { col: accounts.name,          type: 'text' },
-    type:            { col: activities.type,        type: 'select' },
-    occurred_at:     { col: activities.occurred_at, type: 'date' },
+  // activity_id → 関連 account 配列
+  const accountsByActivityId = new Map<string, { id: string; name: string }[]>()
+  for (const r of relRows) {
+    if (!accountsByActivityId.has(r.activity_id)) accountsByActivityId.set(r.activity_id, [])
+    accountsByActivityId.get(r.activity_id)!.push({ id: r.account_id, name: r.account_name })
   }
 
-  const useJsFallback = unresolvedConditions(conditions, resolver).length > 0
+  // ── ステップ3: 表示用 SelectRow を構築 ─────────────────────────────
+  // 非グループ時: 1 活動 = 1 行（最初の関連 account を primary として表示）
+  // グループ時:   1 活動 × 関連 account 数の行を作って各グループに重複表示
+  const rawRows: SelectRow[] = []
+  for (const act of allActivities) {
+    const rel = accountsByActivityId.get(act.id) ?? []
+    if (rel.length === 0) {
+      rawRows.push({ ...act, account_id: null, accounts: null })
+    } else if (isGrouped) {
+      for (const acc of rel) rawRows.push({ ...act, account_id: acc.id, accounts: acc })
+    } else {
+      rawRows.push({ ...act, account_id: rel[0].id, accounts: rel[0] })
+    }
+  }
+
+  // ── ステップ4: filter / sort / paginate を全部 JS で実施 ──────────────
+  const filtered = applyFilters(rawRows as unknown as Record<string, unknown>[], conditions) as unknown as SelectRow[]
+  const sorted   = applySort(filtered as unknown as Record<string, unknown>[], sortDefs) as unknown as SelectRow[]
 
   let displayList: SelectRow[]
   let totalCount: number
-
-  if (useJsFallback) {
-    const raw = await _typeProbe().orderBy(desc(activities.occurred_at))
-    const list = applyFilters(raw as Record<string, unknown>[], conditions) as SelectRow[]
-    const sorted = applySort(list as Record<string, unknown>[], sortDefs) as SelectRow[]
-    totalCount = sorted.length
-    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  if (isGrouped) {
+    displayList = sorted
+    totalCount  = new Set(sorted.map((r) => r.id)).size
   } else {
-    const where = buildWhere(conditions, resolver)
-    const orderBy = buildOrderBy(sortDefs, resolver)
-    const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(activities.occurred_at)]
-
-    const baseQuery = db.select(selectShape)
-      .from(activities)
-      .leftJoin(accounts, eq(activities.account_id, accounts.id))
-      .where(where)
-      .orderBy(...finalOrderBy)
-
-    const [pageRows, totalRow] = await Promise.all([
-      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
-      db.select({ count: count() })
-        .from(activities)
-        .leftJoin(accounts, eq(activities.account_id, accounts.id))
-        .where(where),
-    ])
-    totalCount = Number(totalRow[0]?.count ?? 0)
-    displayList = pageRows
+    totalCount = sorted.length
+    displayList = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   }
 
   const hasFilter  = conditions.length > 0
@@ -197,7 +203,6 @@ export default async function ActivitiesPage({
         </div>
       ) : (
         <>
-          {/* PC: 動的テーブル（グルーピング対応） */}
           <div className="hidden md:block">
             <TableErrorBoundary>
               <ActivitiesTableView
@@ -209,7 +214,6 @@ export default async function ActivitiesPage({
               />
             </TableErrorBoundary>
           </div>
-          {/* モバイル: カード（グルーピング対応） */}
           <div className="md:hidden">
             <MobileGroupedCards
               records={displayList}

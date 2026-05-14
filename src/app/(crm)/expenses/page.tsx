@@ -1,16 +1,12 @@
 import { db } from '@/lib/db'
-import { expenses, accounts, opportunities } from '@/lib/schema'
-import { desc, eq, gte, lte, and, count, sum } from 'drizzle-orm'
+import { expenses, accounts, opportunities, expense_related_records } from '@/lib/schema'
+import { desc, eq, gte, lte, and, inArray } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import {
-  parseFilterParams, applyFilters,
-  buildWhere, unresolvedConditions,
-  type FilterColumnResolver,
-} from '@/lib/filterUtils'
-import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -54,15 +50,24 @@ const FIELDS: FieldDef[] = [
   { value: 'expense_date', label: '日付',       type: 'date' },
 ]
 
+type SelectRow = {
+  id:           string
+  title:        string
+  amount:       string
+  category:     string
+  expense_date: string
+  accounts:      { id: string; name: string } | null
+  opportunities: { id: string; name: string } | null
+}
+
 export default async function ExpensesPage({
   searchParams,
 }: {
   searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
-  // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('expenses', uid) : null)
-  const [sp, edit, colConfig, userId, dv] = await Promise.all([
+  const [sp, edit, colConfig, , dv] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('expenses'), userIdPromise, dvPromise,
   ])
   const now = new Date()
@@ -99,86 +104,94 @@ export default async function ExpensesPage({
   const sortRaw  = sp.sort ?? ''
   const sortDefs = parseSortParams(sortRaw)
 
-  const selectShape = {
+  // ── ステップ1: 期間内の expense を取得 ───────────────────────────────
+  const allExpenses = await db.select({
     id:           expenses.id,
     title:        expenses.title,
     amount:       expenses.amount,
     category:     expenses.category,
     expense_date: expenses.expense_date,
-    accounts: {
-      id:   accounts.id,
-      name: accounts.name,
-    },
-    opportunities: {
-      id:   opportunities.id,
-      name: opportunities.name,
-    },
-  } as const
-
-  const _typeProbe = () => db.select(selectShape)
+  })
     .from(expenses)
-    .leftJoin(accounts, eq(expenses.account_id, accounts.id))
-    .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
-  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
+    .where(and(gte(expenses.expense_date, from), lte(expenses.expense_date, to)))
+    .orderBy(desc(expenses.expense_date))
 
-  const resolver: FilterColumnResolver = {
-    title:                 { col: expenses.title,        type: 'text' },
-    'accounts.name':       { col: accounts.name,         type: 'text' },
-    'opportunities.name':  { col: opportunities.name,    type: 'text' },
-    category:              { col: expenses.category,     type: 'select' },
-    amount:                { col: expenses.amount,       type: 'number' },
-    expense_date:          { col: expenses.expense_date, type: 'date' },
+  // ── ステップ2: junction 経由で関連 account / opportunity を bulk fetch ─
+  const allIds = allExpenses.map((e) => e.id)
+  const [accRelRows, oppRelRows] = await Promise.all([
+    allIds.length === 0 ? Promise.resolve([]) : db.select({
+      expense_id:   expense_related_records.expense_id,
+      account_id:   expense_related_records.related_record_id,
+      account_name: accounts.name,
+    })
+      .from(expense_related_records)
+      .innerJoin(accounts, eq(accounts.id, expense_related_records.related_record_id))
+      .where(and(
+        inArray(expense_related_records.expense_id, allIds),
+        eq(expense_related_records.related_object_api, 'account'),
+      )),
+    allIds.length === 0 ? Promise.resolve([]) : db.select({
+      expense_id:       expense_related_records.expense_id,
+      opportunity_id:   expense_related_records.related_record_id,
+      opportunity_name: opportunities.name,
+    })
+      .from(expense_related_records)
+      .innerJoin(opportunities, eq(opportunities.id, expense_related_records.related_record_id))
+      .where(and(
+        inArray(expense_related_records.expense_id, allIds),
+        eq(expense_related_records.related_object_api, 'opportunity'),
+      )),
+  ])
+
+  const accountsByExpenseId = new Map<string, { id: string; name: string }[]>()
+  for (const r of accRelRows) {
+    if (!accountsByExpenseId.has(r.expense_id)) accountsByExpenseId.set(r.expense_id, [])
+    accountsByExpenseId.get(r.expense_id)!.push({ id: r.account_id, name: r.account_name })
+  }
+  const opportunitiesByExpenseId = new Map<string, { id: string; name: string }[]>()
+  for (const r of oppRelRows) {
+    if (!opportunitiesByExpenseId.has(r.expense_id)) opportunitiesByExpenseId.set(r.expense_id, [])
+    opportunitiesByExpenseId.get(r.expense_id)!.push({ id: r.opportunity_id, name: r.opportunity_name })
   }
 
-  const useJsFallback = unresolvedConditions(conditions, resolver).length > 0
-  // 期間条件 (from/to) は SQL/JS 双方で適用
-  const dateRangeWhere = and(gte(expenses.expense_date, from), lte(expenses.expense_date, to))!
+  // ── ステップ3: SelectRow 構築 ─────────────────────────────────────
+  const rawRows: SelectRow[] = []
+  for (const e of allExpenses) {
+    const accs = accountsByExpenseId.get(e.id) ?? []
+    const opps = opportunitiesByExpenseId.get(e.id) ?? []
+    if (isGrouped && accs.length > 1) {
+      for (const acc of accs) {
+        rawRows.push({ ...e, accounts: acc, opportunities: opps[0] ?? null })
+      }
+    } else {
+      rawRows.push({ ...e, accounts: accs[0] ?? null, opportunities: opps[0] ?? null })
+    }
+  }
+
+  // ── ステップ4: filter / sort / paginate ────────────────────────────
+  const filtered = applyFilters(rawRows as unknown as Record<string, unknown>[], conditions) as unknown as SelectRow[]
+  const sorted   = applySort(filtered as unknown as Record<string, unknown>[], sortDefs) as unknown as SelectRow[]
 
   let displayList: SelectRow[]
   let totalCount: number
-  let total: number       // 期間内の全合計
-  let pagedTotal: number  // ページ表示分の合計
-
-  if (useJsFallback) {
-    const raw = await _typeProbe()
-      .where(dateRangeWhere)
-      .orderBy(desc(expenses.expense_date))
-    const list = applyFilters(raw as Record<string, unknown>[], conditions) as SelectRow[]
-    const sorted = applySort(list as Record<string, unknown>[], sortDefs) as SelectRow[]
-    totalCount = sorted.length
-    total      = sorted.reduce((s, e) => s + Number(e.amount), 0)
-    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-    pagedTotal = displayList.reduce((s, e) => s + Number(e.amount), 0)
+  let total: number
+  let pagedTotal: number
+  if (isGrouped) {
+    displayList = sorted
+    const uniqueIds = new Set(sorted.map((r) => r.id))
+    totalCount = uniqueIds.size
+    // total は unique id ベースで合計
+    const seenIds = new Set<string>()
+    total = 0
+    for (const r of sorted) {
+      if (!seenIds.has(r.id)) { seenIds.add(r.id); total += Number(r.amount) }
+    }
+    pagedTotal = total
   } else {
-    const userWhere = buildWhere(conditions, resolver)
-    const where = userWhere ? and(dateRangeWhere, userWhere) : dateRangeWhere
-    const orderBy = buildOrderBy(sortDefs, resolver)
-    const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(expenses.expense_date)]
-
-    const baseQuery = db.select(selectShape)
-      .from(expenses)
-      .leftJoin(accounts, eq(expenses.account_id, accounts.id))
-      .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
-      .where(where)
-      .orderBy(...finalOrderBy)
-
-    const [pageRows, totalRow, sumRow] = await Promise.all([
-      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
-      db.select({ count: count() })
-        .from(expenses)
-        .leftJoin(accounts, eq(expenses.account_id, accounts.id))
-        .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
-        .where(where),
-      db.select({ total: sum(expenses.amount) })
-        .from(expenses)
-        .leftJoin(accounts, eq(expenses.account_id, accounts.id))
-        .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
-        .where(where),
-    ])
-    totalCount  = Number(totalRow[0]?.count ?? 0)
-    total       = Number(sumRow[0]?.total ?? 0)
-    displayList = pageRows
-    pagedTotal  = displayList.reduce((s, e) => s + Number(e.amount), 0)
+    totalCount = sorted.length
+    total      = sorted.reduce((s, r) => s + Number(r.amount), 0)
+    displayList = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    pagedTotal  = displayList.reduce((s, r) => s + Number(r.amount), 0)
   }
 
   const hasFilter  = conditions.length > 0
@@ -290,11 +303,10 @@ export default async function ExpensesPage({
         </div>
       ) : (
         <>
-          {/* PC: 動的テーブル（グルーピング対応） */}
           <div className="hidden md:block">
             <TableErrorBoundary>
               <ExpensesTableView
-                records={displayList as Record<string, unknown>[]}
+                records={displayList as unknown as Record<string, unknown>[]}
                 groupBy={groupBy}
                 fields={FIELDS}
                 activeKeys={colConfig}
@@ -302,10 +314,9 @@ export default async function ExpensesPage({
               />
             </TableErrorBoundary>
           </div>
-          {/* モバイル: カード（グルーピング対応） */}
           <div className="md:hidden">
             <MobileGroupedCards
-              records={displayList}
+              records={displayList as unknown as Record<string, unknown>[]}
               groupBy={groupBy}
               fields={FIELDS}
               renderCard={(rec) => {

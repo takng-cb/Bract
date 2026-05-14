@@ -1,16 +1,12 @@
 import { db } from '@/lib/db'
-import { tasks, accounts, opportunities } from '@/lib/schema'
-import { asc, desc, eq, and, count } from 'drizzle-orm'
+import { tasks, accounts, opportunities, task_related_records } from '@/lib/schema'
+import { asc, desc, eq, inArray, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
 import { type FieldDef } from '@/components/FilterBuilder'
-import {
-  parseFilterParams, applyFilters,
-  buildWhere, unresolvedConditions,
-  type FilterColumnResolver,
-} from '@/lib/filterUtils'
-import { parseSortParams, applySort, buildOrderBy } from '@/lib/sortUtils'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
+import { parseSortParams, applySort } from '@/lib/sortUtils'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
@@ -51,15 +47,25 @@ const FIELDS: FieldDef[] = [
   { value: 'due_date', label: '期限日', type: 'date' },
 ]
 
+type SelectRow = {
+  id:         string
+  title:      string
+  done:       boolean
+  priority:   string
+  due_date:   string | null
+  account_id: string | null
+  accounts:      { id: string; name: string } | null
+  opportunities: { id: string; name: string } | null
+}
+
 export default async function TasksPage({
   searchParams,
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
-  // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('tasks', uid) : null)
-  const [sp, edit, colConfig, userId, dv] = await Promise.all([
+  const [sp, edit, colConfig, , dv] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('tasks'), userIdPromise, dvPromise,
   ])
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
@@ -80,81 +86,99 @@ export default async function TasksPage({
   const sortRaw  = sp.sort ?? ''
   const sortDefs = parseSortParams(sortRaw)
 
-  const selectShape = {
-    id:         tasks.id,
-    title:      tasks.title,
-    done:       tasks.done,
-    priority:   tasks.priority,
-    due_date:   tasks.due_date,
-    account_id: tasks.account_id,
-    accounts: {
-      id:   accounts.id,
-      name: accounts.name,
-    },
-    opportunities: {
-      id:   opportunities.id,
-      name: opportunities.name,
-    },
-  } as const
+  const today = new Date().toISOString().slice(0, 10)
 
-  const _typeProbe = () => db.select(selectShape)
-    .from(tasks)
-    .leftJoin(accounts, eq(tasks.account_id, accounts.id))
-    .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
-  type SelectRow = Awaited<ReturnType<typeof _typeProbe>>[number]
+  // ── ステップ1: 全タスクを取得（FK 列に依存しない） ─────────────────────
+  const allTasks = await db.select({
+    id:       tasks.id,
+    title:    tasks.title,
+    done:     tasks.done,
+    priority: tasks.priority,
+    due_date: tasks.due_date,
+  }).from(tasks).orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
 
-  const resolver: FilterColumnResolver = {
-    title:           { col: tasks.title,    type: 'text' },
-    'accounts.name': { col: accounts.name,  type: 'text' },
-    priority:        { col: tasks.priority, type: 'select' },
-    done:            { col: tasks.done,     type: 'boolean' },
-    due_date:        { col: tasks.due_date, type: 'date' },
+  // ── ステップ2: junction 経由で関連 account / opportunity を bulk fetch ─
+  const allIds = allTasks.map((t) => t.id)
+  const [accRelRows, oppRelRows] = await Promise.all([
+    allIds.length === 0 ? Promise.resolve([]) : db.select({
+      task_id:      task_related_records.task_id,
+      account_id:   task_related_records.related_record_id,
+      account_name: accounts.name,
+    })
+      .from(task_related_records)
+      .innerJoin(accounts, eq(accounts.id, task_related_records.related_record_id))
+      .where(and(
+        inArray(task_related_records.task_id, allIds),
+        eq(task_related_records.related_object_api, 'account'),
+      )),
+    allIds.length === 0 ? Promise.resolve([]) : db.select({
+      task_id:          task_related_records.task_id,
+      opportunity_id:   task_related_records.related_record_id,
+      opportunity_name: opportunities.name,
+    })
+      .from(task_related_records)
+      .innerJoin(opportunities, eq(opportunities.id, task_related_records.related_record_id))
+      .where(and(
+        inArray(task_related_records.task_id, allIds),
+        eq(task_related_records.related_object_api, 'opportunity'),
+      )),
+  ])
+
+  const accountsByTaskId = new Map<string, { id: string; name: string }[]>()
+  for (const r of accRelRows) {
+    if (!accountsByTaskId.has(r.task_id)) accountsByTaskId.set(r.task_id, [])
+    accountsByTaskId.get(r.task_id)!.push({ id: r.account_id, name: r.account_name })
+  }
+  const opportunitiesByTaskId = new Map<string, { id: string; name: string }[]>()
+  for (const r of oppRelRows) {
+    if (!opportunitiesByTaskId.has(r.task_id)) opportunitiesByTaskId.set(r.task_id, [])
+    opportunitiesByTaskId.get(r.task_id)!.push({ id: r.opportunity_id, name: r.opportunity_name })
   }
 
-  const useJsFallback = unresolvedConditions(conditions, resolver).length > 0
-  const today = new Date().toISOString().slice(0, 10)
+  // ── ステップ3: 表示用 SelectRow を構築 ─────────────────────────────
+  const rawRows: SelectRow[] = []
+  for (const t of allTasks) {
+    const accs = accountsByTaskId.get(t.id) ?? []
+    const opps = opportunitiesByTaskId.get(t.id) ?? []
+    if (isGrouped && accs.length > 1) {
+      // グループ時のみ account ごとに行を duplicate
+      for (const acc of accs) {
+        rawRows.push({
+          ...t,
+          account_id:    acc.id,
+          accounts:      acc,
+          opportunities: opps[0] ?? null,
+        })
+      }
+    } else {
+      // 非グループ時 or 関連 account が 0/1 個: 1 行
+      rawRows.push({
+        ...t,
+        account_id:    accs[0]?.id ?? null,
+        accounts:      accs[0] ?? null,
+        opportunities: opps[0] ?? null,
+      })
+    }
+  }
+
+  // ── ステップ4: filter / sort / paginate を全部 JS で実施 ──────────────
+  const filtered = applyFilters(rawRows as unknown as Record<string, unknown>[], conditions) as unknown as SelectRow[]
+  const sorted   = applySort(filtered as unknown as Record<string, unknown>[], sortDefs) as unknown as SelectRow[]
 
   let displayList: SelectRow[]
   let totalCount: number
   let undoneCount: number
-
-  if (useJsFallback) {
-    const raw = await _typeProbe().orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
-    const tasksList = applyFilters(raw as Record<string, unknown>[], conditions) as SelectRow[]
-    const sorted    = applySort(tasksList as Record<string, unknown>[], sortDefs) as SelectRow[]
-    totalCount  = sorted.length
-    undoneCount = sorted.filter((t) => !t.done).length
-    displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  if (isGrouped) {
+    displayList = sorted
+    const uniqueIds = new Set(sorted.map((r) => r.id))
+    totalCount  = uniqueIds.size
+    // undone は unique id ベース
+    const undoneIds = new Set(sorted.filter((r) => !r.done).map((r) => r.id))
+    undoneCount = undoneIds.size
   } else {
-    const where = buildWhere(conditions, resolver)
-    const orderBy = buildOrderBy(sortDefs, resolver)
-    const finalOrderBy = orderBy.length > 0
-      ? orderBy
-      : [asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at)]
-
-    const baseQuery = db.select(selectShape)
-      .from(tasks)
-      .leftJoin(accounts, eq(tasks.account_id, accounts.id))
-      .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
-      .where(where)
-      .orderBy(...finalOrderBy)
-
-    const [pageRows, totalRow, undoneRow] = await Promise.all([
-      isGrouped ? baseQuery : baseQuery.limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE),
-      db.select({ count: count() })
-        .from(tasks)
-        .leftJoin(accounts, eq(tasks.account_id, accounts.id))
-        .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
-        .where(where),
-      db.select({ count: count() })
-        .from(tasks)
-        .leftJoin(accounts, eq(tasks.account_id, accounts.id))
-        .leftJoin(opportunities, eq(tasks.opportunity_id, opportunities.id))
-        .where(where ? and(where, eq(tasks.done, false)) : eq(tasks.done, false)),
-    ])
-    totalCount  = Number(totalRow[0]?.count ?? 0)
-    undoneCount = Number(undoneRow[0]?.count ?? 0)
-    displayList = pageRows
+    totalCount  = sorted.length
+    undoneCount = sorted.filter((r) => !r.done).length
+    displayList = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   }
 
   const hasFilter  = conditions.length > 0
@@ -354,12 +378,11 @@ export default async function TasksPage({
           }
         </div>
       ) : isGrouped ? (
-        /* グルーピング時: PC テーブル + モバイルカード（先頭 PAGE_SIZE 件） */
         <>
           <div className="hidden md:block">
             <TableErrorBoundary>
               <TasksTableView
-                records={displayList as Record<string, unknown>[]}
+                records={displayList as unknown as Record<string, unknown>[]}
                 groupBy={groupBy}
                 fields={FIELDS}
                 activeKeys={colConfig}
@@ -369,7 +392,7 @@ export default async function TasksPage({
           </div>
           <div className="md:hidden">
             <MobileGroupedCards
-              records={displayList as Record<string, unknown>[]}
+              records={displayList as unknown as Record<string, unknown>[]}
               groupBy={groupBy}
               fields={FIELDS}
               renderCard={(rec) => {
@@ -414,7 +437,6 @@ export default async function TasksPage({
           </div>
         </>
       ) : (
-        /* 通常時: 未完了 / 完了済み 分割表示 */
         <div className="space-y-4">
           <TaskTable rows={pending} label="未完了" />
           {done.length > 0 && <TaskTable rows={done} label="完了済み" />}
