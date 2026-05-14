@@ -4,6 +4,7 @@ import BottomNav from '@/components/BottomNav'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
 import PwaInstallBanner from '@/components/PwaInstallBanner'
 import NavigationProgress from '@/components/NavigationProgress'
+import NavigationOverlay from '@/components/NavigationOverlay'
 import { applyNavOrder, DEFAULT_NAV_ORDER, customObjectsToNavItems, type NavItem } from '@/lib/navItems'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
@@ -91,8 +92,9 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
-      {/* 画面上部の進捗バー（クリック直後から即時表示、perceived perf） */}
+      {/* 画面上部の進捗バー + 中央スピナー（perceived perf）*/}
       <NavigationProgress />
+      <NavigationOverlay />
       <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} />
       <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} />
       <main className={`flex-1 overflow-auto pt-14 md:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'}`}>
