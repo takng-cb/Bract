@@ -61,6 +61,7 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
         {/* ロゴ */}
         <Link
           href="/dashboard"
+          prefetch={true}
           title={isCollapsed ? companyName : undefined}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0 flex-1"
         >
@@ -88,6 +89,7 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               title={isCollapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium transition-colors ${
                 isCollapsed ? 'justify-center' : ''
@@ -112,6 +114,7 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               title={isCollapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium transition-colors ${
                 isCollapsed ? 'justify-center' : ''
