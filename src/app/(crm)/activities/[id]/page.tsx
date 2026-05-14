@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { activities, accounts, opportunities, activity_contacts, contacts, custom_records, object_definitions } from '@/lib/schema'
+import { activities, accounts, opportunities, activity_contacts, contacts, custom_records, object_definitions, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -9,6 +9,7 @@ import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { resolveRelatedRecords } from '@/lib/relatedRecords'
 
 /**
  * カスタムレコードの表示名を導出する。
@@ -28,7 +29,7 @@ function customRecordTitle(
 export default async function ActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [activityRow, linkedContactRows] = await Promise.all([
+  const [activityRow, linkedContactRows, relatedPairs] = await Promise.all([
     db.select({
       id: activities.id, type: activities.type, subject: activities.subject,
       body: activities.body, occurred_at: activities.occurred_at, created_at: activities.created_at,
@@ -49,7 +50,17 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       .from(activity_contacts)
       .innerJoin(contacts, eq(activity_contacts.contact_id, contacts.id))
       .where(eq(activity_contacts.activity_id, id)),
+    // junction から全関連レコードを取得（複数選択された全部を表示するため）
+    db.select({
+      object_api: activity_related_records.related_object_api,
+      record_id:  activity_related_records.related_record_id,
+    })
+      .from(activity_related_records)
+      .where(eq(activity_related_records.activity_id, id)),
   ])
+
+  // junction の (object_api, record_id) ペアをラベル + href に解決
+  const allRelated = await resolveRelatedRecords(relatedPairs)
 
   const activityTypes = await getActivityTypes()
   const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
@@ -74,15 +85,22 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
     ? `/objects/${objectDef.api_name}/${customRecord.id}`
     : null
 
-  // 親レコードのリンク（紐づくものを全部）
-  const parentLinks: { icon: string; label: string; href: string }[] = []
-  if (account)     parentLinks.push({ icon: '🏢', label: account.name,     href: `/accounts/${account.id}` })
-  for (const c of linkedContactRows) {
-    parentLinks.push({ icon: '👤', label: c.full_name, href: `/contacts/${c.contact_id}` })
-  }
-  if (opportunity) parentLinks.push({ icon: '💼', label: opportunity.name, href: `/opportunities/${opportunity.id}` })
-  if (customRecord && customHref && customLabel) {
-    parentLinks.push({ icon: objectDef?.label ? '🗂️' : '🗂️', label: customLabel, href: customHref })
+  // 親レコードのリンク: junction から取得した全レコードを優先
+  // junction が空の場合（マイグレーション直後など）は FK 列・activity_contacts
+  // からフォールバック生成する
+  let parentLinks: { icon: string; label: string; href: string }[]
+  if (allRelated.length > 0) {
+    parentLinks = allRelated.map((r) => ({ icon: r.icon, label: r.label, href: r.href }))
+  } else {
+    parentLinks = []
+    if (account)     parentLinks.push({ icon: '🏢', label: account.name,     href: `/accounts/${account.id}` })
+    for (const c of linkedContactRows) {
+      parentLinks.push({ icon: '👤', label: c.full_name, href: `/contacts/${c.contact_id}` })
+    }
+    if (opportunity) parentLinks.push({ icon: '💼', label: opportunity.name, href: `/opportunities/${opportunity.id}` })
+    if (customRecord && customHref && customLabel) {
+      parentLinks.push({ icon: objectDef?.label ? '🗂️' : '🗂️', label: customLabel, href: customHref })
+    }
   }
 
   const typeConf = TYPE_CONFIG[activityRow.type] ?? { label: activityRow.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600 border-zinc-200' }
