@@ -63,6 +63,7 @@ export default async function NewActivityPage({
       object_id: custom_records.object_id,
       data:      custom_records.data,
     }).from(custom_records),
+    getActivityTypes(),
   ])
 
   // 関連レコード Picker の入力データを組み立て
