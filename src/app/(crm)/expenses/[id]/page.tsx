@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { expenses, accounts, contacts, opportunities, custom_records, object_definitions } from '@/lib/schema'
+import { expenses, accounts, contacts, opportunities, custom_records, object_definitions, expense_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache'
 import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
+import { resolveRelatedRecords } from '@/lib/relatedRecords'
 
 /**
  * カスタムレコードの表示名を導出する。
@@ -37,27 +38,37 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default async function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const expense = await db.select({
-    id: expenses.id, title: expenses.title, amount: expenses.amount,
-    category: expenses.category, expense_date: expenses.expense_date,
-    notes: expenses.notes, created_at: expenses.created_at,
-    custom_record_id: expenses.custom_record_id,
-    accounts:      { id: accounts.id, name: accounts.name },
-    contacts:      { id: contacts.id, full_name: contacts.full_name },
-    opportunities: { id: opportunities.id, name: opportunities.name },
-    custom_record: { id: custom_records.id, data: custom_records.data, object_id: custom_records.object_id },
-    object_def:    { id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label },
-  })
-    .from(expenses)
-    .leftJoin(accounts, eq(expenses.account_id, accounts.id))
-    .leftJoin(contacts, eq(expenses.contact_id, contacts.id))
-    .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
-    .leftJoin(custom_records, eq(expenses.custom_record_id, custom_records.id))
-    .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
-    .where(eq(expenses.id, id))
-    .then((r) => r[0] ?? null)
+  const [expense, relatedPairs] = await Promise.all([
+    db.select({
+      id: expenses.id, title: expenses.title, amount: expenses.amount,
+      category: expenses.category, expense_date: expenses.expense_date,
+      notes: expenses.notes, created_at: expenses.created_at,
+      custom_record_id: expenses.custom_record_id,
+      accounts:      { id: accounts.id, name: accounts.name },
+      contacts:      { id: contacts.id, full_name: contacts.full_name },
+      opportunities: { id: opportunities.id, name: opportunities.name },
+      custom_record: { id: custom_records.id, data: custom_records.data, object_id: custom_records.object_id },
+      object_def:    { id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label },
+    })
+      .from(expenses)
+      .leftJoin(accounts, eq(expenses.account_id, accounts.id))
+      .leftJoin(contacts, eq(expenses.contact_id, contacts.id))
+      .leftJoin(opportunities, eq(expenses.opportunity_id, opportunities.id))
+      .leftJoin(custom_records, eq(expenses.custom_record_id, custom_records.id))
+      .leftJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
+      .where(eq(expenses.id, id))
+      .then((r) => r[0] ?? null),
+    db.select({
+      object_api: expense_related_records.related_object_api,
+      record_id:  expense_related_records.related_record_id,
+    })
+      .from(expense_related_records)
+      .where(eq(expense_related_records.expense_id, id)),
+  ])
 
   if (!expense) notFound()
+
+  const allRelated = await resolveRelatedRecords(relatedPairs)
 
   const account     = expense.accounts?.id     ? expense.accounts     : null
   const contact     = expense.contacts?.id     ? expense.contacts     : null
@@ -100,6 +111,22 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           </AuthGuard>
         }
       />
+
+      {/* 関連レコード（junction 経由で全件表示） */}
+      <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-md px-4 py-3">
+        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">関連レコード</p>
+        {allRelated.length > 0 ? (
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {allRelated.map((r, i) => (
+              <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-blue-600 hover:underline">
+                {r.icon} {r.label}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-400">紐づくレコードなし</p>
+        )}
+      </div>
 
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">

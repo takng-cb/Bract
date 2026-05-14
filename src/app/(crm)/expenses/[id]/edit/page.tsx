@@ -1,23 +1,55 @@
 import { db } from '@/lib/db'
-import { expenses, accounts, contacts, opportunities } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import { expenses, accounts, contacts, opportunities, custom_records, object_definitions, expense_related_records } from '@/lib/schema'
+import { eq, asc, and } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ExpenseForm from '@/components/ExpenseForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateExpense } from '@/app/actions/expenses'
 import { requireEditor } from '@/lib/auth'
+import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
+
+function customRecordTitle(
+  data: Record<string, unknown> | null | undefined,
+  objectLabel: string | null | undefined,
+  recordId: string,
+): string {
+  const d = (data ?? {}) as Record<string, unknown>
+  const name = typeof d.name === 'string' ? d.name : null
+  const title = typeof d.title === 'string' ? d.title : null
+  return name ?? title ?? `${objectLabel ?? 'カスタム'} #${recordId.slice(0, 8)}`
+}
 
 export default async function EditExpensePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [expense, accountsList, contactsList, opportunitiesList] = await Promise.all([
+  const [expense, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows] = await Promise.all([
     db.select().from(expenses).where(eq(expenses.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
-    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
+    db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
     db.select({ id: opportunities.id, name: opportunities.name })
       .from(opportunities).orderBy(asc(opportunities.name)),
+    db.select({
+      id:       object_definitions.id,
+      api_name: object_definitions.api_name,
+      label:    object_definitions.label,
+      icon:     object_definitions.icon,
+    })
+      .from(object_definitions)
+      .where(and(eq(object_definitions.is_builtin, false), eq(object_definitions.enable_expenses, true)))
+      .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label)),
+    db.select({
+      id:        custom_records.id,
+      object_id: custom_records.object_id,
+      data:      custom_records.data,
+    }).from(custom_records),
+    db.select({
+      object_api: expense_related_records.related_object_api,
+      record_id:  expense_related_records.related_record_id,
+    })
+      .from(expense_related_records)
+      .where(eq(expense_related_records.expense_id, id)),
   ])
   if (!expense) notFound()
 
@@ -29,6 +61,35 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
       return (e as Error).message
     }
   }
+
+  const objectTypes: ObjectTypeOption[] = [
+    { api: 'account',     label: '取引先', icon: '🏢' },
+    { api: 'contact',     label: '人物',   icon: '👤' },
+    { api: 'opportunity', label: '商談',   icon: '💼' },
+    ...enabledCustomObjects.map((o) => ({ api: o.api_name, label: o.label, icon: o.icon })),
+  ]
+
+  const recordsByObject: Record<string, RecordOption[]> = {
+    account:     accountsList.map((a) => ({ id: a.id, label: a.name })),
+    contact:     contactsList.map((c) => ({ id: c.id, label: c.full_name })),
+    opportunity: opportunitiesList.map((o) => ({ id: o.id, label: o.name })),
+  }
+  const objectIdToApiName = new Map(enabledCustomObjects.map((o) => [o.id, o.api_name]))
+  const objectIdToLabel   = new Map(enabledCustomObjects.map((o) => [o.id, o.label]))
+  for (const r of allCustomRecords) {
+    const api = objectIdToApiName.get(r.object_id)
+    if (!api) continue
+    if (!recordsByObject[api]) recordsByObject[api] = []
+    recordsByObject[api].push({
+      id:    r.id,
+      label: customRecordTitle(r.data as Record<string, unknown>, objectIdToLabel.get(r.object_id), r.id),
+    })
+  }
+
+  const defaultRelated: RelatedRecordSelection[] = relatedRows.map((r) => ({
+    object_api: r.object_api,
+    record_id:  r.record_id,
+  }))
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">
@@ -42,12 +103,15 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
         <ExpenseForm
           action={updateExpenseAction}
           cancelHref={`/expenses/${id}`}
-          accounts={accountsList}
-          contacts={contactsList}
-          opportunities={opportunitiesList}
+          objectTypes={objectTypes}
+          recordsByObject={recordsByObject}
           defaultValues={{
-            ...expense,
-            amount: expense.amount !== null ? Number(expense.amount) : null,
+            title:        expense.title,
+            amount:       expense.amount !== null ? Number(expense.amount) : null,
+            category:     expense.category,
+            expense_date: expense.expense_date ?? undefined,
+            notes:        expense.notes,
+            related_records: defaultRelated,
           }}
         />
       </div>

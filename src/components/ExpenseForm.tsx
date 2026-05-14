@@ -1,44 +1,36 @@
 'use client'
 
-import { useActionState, useRef, useState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
-import SearchableSelect from '@/components/SearchableSelect'
-
-type Account = { id: string; name: string }
-type Contact = { id: string; full_name: string; account_id?: string | null }
-type Opportunity = { id: string; name: string }
+import RelatedRecordsPicker, {
+  type ObjectTypeOption,
+  type RecordOption,
+  type RelatedRecordSelection,
+} from '@/components/RelatedRecordsPicker'
 
 type ExpenseFormProps = {
-  action: (prevState: string | null, formData: FormData) => Promise<string | null>
-  cancelHref: string
-  accounts: Account[]
-  contacts: Contact[]
-  opportunities: Opportunity[]
+  action:          (prevState: string | null, formData: FormData) => Promise<string | null>
+  cancelHref:      string
+  objectTypes:     ObjectTypeOption[]
+  recordsByObject: Record<string, RecordOption[]>
   defaultValues?: {
-    title?: string
-    amount?: number | null
-    category?: string
-    expense_date?: string
-    account_id?: string | null
-    contact_id?: string | null
-    opportunity_id?: string | null
-    notes?: string | null
+    title?:           string
+    amount?:          number | null
+    category?:        string
+    expense_date?:    string
+    notes?:           string | null
+    related_records?: RelatedRecordSelection[]
   }
 }
 
 const CATEGORIES = ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他']
 
 export default function ExpenseForm({
-  action, cancelHref, accounts, contacts, opportunities, defaultValues = {}
+  action, cancelHref, objectTypes, recordsByObject, defaultValues = {},
 }: ExpenseFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
-  const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
-  const filteredContacts = selectedAccountId
-    ? contacts.filter((c) => c.account_id === selectedAccountId)
-    : contacts
-
   const today = new Date().toISOString().slice(0, 10)
 
   return (
@@ -65,6 +57,20 @@ export default function ExpenseForm({
           formRef={formRef}
           csvFormat="件名,金額,カテゴリ,日付,備考"
           fieldMap={{ '件名': 'title', '金額': 'amount', 'カテゴリ': 'category', '日付': 'expense_date', '備考': 'notes' }}
+        />
+      </div>
+
+      {/* ── 関連レコード（画面最上部） ─────────────────────────────── */}
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-2">
+          関連レコード
+          <span className="ml-2 text-xs text-zinc-500 font-normal">標準 / カスタムオブジェクトのレコードを複数選択できます</span>
+        </label>
+        <RelatedRecordsPicker
+          name="related_records"
+          objectTypes={objectTypes}
+          recordsByObject={recordsByObject}
+          defaultValue={defaultValues.related_records ?? []}
         />
       </div>
 
@@ -116,39 +122,6 @@ export default function ExpenseForm({
           defaultValue={defaultValues.expense_date ?? today}
           className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">商談</label>
-        <SearchableSelect
-          name="opportunity_id"
-          defaultValue={defaultValues.opportunity_id}
-          options={opportunities.map((o) => ({ value: o.id, label: o.name }))}
-          placeholder="選択してください"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">取引先</label>
-          <SearchableSelect
-            name="account_id"
-            defaultValue={defaultValues.account_id}
-            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-            placeholder="選択してください"
-            onSelect={setSelectedAccountId}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">人物</label>
-          <SearchableSelect
-            key={selectedAccountId}
-            name="contact_id"
-            defaultValue={defaultValues.contact_id}
-            options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
-            placeholder="選択してください"
-          />
-        </div>
       </div>
 
       <div>
