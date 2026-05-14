@@ -1,26 +1,64 @@
 import { db } from '@/lib/db'
-import { activities, accounts, contacts, opportunities, activity_contacts } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import {
+  activities,
+  accounts,
+  contacts,
+  opportunities,
+  custom_records,
+  object_definitions,
+  activity_related_records,
+} from '@/lib/schema'
+import { eq, asc, and } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ActivityForm from '@/components/ActivityForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
 import { getActivityTypes } from '@/lib/activityTypes'
+import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
+
+function customRecordTitle(
+  data: Record<string, unknown> | null | undefined,
+  objectLabel: string | null | undefined,
+  recordId: string,
+): string {
+  const d = (data ?? {}) as Record<string, unknown>
+  const name = typeof d.name === 'string' ? d.name : null
+  const title = typeof d.title === 'string' ? d.title : null
+  return name ?? title ?? `${objectLabel ?? 'カスタム'} #${recordId.slice(0, 8)}`
+}
 
 export default async function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [activity, accountsList, contactsList, opportunitiesList, activityContactRows, activityTypes] = await Promise.all([
+  const [activity, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, activityTypes] = await Promise.all([
     db.select().from(activities).where(eq(activities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
-    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
+    db.select({ id: contacts.id, full_name: contacts.full_name })
       .from(contacts).orderBy(asc(contacts.full_name)),
     db.select({ id: opportunities.id, name: opportunities.name })
       .from(opportunities).orderBy(asc(opportunities.name)),
-    db.select({ contact_id: activity_contacts.contact_id })
-      .from(activity_contacts).where(eq(activity_contacts.activity_id, id)),
+    db.select({
+      id:       object_definitions.id,
+      api_name: object_definitions.api_name,
+      label:    object_definitions.label,
+      icon:     object_definitions.icon,
+    })
+      .from(object_definitions)
+      .where(and(eq(object_definitions.is_builtin, false), eq(object_definitions.enable_activities, true)))
+      .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label)),
+    db.select({
+      id:        custom_records.id,
+      object_id: custom_records.object_id,
+      data:      custom_records.data,
+    }).from(custom_records),
+    db.select({
+      object_api: activity_related_records.related_object_api,
+      record_id:  activity_related_records.related_record_id,
+    })
+      .from(activity_related_records)
+      .where(eq(activity_related_records.activity_id, id)),
     getActivityTypes(),
   ])
 
@@ -35,6 +73,36 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
     }
   }
 
+  // 関連レコード Picker の入力データを組み立て
+  const objectTypes: ObjectTypeOption[] = [
+    { api: 'account',     label: '取引先', icon: '🏢' },
+    { api: 'contact',     label: '人物',   icon: '👤' },
+    { api: 'opportunity', label: '商談',   icon: '💼' },
+    ...enabledCustomObjects.map((o) => ({ api: o.api_name, label: o.label, icon: o.icon })),
+  ]
+
+  const recordsByObject: Record<string, RecordOption[]> = {
+    account:     accountsList.map((a) => ({ id: a.id, label: a.name })),
+    contact:     contactsList.map((c) => ({ id: c.id, label: c.full_name })),
+    opportunity: opportunitiesList.map((o) => ({ id: o.id, label: o.name })),
+  }
+  const objectIdToApiName = new Map(enabledCustomObjects.map((o) => [o.id, o.api_name]))
+  const objectIdToLabel   = new Map(enabledCustomObjects.map((o) => [o.id, o.label]))
+  for (const r of allCustomRecords) {
+    const api = objectIdToApiName.get(r.object_id)
+    if (!api) continue
+    if (!recordsByObject[api]) recordsByObject[api] = []
+    recordsByObject[api].push({
+      id:    r.id,
+      label: customRecordTitle(r.data as Record<string, unknown>, objectIdToLabel.get(r.object_id), r.id),
+    })
+  }
+
+  const defaultRelated: RelatedRecordSelection[] = relatedRows.map((r) => ({
+    object_api: r.object_api,
+    record_id:  r.record_id,
+  }))
+
   return (
     <div className="p-4 md:p-8 max-w-2xl">
       <Breadcrumbs items={[
@@ -47,9 +115,8 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
         <ActivityForm
           action={updateActivityAction}
           cancelHref={`/activities/${id}`}
-          accounts={accountsList}
-          contacts={contactsList}
-          opportunities={opportunitiesList}
+          objectTypes={objectTypes}
+          recordsByObject={recordsByObject}
           activityTypes={activityTypes}
           defaultValues={{
             type: activity.type,
@@ -58,9 +125,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
             occurred_at: activity.occurred_at
               ? new Date(activity.occurred_at).toISOString().slice(0, 16)
               : '',
-            account_id: activity.account_id ?? '',
-            contact_ids: activityContactRows.map((ac) => ac.contact_id),
-            opportunity_id: activity.opportunity_id ?? '',
+            related_records: defaultRelated,
           }}
         />
       </div>
