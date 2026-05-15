@@ -1,10 +1,15 @@
 import { db } from '@/lib/db'
 import { customer_vehicles, accounts, maintenance_records } from '@/lib/schema'
-import { eq, asc, desc, sql } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 
 export default async function CustomerVehiclesListPage() {
+  // RSC は 1 リクエストにつき 1 回しか render されないため Date.now() は安定。
+  // react-hooks/purity は client component 向けの規則なのでここでは無効化する。
+  // eslint-disable-next-line react-hooks/purity
+  const nowTime = Date.now()
+
   const [rows, edit] = await Promise.all([
     db.select({
       id:                  customer_vehicles.id,
@@ -60,7 +65,7 @@ export default async function CustomerVehiclesListPage() {
               <tbody className="divide-y divide-zinc-100">
                 {rows.map((v) => {
                   const days = v.inspection_due_date
-                    ? Math.ceil((new Date(v.inspection_due_date).getTime() - Date.now()) / 86400000)
+                    ? Math.ceil((new Date(v.inspection_due_date).getTime() - nowTime) / 86400000)
                     : null
                   const urgent = days != null && days <= 30
                   return (

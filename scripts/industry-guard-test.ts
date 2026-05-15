@@ -61,6 +61,19 @@ const CHECKS: Check[] = [
   { industry: 'auto-body',   path: '/parts',      expectStatus: [200, 302, 307, 308], label: 'auto-body で /parts が存在し応答する' },
   { industry: 'real-estate', path: '/parts',      expectStatus: [200, 302, 307, 308], label: 'real-estate で /parts は redirect で /objects/parts へ案内' },
   { industry: 'base',        path: '/parts',      expectStatus: [200, 302, 307, 308], label: 'base で /parts は redirect で /objects/parts へ案内' },
+
+  // ── auto-body 特化ルート（整備機能、Phase A1）─────────────────
+  // /maintenance と /customer-vehicles は auto-body 業種専用ルート。
+  // 他業種では notFound() するため、404 もここでは許容する
+  // （real-estate / base には対応する DB テーブルも /objects 定義も無いため
+  //   redirect 先が無い）。
+  { industry: 'auto-body',   path: '/maintenance',       expectStatus: [200, 302, 307, 308], label: 'auto-body で /maintenance が存在し応答する' },
+  { industry: 'real-estate', path: '/maintenance',       expectStatus: [200, 302, 307, 308, 404], label: 'real-estate で /maintenance は 404 または auth redirect' },
+  { industry: 'base',        path: '/maintenance',       expectStatus: [200, 302, 307, 308, 404], label: 'base で /maintenance は 404 または auth redirect' },
+
+  { industry: 'auto-body',   path: '/customer-vehicles', expectStatus: [200, 302, 307, 308], label: 'auto-body で /customer-vehicles が存在し応答する' },
+  { industry: 'real-estate', path: '/customer-vehicles', expectStatus: [200, 302, 307, 308, 404], label: 'real-estate で /customer-vehicles は 404 または auth redirect' },
+  { industry: 'base',        path: '/customer-vehicles', expectStatus: [200, 302, 307, 308, 404], label: 'base で /customer-vehicles は 404 または auth redirect' },
 ]
 
 type Result = { check: Check; ok: boolean; status: number; location: string | null; reason: string }

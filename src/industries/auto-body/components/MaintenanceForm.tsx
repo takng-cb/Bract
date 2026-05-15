@@ -54,12 +54,10 @@ export default function MaintenanceForm({
   action, cancelHref, vehicles, accounts, contacts, users, defaultValues = {},
 }: Props) {
   const [error, formAction, pending] = useActionState(action, null)
-  const [selectedVehicleId, setSelectedVehicleId] = useState(defaultValues.customer_vehicle_id ?? '')
   const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
 
   // 車両選択 → その車両の所有者を顧客に自動入力
   function onVehicleChange(id: string) {
-    setSelectedVehicleId(id)
     const v = vehicles.find((x) => x.id === id)
     if (v && v.account_id && !selectedAccountId) {
       setSelectedAccountId(v.account_id)

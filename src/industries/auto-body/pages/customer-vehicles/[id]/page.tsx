@@ -47,8 +47,12 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
   const v = vRow.v
   const account = vRow.account?.id ? vRow.account : null
 
+  // RSC は 1 リクエストにつき 1 回しか render されないため Date.now() は安定。
+  // react-hooks/purity は client component 向けの規則なのでここでは無効化する。
+  // eslint-disable-next-line react-hooks/purity
+  const nowTime = Date.now()
   const days = v.inspection_due_date
-    ? Math.ceil((new Date(v.inspection_due_date).getTime() - Date.now()) / 86400000)
+    ? Math.ceil((new Date(v.inspection_due_date).getTime() - nowTime) / 86400000)
     : null
   const urgent = days != null && days <= 30
 

@@ -39,6 +39,15 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   low:    { label: '低', color: 'text-green-700 bg-green-50' },
 }
 
+// 行アイテム以外のサブタブ用プレースホルダ（次フェーズ実装予定）
+function Placeholder({ title }: { title: string }) {
+  return (
+    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+      <p className="text-sm text-zinc-500">{title} は次のフェーズで実装予定です</p>
+    </div>
+  )
+}
+
 export default async function MaintenanceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
@@ -207,12 +216,8 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     </>
   )
 
-  // 2-5: 行アイテム / 諸費用 / 入金 / 帳票（スタブ）
-  const Placeholder = ({ title }: { title: string }) => (
-    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
-      <p className="text-sm text-zinc-500">{title} は次のフェーズで実装予定です</p>
-    </div>
-  )
+  // 2-5: 行アイテム / 諸費用 / 入金 / 帳票
+  // 帳票はスタブ（Placeholder はファイル末尾にホイスト済み）
 
   // 売上額（税抜）= 行アイテム（除外除く）の労務+部品 + 諸費用合計
   const labor = Number(lineTotalsRow[0]?.labor ?? 0)
