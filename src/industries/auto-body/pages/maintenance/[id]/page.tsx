@@ -2,9 +2,10 @@ import { db } from '@/lib/db'
 import {
   maintenance_records, customer_vehicles, accounts, contacts,
   activities, tasks, expenses, change_logs,
+  maintenance_line_items, maintenance_fees,
 } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
-import { eq, and, desc, asc, inArray, count } from 'drizzle-orm'
+import { eq, and, desc, asc, inArray, count, sql } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
@@ -19,6 +20,10 @@ import { deleteMaintenance, updateMaintenanceStatus } from '@/industries/auto-bo
 import { toggleTaskDone } from '@/app/actions/tasks'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { getAllUsers } from '@/lib/userUtils'
+import { canEdit } from '@/lib/auth'
+import MaintenanceLineItemsEditor from '@/industries/auto-body/components/MaintenanceLineItemsEditor'
+import MaintenanceFeesEditor from '@/industries/auto-body/components/MaintenanceFeesEditor'
+import MaintenancePaymentsEditor from '@/industries/auto-body/components/MaintenancePaymentsEditor'
 
 const STATUS_STAGES: StageConfig[] = [
   { value: '予約',     label: '予約',     activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -37,7 +42,7 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
 export default async function MaintenanceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [mRow, activitiesList, tasksList, expensesList, activityTypes, allUsers, changeLogCountRow] = await Promise.all([
+  const [mRow, activitiesList, tasksList, expensesList, activityTypes, allUsers, changeLogCountRow, editable, lineTotalsRow, feeTotalsRow] = await Promise.all([
     db.select({
       m:       maintenance_records,
       vehicle: customer_vehicles,
@@ -63,6 +68,15 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     getAllUsers(),
     db.select({ c: count() }).from(change_logs)
       .where(and(eq(change_logs.object_type, 'maintenance'), eq(change_logs.object_id, id))),
+    canEdit(),
+    // 集計（請求合計の参考表示用）
+    db.select({
+      labor: sql<string>`COALESCE(SUM(CASE WHEN ${maintenance_line_items.is_excluded} THEN 0 ELSE COALESCE(${maintenance_line_items.labor_amount}, 0) END), 0)`,
+      parts: sql<string>`COALESCE(SUM(CASE WHEN ${maintenance_line_items.is_excluded} THEN 0 ELSE COALESCE(${maintenance_line_items.parts_qty}, 0) * COALESCE(${maintenance_line_items.parts_unit_price}, 0) END), 0)`,
+    }).from(maintenance_line_items).where(eq(maintenance_line_items.maintenance_id, id)),
+    db.select({
+      fees: sql<string>`COALESCE(SUM(COALESCE(${maintenance_fees.amount}, 0)), 0)`,
+    }).from(maintenance_fees).where(eq(maintenance_fees.maintenance_id, id)),
   ])
 
   if (!mRow) notFound()
@@ -200,11 +214,41 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     </div>
   )
 
+  // 売上額（税抜）= 行アイテム（除外除く）の労務+部品 + 諸費用合計
+  const labor = Number(lineTotalsRow[0]?.labor ?? 0)
+  const parts = Number(lineTotalsRow[0]?.parts ?? 0)
+  const feesT = Number(feeTotalsRow[0]?.fees ?? 0)
+  const invoiceTotal = labor + parts + feesT
+
+  const linesContent = (
+    <MaintenanceLineItemsEditor
+      maintenanceId={id}
+      canEdit={editable}
+      leverRate={m.lever_rate}
+    />
+  )
+
+  const feesContent = (
+    <MaintenanceFeesEditor
+      maintenanceId={id}
+      canEdit={editable}
+    />
+  )
+
+  const paymentsContent = (
+    <MaintenancePaymentsEditor
+      maintenanceId={id}
+      canEdit={editable}
+      users={allUsers}
+      invoiceTotal={invoiceTotal}
+    />
+  )
+
   const overviewSubTabs: TabDef[] = [
     { id: 'basic',     label: '基本情報', content: basicInfoContent },
-    { id: 'lines',     label: '行アイテム', content: <Placeholder title="行アイテム" /> },
-    { id: 'fees',      label: '諸費用',     content: <Placeholder title="諸費用" /> },
-    { id: 'payments',  label: '入金',       content: <Placeholder title="入金" /> },
+    { id: 'lines',     label: '行アイテム', content: linesContent },
+    { id: 'fees',      label: '諸費用',     content: feesContent },
+    { id: 'payments',  label: '入金',       content: paymentsContent },
     { id: 'documents', label: '帳票',       content: <Placeholder title="帳票" /> },
   ]
 
