@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
-import { opportunities, accounts, contacts, activities, tasks, attachments, expenses } from '@/lib/schema'
+import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
-import { eq, asc, desc, inArray } from 'drizzle-orm'
+import { eq, and, asc, desc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
@@ -19,6 +19,7 @@ import { getAllUsers } from '@/lib/userUtils'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
+import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import { calcProfit, commissionBreakdown, effectiveCommissionRatePct, effectiveCommissionMonths } from '@/industries/real-estate/lib/realEstateCommission'
 import { calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
@@ -40,8 +41,6 @@ const STAGE_LABEL: Record<string, string> = {
   negotiation: '交渉', closed_won: '受注', closed_lost: '失注',
 }
 
-// ACTIVITY_TYPE_LABELS は getActivityTypes() で動的構築（page 内）
-
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
   medium: { label: '中', color: 'text-yellow-700 bg-yellow-50' },
@@ -58,7 +57,7 @@ function formatFileSize(bytes: number | null) {
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag, allUsers, activityTypes] = await Promise.all([
+  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, , allUsers, activityTypes, changeLogCountRow] = await Promise.all([
     db.select({
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
@@ -79,7 +78,6 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       .leftJoin(contacts, eq(opportunities.contact_id, contacts.id))
       .where(eq(opportunities.id, id))
       .then((r) => r[0] ?? null),
-    // 関連活動: junction 経由（複数商談関連の活動も含む）
     db.select().from(activities)
       .where(inArray(activities.id, activityIdsRelatedTo('opportunity', id)))
       .orderBy(desc(activities.occurred_at)),
@@ -94,6 +92,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     canEdit(),
     getAllUsers(),
     getActivityTypes(),
+    db.select({ c: count() }).from(change_logs)
+      .where(and(eq(change_logs.object_type, 'opportunity'), eq(change_logs.object_id, id))),
   ])
 
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
@@ -104,7 +104,6 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const contact   = opportunity.contacts?.id ? opportunity.contacts : null
   const ownerName = opportunity.owner_id ? (allUsers.find((u) => u.id === opportunity.owner_id)?.name ?? null) : null
 
-  // auto-body 用の対象車両情報を取得
   const vehicleInfo =
     activeIndustry === 'auto-body' && opportunity.vehicle_id
       ? await db.select({
@@ -146,37 +145,13 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-  return (
-    <div className="p-4 md:p-8 max-w-3xl">
-      <RecordHeader
-        crumbs={[
-          { label: '商談', href: '/opportunities' },
-          { label: opportunity.name },
-        ]}
-        actions={
-          <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2">
-              <Link href={`/opportunities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
-              <DeleteButton action={handleDelete} confirmMessage="この商談を削除しますか？" />
-            </div>
-          </AuthGuard>
-        }
-      />
-
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900 break-words">{opportunity.name}</h1>
-        {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
-        {contact && <Link href={`/contacts/${contact.id}`} className="text-sm text-blue-600 hover:underline mt-0.5 block">👤 {contact.full_name}</Link>}
-        <div className="mt-2">
-          <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
-        </div>
-      </div>
-
+  // ── 概要タブ ─────────────────────────────────────────────────────
+  const overviewContent = (
+    <>
       <div className="mb-6">
         <StageBar stages={OPPORTUNITY_STAGES} currentStage={opportunity.stage} updateAction={changeStage} />
       </div>
 
-      {/* 商談情報 */}
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">商談情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -212,10 +187,6 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </dd>
         </div>
         {(() => {
-          // INDUSTRY 条件で財務サマリーの計算式を切替:
-          //   base       : 想定売上 = 金額 × 確度
-          //   real-estate: 想定売上 = 仲介手数料ベース利益 × 確度
-          //   auto-body  : 想定売上 = 整備利益 (amount - parts_cost) × 確度
           const isReal     = activeIndustry === 'real-estate'
           const isAutoBody = activeIndustry === 'auto-body'
           const totalExp = expensesList.reduce((s, e) => s + Number(e.amount), 0)
@@ -281,7 +252,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         })()}
       </div>
 
-      {/* 不動産情報（INDUSTRY=real-estate のみ） */}
+      {/* 不動産情報 */}
       {activeIndustry === 'real-estate' && (() => {
         const tx    = opportunity.transaction_type === '賃貸' ? '賃貸' : '売買'
         const isRent = tx === '賃貸'
@@ -341,7 +312,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         )
       })()}
 
-      {/* 自動車整備情報（INDUSTRY=auto-body のみ） */}
+      {/* 自動車整備情報 */}
       {activeIndustry === 'auto-body' && (() => {
         const st  = opportunity.service_type
         const amt = opportunity.amount != null ? Number(opportunity.amount) : 0
@@ -391,123 +362,11 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         )
       })()}
 
-      {/* カスタムフィールド */}
       {customData.fields.length > 0 && (
         <div className="mb-6">
-          <CustomFieldsCard
-            fields={customData.fields}
-            values={customData.values}
-          />
+          <CustomFieldsCard fields={customData.fields} values={customData.values} />
         </div>
       )}
-
-      {/* ToDo */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-zinc-800">ToDo <span className="text-zinc-400 font-normal text-sm">({tasksList.length})</span></h2>
-          <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2">
-              <TextImportModal importUrl="/api/import/tasks" title="ToDoインポート" csvFormat="ID,タイトル,期日,優先度,完了,担当者名" fieldOptions={{ '優先度': ['高','中','低'], '完了': ['完了（済みの場合）','空（未完了の場合）'] }} defaultContext={{ opportunity_id: id }} />
-              <Link href={`/tasks/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
-            </div>
-          </AuthGuard>
-        </div>
-        {tasksList.length > 0 ? (
-          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
-            {tasksList.map((t) => {
-              const priority  = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
-              const isOverdue = !t.done && t.due_date && new Date(t.due_date) < new Date()
-              return (
-                <div key={t.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 ${t.done ? 'opacity-60' : ''}`}>
-                  <AuthGuard minRole="editor">
-                    <form action={toggleTask} className="shrink-0">
-                      <input type="hidden" name="task_id" value={t.id} />
-                      <input type="hidden" name="done" value={(!t.done).toString()} />
-                      <button type="submit" className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${t.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
-                        {t.done && <span className="text-xs leading-none">✓</span>}
-                      </button>
-                    </form>
-                  </AuthGuard>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
-                    </div>
-                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
-                  </div>
-                  <AuthGuard minRole="editor">
-                    <Link href={`/tasks/${t.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700 shrink-0">編集</Link>
-                  </AuthGuard>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center">ToDoがありません</p>
-        )}
-      </section>
-
-      {/* 経費 */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-zinc-800">経費 <span className="text-zinc-400 font-normal text-sm">({expensesList.length})</span></h2>
-          <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2">
-              <TextImportModal importUrl="/api/import/expenses" title="経費インポート" csvFormat="ID,件名,金額,カテゴリ,日付,備考" fieldOptions={{ 'カテゴリ': ['交通費','接待費','通信費','消耗品費','広告費','外注費','その他'] }} defaultContext={{ opportunity_id: id }} />
-              <Link href={`/expenses/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
-            </div>
-          </AuthGuard>
-        </div>
-        {expensesList.length > 0 ? (
-          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
-            {expensesList.map((e) => (
-              <div key={e.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
-                <div className="flex-1 min-w-0">
-                  <Link href={`/expenses/${e.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600 block truncate">{e.title}</Link>
-                  <p className="text-xs text-zinc-400 mt-0.5">{e.category} · {e.expense_date}</p>
-                </div>
-                <span className="text-sm font-semibold text-orange-600 shrink-0">¥{Number(e.amount).toLocaleString()}</span>
-              </div>
-            ))}
-            <div className="px-4 py-2 bg-zinc-50 flex justify-between items-center">
-              <span className="text-xs font-semibold text-zinc-500">合計</span>
-              <span className="text-sm font-bold text-orange-700">¥{expensesList.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}</span>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center">経費がありません</p>
-        )}
-      </section>
-
-      {/* 活動履歴 */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-zinc-800">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
-          <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2">
-              <TextImportModal importUrl="/api/import/activities" title="活動履歴インポート" csvFormat="ID,実施日時,種別,件名,内容,担当者名" fieldOptions={{ '種別': ['電話','メール','打ち合わせ','メモ'] }} defaultContext={{ opportunity_id: id }} />
-              <Link href={`/activities/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
-            </div>
-          </AuthGuard>
-        </div>
-        {activitiesList.length > 0 ? (
-          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
-            {activitiesList.map((a) => (
-              <div key={a.id} className="px-4 py-3 hover:bg-zinc-50">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-zinc-400">{ACTIVITY_TYPE_LABELS[a.type] ?? a.type}</span>
-                  <span className="text-xs text-zinc-400">•</span>
-                  <span className="text-xs text-zinc-400">{a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}</span>
-                </div>
-                <Link href={`/activities/${a.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600">{a.subject}</Link>
-                {a.body && <p className="text-xs text-zinc-500 mt-1">{a.body}</p>}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center">活動履歴がありません</p>
-        )}
-      </section>
 
       {/* 添付ファイル */}
       <section className="mb-6">
@@ -553,15 +412,161 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           pagePath={`/opportunities/${id}`}
         />
       </section>
+    </>
+  )
 
-      {/* 変更履歴 */}
-      <section className="mb-6">
-        <h2 className="text-base font-semibold text-zinc-800 mb-3">変更履歴</h2>
-        <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2">
-          <ChangeLogSection objectType="opportunity" objectId={id} />
+  // ── 活動・ToDo・経費タブ ───────────────────────────────────────
+  const interactionCount = activitiesList.length + tasksList.length + expensesList.length
+  const interactionsContent = (
+    <>
+      {activitiesList.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-zinc-800">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
+            <AuthGuard minRole="editor">
+              <div className="flex items-center gap-2">
+                <TextImportModal importUrl="/api/import/activities" title="活動履歴インポート" csvFormat="ID,実施日時,種別,件名,内容,担当者名" fieldOptions={{ '種別': ['電話','メール','打ち合わせ','メモ'] }} defaultContext={{ opportunity_id: id }} />
+                <Link href={`/activities/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+              </div>
+            </AuthGuard>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
+            {activitiesList.map((a) => (
+              <div key={a.id} className="px-4 py-3 hover:bg-zinc-50">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-zinc-400">{ACTIVITY_TYPE_LABELS[a.type] ?? a.type}</span>
+                  <span className="text-xs text-zinc-400">•</span>
+                  <span className="text-xs text-zinc-400">{a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}</span>
+                </div>
+                <Link href={`/activities/${a.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600">{a.subject}</Link>
+                {a.body && <p className="text-xs text-zinc-500 mt-1">{a.body}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {tasksList.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-zinc-800">ToDo <span className="text-zinc-400 font-normal text-sm">({tasksList.length})</span></h2>
+            <AuthGuard minRole="editor">
+              <div className="flex items-center gap-2">
+                <TextImportModal importUrl="/api/import/tasks" title="ToDoインポート" csvFormat="ID,タイトル,期日,優先度,完了,担当者名" fieldOptions={{ '優先度': ['高','中','低'], '完了': ['完了（済みの場合）','空（未完了の場合）'] }} defaultContext={{ opportunity_id: id }} />
+                <Link href={`/tasks/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+              </div>
+            </AuthGuard>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
+            {tasksList.map((t) => {
+              const priority  = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
+              const isOverdue = !t.done && t.due_date && new Date(t.due_date) < new Date()
+              return (
+                <div key={t.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 ${t.done ? 'opacity-60' : ''}`}>
+                  <AuthGuard minRole="editor">
+                    <form action={toggleTask} className="shrink-0">
+                      <input type="hidden" name="task_id" value={t.id} />
+                      <input type="hidden" name="done" value={(!t.done).toString()} />
+                      <button type="submit" className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${t.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
+                        {t.done && <span className="text-xs leading-none">✓</span>}
+                      </button>
+                    </form>
+                  </AuthGuard>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
+                    </div>
+                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                  </div>
+                  <AuthGuard minRole="editor">
+                    <Link href={`/tasks/${t.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700 shrink-0">編集</Link>
+                  </AuthGuard>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {expensesList.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-zinc-800">経費 <span className="text-zinc-400 font-normal text-sm">({expensesList.length})</span></h2>
+            <AuthGuard minRole="editor">
+              <div className="flex items-center gap-2">
+                <TextImportModal importUrl="/api/import/expenses" title="経費インポート" csvFormat="ID,件名,金額,カテゴリ,日付,備考" fieldOptions={{ 'カテゴリ': ['交通費','接待費','通信費','消耗品費','広告費','外注費','その他'] }} defaultContext={{ opportunity_id: id }} />
+                <Link href={`/expenses/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+              </div>
+            </AuthGuard>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
+            {expensesList.map((e) => (
+              <div key={e.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
+                <div className="flex-1 min-w-0">
+                  <Link href={`/expenses/${e.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600 block truncate">{e.title}</Link>
+                  <p className="text-xs text-zinc-400 mt-0.5">{e.category} · {e.expense_date}</p>
+                </div>
+                <span className="text-sm font-semibold text-orange-600 shrink-0">¥{Number(e.amount).toLocaleString()}</span>
+              </div>
+            ))}
+            <div className="px-4 py-2 bg-zinc-50 flex justify-between items-center">
+              <span className="text-xs font-semibold text-zinc-500">合計</span>
+              <span className="text-sm font-bold text-orange-700">¥{expensesList.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}</span>
+            </div>
+          </div>
+        </section>
+      )}
+    </>
+  )
+
+  // ── 履歴タブ ─────────────────────────────────────────────────────
+  const changeLogCount = Number(changeLogCountRow[0]?.c ?? 0)
+  const historyContent = (
+    <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2">
+      <ChangeLogSection objectType="opportunity" objectId={id} />
+    </div>
+  )
+
+  const tabsConfig: TabDef[] = [
+    { id: 'overview', label: '概要', content: overviewContent },
+  ]
+  if (interactionCount > 0) {
+    tabsConfig.push({ id: 'interactions', label: '活動・ToDo・経費', badge: interactionCount, content: interactionsContent })
+  }
+  if (changeLogCount > 0) {
+    tabsConfig.push({ id: 'history', label: '履歴', badge: changeLogCount, content: historyContent })
+  }
+
+  return (
+    <div className="p-4 md:p-8 max-w-3xl">
+      <RecordHeader
+        crumbs={[
+          { label: '商談', href: '/opportunities' },
+          { label: opportunity.name },
+        ]}
+        actions={
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <Link href={`/opportunities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="この商談を削除しますか？" />
+            </div>
+          </AuthGuard>
+        }
+      />
+
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-zinc-900 break-words">{opportunity.name}</h1>
+        {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
+        {contact && <Link href={`/contacts/${contact.id}`} className="text-sm text-blue-600 hover:underline mt-0.5 block">👤 {contact.full_name}</Link>}
+        <div className="mt-2">
+          <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
         </div>
-      </section>
-      <div className="text-right">
+      </div>
+
+      <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+
+      <div className="mt-6 text-right">
         <RecordId id={id} />
       </div>
     </div>
