@@ -206,7 +206,24 @@ export default async function CustomRecordDetailPage({
 
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
-  const interactionsContent = (
+  const interactionsContent = interactionCount === 0 ? (
+    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+      <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
+      {edit && (
+        <div className="flex flex-wrap justify-center gap-2">
+          {obj.enable_activities && (
+            <Link href={`/activities/new?custom_record_id=${recordId}&return_to=${encodeURIComponent(returnTo)}`} className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 活動を記録</Link>
+          )}
+          {obj.enable_tasks && (
+            <Link href={`/tasks/new?custom_record_id=${recordId}&return_to=${encodeURIComponent(returnTo)}`} className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ ToDo を追加</Link>
+          )}
+          {obj.enable_expenses && (
+            <Link href={`/expenses/new?custom_record_id=${recordId}&return_to=${encodeURIComponent(returnTo)}`} className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 経費を追加</Link>
+          )}
+        </div>
+      )}
+    </div>
+  ) : (
     <>
       {obj.enable_activities && activitiesList.length > 0 && (
         <div className="bg-white rounded-lg border border-zinc-200 p-6 mb-6">
@@ -339,8 +356,15 @@ export default async function CustomRecordDetailPage({
   const tabsConfig: TabDef[] = [
     { id: 'overview', label: '概要', content: overviewContent },
   ]
-  if (interactionCount > 0) {
-    tabsConfig.push({ id: 'interactions', label: '活動・ToDo・経費', badge: interactionCount, content: interactionsContent })
+  // 活動・ToDo・経費 のいずれかが有効化されている、またはデータがあるなら表示
+  const showInteractionsTab = interactionCount > 0 || obj.enable_activities || obj.enable_tasks || obj.enable_expenses
+  if (showInteractionsTab) {
+    tabsConfig.push({
+      id: 'interactions',
+      label: '活動・ToDo・経費',
+      badge: interactionCount > 0 ? interactionCount : undefined,
+      content: interactionsContent,
+    })
   }
   if (changeLogCount > 0) {
     tabsConfig.push({ id: 'history', label: '履歴', badge: changeLogCount, content: historyContent })

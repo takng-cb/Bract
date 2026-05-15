@@ -417,7 +417,18 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
-  const interactionsContent = (
+  const interactionsContent = interactionCount === 0 ? (
+    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+      <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
+      <AuthGuard minRole="editor">
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link href={`/activities/new?opportunity_id=${id}`} className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 活動を記録</Link>
+          <Link href={`/tasks/new?opportunity_id=${id}`}      className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ ToDo を追加</Link>
+          <Link href={`/expenses/new?opportunity_id=${id}`}   className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 経費を追加</Link>
+        </div>
+      </AuthGuard>
+    </div>
+  ) : (
     <>
       {activitiesList.length > 0 && (
         <section className="mb-6">
@@ -531,9 +542,12 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const tabsConfig: TabDef[] = [
     { id: 'overview', label: '概要', content: overviewContent },
   ]
-  if (interactionCount > 0) {
-    tabsConfig.push({ id: 'interactions', label: '活動・ToDo・経費', badge: interactionCount, content: interactionsContent })
-  }
+  tabsConfig.push({
+    id: 'interactions',
+    label: '活動・ToDo・経費',
+    badge: interactionCount > 0 ? interactionCount : undefined,
+    content: interactionsContent,
+  })
   if (changeLogCount > 0) {
     tabsConfig.push({ id: 'history', label: '履歴', badge: changeLogCount, content: historyContent })
   }
