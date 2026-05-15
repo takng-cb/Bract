@@ -1,7 +1,8 @@
 import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { db } from '@/lib/db'
 import { custom_records, accounts, contacts, activities, tasks, expenses, change_logs } from '@/lib/schema'
-import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
+import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
+import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, inArray, desc, asc, count } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -90,6 +91,14 @@ export default async function CustomRecordDetailPage({
 
   const recordTitle = String(data.name ?? data.title ?? `${obj.label} #${recordId.slice(0, 8)}`)
   const returnTo    = `/objects/${objectApiName}/${recordId}`
+
+  const [activityRelMap, taskRelMap, expenseRelMap] = await Promise.all([
+    batchResolveRelatedRecords('activity', activitiesList.map((a) => a.id)),
+    batchResolveRelatedRecords('task',     tasksList.map((t) => t.id)),
+    batchResolveRelatedRecords('expense',  expensesList.map((e) => e.id)),
+  ])
+  const isNotSelf = (r: { object_api: string; record_id: string }) =>
+    !(r.object_api === objectApiName && r.record_id === recordId)
 
   async function handleDelete() {
     'use server'
@@ -255,6 +264,7 @@ export default async function CustomRecordDetailPage({
                     )}
                   </p>
                   {act.body && <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{act.body}</p>}
+                  <OtherRelationsChips relations={(activityRelMap.get(act.id) ?? []).filter(isNotSelf)} />
                 </div>
               </li>
             ))}
@@ -279,30 +289,35 @@ export default async function CustomRecordDetailPage({
             {tasksList.map((task) => {
               const pri = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
               return (
-                <li key={task.id} className="flex items-center gap-3 py-1">
-                  <form action={toggleTask}>
-                    <input type="hidden" name="task_id" value={task.id} />
-                    <input type="hidden" name="done" value={task.done ? 'false' : 'true'} />
-                    <button
-                      type="submit"
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                        task.done ? 'bg-green-500 border-green-500' : 'border-zinc-300 hover:border-green-400'
-                      }`}
-                    >
-                      {task.done && <span className="text-white text-xs font-bold">✓</span>}
-                    </button>
-                  </form>
-                  <Link href={`/tasks/${task.id}`} className={`flex-1 text-sm ${task.done ? 'line-through text-zinc-400' : 'text-zinc-800'}`}>
-                    {task.title}
-                  </Link>
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${pri.color}`}>
-                    {pri.label}
-                  </span>
-                  {task.due_date && (
-                    <span className={`text-xs ${new Date(task.due_date) < new Date() && !task.done ? 'text-red-500' : 'text-zinc-400'}`}>
-                      {task.due_date}
+                <li key={task.id} className="py-1">
+                  <div className="flex items-center gap-3">
+                    <form action={toggleTask}>
+                      <input type="hidden" name="task_id" value={task.id} />
+                      <input type="hidden" name="done" value={task.done ? 'false' : 'true'} />
+                      <button
+                        type="submit"
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          task.done ? 'bg-green-500 border-green-500' : 'border-zinc-300 hover:border-green-400'
+                        }`}
+                      >
+                        {task.done && <span className="text-white text-xs font-bold">✓</span>}
+                      </button>
+                    </form>
+                    <Link href={`/tasks/${task.id}`} className={`flex-1 text-sm ${task.done ? 'line-through text-zinc-400' : 'text-zinc-800'}`}>
+                      {task.title}
+                    </Link>
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${pri.color}`}>
+                      {pri.label}
                     </span>
-                  )}
+                    {task.due_date && (
+                      <span className={`text-xs ${new Date(task.due_date) < new Date() && !task.done ? 'text-red-500' : 'text-zinc-400'}`}>
+                        {task.due_date}
+                      </span>
+                    )}
+                  </div>
+                  <div className="ml-8">
+                    <OtherRelationsChips relations={(taskRelMap.get(task.id) ?? []).filter(isNotSelf)} />
+                  </div>
                 </li>
               )
             })}
@@ -325,15 +340,20 @@ export default async function CustomRecordDetailPage({
           </div>
           <ul className="space-y-2 mb-3">
             {expensesList.map((exp) => (
-              <li key={exp.id} className="flex items-center gap-3 py-1 border-b border-zinc-100 last:border-0">
-                <span className="text-xs text-zinc-400 shrink-0 w-20">{exp.expense_date}</span>
-                <Link href={`/expenses/${exp.id}`} className="flex-1 text-sm text-zinc-800 hover:text-blue-600 truncate">
-                  {exp.title}
-                </Link>
-                <span className="text-xs text-zinc-500 shrink-0">{exp.category}</span>
-                <span className="text-sm font-semibold text-zinc-900 shrink-0">
-                  ¥{Number(exp.amount).toLocaleString('ja-JP')}
-                </span>
+              <li key={exp.id} className="py-1 border-b border-zinc-100 last:border-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-zinc-400 shrink-0 w-20">{exp.expense_date}</span>
+                  <Link href={`/expenses/${exp.id}`} className="flex-1 text-sm text-zinc-800 hover:text-blue-600 truncate">
+                    {exp.title}
+                  </Link>
+                  <span className="text-xs text-zinc-500 shrink-0">{exp.category}</span>
+                  <span className="text-sm font-semibold text-zinc-900 shrink-0">
+                    ¥{Number(exp.amount).toLocaleString('ja-JP')}
+                  </span>
+                </div>
+                <div className="ml-23">
+                  <OtherRelationsChips relations={(expenseRelMap.get(exp.id) ?? []).filter(isNotSelf)} />
+                </div>
               </li>
             ))}
           </ul>

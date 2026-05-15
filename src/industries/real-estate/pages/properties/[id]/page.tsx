@@ -1,7 +1,8 @@
 import { db } from '@/lib/db'
 import { accounts, contacts, activities, tasks, expenses, change_logs } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
-import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
+import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
+import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, inArray, desc, asc, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -86,6 +87,14 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   ])
 
   if (!row) notFound()
+
+  const [activityRelMap, taskRelMap, expenseRelMap] = await Promise.all([
+    batchResolveRelatedRecords('activity', activitiesList.map((a) => a.id)),
+    batchResolveRelatedRecords('task',     tasksList.map((t) => t.id)),
+    batchResolveRelatedRecords('expense',  expensesList.map((e) => e.id)),
+  ])
+  const isNotSelf = (r: { object_api: string; record_id: string }) =>
+    !(r.object_api === 'properties' && r.record_id === id)
 
   const p        = row.properties
   const account  = row.accounts?.id ? row.accounts : null
@@ -317,6 +326,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
                 </div>
                 <Link href={`/activities/${a.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600">{a.subject}</Link>
                 {a.body && <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{a.body}</p>}
+                <OtherRelationsChips relations={(activityRelMap.get(a.id) ?? []).filter(isNotSelf)} />
               </div>
             ))}
           </div>
@@ -352,6 +362,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
                     {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                 </div>
               )
@@ -370,13 +381,16 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           </div>
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
             {expensesList.map((e) => (
-              <Link key={e.id} href={`/expenses/${e.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-800">{e.title}</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">{e.category} · {e.expense_date}</p>
-                </div>
-                <span className="font-bold text-zinc-800 text-sm shrink-0">¥{Number(e.amount).toLocaleString()}</span>
-              </Link>
+              <div key={e.id} className="px-4 py-3 hover:bg-zinc-50">
+                <Link href={`/expenses/${e.id}`} className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-zinc-800">{e.title}</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">{e.category} · {e.expense_date}</p>
+                  </div>
+                  <span className="font-bold text-zinc-800 text-sm shrink-0">¥{Number(e.amount).toLocaleString()}</span>
+                </Link>
+                <OtherRelationsChips relations={(expenseRelMap.get(e.id) ?? []).filter(isNotSelf)} />
+              </div>
             ))}
           </div>
         </section>

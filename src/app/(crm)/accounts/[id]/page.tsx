@@ -2,7 +2,8 @@ import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
-import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
+import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
+import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, asc, desc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -90,6 +91,15 @@ export default async function AccountDetailPage({
   for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
 
   if (!account) notFound()
+
+  // 各活動・ToDo・経費の「他の関連先」を一括取得
+  const [activityRelMap, taskRelMap, expenseRelMap] = await Promise.all([
+    batchResolveRelatedRecords('activity', activitiesList.map((a) => a.id)),
+    batchResolveRelatedRecords('task',     tasksList.map((t) => t.id)),
+    batchResolveRelatedRecords('expense',  expensesList.map((e) => e.id)),
+  ])
+  const isNotSelf = (r: { object_api: string; record_id: string }) =>
+    !(r.object_api === 'account' && r.record_id === id)
 
   // 編集権限ボイラープレートを抑制（hint だけに使う）
   void editFlag
@@ -375,6 +385,7 @@ export default async function AccountDetailPage({
                 </div>
                 <Link href={`/activities/${a.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600">{a.subject}</Link>
                 {a.body && <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{a.body}</p>}
+                <OtherRelationsChips relations={(activityRelMap.get(a.id) ?? []).filter(isNotSelf)} />
               </div>
             ))}
           </div>
@@ -411,6 +422,7 @@ export default async function AccountDetailPage({
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
                     {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                   <AuthGuard minRole="editor">
                     <Link href={`/tasks/${t.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700 shrink-0">編集</Link>
@@ -435,16 +447,19 @@ export default async function AccountDetailPage({
             {expensesList.map((e) => {
               const catColor = EXPENSE_CATEGORY_COLOR[e.category] ?? EXPENSE_CATEGORY_COLOR['その他']
               return (
-                <Link key={e.id} href={`/expenses/${e.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-zinc-800">{e.title}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${catColor}`}>{e.category}</span>
+                <div key={e.id} className="px-4 py-3 hover:bg-zinc-50">
+                  <Link href={`/expenses/${e.id}`} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-zinc-800">{e.title}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${catColor}`}>{e.category}</span>
+                      </div>
+                      <p className="text-xs text-zinc-400 mt-0.5">📅 {e.expense_date}</p>
                     </div>
-                    <p className="text-xs text-zinc-400 mt-0.5">📅 {e.expense_date}</p>
-                  </div>
-                  <span className="font-bold text-zinc-800 text-sm shrink-0">¥{Number(e.amount).toLocaleString()}</span>
-                </Link>
+                    <span className="font-bold text-zinc-800 text-sm shrink-0">¥{Number(e.amount).toLocaleString()}</span>
+                  </Link>
+                  <OtherRelationsChips relations={(expenseRelMap.get(e.id) ?? []).filter(isNotSelf)} />
+                </div>
               )
             })}
           </div>

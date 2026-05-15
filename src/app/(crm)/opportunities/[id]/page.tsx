@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs } from '@/lib/schema'
-import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
+import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
+import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, asc, desc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -100,6 +101,14 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
 
   if (!opportunity) notFound()
+
+  const [activityRelMap, taskRelMap, expenseRelMap] = await Promise.all([
+    batchResolveRelatedRecords('activity', activitiesList.map((a) => a.id)),
+    batchResolveRelatedRecords('task',     tasksList.map((t) => t.id)),
+    batchResolveRelatedRecords('expense',  expensesList.map((e) => e.id)),
+  ])
+  const isNotSelf = (r: { object_api: string; record_id: string }) =>
+    !(r.object_api === 'opportunity' && r.record_id === id)
   const account   = opportunity.accounts?.id ? opportunity.accounts : null
   const contact   = opportunity.contacts?.id ? opportunity.contacts : null
   const ownerName = opportunity.owner_id ? (allUsers.find((u) => u.id === opportunity.owner_id)?.name ?? null) : null
@@ -451,6 +460,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 </div>
                 <Link href={`/activities/${a.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600">{a.subject}</Link>
                 {a.body && <p className="text-xs text-zinc-500 mt-1">{a.body}</p>}
+                <OtherRelationsChips relations={(activityRelMap.get(a.id) ?? []).filter(isNotSelf)} />
               </div>
             ))}
           </div>
@@ -489,6 +499,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
                     {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                   <AuthGuard minRole="editor">
                     <Link href={`/tasks/${t.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700 shrink-0">編集</Link>
@@ -513,12 +524,15 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </div>
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
             {expensesList.map((e) => (
-              <div key={e.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
-                <div className="flex-1 min-w-0">
-                  <Link href={`/expenses/${e.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600 block truncate">{e.title}</Link>
-                  <p className="text-xs text-zinc-400 mt-0.5">{e.category} · {e.expense_date}</p>
+              <div key={e.id} className="px-4 py-3 hover:bg-zinc-50">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/expenses/${e.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600 block truncate">{e.title}</Link>
+                    <p className="text-xs text-zinc-400 mt-0.5">{e.category} · {e.expense_date}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-orange-600 shrink-0">¥{Number(e.amount).toLocaleString()}</span>
                 </div>
-                <span className="text-sm font-semibold text-orange-600 shrink-0">¥{Number(e.amount).toLocaleString()}</span>
+                <OtherRelationsChips relations={(expenseRelMap.get(e.id) ?? []).filter(isNotSelf)} />
               </div>
             ))}
             <div className="px-4 py-2 bg-zinc-50 flex justify-between items-center">
