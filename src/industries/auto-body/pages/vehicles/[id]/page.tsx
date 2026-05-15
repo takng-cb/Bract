@@ -1,8 +1,9 @@
 import { db } from '@/lib/db'
 import { vehicles } from '@/industries/auto-body/schema'
-import { accounts, opportunities } from '@/lib/schema'
+import { accounts, opportunities, activities, tasks, expenses, change_logs } from '@/lib/schema'
+import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
 import { alias } from 'drizzle-orm/pg-core'
-import { eq, desc } from 'drizzle-orm'
+import { eq, and, desc, asc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
@@ -10,59 +11,82 @@ import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import ChangeLogSection from '@/components/ChangeLogSection'
+import RecordTabs, { type TabDef } from '@/components/RecordTabs'
+import { toggleTaskDone } from '@/app/actions/tasks'
 import { deleteVehicle } from '@/industries/auto-body/actions/vehicles'
 import {
   vehicleStatusColor,
   daysUntilInspection,
   calcAutoBodyProfit,
 } from '@/industries/auto-body/lib/autoBodyService'
+import { getActivityTypes } from '@/lib/activityTypes'
+
+const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
+  high:   { label: '高', color: 'text-red-600 bg-red-50' },
+  medium: { label: '中', color: 'text-yellow-700 bg-yellow-50' },
+  low:    { label: '低', color: 'text-green-700 bg-green-50' },
+}
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supplier = alias(accounts, 'supplier')
   const buyer    = alias(accounts, 'buyer')
 
-  const [v] = await db.select({
-    id:                   vehicles.id,
-    maker:                vehicles.maker,
-    model:                vehicles.model,
-    year:                 vehicles.year,
-    mileage:              vehicles.mileage,
-    color:                vehicles.color,
-    license_plate:        vehicles.license_plate,
-    vin:                  vehicles.vin,
-    status:               vehicles.status,
-    purchase_date:        vehicles.purchase_date,
-    purchase_price:       vehicles.purchase_price,
-    sale_price:           vehicles.sale_price,
-    sold_date:            vehicles.sold_date,
-    sold_price:           vehicles.sold_price,
-    next_inspection_date: vehicles.next_inspection_date,
-    description:          vehicles.description,
-    created_at:           vehicles.created_at,
-    supplier: { id: supplier.id, name: supplier.name },
-    buyer:    { id: buyer.id,    name: buyer.name },
-  })
-    .from(vehicles)
-    .leftJoin(supplier, eq(vehicles.supplier_account_id, supplier.id))
-    .leftJoin(buyer,    eq(vehicles.buyer_account_id, buyer.id))
-    .where(eq(vehicles.id, id))
+  const [vRow, relatedOpps, activitiesList, tasksList, expensesList, activityTypes, changeLogCountRow] = await Promise.all([
+    db.select({
+      id:                   vehicles.id,
+      maker:                vehicles.maker,
+      model:                vehicles.model,
+      year:                 vehicles.year,
+      mileage:              vehicles.mileage,
+      color:                vehicles.color,
+      license_plate:        vehicles.license_plate,
+      vin:                  vehicles.vin,
+      status:               vehicles.status,
+      purchase_date:        vehicles.purchase_date,
+      purchase_price:       vehicles.purchase_price,
+      sale_price:           vehicles.sale_price,
+      sold_date:            vehicles.sold_date,
+      sold_price:           vehicles.sold_price,
+      next_inspection_date: vehicles.next_inspection_date,
+      description:          vehicles.description,
+      created_at:           vehicles.created_at,
+      supplier: { id: supplier.id, name: supplier.name },
+      buyer:    { id: buyer.id,    name: buyer.name },
+    })
+      .from(vehicles)
+      .leftJoin(supplier, eq(vehicles.supplier_account_id, supplier.id))
+      .leftJoin(buyer,    eq(vehicles.buyer_account_id, buyer.id))
+      .where(eq(vehicles.id, id))
+      .then((r) => r[0] ?? null),
+    db.select({
+      id:           opportunities.id,
+      name:         opportunities.name,
+      stage:        opportunities.stage,
+      service_type: opportunities.service_type,
+      amount:       opportunities.amount,
+      parts_cost:   opportunities.parts_cost,
+      close_date:   opportunities.close_date,
+    })
+      .from(opportunities)
+      .where(eq(opportunities.vehicle_id, id))
+      .orderBy(desc(opportunities.close_date)),
+    db.select().from(activities)
+      .where(inArray(activities.id, activityIdsRelatedTo('vehicles', id)))
+      .orderBy(desc(activities.occurred_at)),
+    db.select().from(tasks)
+      .where(inArray(tasks.id, taskIdsRelatedTo('vehicles', id)))
+      .orderBy(asc(tasks.done), asc(tasks.due_date)),
+    db.select().from(expenses)
+      .where(inArray(expenses.id, expenseIdsRelatedTo('vehicles', id)))
+      .orderBy(desc(expenses.expense_date)),
+    getActivityTypes(),
+    db.select({ c: count() }).from(change_logs)
+      .where(and(eq(change_logs.object_type, 'vehicle'), eq(change_logs.object_id, id))),
+  ])
 
-  if (!v) notFound()
-
-  // 関連商談（service_type / amount / parts_cost を集計表示）
-  const relatedOpps = await db.select({
-    id:           opportunities.id,
-    name:         opportunities.name,
-    stage:        opportunities.stage,
-    service_type: opportunities.service_type,
-    amount:       opportunities.amount,
-    parts_cost:   opportunities.parts_cost,
-    close_date:   opportunities.close_date,
-  })
-    .from(opportunities)
-    .where(eq(opportunities.vehicle_id, id))
-    .orderBy(desc(opportunities.close_date))
+  if (!vRow) notFound()
+  const v = vRow
 
   const totalProfit = relatedOpps.reduce(
     (s, o) => s + calcAutoBodyProfit(Number(o.amount ?? 0), Number(o.parts_cost ?? 0)),
@@ -72,41 +96,24 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   const days = daysUntilInspection(v.next_inspection_date)
   const expiringSoon = days != null && days <= 30
 
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
+
   async function handleDelete() {
     'use server'
     await deleteVehicle(id)
   }
 
-  return (
-    <div className="p-4 md:p-8 max-w-3xl">
-      <RecordHeader
-        crumbs={[
-          { label: '車両', href: '/vehicles' },
-          { label: `${v.maker} ${v.model}` },
-        ]}
-        actions={
-          <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2">
-              <Link href={`/vehicles/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">✏️ 編集</Link>
-              <DeleteButton action={handleDelete} confirmMessage="この車両を削除しますか？" />
-            </div>
-          </AuthGuard>
-        }
-      />
+  async function toggleTask(formData: FormData) {
+    'use server'
+    const taskId = formData.get('task_id') as string
+    const done   = formData.get('done') === 'true'
+    await toggleTaskDone(taskId, done, `/vehicles/${id}`)
+  }
 
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900">
-          🚗 {v.maker} {v.model}
-        </h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-          <span className={`inline-block px-2 py-0.5 text-xs rounded ${vehicleStatusColor(v.status)}`}>{v.status}</span>
-          {v.year   && <span>{v.year}年式</span>}
-          {v.color  && <span>・ {v.color}</span>}
-          {v.mileage != null && <span>・ {Number(v.mileage).toLocaleString()} km</span>}
-        </div>
-      </div>
-
-      {/* 車両情報 */}
+  // ── 概要タブ ─────────────────────────────────────────────────────
+  const overviewContent = (
+    <>
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">車両情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -138,7 +145,6 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         </dl>
       </div>
 
-      {/* 仕入・販売 */}
       <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">仕入・販売</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -191,7 +197,6 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         )}
       </div>
 
-      {/* 備考 */}
       {v.description && (
         <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-2">備考</h2>
@@ -199,7 +204,6 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      {/* 関連サービス（商談） */}
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-zinc-800">
@@ -255,15 +259,148 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           </p>
         )}
       </section>
+    </>
+  )
 
-      <section className="mb-6">
-        <h2 className="text-base font-semibold text-zinc-800 mb-3">変更履歴</h2>
-        <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2">
-          <ChangeLogSection objectType="vehicle" objectId={id} />
+  // ── 活動・ToDo・経費タブ ───────────────────────────────────────
+  const interactionCount = activitiesList.length + tasksList.length + expensesList.length
+  const interactionsContent = (
+    <>
+      {activitiesList.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-zinc-800">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
+            <AuthGuard minRole="editor">
+              <Link href={`/activities/new?custom_record_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </AuthGuard>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
+            {activitiesList.map((a) => (
+              <div key={a.id} className="px-4 py-3 hover:bg-zinc-50">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-zinc-400">{ACTIVITY_TYPE_LABELS[a.type] ?? a.type}</span>
+                  <span className="text-xs text-zinc-400">•</span>
+                  <span className="text-xs text-zinc-400">{a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}</span>
+                </div>
+                <Link href={`/activities/${a.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600">{a.subject}</Link>
+                {a.body && <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{a.body}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {tasksList.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-zinc-800">ToDo <span className="text-zinc-400 font-normal text-sm">({tasksList.length})</span></h2>
+            <AuthGuard minRole="editor">
+              <Link href={`/tasks/new?custom_record_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </AuthGuard>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
+            {tasksList.map((t) => {
+              const priority  = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
+              const isOverdue = !t.done && t.due_date && new Date(t.due_date) < new Date()
+              return (
+                <div key={t.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 ${t.done ? 'opacity-60' : ''}`}>
+                  <AuthGuard minRole="editor">
+                    <form action={toggleTask} className="shrink-0">
+                      <input type="hidden" name="task_id" value={t.id} />
+                      <input type="hidden" name="done" value={(!t.done).toString()} />
+                      <button type="submit" className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${t.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
+                        {t.done && <span className="text-xs leading-none">✓</span>}
+                      </button>
+                    </form>
+                  </AuthGuard>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
+                    </div>
+                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {expensesList.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-zinc-800">経費 <span className="text-zinc-400 font-normal text-sm">({expensesList.length})</span></h2>
+            <AuthGuard minRole="editor">
+              <Link href={`/expenses/new?custom_record_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
+            </AuthGuard>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
+            {expensesList.map((e) => (
+              <Link key={e.id} href={`/expenses/${e.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-zinc-800">{e.title}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{e.category} · {e.expense_date}</p>
+                </div>
+                <span className="font-bold text-zinc-800 text-sm shrink-0">¥{Number(e.amount).toLocaleString()}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  )
+
+  // ── 履歴タブ ─────────────────────────────────────────────────────
+  const changeLogCount = Number(changeLogCountRow[0]?.c ?? 0)
+  const historyContent = (
+    <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2">
+      <ChangeLogSection objectType="vehicle" objectId={id} />
+    </div>
+  )
+
+  const tabsConfig: TabDef[] = [
+    { id: 'overview', label: '概要', content: overviewContent },
+  ]
+  if (interactionCount > 0) {
+    tabsConfig.push({ id: 'interactions', label: '活動・ToDo・経費', badge: interactionCount, content: interactionsContent })
+  }
+  if (changeLogCount > 0) {
+    tabsConfig.push({ id: 'history', label: '履歴', badge: changeLogCount, content: historyContent })
+  }
+
+  return (
+    <div className="p-4 md:p-8 max-w-3xl">
+      <RecordHeader
+        crumbs={[
+          { label: '車両', href: '/vehicles' },
+          { label: `${v.maker} ${v.model}` },
+        ]}
+        actions={
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <Link href={`/vehicles/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">✏️ 編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="この車両を削除しますか？" />
+            </div>
+          </AuthGuard>
+        }
+      />
+
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-zinc-900">
+          🚗 {v.maker} {v.model}
+        </h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+          <span className={`inline-block px-2 py-0.5 text-xs rounded ${vehicleStatusColor(v.status)}`}>{v.status}</span>
+          {v.year   && <span>{v.year}年式</span>}
+          {v.color  && <span>・ {v.color}</span>}
+          {v.mileage != null && <span>・ {Number(v.mileage).toLocaleString()} km</span>}
         </div>
-      </section>
+      </div>
 
-      <div className="text-right">
+      <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+
+      <div className="mt-6 text-right">
         <RecordId id={id} />
       </div>
     </div>
