@@ -279,6 +279,149 @@ export const part_movements = pgTable('part_movements', {
 })
 
 // ----------------------------------------------------------------
+// customer_vehicles（顧客車両）— 業種オーバーレイ：板金屋・自動車整備業
+//   既存 vehicles（在庫車両・売り物）と別物。整備対象として顧客が持ち込む車。
+//   account_id = 車両の所有者（顧客）。
+//   INDUSTRY=auto-body のときのみ UI で使用。
+// ----------------------------------------------------------------
+export const customer_vehicles = pgTable('customer_vehicles', {
+  id:                       uuid('id').primaryKey().defaultRandom(),
+  account_id:               uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  // ナンバープレート
+  transport_branch:         text('transport_branch'),       // 運輸支局
+  classification_number:    text('classification_number'),  // 分類番号
+  kana:                     text('kana'),                   // かな
+  plate_number:             text('plate_number'),           // 車両番号（ナンバー）
+  // 車名・型式
+  car_name:                 text('car_name'),               // 車名
+  car_model:                text('car_model'),              // 車種
+  grade:                    text('grade'),                  // グレード
+  vehicle_kind:             text('vehicle_kind'),           // 種別（軽・小型・普通）
+  vehicle_usage:            text('vehicle_usage'),          // 用途（乗用・貨物）
+  private_business:         text('private_business'),       // 自家・事業
+  body_shape:               text('body_shape'),             // 車体の形状
+  vin:                      text('vin'),                    // 車台番号
+  type_designation:         text('type_designation'),       // 型式指定
+  class_category:           text('class_category'),         // 類別区分
+  first_registration_year:  text('first_registration_year'),// 初年度年（'令和7' などの和暦テキストも受ける）
+  first_registration_month: text('first_registration_month'),
+  inspection_due_date:      date('inspection_due_date'),    // 車検満了日
+  memo:                     text('memo'),                   // 車両メモ
+  owner_id:                 uuid('owner_id'),               // 担当
+  created_at:               timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:               timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// maintenance_records（整備）— 業種オーバーレイ：板金屋・自動車整備業
+//   顧客車両に対する整備・車検・修理の業務記録。
+//   maintenance_no は 'YYYYMMDD-NNN'（全社で日付内連番）形式で発番。
+// ----------------------------------------------------------------
+export const maintenance_records = pgTable('maintenance_records', {
+  id:                   uuid('id').primaryKey().defaultRandom(),
+  maintenance_no:       text('maintenance_no').notNull().unique(), // 'YYYYMMDD-NNN'
+
+  // 主体
+  customer_vehicle_id:  uuid('customer_vehicle_id').notNull().references(() => customer_vehicles.id, { onDelete: 'restrict' }),
+  account_id:           uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'restrict' }),
+  contact_id:           uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  billing_account_id:   uuid('billing_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+
+  // 日時・場所
+  intake_date:          date('intake_date'),                // 入庫日
+  intake_time:          text('intake_time'),                // 入庫時間（HH:MM テキスト保持）
+  delivery_date:        date('delivery_date'),              // 納車日
+  delivery_time:        text('delivery_time'),
+  pickup_location:      text('pickup_location'),            // 引取場所
+  delivery_location:    text('delivery_location'),          // 引渡場所
+  sales_recording_date: date('sales_recording_date'),       // 売上計上日
+  mileage:              integer('mileage'),                 // 総走行距離 km
+  branch_id:            text('branch_id'),                  // 拠点（一旦 text、将来 branches テーブル化）
+  intake_category:      text('intake_category'),            // 入庫区分（自由入力）
+  reception_owner_id:   uuid('reception_owner_id'),         // 受付担当者
+  worker_owner_id:      uuid('worker_owner_id'),            // 作業担当者
+
+  // メモ
+  internal_memo:        text('internal_memo'),              // 整備メモ（印字なし）
+  work_order_note:      text('work_order_note'),            // 作業指示備考
+  general_note:         text('general_note'),               // 備考
+
+  // 税
+  tax_mode:             text('tax_mode').notNull().default('税別10%'), // 消費税区分
+  tax_rounding:         text('tax_rounding').notNull().default('切り捨て'),
+  lever_rate:           numeric('lever_rate'),              // レバーレート（税別内）
+
+  // ステータス
+  status:               text('status').notNull().default('予約'), // 予約/受付/作業中/納車待ち/完了/キャンセル
+
+  owner_id:             uuid('owner_id'),
+  created_at:           timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:           timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('maintenance_vehicle_idx').on(t.customer_vehicle_id),
+  index('maintenance_account_idx').on(t.account_id),
+  index('maintenance_status_idx').on(t.status),
+])
+
+// ----------------------------------------------------------------
+// maintenance_line_items（整備の作業項目行）
+// ----------------------------------------------------------------
+export const maintenance_line_items = pgTable('maintenance_line_items', {
+  id:               uuid('id').primaryKey().defaultRandom(),
+  maintenance_id:   uuid('maintenance_id').notNull().references(() => maintenance_records.id, { onDelete: 'cascade' }),
+  sort_order:       integer('sort_order').notNull().default(0),
+  work_category:    text('work_category'),     // 作業区分
+  item_name:        text('item_name'),         // 作業項目名
+  hours:            numeric('hours'),          // 工数
+  labor_amount:     numeric('labor_amount'),   // 作業代（税別）
+  parts_qty:        numeric('parts_qty'),      // 部品数
+  parts_unit:       text('parts_unit'),        // 単位
+  parts_unit_price: numeric('parts_unit_price'),
+  cost_unit_price:  numeric('cost_unit_price'),// 原単価（税別）
+  note:             text('note'),              // 備考（印字なし）
+  state:            text('state'),             // 状態（自由文字列、部品取置中など）
+  is_excluded:      boolean('is_excluded').notNull().default(false),
+  work_status:      text('work_status').notNull().default('未完了'), // 未完了/完了
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('maintenance_line_idx').on(t.maintenance_id, t.sort_order),
+])
+
+// ----------------------------------------------------------------
+// maintenance_fees（諸費用）
+// ----------------------------------------------------------------
+export const maintenance_fees = pgTable('maintenance_fees', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  maintenance_id: uuid('maintenance_id').notNull().references(() => maintenance_records.id, { onDelete: 'cascade' }),
+  sort_order:     integer('sort_order').notNull().default(0),
+  category:       text('category').notNull(),  // '課税' | '非課税'
+  item_name:      text('item_name').notNull(),
+  amount:         numeric('amount'),
+  cost_amount:    numeric('cost_amount'),
+  meta:           jsonb('meta'),               // 期間ヶ月など追加メタ
+  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('maintenance_fee_idx').on(t.maintenance_id, t.sort_order),
+])
+
+// ----------------------------------------------------------------
+// maintenance_payments（入金）
+// ----------------------------------------------------------------
+export const maintenance_payments = pgTable('maintenance_payments', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  maintenance_id: uuid('maintenance_id').notNull().references(() => maintenance_records.id, { onDelete: 'cascade' }),
+  payment_method: text('payment_method').notNull(), // 現金/クレジット/銀行振込/その他
+  memo:           text('memo'),
+  amount:         numeric('amount').notNull(),
+  payment_date:   date('payment_date').notNull(),
+  owner_id:       uuid('owner_id'),                 // 入金担当者
+  branch_id:      text('branch_id'),
+  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('maintenance_payment_idx').on(t.maintenance_id),
+])
+
+// ----------------------------------------------------------------
 // tags（タグマスタ）
 // ----------------------------------------------------------------
 export const tags = pgTable('tags', {
