@@ -84,6 +84,8 @@ const AUTH_REQUIRED_PATHS = [
   '/properties', '/properties/new',
   '/vehicles', '/vehicles/new',
   '/parts', '/parts/new',
+  '/maintenance', '/maintenance/new',
+  '/customer-vehicles', '/customer-vehicles/new',
   '/forecast',
   '/tags',
   '/settings',
