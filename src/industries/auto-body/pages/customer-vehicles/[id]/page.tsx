@@ -1,0 +1,187 @@
+import { db } from '@/lib/db'
+import { customer_vehicles, accounts, maintenance_records } from '@/lib/schema'
+import { eq, desc } from 'drizzle-orm'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import RecordHeader from '@/components/RecordHeader'
+import RecordId from '@/components/RecordId'
+import AuthGuard from '@/components/AuthGuard'
+import DeleteButton from '@/components/DeleteButton'
+import { deleteCustomerVehicle } from '@/industries/auto-body/actions/customerVehicles'
+
+const STATUS_COLOR: Record<string, string> = {
+  '予約':     'bg-zinc-100 text-zinc-700',
+  '受付':     'bg-blue-50 text-blue-700',
+  '作業中':   'bg-yellow-50 text-yellow-700',
+  '納車待ち': 'bg-orange-50 text-orange-700',
+  '完了':     'bg-green-50 text-green-700',
+  'キャンセル': 'bg-red-50 text-red-700',
+}
+
+export default async function CustomerVehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+
+  const [vRow, maintenances] = await Promise.all([
+    db.select({
+      v:       customer_vehicles,
+      account: { id: accounts.id, name: accounts.name },
+    })
+      .from(customer_vehicles)
+      .leftJoin(accounts, eq(customer_vehicles.account_id, accounts.id))
+      .where(eq(customer_vehicles.id, id))
+      .then((r) => r[0] ?? null),
+    db.select({
+      id:             maintenance_records.id,
+      maintenance_no: maintenance_records.maintenance_no,
+      intake_date:    maintenance_records.intake_date,
+      delivery_date:  maintenance_records.delivery_date,
+      status:         maintenance_records.status,
+      mileage:        maintenance_records.mileage,
+    })
+      .from(maintenance_records)
+      .where(eq(maintenance_records.customer_vehicle_id, id))
+      .orderBy(desc(maintenance_records.intake_date), desc(maintenance_records.created_at)),
+  ])
+
+  if (!vRow) notFound()
+  const v = vRow.v
+  const account = vRow.account?.id ? vRow.account : null
+
+  const days = v.inspection_due_date
+    ? Math.ceil((new Date(v.inspection_due_date).getTime() - Date.now()) / 86400000)
+    : null
+  const urgent = days != null && days <= 30
+
+  async function handleDelete() {
+    'use server'
+    await deleteCustomerVehicle(id)
+  }
+
+  return (
+    <div className="p-4 md:p-8 max-w-3xl">
+      <RecordHeader
+        crumbs={[
+          { label: '顧客車両', href: '/customer-vehicles' },
+          { label: v.plate_number ?? v.car_model ?? '車両' },
+        ]}
+        actions={
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2">
+              <Link href={`/customer-vehicles/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">✏️ 編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="この顧客車両を削除しますか？" />
+            </div>
+          </AuthGuard>
+        }
+      />
+
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-zinc-900">🚗 {v.plate_number ?? v.car_model ?? '車両'}</h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          {[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}
+        </p>
+        {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
+      </div>
+
+      {/* ナンバープレート */}
+      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">ナンバープレート</h2>
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div><dt className="text-xs text-zinc-400 mb-1">運輸支局</dt><dd className="text-sm text-zinc-800">{v.transport_branch ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">分類番号</dt><dd className="text-sm text-zinc-800">{v.classification_number ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">かな</dt><dd className="text-sm text-zinc-800">{v.kana ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">ナンバー</dt><dd className="text-sm text-zinc-800 font-medium">{v.plate_number ?? '—'}</dd></div>
+        </dl>
+      </div>
+
+      {/* 車両情報 */}
+      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">車両情報</h2>
+        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div><dt className="text-xs text-zinc-400 mb-1">車名</dt><dd className="text-sm text-zinc-800">{v.car_name ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">車種</dt><dd className="text-sm text-zinc-800">{v.car_model ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">グレード</dt><dd className="text-sm text-zinc-800">{v.grade ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">種別</dt><dd className="text-sm text-zinc-800">{v.vehicle_kind ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">用途</dt><dd className="text-sm text-zinc-800">{v.vehicle_usage ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">自家・事業</dt><dd className="text-sm text-zinc-800">{v.private_business ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">車体の形状</dt><dd className="text-sm text-zinc-800">{v.body_shape ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">車台番号</dt><dd className="text-sm text-zinc-800 font-mono">{v.vin ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">型式</dt><dd className="text-sm text-zinc-800">{v.type_designation ?? '—'}</dd></div>
+          <div><dt className="text-xs text-zinc-400 mb-1">類別区分</dt><dd className="text-sm text-zinc-800">{v.class_category ?? '—'}</dd></div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">初年度</dt>
+            <dd className="text-sm text-zinc-800">{[v.first_registration_year, v.first_registration_month].filter(Boolean).join(' / ') || '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">車検満了日</dt>
+            <dd className={`text-sm ${urgent ? 'text-red-600 font-semibold' : 'text-zinc-800'}`}>
+              {v.inspection_due_date ?? '—'}
+              {days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}
+            </dd>
+          </div>
+        </dl>
+        {v.memo && (
+          <div className="mt-4 pt-4 border-t border-zinc-100">
+            <dt className="text-xs text-zinc-400 mb-1">メモ</dt>
+            <dd className="text-sm text-zinc-800 whitespace-pre-wrap">{v.memo}</dd>
+          </div>
+        )}
+      </div>
+
+      {/* 整備履歴 */}
+      <section className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-zinc-800">
+            整備履歴 <span className="text-zinc-400 font-normal text-sm">({maintenances.length})</span>
+          </h2>
+          <AuthGuard minRole="editor">
+            <Link href={`/maintenance/new?customer_vehicle_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">
+              ＋ 整備を追加
+            </Link>
+          </AuthGuard>
+        </div>
+        {maintenances.length > 0 ? (
+          <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">整備No</th>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">入庫日</th>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">納車日</th>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">ステータス</th>
+                  <th className="text-right px-4 py-2 font-medium text-zinc-600">走行距離</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {maintenances.map((m) => (
+                  <tr key={m.id} className="hover:bg-zinc-50">
+                    <td className="px-4 py-2 font-mono">
+                      <Link href={`/maintenance/${m.id}`} className="text-blue-600 hover:underline">{m.maintenance_no}</Link>
+                    </td>
+                    <td className="px-4 py-2 text-zinc-700">{m.intake_date ?? '—'}</td>
+                    <td className="px-4 py-2 text-zinc-700">{m.delivery_date ?? '—'}</td>
+                    <td className="px-4 py-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[m.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                        {m.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right text-zinc-500">
+                      {m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center">
+            整備履歴がありません
+          </p>
+        )}
+      </section>
+
+      <div className="text-right">
+        <RecordId id={id} />
+      </div>
+    </div>
+  )
+}
