@@ -66,8 +66,10 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   // ここでハードコードする。重複時は customNavItems が優先される（href 重複排除で実装）。
   const industryNavItems: NavItem[] = activeIndustry === 'auto-body'
     ? [
-        { href: '/vehicles', label: '車両', icon: '🚗' },
-        { href: '/parts',    label: '部品', icon: '🔧' },
+        { href: '/maintenance',       label: '整備',     icon: '🔧' },
+        { href: '/customer-vehicles', label: '顧客車両', icon: '🚙' },
+        { href: '/vehicles',          label: '車両',     icon: '🚗' },
+        { href: '/parts',             label: '部品',     icon: '🪛' },
       ]
     : []
 
