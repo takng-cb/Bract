@@ -59,6 +59,62 @@ export function expenseIdsRelatedTo(objectApi: string, recordId: string) {
 }
 
 /**
+ * 複数の活動・タスク・経費について、それぞれの関連レコード一覧を一括取得して
+ * ラベル解決まで済ませる。詳細ページで「他に紐づいているレコード」を表示する
+ * 用途で使う（N+1 を避けるためのバッチ版）。
+ *
+ * 戻り値: host_id → 解決済み関連レコード配列の Map。
+ *
+ * 使い方:
+ *   const map = await batchResolveRelatedRecords('activity', activitiesList.map(a => a.id))
+ *   const myRelations = map.get(activityId) ?? []
+ *   // 自レコードを除外して表示
+ *   const others = myRelations.filter(r => !(r.object_api === 'account' && r.record_id === currentAccountId))
+ */
+export async function batchResolveRelatedRecords(
+  hostType: 'activity' | 'task' | 'expense',
+  hostIds: string[],
+): Promise<Map<string, ResolvedRecord[]>> {
+  if (hostIds.length === 0) return new Map()
+
+  // ホスト種別ごとのテーブル・列を決定
+  const cfg = hostType === 'activity'
+    ? { table: activity_related_records, idCol: activity_related_records.activity_id }
+    : hostType === 'task'
+      ? { table: task_related_records, idCol: task_related_records.task_id }
+      : { table: expense_related_records, idCol: expense_related_records.expense_id }
+
+  const rows = await db.select({
+    host_id:    cfg.idCol,
+    object_api: cfg.table.related_object_api,
+    record_id:  cfg.table.related_record_id,
+  })
+    .from(cfg.table)
+    .where(inArray(cfg.idCol, hostIds))
+
+  if (rows.length === 0) return new Map()
+
+  // 重複する (api, record_id) ペアを抑止してから解決
+  const uniqMap = new Map<string, RelatedPair>()
+  for (const r of rows) {
+    uniqMap.set(`${r.object_api}::${r.record_id}`, { object_api: r.object_api, record_id: r.record_id })
+  }
+  const resolved = await resolveRelatedRecords([...uniqMap.values()])
+  const resolvedByKey = new Map(resolved.map((r) => [`${r.object_api}::${r.record_id}`, r]))
+
+  // host_id ごとに配列を組み立て
+  const result = new Map<string, ResolvedRecord[]>()
+  for (const r of rows) {
+    const key = `${r.object_api}::${r.record_id}`
+    const rec = resolvedByKey.get(key)
+    if (!rec) continue
+    if (!result.has(r.host_id)) result.set(r.host_id, [])
+    result.get(r.host_id)!.push(rec)
+  }
+  return result
+}
+
+/**
  * 親レコード削除時に呼ぶ junction クリーンアップ。
  *
  * Phase 2 で FK 列を削除すると DB レベルの ON DELETE CASCADE が消えるため、
