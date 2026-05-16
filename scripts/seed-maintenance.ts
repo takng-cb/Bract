@@ -138,64 +138,117 @@ async function main() {
 
   // ────────────────────────────────────────────────
   // 顧客車両（customer_vehicles）
+  //   (account_id, plate_number) で既存があれば再利用、無ければ INSERT
   // ────────────────────────────────────────────────
-  console.log('  Inserting customer_vehicles...')
-  const cvs = await sql`
-    INSERT INTO customer_vehicles (
-      account_id, transport_branch, classification_number, kana, plate_number,
-      car_name, car_model, grade, vehicle_kind, vehicle_usage, private_business, body_shape,
-      vin, type_designation, class_category,
-      first_registration_year, first_registration_month, inspection_due_date,
-      memo, owner_id
-    ) VALUES
-      -- 個人顧客の車両
-      (${accPersonal}, '品川', '500', 'あ',  '12-34', 'トヨタ',   'プリウス',    'S',     '小型', '乗用', '自家用', 'セダン',
-       'ZVW50-0102030', '17046', '0001',
-       '令和2', '6', ${dateOffset(40)},  '田中様 通勤車', ${OWNER_UID}),
+  console.log('  Resolving customer_vehicles...')
 
-      (${accPersonal}, '世田谷', '580', 'い', '23-45', 'ホンダ',   'N-BOX',      'カスタムG','軽', '乗用', '自家用', '箱型',
-       'JF3-0203040', '12345', '0002',
-       '令和3', '10', ${dateOffset(120)}, '山田様 セカンドカー', ${OWNER_UID}),
+  type CvSeed = {
+    account_id: string
+    transport_branch: string
+    classification_number: string
+    kana: string
+    plate_number: string
+    car_name: string
+    car_model: string
+    grade: string
+    vehicle_kind: string
+    vehicle_usage: string
+    private_business: string
+    body_shape: string
+    vin: string
+    type_designation: string
+    class_category: string
+    first_registration_year: string
+    first_registration_month: string
+    inspection_due_date: string
+    memo: string
+  }
 
-      (${accPersonal}, '横浜',   '300', 'う', '34-56', 'スズキ',   'ハスラー',   'Xターボ','軽', '乗用', '自家用', '箱型',
-       'MR52S-0304050', '54321', '0003',
-       '令和3', '4', ${dateOffset(-10)}, '佐藤様 事故修理中', ${OWNER_UID}),
+  async function findOrCreateCv(s: CvSeed): Promise<{ id: string }> {
+    const found = await sql`
+      SELECT id FROM customer_vehicles
+      WHERE account_id = ${s.account_id} AND plate_number = ${s.plate_number}
+      LIMIT 1
+    `
+    if (found.length > 0) return { id: found[0].id as string }
+    const [row] = await sql`
+      INSERT INTO customer_vehicles (
+        account_id, transport_branch, classification_number, kana, plate_number,
+        car_name, car_model, grade, vehicle_kind, vehicle_usage, private_business, body_shape,
+        vin, type_designation, class_category,
+        first_registration_year, first_registration_month, inspection_due_date,
+        memo, owner_id
+      ) VALUES (
+        ${s.account_id}, ${s.transport_branch}, ${s.classification_number}, ${s.kana}, ${s.plate_number},
+        ${s.car_name}, ${s.car_model}, ${s.grade}, ${s.vehicle_kind}, ${s.vehicle_usage}, ${s.private_business}, ${s.body_shape},
+        ${s.vin}, ${s.type_designation}, ${s.class_category},
+        ${s.first_registration_year}, ${s.first_registration_month}, ${s.inspection_due_date},
+        ${s.memo}, ${OWNER_UID}
+      )
+      RETURNING id
+    `
+    return { id: row.id as string }
+  }
 
-      (${accPersonal}, '湘南',   '500', 'え', '45-67', 'マツダ',   'CX-5',       'XD-L',  '普通','乗用', '自家用', 'ステーションワゴン',
-       'KF2P-0405060', '67890', '0004',
-       '令和2', '12', ${dateOffset(60)}, '鈴木様 メイン車（リピーター）', ${OWNER_UID}),
+  const cvSeeds: CvSeed[] = [
+    // ── 個人顧客の車両 ──
+    { account_id: accPersonal, transport_branch: '品川',  classification_number: '500', kana: 'あ', plate_number: '12-34',
+      car_name: 'トヨタ',   car_model: 'プリウス',     grade: 'S',      vehicle_kind: '小型', vehicle_usage: '乗用', private_business: '自家用', body_shape: 'セダン',
+      vin: 'ZVW50-0102030', type_designation: '17046', class_category: '0001',
+      first_registration_year: '令和2', first_registration_month: '6', inspection_due_date: dateOffset(40),
+      memo: '田中様 通勤車' },
+    { account_id: accPersonal, transport_branch: '世田谷', classification_number: '580', kana: 'い', plate_number: '23-45',
+      car_name: 'ホンダ',   car_model: 'N-BOX',       grade: 'カスタムG', vehicle_kind: '軽', vehicle_usage: '乗用', private_business: '自家用', body_shape: '箱型',
+      vin: 'JF3-0203040',  type_designation: '12345', class_category: '0002',
+      first_registration_year: '令和3', first_registration_month: '10', inspection_due_date: dateOffset(120),
+      memo: '山田様 セカンドカー' },
+    { account_id: accPersonal, transport_branch: '横浜',   classification_number: '300', kana: 'う', plate_number: '34-56',
+      car_name: 'スズキ',   car_model: 'ハスラー',    grade: 'Xターボ', vehicle_kind: '軽', vehicle_usage: '乗用', private_business: '自家用', body_shape: '箱型',
+      vin: 'MR52S-0304050', type_designation: '54321', class_category: '0003',
+      first_registration_year: '令和3', first_registration_month: '4', inspection_due_date: dateOffset(-10),
+      memo: '佐藤様 事故修理中' },
+    { account_id: accPersonal, transport_branch: '湘南',   classification_number: '500', kana: 'え', plate_number: '45-67',
+      car_name: 'マツダ',   car_model: 'CX-5',        grade: 'XD-L',   vehicle_kind: '普通', vehicle_usage: '乗用', private_business: '自家用', body_shape: 'ステーションワゴン',
+      vin: 'KF2P-0405060', type_designation: '67890', class_category: '0004',
+      first_registration_year: '令和2', first_registration_month: '12', inspection_due_date: dateOffset(60),
+      memo: '鈴木様 メイン車（リピーター）' },
+    { account_id: accPersonal, transport_branch: '練馬',   classification_number: '300', kana: 'お', plate_number: '56-78',
+      car_name: 'トヨタ',   car_model: 'ハリアー',    grade: 'Z',      vehicle_kind: '普通', vehicle_usage: '乗用', private_business: '自家用', body_shape: 'ステーションワゴン',
+      vin: 'AXUH80-0506070', type_designation: '11223', class_category: '0005',
+      first_registration_year: '令和4', first_registration_month: '3', inspection_due_date: dateOffset(200),
+      memo: '伊藤様 ご家族の足' },
+    { account_id: accPersonal, transport_branch: '川崎',   classification_number: '500', kana: 'か', plate_number: '67-89',
+      car_name: '日産',     car_model: 'セレナ',      grade: 'ハイウェイスター', vehicle_kind: '普通', vehicle_usage: '乗用', private_business: '自家用', body_shape: 'ステーションワゴン',
+      vin: 'C27-0607080',  type_designation: '44556', class_category: '0006',
+      first_registration_year: '平成31', first_registration_month: '4', inspection_due_date: dateOffset(15),
+      memo: '小林様 ファミリーカー' },
+    { account_id: accPersonal, transport_branch: '足立',   classification_number: '580', kana: 'き', plate_number: '78-90',
+      car_name: 'ダイハツ', car_model: 'タント',      grade: 'X',      vehicle_kind: '軽', vehicle_usage: '乗用', private_business: '自家用', body_shape: '箱型',
+      vin: 'LA650S-0708090', type_designation: '77889', class_category: '0007',
+      first_registration_year: '令和5', first_registration_month: '8', inspection_due_date: dateOffset(300),
+      memo: '中村様 新車購入後初回点検' },
+    { account_id: accPersonal, transport_branch: '横浜',   classification_number: '300', kana: 'く', plate_number: '89-01',
+      car_name: 'スバル',   car_model: 'インプレッサ',grade: 'STI',    vehicle_kind: '普通', vehicle_usage: '乗用', private_business: '自家用', body_shape: 'セダン',
+      vin: 'GVB-0809010',  type_designation: '99001', class_category: '0008',
+      first_registration_year: '平成30', first_registration_month: '5', inspection_due_date: dateOffset(80),
+      memo: '吉田様 走り屋仕様' },
+    // ── 法人車両 ──
+    { account_id: accLeasing, transport_branch: '品川',   classification_number: '400', kana: 'け', plate_number: '11-22',
+      car_name: 'いすゞ',   car_model: 'エルフ',      grade: '1.5t',   vehicle_kind: '小型', vehicle_usage: '貨物', private_business: '事業用', body_shape: 'トラック',
+      vin: 'NMR85-0010203', type_designation: '22334', class_category: '0009',
+      first_registration_year: '令和3', first_registration_month: '7', inspection_due_date: dateOffset(30),
+      memo: 'みらいオートリース→リース先 物流業者' },
+    { account_id: accCorp,    transport_branch: '川崎',   classification_number: '400', kana: 'こ', plate_number: '22-33',
+      car_name: 'トヨタ',   car_model: 'ハイエース',  grade: 'DX',     vehicle_kind: '普通', vehicle_usage: '貨物', private_business: '事業用', body_shape: '箱型',
+      vin: 'KDH201V-0011223', type_designation: '33445', class_category: '0010',
+      first_registration_year: '令和4', first_registration_month: '1', inspection_due_date: dateOffset(45),
+      memo: 'グリーン物流 配送車（5台中1号車）' },
+  ]
 
-      (${accPersonal}, '練馬',   '300', 'お', '56-78', 'トヨタ',   'ハリアー',   'Z',     '普通','乗用', '自家用', 'ステーションワゴン',
-       'AXUH80-0506070', '11223', '0005',
-       '令和4', '3', ${dateOffset(200)}, '伊藤様 ご家族の足', ${OWNER_UID}),
-
-      (${accPersonal}, '川崎',   '500', 'か', '67-89', '日産',     'セレナ',     'ハイウェイスター','普通','乗用','自家用','ステーションワゴン',
-       'C27-0607080', '44556', '0006',
-       '平成31', '4', ${dateOffset(15)},  '小林様 ファミリーカー', ${OWNER_UID}),
-
-      (${accPersonal}, '足立',   '580', 'き', '78-90', 'ダイハツ', 'タント',     'X',     '軽', '乗用', '自家用', '箱型',
-       'LA650S-0708090', '77889', '0007',
-       '令和5', '8', ${dateOffset(300)}, '中村様 新車購入後初回点検', ${OWNER_UID}),
-
-      (${accPersonal}, '横浜',   '300', 'く', '89-01', 'スバル',   'インプレッサ','STI','普通','乗用', '自家用', 'セダン',
-       'GVB-0809010', '99001', '0008',
-       '平成30', '5', ${dateOffset(80)},  '吉田様 走り屋仕様', ${OWNER_UID}),
-
-      -- 法人車両
-      (${accLeasing},  '品川',   '400', 'け', '11-22', 'いすゞ',   'エルフ',     '1.5t', '小型','貨物', '事業用', 'トラック',
-       'NMR85-0010203', '22334', '0009',
-       '令和3', '7', ${dateOffset(30)}, 'みらいオートリース→リース先 物流業者', ${OWNER_UID}),
-
-      (${accCorp},     '川崎',   '400', 'こ', '22-33', 'トヨタ',   'ハイエース', 'DX',    '普通','貨物', '事業用', '箱型',
-       'KDH201V-0011223', '33445', '0010',
-       '令和4', '1', ${dateOffset(45)}, 'グリーン物流 配送車（5台中1号車）', ${OWNER_UID})
-    RETURNING id, plate_number, car_model
-  `
-
-  // Neon の sql は Record<string, any> を返すので、id を string として明示する
-  const cvsTyped = cvs as Array<{ id: string }>
+  const cvsTyped: Array<{ id: string }> = []
+  for (const s of cvSeeds) cvsTyped.push(await findOrCreateCv(s))
   const [cvPrius, cvNBox, cvHustler, cvCX5, cvHarrier, cvSerena, cvTanto, cvImpreza, cvElf, cvHiace] = cvsTyped
-  console.log(`    ✓ ${cvs.length} 台`)
+  console.log(`    ✓ ${cvsTyped.length} 台`)
 
   // ────────────────────────────────────────────────
   // 整備（maintenance_records）+ 行アイテム + 諸費用 + 入金
@@ -491,10 +544,28 @@ async function main() {
   let createdLines = 0
   let createdFees = 0
   let createdPayments = 0
+  // 後段で 活動・ToDo・経費 を紐付けるために、insert された (id, plan) を保持
+  const createdMaintList: Array<{ id: string; plan: Plan }> = []
 
   for (let i = 0; i < plans.length; i++) {
     const p = plans[i]
     const prefix = ymd(p.intakeDays)
+
+    // 既存の (cv, intake_date, status) で一致する maintenance があれば再利用
+    // ※ 何度実行しても整備本体は重複しない設計
+    const existing = await sql`
+      SELECT id FROM maintenance_records
+      WHERE customer_vehicle_id = ${p.cv.id}
+        AND intake_date = ${dateOffset(p.intakeDays)}
+        AND status = ${p.status}
+        AND intake_category = ${p.category}
+      LIMIT 1
+    `
+    if (existing.length > 0) {
+      const mid = existing[0].id as string
+      createdMaintList.push({ id: mid, plan: p })
+      continue  // 子（行アイテム/諸費用/入金）も既に作られているはずなのでスキップ
+    }
 
     // UNIQUE 衝突回避（同 prefix の次連番）
     let no: string | null = null
@@ -560,6 +631,7 @@ async function main() {
           createdPayments++
         }
 
+        createdMaintList.push({ id: m.id as string, plan: p })
         no = null  // 成功印
         break
       } catch (e) {
@@ -574,11 +646,175 @@ async function main() {
     if (no !== null) console.warn(`  ⚠ plan[${i}] 5回試行しても採番できず`)
   }
 
-  // 関係を accBodyChain や accInsurance とも見えるようにタグでつけておく（任意）
+  // ────────────────────────────────────────────────
+  // 活動・ToDo・経費（junction で maintenance に紐付け）
+  //   each plan のステータスに応じて業務に近いパターンで生成
+  // ────────────────────────────────────────────────
+  console.log('  Inserting activities / tasks / expenses (関連: maintenance)...')
+
+  let createdActivities = 0
+  let createdTasks = 0
+  let createdExpenses = 0
+
+  /** activity を挿入し、maintenance との junction を張る */
+  async function insertActivity(
+    maintenanceId: string,
+    type: string,
+    subject: string,
+    body: string | null,
+    occurredDays: number,
+    occurredHour = 10,
+    occurredMin = 0,
+    // 関連を二重に張りたいとき用（contact や account など）
+    extraRelations: Array<{ object_api: string; record_id: string }> = [],
+  ): Promise<void> {
+    const ts = new Date(TODAY)
+    ts.setDate(ts.getDate() + occurredDays)
+    ts.setHours(occurredHour, occurredMin, 0, 0)
+    const [a] = await sql`
+      INSERT INTO activities (type, subject, body, occurred_at, owner_id)
+      VALUES (${type}, ${subject}, ${body}, ${ts.toISOString()}, ${OWNER_UID})
+      RETURNING id
+    `
+    await sql`
+      INSERT INTO activity_related_records (activity_id, related_object_api, related_record_id)
+      VALUES (${a.id}, 'maintenance', ${maintenanceId})
+    `
+    for (const r of extraRelations) {
+      await sql`
+        INSERT INTO activity_related_records (activity_id, related_object_api, related_record_id)
+        VALUES (${a.id}, ${r.object_api}, ${r.record_id})
+        ON CONFLICT DO NOTHING
+      `
+    }
+    createdActivities++
+  }
+
+  /** task を挿入し、maintenance との junction を張る */
+  async function insertTask(
+    maintenanceId: string,
+    title: string,
+    dueDays: number,
+    done: boolean,
+    priority: 'high' | 'medium' | 'low',
+    extraRelations: Array<{ object_api: string; record_id: string }> = [],
+  ): Promise<void> {
+    const [t] = await sql`
+      INSERT INTO tasks (title, due_date, done, priority)
+      VALUES (${title}, ${dateOffset(dueDays)}, ${done}, ${priority})
+      RETURNING id
+    `
+    await sql`
+      INSERT INTO task_related_records (task_id, related_object_api, related_record_id)
+      VALUES (${t.id}, 'maintenance', ${maintenanceId})
+    `
+    for (const r of extraRelations) {
+      await sql`
+        INSERT INTO task_related_records (task_id, related_object_api, related_record_id)
+        VALUES (${t.id}, ${r.object_api}, ${r.record_id})
+        ON CONFLICT DO NOTHING
+      `
+    }
+    createdTasks++
+  }
+
+  /** expense を挿入し、maintenance との junction を張る */
+  async function insertExpense(
+    maintenanceId: string,
+    title: string,
+    amount: number,
+    category: string,
+    expenseDays: number,
+    notes: string | null,
+    extraRelations: Array<{ object_api: string; record_id: string }> = [],
+  ): Promise<void> {
+    const [e] = await sql`
+      INSERT INTO expenses (title, amount, category, expense_date, notes)
+      VALUES (${title}, ${amount}, ${category}, ${dateOffset(expenseDays)}, ${notes})
+      RETURNING id
+    `
+    await sql`
+      INSERT INTO expense_related_records (expense_id, related_object_api, related_record_id)
+      VALUES (${e.id}, 'maintenance', ${maintenanceId})
+    `
+    for (const r of extraRelations) {
+      await sql`
+        INSERT INTO expense_related_records (expense_id, related_object_api, related_record_id)
+        VALUES (${e.id}, ${r.object_api}, ${r.record_id})
+        ON CONFLICT DO NOTHING
+      `
+    }
+    createdExpenses++
+  }
+
+  for (const { id: mid, plan: p } of createdMaintList) {
+    // 関連レコードは「顧客（account）」もチップ表示用に張っておく
+    const extras: Array<{ object_api: string; record_id: string }> = [
+      { object_api: 'account', record_id: p.account },
+    ]
+    if (p.contact) extras.push({ object_api: 'contact', record_id: p.contact })
+
+    switch (p.status) {
+      case '完了': {
+        await insertActivity(mid, 'call',    '入庫前 電話確認',         '時間・代車要否を確認', p.intakeDays - 1, 14, 0, extras)
+        await insertActivity(mid, 'meeting', '入庫・受付',               '車両確認、見積提示', p.intakeDays, 9, 30, extras)
+        await insertActivity(mid, 'note',    '作業完了 記録',           '全工程完了、テスト走行OK', p.deliveryDays ?? p.intakeDays, 15, 0, extras)
+        await insertActivity(mid, 'email',   '納車・請求書送付',         '請求書をメール送付', (p.deliveryDays ?? p.intakeDays) + 1, 11, 0, extras)
+
+        await insertTask(mid, '納車前最終チェック', p.deliveryDays ?? p.intakeDays, true, 'high', extras)
+        await insertTask(mid, '請求書発行',         (p.deliveryDays ?? p.intakeDays) + 1, true, 'medium', extras)
+
+        // 部品仕入や陸送など
+        if (p.lines.some((l) => l.work_category === '部品' || l.work_category === '塗装')) {
+          await insertExpense(mid, '部品仕入（板金案件）', 28000, '消耗品費', p.intakeDays + 1, '日本パーツ商事 から発注', extras)
+        }
+        if (p.category === '車検') {
+          await insertExpense(mid, '陸運局 検査持込', 6000, '交通費', p.deliveryDays ?? p.intakeDays, '検査場まで往復', extras)
+        }
+        break
+      }
+      case '納車待ち': {
+        await insertActivity(mid, 'meeting', '入庫・受付',         '車両確認OK', p.intakeDays, 10, 0, extras)
+        await insertActivity(mid, 'note',    '作業完了 → 納車準備', '洗車・最終確認', (p.deliveryDays ?? p.intakeDays) - 1, 17, 0, extras)
+        await insertTask(mid, '納車日程の最終調整', p.deliveryDays ?? p.intakeDays, false, 'high', extras)
+        if (p.category === '新車納車整備') {
+          await insertExpense(mid, 'ガラスコート 材料費', 12000, '消耗品費', p.intakeDays + 1, null, extras)
+        }
+        break
+      }
+      case '作業中': {
+        await insertActivity(mid, 'call',    '入庫予約 受付',     '電話で予約', p.intakeDays - 2, 11, 0, extras)
+        await insertActivity(mid, 'meeting', '入庫・現車確認',     '見積確認、作業着手了承', p.intakeDays, 10, 0, extras)
+        if (p.lines.some((l) => l.work_category === '部品' || l.work_category === '塗装')) {
+          await insertActivity(mid, 'note',  '部品入荷待ち',       '日本パーツ商事 入荷予定 翌週', p.intakeDays + 1, 16, 0, extras)
+          await insertTask(mid, '部品到着確認の電話',      p.intakeDays + 3, false, 'high', extras)
+        }
+        await insertTask(mid, '進捗の中間連絡（お客様向け）', p.intakeDays + 2, false, 'medium', extras)
+        break
+      }
+      case '受付': {
+        await insertActivity(mid, 'call',    '電話 入庫予約',     'お客様より連絡', p.intakeDays - 1, 13, 0, extras)
+        await insertActivity(mid, 'meeting', '入庫・症状確認',     '異音／整備内容のヒアリング', p.intakeDays, 9, 0, extras)
+        await insertTask(mid, '見積を作成して提示',  p.intakeDays + 1, false, 'high', extras)
+        break
+      }
+      case '予約': {
+        await insertActivity(mid, 'note', '予約受付',            '入庫予定 ' + dateOffset(p.intakeDays), p.intakeDays - 3, 10, 0, extras)
+        await insertTask(mid, '入庫前 リマインド連絡', p.intakeDays - 1, false, 'medium', extras)
+        break
+      }
+      case 'キャンセル': {
+        await insertActivity(mid, 'note', 'キャンセル受付', p.generalNote ?? 'お客様都合', p.intakeDays, 11, 0, extras)
+        break
+      }
+    }
+  }
+
   console.log('\n✅ Seed complete.')
-  console.log(`   customer_vehicles: ${cvs.length}`)
-  console.log(`   maintenance_records: ${createdMaintenance}`)
+  console.log(`   customer_vehicles: ${cvsTyped.length} (うち新規 insert 分はログ上は表示なし)`)
+  console.log(`   maintenance_records: 新規 ${createdMaintenance} / 既存再利用 ${createdMaintList.length - createdMaintenance}`)
   console.log(`   line_items: ${createdLines}, fees: ${createdFees}, payments: ${createdPayments}`)
+  console.log(`   activities: ${createdActivities}, tasks: ${createdTasks}, expenses: ${createdExpenses}`)
   console.log(`   accounts re-used: みらいオートリース / 東京海上火災 / 車検サポート関東 / 株式会社グリーン物流 / 個人`)
   // accBodyChain / accInsurance はメンテ本体で参照していないが整備履歴用に作成済み
   void accBodyChain
