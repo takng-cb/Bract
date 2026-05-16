@@ -20,6 +20,7 @@ import {
   accounts, contacts, opportunities,
   custom_records, object_definitions,
   activity_related_records, task_related_records, expense_related_records,
+  maintenance_records, customer_vehicles,
 } from '@/lib/schema'
 import { inArray, eq, and } from 'drizzle-orm'
 
@@ -163,9 +164,13 @@ export type ResolvedRecord = {
 }
 
 const STANDARD_META: Record<string, { icon: string; hrefPrefix: string }> = {
-  account:     { icon: '🏢', hrefPrefix: '/accounts/' },
-  contact:     { icon: '👤', hrefPrefix: '/contacts/' },
-  opportunity: { icon: '💼', hrefPrefix: '/opportunities/' },
+  account:            { icon: '🏢', hrefPrefix: '/accounts/' },
+  contact:            { icon: '👤', hrefPrefix: '/contacts/' },
+  opportunity:        { icon: '💼', hrefPrefix: '/opportunities/' },
+  // 業種オーバーレイ (auto-body) の専用ルートを持つオブジェクト。
+  // /objects/<api>/<id> ではなく業種専用 URL に向ける。
+  maintenance:        { icon: '🔧', hrefPrefix: '/maintenance/' },
+  'customer-vehicle': { icon: '🚙', hrefPrefix: '/customer-vehicles/' },
 }
 
 /** custom_records.data から表示名を導出（既存ロジック踏襲） */
@@ -225,6 +230,34 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
       db.select({ id: opportunities.id, name: opportunities.name })
         .from(opportunities).where(inArray(opportunities.id, [...opportunityIds]))
         .then((rows) => { for (const r of rows) setLabel('opportunity', r.id, r.name) })
+    )
+  }
+
+  // 業種オーバーレイ専用オブジェクトのラベル解決
+  const maintenanceIds = idsByApi.get('maintenance')
+  if (maintenanceIds && maintenanceIds.size > 0) {
+    fetches.push(
+      db.select({ id: maintenance_records.id, maintenance_no: maintenance_records.maintenance_no })
+        .from(maintenance_records).where(inArray(maintenance_records.id, [...maintenanceIds]))
+        .then((rows) => { for (const r of rows) setLabel('maintenance', r.id, r.maintenance_no) })
+    )
+  }
+  const customerVehicleIds = idsByApi.get('customer-vehicle')
+  if (customerVehicleIds && customerVehicleIds.size > 0) {
+    fetches.push(
+      db.select({
+        id:           customer_vehicles.id,
+        plate_number: customer_vehicles.plate_number,
+        car_model:    customer_vehicles.car_model,
+        car_name:     customer_vehicles.car_name,
+      })
+        .from(customer_vehicles).where(inArray(customer_vehicles.id, [...customerVehicleIds]))
+        .then((rows) => {
+          for (const r of rows) {
+            const label = r.plate_number ?? r.car_model ?? r.car_name ?? '車両'
+            setLabel('customer-vehicle', r.id, label)
+          }
+        })
     )
   }
 

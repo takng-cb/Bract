@@ -6,6 +6,7 @@ import TaskForm from '@/components/TaskForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateTask } from '@/app/actions/tasks'
 import { requireEditor } from '@/lib/auth'
+import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
 function customRecordTitle(
@@ -22,7 +23,7 @@ function customRecordTitle(
 export default async function EditTaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [task, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows] = await Promise.all([
+  const [task, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, industryPicker] = await Promise.all([
     db.select().from(tasks).where(eq(tasks.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
@@ -50,6 +51,7 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
     })
       .from(task_related_records)
       .where(eq(task_related_records.task_id, id)),
+    getIndustryPickerData(),
   ])
 
   if (!task) notFound()
@@ -67,6 +69,7 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
     { api: 'account',     label: '取引先', icon: '🏢' },
     { api: 'contact',     label: '人物',   icon: '👤' },
     { api: 'opportunity', label: '商談',   icon: '💼' },
+    ...industryPicker.industryObjectTypes,
     ...enabledCustomObjects.map((o) => ({ api: o.api_name, label: o.label, icon: o.icon })),
   ]
 
@@ -74,6 +77,7 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
     account:     accountsList.map((a) => ({ id: a.id, label: a.name })),
     contact:     contactsList.map((c) => ({ id: c.id, label: c.full_name })),
     opportunity: opportunitiesList.map((o) => ({ id: o.id, label: o.name })),
+    ...industryPicker.industryRecordsByObject,
   }
   const objectIdToApiName = new Map(enabledCustomObjects.map((o) => [o.id, o.api_name]))
   const objectIdToLabel   = new Map(enabledCustomObjects.map((o) => [o.id, o.label]))

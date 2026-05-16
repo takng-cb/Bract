@@ -6,6 +6,7 @@ import Breadcrumbs from '@/components/Breadcrumbs'
 import { createActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
 /**
@@ -26,9 +27,9 @@ function customRecordTitle(
 export default async function NewActivityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ account_id?: string; contact_id?: string; opportunity_id?: string; custom_record_id?: string; return_to?: string }>
+  searchParams: Promise<{ account_id?: string; contact_id?: string; opportunity_id?: string; custom_record_id?: string; maintenance_id?: string; customer_vehicle_id?: string; return_to?: string }>
 }) {
-  const { account_id, contact_id, opportunity_id, custom_record_id, return_to } = await searchParams
+  const { account_id, contact_id, opportunity_id, custom_record_id, maintenance_id, customer_vehicle_id, return_to } = await searchParams
 
   async function createActivityAction(_: string | null, formData: FormData): Promise<string | null> {
     'use server'
@@ -41,8 +42,8 @@ export default async function NewActivityPage({
   }
   await requireEditor()
 
-  // 標準 + 有効カスタムオブジェクトとそれぞれのレコード一覧を並列取得
-  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, activityTypes] = await Promise.all([
+  // 標準 + 有効カスタムオブジェクト + 業種固有オブジェクトを並列取得
+  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, activityTypes, industryPicker] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
@@ -64,6 +65,7 @@ export default async function NewActivityPage({
       data:      custom_records.data,
     }).from(custom_records),
     getActivityTypes(),
+    getIndustryPickerData(),
   ])
 
   // 関連レコード Picker の入力データを組み立て
@@ -71,14 +73,16 @@ export default async function NewActivityPage({
     { api: 'account',     label: '取引先', icon: '🏢' },
     { api: 'contact',     label: '人物',   icon: '👤' },
     { api: 'opportunity', label: '商談',   icon: '💼' },
+    ...industryPicker.industryObjectTypes,
     ...enabledCustomObjects.map((o) => ({ api: o.api_name, label: o.label, icon: o.icon })),
   ]
 
-  // 標準オブジェクトのレコード
+  // 標準オブジェクトのレコード + 業種固有レコード
   const recordsByObject: Record<string, RecordOption[]> = {
     account:     accountsList.map((a) => ({ id: a.id, label: a.name })),
     contact:     contactsList.map((c) => ({ id: c.id, label: c.full_name })),
     opportunity: opportunitiesList.map((o) => ({ id: o.id, label: o.name })),
+    ...industryPicker.industryRecordsByObject,
   }
 
   // カスタムオブジェクトのレコードを api_name でグルーピング
@@ -123,16 +127,20 @@ export default async function NewActivityPage({
   }
 
   const defaultRelated: RelatedRecordSelection[] = []
-  if (resolvedAccountId) defaultRelated.push({ object_api: 'account', record_id: resolvedAccountId })
-  if (contact_id)         defaultRelated.push({ object_api: 'contact', record_id: contact_id })
-  if (opportunity_id)     defaultRelated.push({ object_api: 'opportunity', record_id: opportunity_id })
-  if (customDefault)      defaultRelated.push({ object_api: customDefault.api, record_id: customDefault.record_id })
+  if (resolvedAccountId)    defaultRelated.push({ object_api: 'account',          record_id: resolvedAccountId })
+  if (contact_id)           defaultRelated.push({ object_api: 'contact',          record_id: contact_id })
+  if (opportunity_id)       defaultRelated.push({ object_api: 'opportunity',      record_id: opportunity_id })
+  if (maintenance_id)       defaultRelated.push({ object_api: 'maintenance',      record_id: maintenance_id })
+  if (customer_vehicle_id)  defaultRelated.push({ object_api: 'customer-vehicle', record_id: customer_vehicle_id })
+  if (customDefault)        defaultRelated.push({ object_api: customDefault.api,  record_id: customDefault.record_id })
 
   const cancelHref = return_to
-    ?? (account_id     ? `/accounts/${account_id}`
-    :   contact_id     ? `/contacts/${contact_id}`
-    :   opportunity_id ? `/opportunities/${opportunity_id}`
-    :                    '/activities')
+    ?? (account_id          ? `/accounts/${account_id}`
+    :   contact_id          ? `/contacts/${contact_id}`
+    :   opportunity_id      ? `/opportunities/${opportunity_id}`
+    :   maintenance_id      ? `/maintenance/${maintenance_id}`
+    :   customer_vehicle_id ? `/customer-vehicles/${customer_vehicle_id}`
+    :                         '/activities')
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">

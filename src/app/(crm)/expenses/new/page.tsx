@@ -5,6 +5,7 @@ import ExpenseForm from '@/components/ExpenseForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { createExpense } from '@/app/actions/expenses'
 import { requireEditor } from '@/lib/auth'
+import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
 function customRecordTitle(
@@ -21,9 +22,9 @@ function customRecordTitle(
 export default async function NewExpensePage({
   searchParams,
 }: {
-  searchParams: Promise<{ account_id?: string; opportunity_id?: string; contact_id?: string; custom_record_id?: string; return_to?: string }>
+  searchParams: Promise<{ account_id?: string; opportunity_id?: string; contact_id?: string; custom_record_id?: string; maintenance_id?: string; customer_vehicle_id?: string; return_to?: string }>
 }) {
-  const { account_id, opportunity_id, contact_id, custom_record_id, return_to } = await searchParams
+  const { account_id, opportunity_id, contact_id, custom_record_id, maintenance_id, customer_vehicle_id, return_to } = await searchParams
 
   async function createExpenseAction(_: string | null, formData: FormData): Promise<string | null> {
     'use server'
@@ -36,7 +37,7 @@ export default async function NewExpensePage({
   }
   await requireEditor()
 
-  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords] = await Promise.all([
+  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, industryPicker] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
@@ -57,12 +58,14 @@ export default async function NewExpensePage({
       object_id: custom_records.object_id,
       data:      custom_records.data,
     }).from(custom_records),
+    getIndustryPickerData(),
   ])
 
   const objectTypes: ObjectTypeOption[] = [
     { api: 'account',     label: '取引先', icon: '🏢' },
     { api: 'contact',     label: '人物',   icon: '👤' },
     { api: 'opportunity', label: '商談',   icon: '💼' },
+    ...industryPicker.industryObjectTypes,
     ...enabledCustomObjects.map((o) => ({ api: o.api_name, label: o.label, icon: o.icon })),
   ]
 
@@ -70,6 +73,7 @@ export default async function NewExpensePage({
     account:     accountsList.map((a) => ({ id: a.id, label: a.name })),
     contact:     contactsList.map((c) => ({ id: c.id, label: c.full_name })),
     opportunity: opportunitiesList.map((o) => ({ id: o.id, label: o.name })),
+    ...industryPicker.industryRecordsByObject,
   }
   const objectIdToApiName = new Map(enabledCustomObjects.map((o) => [o.id, o.api_name]))
   const objectIdToLabel   = new Map(enabledCustomObjects.map((o) => [o.id, o.label]))
@@ -97,15 +101,19 @@ export default async function NewExpensePage({
   }
 
   const defaultRelated: RelatedRecordSelection[] = []
-  if (account_id)     defaultRelated.push({ object_api: 'account', record_id: account_id })
-  if (contact_id)     defaultRelated.push({ object_api: 'contact', record_id: contact_id })
-  if (opportunity_id) defaultRelated.push({ object_api: 'opportunity', record_id: opportunity_id })
-  if (customDefault)  defaultRelated.push({ object_api: customDefault.api, record_id: customDefault.record_id })
+  if (account_id)          defaultRelated.push({ object_api: 'account',          record_id: account_id })
+  if (contact_id)          defaultRelated.push({ object_api: 'contact',          record_id: contact_id })
+  if (opportunity_id)      defaultRelated.push({ object_api: 'opportunity',      record_id: opportunity_id })
+  if (maintenance_id)      defaultRelated.push({ object_api: 'maintenance',      record_id: maintenance_id })
+  if (customer_vehicle_id) defaultRelated.push({ object_api: 'customer-vehicle', record_id: customer_vehicle_id })
+  if (customDefault)       defaultRelated.push({ object_api: customDefault.api,  record_id: customDefault.record_id })
 
   const cancelHref = return_to
-    ?? (opportunity_id ? `/opportunities/${opportunity_id}`
-    :   account_id     ? `/accounts/${account_id}`
-    :                    '/expenses')
+    ?? (opportunity_id      ? `/opportunities/${opportunity_id}`
+    :   account_id          ? `/accounts/${account_id}`
+    :   maintenance_id      ? `/maintenance/${maintenance_id}`
+    :   customer_vehicle_id ? `/customer-vehicles/${customer_vehicle_id}`
+    :                         '/expenses')
 
   return (
     <div className="p-4 md:p-8 max-w-2xl">

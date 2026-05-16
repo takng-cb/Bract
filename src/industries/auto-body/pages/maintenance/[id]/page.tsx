@@ -267,11 +267,10 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
       <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
       <AuthGuard minRole="editor">
-        <p className="text-xs text-zinc-400 mb-3">作成画面の「関連レコード」で整備を選択してください</p>
         <div className="flex flex-wrap justify-center gap-2">
-          <Link href="/activities/new" className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 活動を記録</Link>
-          <Link href="/tasks/new"      className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ ToDo を追加</Link>
-          <Link href="/expenses/new"   className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 経費を追加</Link>
+          <Link href={`/activities/new?maintenance_id=${id}`} className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 活動を記録</Link>
+          <Link href={`/tasks/new?maintenance_id=${id}`}      className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ ToDo を追加</Link>
+          <Link href={`/expenses/new?maintenance_id=${id}`}   className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 経費を追加</Link>
         </div>
       </AuthGuard>
     </div>

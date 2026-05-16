@@ -15,6 +15,7 @@ import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
 function customRecordTitle(
@@ -31,7 +32,7 @@ function customRecordTitle(
 export default async function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [activity, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, activityTypes] = await Promise.all([
+  const [activity, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, activityTypes, industryPicker] = await Promise.all([
     db.select().from(activities).where(eq(activities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
@@ -60,6 +61,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
       .from(activity_related_records)
       .where(eq(activity_related_records.activity_id, id)),
     getActivityTypes(),
+    getIndustryPickerData(),
   ])
 
   if (!activity) notFound()
@@ -78,6 +80,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
     { api: 'account',     label: '取引先', icon: '🏢' },
     { api: 'contact',     label: '人物',   icon: '👤' },
     { api: 'opportunity', label: '商談',   icon: '💼' },
+    ...industryPicker.industryObjectTypes,
     ...enabledCustomObjects.map((o) => ({ api: o.api_name, label: o.label, icon: o.icon })),
   ]
 
@@ -85,6 +88,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
     account:     accountsList.map((a) => ({ id: a.id, label: a.name })),
     contact:     contactsList.map((c) => ({ id: c.id, label: c.full_name })),
     opportunity: opportunitiesList.map((o) => ({ id: o.id, label: o.name })),
+    ...industryPicker.industryRecordsByObject,
   }
   const objectIdToApiName = new Map(enabledCustomObjects.map((o) => [o.id, o.api_name]))
   const objectIdToLabel   = new Map(enabledCustomObjects.map((o) => [o.id, o.label]))
