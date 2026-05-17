@@ -422,6 +422,59 @@ export const maintenance_payments = pgTable('maintenance_payments', {
 ])
 
 // ----------------------------------------------------------------
+// maintenance_templates（整備パッケージ／作業セットテンプレート）
+//
+// よくある作業セット（車検基本パック / オイル交換セット / 板金小傷修理 等）を
+// 1 行のテンプレートにまとめ、整備の行アイテム編集画面から「テンプレを適用」
+// で 1 クリック投入する。
+// ----------------------------------------------------------------
+export const maintenance_templates = pgTable('maintenance_templates', {
+  id:          uuid('id').primaryKey().defaultRandom(),
+  name:        text('name').notNull(),
+  description: text('description'),
+  category:    text('category'),  // 車検 / 一般整備 / 板金修理 / 新車納車 等
+  is_active:   boolean('is_active').notNull().default(true),
+  sort_order:  integer('sort_order').notNull().default(0),
+  owner_id:    uuid('owner_id'),
+  created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// テンプレートに含まれる作業行（maintenance_line_items の雛形）
+export const maintenance_template_lines = pgTable('maintenance_template_lines', {
+  id:               uuid('id').primaryKey().defaultRandom(),
+  template_id:      uuid('template_id').notNull().references(() => maintenance_templates.id, { onDelete: 'cascade' }),
+  sort_order:       integer('sort_order').notNull().default(0),
+  work_category:    text('work_category'),
+  item_name:        text('item_name').notNull(),
+  hours:            numeric('hours'),
+  labor_amount:     numeric('labor_amount'),
+  parts_qty:        numeric('parts_qty'),
+  parts_unit:       text('parts_unit'),
+  parts_unit_price: numeric('parts_unit_price'),
+  cost_unit_price:  numeric('cost_unit_price'),
+  note:             text('note'),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('maintenance_tpl_line_idx').on(t.template_id, t.sort_order),
+])
+
+// テンプレートに含まれる諸費用（maintenance_fees の雛形）
+export const maintenance_template_fees = pgTable('maintenance_template_fees', {
+  id:           uuid('id').primaryKey().defaultRandom(),
+  template_id:  uuid('template_id').notNull().references(() => maintenance_templates.id, { onDelete: 'cascade' }),
+  sort_order:   integer('sort_order').notNull().default(0),
+  category:     text('category').notNull(),  // '課税' | '非課税'
+  item_name:    text('item_name').notNull(),
+  amount:       numeric('amount'),
+  cost_amount:  numeric('cost_amount'),
+  meta:         jsonb('meta'),
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('maintenance_tpl_fee_idx').on(t.template_id, t.sort_order),
+])
+
+// ----------------------------------------------------------------
 // tags（タグマスタ）
 // ----------------------------------------------------------------
 export const tags = pgTable('tags', {

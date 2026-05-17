@@ -1,9 +1,11 @@
 import { db } from '@/lib/db'
-import { maintenance_line_items } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import { maintenance_line_items, maintenance_templates, maintenance_template_lines, maintenance_template_fees } from '@/lib/schema'
+import { eq, asc, sql } from 'drizzle-orm'
 import { createLineItem, updateLineItem, deleteLineItem, toggleLineWorkStatus } from '@/industries/auto-body/actions/maintenanceLineItems'
+import { applyTemplateToMaintenance } from '@/industries/auto-body/actions/maintenanceTemplates'
 import LineItemRow from './LineItemRow'
 import LineItemAddForm from './LineItemAddForm'
+import ApplyTemplateButton from './ApplyTemplateButton'
 
 type Props = {
   maintenanceId: string
@@ -12,9 +14,24 @@ type Props = {
 }
 
 export default async function MaintenanceLineItemsEditor({ maintenanceId, canEdit, leverRate }: Props) {
-  const items = await db.select().from(maintenance_line_items)
-    .where(eq(maintenance_line_items.maintenance_id, maintenanceId))
-    .orderBy(asc(maintenance_line_items.sort_order))
+  const [items, templates] = await Promise.all([
+    db.select().from(maintenance_line_items)
+      .where(eq(maintenance_line_items.maintenance_id, maintenanceId))
+      .orderBy(asc(maintenance_line_items.sort_order)),
+    canEdit
+      ? db.select({
+          id:          maintenance_templates.id,
+          name:        maintenance_templates.name,
+          category:    maintenance_templates.category,
+          description: maintenance_templates.description,
+          lineCount:   sql<number>`(SELECT count(*)::int FROM ${maintenance_template_lines} WHERE template_id = ${maintenance_templates.id})`,
+          feeCount:    sql<number>`(SELECT count(*)::int FROM ${maintenance_template_fees}  WHERE template_id = ${maintenance_templates.id})`,
+        })
+          .from(maintenance_templates)
+          .where(eq(maintenance_templates.is_active, true))
+          .orderBy(asc(maintenance_templates.sort_order), asc(maintenance_templates.name))
+      : Promise.resolve([] as { id: string; name: string; category: string | null; description: string | null; lineCount: number; feeCount: number }[]),
+  ])
 
   // 集計（除外フラグ立っていない行のみ）
   let laborSum  = 0
@@ -37,12 +54,31 @@ export default async function MaintenanceLineItemsEditor({ maintenanceId, canEdi
     await createLineItem(maintenanceId, formData)
   }
 
+  async function applyAction(templateId: string): Promise<{ lines: number; fees: number }> {
+    'use server'
+    return applyTemplateToMaintenance(templateId, maintenanceId)
+  }
+
   return (
     <div className="space-y-4">
+      {/* ヘッダー: テンプレ適用ボタン */}
+      {canEdit && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-zinc-500">よくある作業セットは <span className="font-medium">整備パッケージ</span> から 1 クリックで投入できます。</p>
+          <ApplyTemplateButton
+            templates={templates.map((t) => ({
+              id: t.id, name: t.name, category: t.category, description: t.description,
+              lineCount: Number(t.lineCount), feeCount: Number(t.feeCount),
+            }))}
+            applyAction={applyAction}
+          />
+        </div>
+      )}
+
       {items.length === 0 ? (
         <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
           <p className="text-sm text-zinc-400">作業項目はまだありません</p>
-          {canEdit && <p className="text-xs text-zinc-400 mt-1">下のフォームから追加してください</p>}
+          {canEdit && <p className="text-xs text-zinc-400 mt-1">下のフォームから追加、または「テンプレを適用」してください</p>}
         </div>
       ) : (
         <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
