@@ -7,7 +7,7 @@ import { maintenance_damage_pins } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import { createDamagePin, updateDamagePin, deleteDamagePin } from '@/industries/auto-body/actions/maintenanceDamagePins'
 import DamageMapEditor from './DamageMapEditor'
-import type { DamageView, DamageCategory, DamageSeverity } from '@/industries/auto-body/actions/maintenanceDamagePins'
+import type { DamageView, DamageCategory, DamageSeverity } from '@/industries/auto-body/lib/damageTypes'
 
 type Props = {
   maintenanceId: string
