@@ -3,14 +3,12 @@ import { maintenance_records, customer_vehicles, accounts } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
+import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 
-const STATUS_COLOR: Record<string, string> = {
-  '予約':     'bg-zinc-100 text-zinc-700',
-  '受付':     'bg-blue-50 text-blue-700',
-  '作業中':   'bg-yellow-50 text-yellow-700',
-  '納車待ち': 'bg-orange-50 text-orange-700',
-  '完了':     'bg-green-50 text-green-700',
-  'キャンセル': 'bg-red-50 text-red-700',
+function statusClass(status: string): string {
+  const p = STATUS_PALETTE[status]
+  if (!p) return 'bg-zinc-100 text-zinc-600'
+  return `${p.bg} ${p.text}`
 }
 
 export default async function MaintenanceListPage() {
@@ -45,7 +43,7 @@ export default async function MaintenanceListPage() {
         </div>
         {edit && (
           <Link href="/maintenance/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors shadow-sm">
             ＋ 整備を作成
           </Link>
         )}
@@ -53,7 +51,7 @@ export default async function MaintenanceListPage() {
 
       {rows.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">🔧</p>
+          <p className="text-4xl mb-4">{AB_ICONS.maintenance}</p>
           <p className="text-lg font-medium">整備がまだ登録されていません</p>
           <p className="text-sm mt-1">「整備を作成」ボタンから追加してください</p>
         </div>
@@ -62,43 +60,43 @@ export default async function MaintenanceListPage() {
           {/* PC: テーブル */}
           <div className="hidden md:block bg-white border border-zinc-200 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
+              <thead className="bg-amber-50 border-b border-amber-200">
                 <tr>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">整備No</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">入庫日</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">納車日</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">車両</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">顧客</th>
-                  <th className="text-left px-4 py-2 font-medium text-zinc-600">ステータス</th>
-                  <th className="text-right px-4 py-2 font-medium text-zinc-600">走行距離</th>
+                  <th className="text-left px-4 py-2 font-medium text-amber-900">整備No</th>
+                  <th className="text-left px-4 py-2 font-medium text-amber-900">入庫日</th>
+                  <th className="text-left px-4 py-2 font-medium text-amber-900">納車日</th>
+                  <th className="text-left px-4 py-2 font-medium text-amber-900">車両</th>
+                  <th className="text-left px-4 py-2 font-medium text-amber-900">顧客</th>
+                  <th className="text-left px-4 py-2 font-medium text-amber-900">ステータス</th>
+                  <th className="text-right px-4 py-2 font-medium text-amber-900">走行距離</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {rows.map((m) => (
-                  <tr key={m.id} className="hover:bg-zinc-50">
+                  <tr key={m.id} className="hover:bg-amber-50/30">
                     <td className="px-4 py-2 font-mono">
-                      <Link href={`/maintenance/${m.id}`} className="text-blue-600 hover:underline">{m.maintenance_no}</Link>
+                      <Link href={`/maintenance/${m.id}`} className="text-amber-700 hover:text-amber-900 hover:underline">{m.maintenance_no}</Link>
                     </td>
                     <td className="px-4 py-2 text-zinc-700">{m.intake_date ?? '—'}</td>
                     <td className="px-4 py-2 text-zinc-700">{m.delivery_date ?? '—'}</td>
                     <td className="px-4 py-2 text-zinc-700">
                       {m.vehicle?.id ? (
-                        <Link href={`/customer-vehicles/${m.vehicle.id}`} className="hover:text-blue-600">
-                          🚗 {m.vehicle.plate_number ?? m.vehicle.car_model ?? '—'}
+                        <Link href={`/customer-vehicles/${m.vehicle.id}`} className="hover:text-amber-700">
+                          {AB_ICONS.customerVehicle} {m.vehicle.plate_number ?? m.vehicle.car_model ?? '—'}
                         </Link>
                       ) : '—'}
                     </td>
                     <td className="px-4 py-2 text-zinc-700">
                       {m.account?.id ? (
-                        <Link href={`/accounts/${m.account.id}`} className="hover:text-blue-600">{m.account.name}</Link>
+                        <Link href={`/accounts/${m.account.id}`} className="hover:text-amber-700">{m.account.name}</Link>
                       ) : '—'}
                     </td>
                     <td className="px-4 py-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[m.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusClass(m.status)}`}>
                         {m.status}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-right text-zinc-500">
+                    <td className="px-4 py-2 text-right text-zinc-500 font-mono">
                       {m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'}
                     </td>
                   </tr>
@@ -111,16 +109,16 @@ export default async function MaintenanceListPage() {
           <div className="md:hidden space-y-2">
             {rows.map((m) => (
               <Link key={m.id} href={`/maintenance/${m.id}`}
-                className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
+                className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-amber-300 active:bg-amber-50/30">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-sm font-semibold text-zinc-900">{m.maintenance_no}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[m.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusClass(m.status)}`}>
                     {m.status}
                   </span>
                 </div>
                 <p className="text-xs text-zinc-500 mt-1">
-                  🚗 {m.vehicle?.plate_number ?? m.vehicle?.car_model ?? '—'}
-                  {m.account?.name && <> · 🏢 {m.account.name}</>}
+                  {AB_ICONS.customerVehicle} {m.vehicle?.plate_number ?? m.vehicle?.car_model ?? '—'}
+                  {m.account?.name && <> · {AB_ICONS.account} {m.account.name}</>}
                 </p>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   入庫: {m.intake_date ?? '—'}

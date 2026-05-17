@@ -1,15 +1,14 @@
 /**
- * 整備の「全体」ビュー（CarRide スタイルの 1 画面伝票）。
+ * 整備の「全体」ビュー — 左 sticky パネル + 右スクロール の 2 カラム構成。
  *
- * 整備詳細ページの「全体」タブで使う read-only サマリー。
- * 編集は概要タブの個別サブタブ（行アイテム/諸費用/入金）で行う。
+ * CarRide が縦長 1 ページなのに対し、本実装は:
+ *   - 左 320px sticky: 整備キー情報（No、ステータス、入庫/納車、顧客、車両、担当、合計）
+ *   - 右 flex-1 scroll: 顧客詳細・作業項目・諸費用・入金・帳票
  *
- * レイアウト:
- *   - 概要（入庫日/担当者/メモ）
- *   - 顧客 + 車両（2 カラム）
- *   - 整備費用テーブル（左 2/3） + 右サイド（課税諸費用 / 非課税諸費用 / 整備明細 / 粗利益）
- *   - 入金テーブル
- *   - 帳票印刷（次フェーズで実装予定のスタブ）
+ * 配色は工場感を出すため amber アクセント（CarRide の blue とは別系統）。
+ *
+ * read-only 設計。各セクションの「✏️ 編集」リンクで概要タブの該当
+ * サブタブに遷移する。
  */
 import { db } from '@/lib/db'
 import {
@@ -18,19 +17,15 @@ import {
 } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
+import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 
 type Props = {
   maintenanceId: string
   users: { id: string; name: string }[]
 }
 
-// 税率テーブル（tax_mode に応じた税率 %）
 const TAX_RATES: Record<string, number> = {
-  '税別10%': 10,
-  '税別8%':  8,
-  '税込10%': 10,
-  '税込8%':  8,
-  '非課税':  0,
+  '税別10%': 10, '税別8%': 8, '税込10%': 10, '税込8%': 8, '非課税': 0,
 }
 
 function yen(n: number | null | undefined): string {
@@ -39,7 +34,6 @@ function yen(n: number | null | undefined): string {
 }
 
 export default async function MaintenanceFullView({ maintenanceId, users }: Props) {
-  // 必要データを並列取得
   const [mRow, lines, fees, payments] = await Promise.all([
     db.select({
       m:       maintenance_records,
@@ -69,15 +63,13 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   const v = mRow.vehicle
   const account = mRow.account?.id ? mRow.account : null
   const contact = mRow.contact?.id ? mRow.contact : null
+  const statusPalette = STATUS_PALETTE[m.status] ?? STATUS_PALETTE['予約']
 
   const receptionName = m.reception_owner_id ? users.find((u) => u.id === m.reception_owner_id)?.name ?? '—' : '—'
   const workerName    = m.worker_owner_id    ? users.find((u) => u.id === m.worker_owner_id)?.name    ?? '—' : '—'
 
   // ─── 集計 ──────────────────────────────────────
-  let laborSum = 0
-  let partsSum = 0
-  let laborCost = 0  // 作業原価（schema にカラム無し、参考用 0 固定）
-  let partsCost = 0
+  let laborSum = 0, partsSum = 0, partsCost = 0
   for (const l of lines) {
     if (l.is_excluded) continue
     const labor = Number(l.labor_amount ?? 0)
@@ -90,9 +82,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   }
   const linesTotal = laborSum + partsSum
 
-  let taxableFees    = 0
-  let nontaxableFees = 0
-  let taxableFeesCost = 0
+  let taxableFees = 0, nontaxableFees = 0, taxableFeesCost = 0
   for (const f of fees) {
     const a = Number(f.amount ?? 0)
     const c = Number(f.cost_amount ?? 0)
@@ -105,7 +95,6 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   }
 
   const taxRate = TAX_RATES[m.tax_mode ?? '税別10%'] ?? 10
-  // 税別の場合のみ外税を加算。税込/非課税は 0
   const isTaxExternal = m.tax_mode?.startsWith('税別')
   const consumptionTax = isTaxExternal
     ? Math.floor((linesTotal + taxableFees) * (taxRate / 100))
@@ -115,119 +104,143 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   const paidSum = payments.reduce((acc, p) => acc + Number(p.amount ?? 0), 0)
   const balance = grandTotal - paidSum
 
-  const grossProfit = linesTotal - laborCost - partsCost
-  const netGrossProfit = grossProfit  // 追加粗利益は schema に無いので same
-
-  // ─── レンダー ──────────────────────────────────
+  const grossProfit = linesTotal - partsCost
   const editHref = (subTab: string) => `/maintenance/${maintenanceId}?tab=overview&sub=${subTab}`
 
+  // ─── レンダー ──────────────────────────────────
   return (
-    <div className="space-y-4">
-      {/* ── 概要 ─────────────────────────────────── */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">概要</h2>
-          <span className="font-mono text-xs text-zinc-500">整備No. {m.maintenance_no}</span>
+    <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+      {/* ─── 左 sticky パネル ─────────────────────────────── */}
+      <aside className="lg:sticky lg:top-4 self-start space-y-3">
+        {/* ステータス */}
+        <div className={`rounded-lg border-2 ${statusPalette.border} ${statusPalette.bg} px-4 py-3`}>
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">ステータス</p>
+          <p className={`text-lg font-bold ${statusPalette.text}`}>{m.status}</p>
         </div>
-        <dl className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-x-3 gap-y-2 text-sm">
-          <Item label="入庫日" value={m.intake_date ?? '—'} />
-          <Item label="入庫時間" value={m.intake_time ?? '—'} />
-          <Item label="引取場所" value={m.pickup_location ?? '—'} />
-          <Item label="納車日" value={m.delivery_date ?? '—'} />
-          <Item label="納車時間" value={m.delivery_time ?? '—'} />
-          <Item label="引渡場所" value={m.delivery_location ?? '—'} />
-          <Item label="売上計上日" value={m.sales_recording_date ?? '—'} />
-          <Item label="登録日" value={m.created_at ? new Date(m.created_at).toLocaleDateString('ja-JP') : '—'} />
-        </dl>
-        <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2 text-sm mt-3 pt-3 border-t border-zinc-100">
-          <Item label="入庫区分" value={m.intake_category ?? '—'} />
-          <Item label="受付担当者" value={receptionName} />
-          <Item label="作業担当者" value={workerName} />
-          <Item label="総走行距離" value={m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'} />
-          <Item label="拠点" value={m.branch_id ?? '—'} />
-        </dl>
-        <dl className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3 pt-3 border-t border-zinc-100">
-          <Memo label="整備メモ（印字なし）" value={m.internal_memo} />
-          <Memo label="作業指示備考" value={m.work_order_note} />
-          <Memo label="備考" value={m.general_note} />
-        </dl>
-      </section>
 
-      {/* ── 顧客 + 車両 ──────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">顧客</h2>
+        {/* 基本キー情報 */}
+        <div className="bg-white border border-zinc-200 rounded-lg p-4">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">整備</p>
+          <p className="font-mono text-base font-bold text-zinc-900 mb-3">{m.maintenance_no}</p>
+          <dl className="space-y-2 text-xs">
+            <KV label={`${AB_ICONS.maintenance} 入庫`} value={`${m.intake_date ?? '—'}${m.intake_time ? ` ${m.intake_time}` : ''}`} />
+            <KV label={`${AB_ICONS.done} 納車`} value={`${m.delivery_date ?? '—'}${m.delivery_time ? ` ${m.delivery_time}` : ''}`} />
+            <KV label="入庫区分" value={m.intake_category ?? '—'} />
+            <KV label={`${AB_ICONS.branch} 拠点`} value={m.branch_id ?? '—'} />
+            <KV label="受付担当" value={receptionName} />
+            <KV label="作業担当" value={workerName} />
+            <KV label="走行距離" value={m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'} />
+          </dl>
+        </div>
+
+        {/* 顧客 */}
+        <div className="bg-white border border-zinc-200 rounded-lg p-4">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">顧客</p>
           {account ? (
-            <dl className="space-y-2 text-sm">
-              <Item label="顧客（取引先）" value={
-                <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">🏢 {account.name}</Link>
-              } />
+            <>
+              <Link href={`/accounts/${account.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                {AB_ICONS.account} {account.name}
+              </Link>
               {contact && (
-                <Item label="顧客担当者" value={
-                  <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">👤 {contact.full_name}</Link>
-                } />
+                <Link href={`/contacts/${contact.id}`} className="block text-xs text-zinc-600 hover:text-amber-700 mt-1">
+                  {AB_ICONS.contact} {contact.full_name}
+                </Link>
               )}
-              <Item label="電話番号" value={contact?.phone ?? account.phone ?? '—'} />
-              <Item label="メールアドレス" value={contact?.email ?? '—'} />
-              <Item label="住所" value={account.address ?? '—'} />
-            </dl>
-          ) : <p className="text-sm text-zinc-400">顧客情報なし</p>}
-        </section>
+              {(contact?.phone || account.phone) && <p className="text-xs text-zinc-500 mt-1">📞 {contact?.phone ?? account.phone}</p>}
+            </>
+          ) : <p className="text-xs text-zinc-400">—</p>}
+        </div>
 
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">車両</h2>
+        {/* 車両 */}
+        <div className="bg-white border border-zinc-200 rounded-lg p-4">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">車両</p>
           {v ? (
             <>
-              <p className="text-sm mb-2">
-                <Link href={`/customer-vehicles/${v.id}`} className="text-blue-600 hover:underline">
-                  🚗 {v.plate_number ?? '—'}（{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ')}）
-                </Link>
-              </p>
-              <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2 text-xs">
-                <Item label="運輸支局" value={v.transport_branch ?? '—'} />
-                <Item label="分類番号" value={v.classification_number ?? '—'} />
-                <Item label="かな" value={v.kana ?? '—'} />
-                <Item label="ナンバー" value={v.plate_number ?? '—'} />
-                <Item label="種別" value={v.vehicle_kind ?? '—'} />
-                <Item label="用途" value={v.vehicle_usage ?? '—'} />
-                <Item label="自家・事業" value={v.private_business ?? '—'} />
-                <Item label="車体の形状" value={v.body_shape ?? '—'} />
-                <Item label="車台番号" value={v.vin ?? '—'} />
-                <Item label="型式" value={v.type_designation ?? '—'} />
-                <Item label="類別区分" value={v.class_category ?? '—'} />
-                <Item label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/') || '—'} />
-              </dl>
-              <p className="text-xs text-zinc-500 mt-2"><strong>車検満了:</strong> {v.inspection_due_date ?? '—'}</p>
-              {v.memo && <p className="text-xs text-zinc-500 mt-2 whitespace-pre-wrap">📝 {v.memo}</p>}
+              <Link href={`/customer-vehicles/${v.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                {AB_ICONS.customerVehicle} {v.plate_number ?? '—'}
+              </Link>
+              <p className="text-xs text-zinc-600 mt-1">{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ')}</p>
+              {v.inspection_due_date && (
+                <p className="text-xs text-zinc-500 mt-1">{AB_ICONS.warning} 車検満了: {v.inspection_due_date}</p>
+              )}
             </>
-          ) : <p className="text-sm text-zinc-400">車両情報なし</p>}
-        </section>
-      </div>
+          ) : <p className="text-xs text-zinc-400">—</p>}
+        </div>
 
-      {/* ── 整備費用 + 右サイドバー ──────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* 整備費用テーブル（左 2/3） */}
-        <section className="lg:col-span-2 bg-white border border-zinc-200 rounded-lg p-4">
+        {/* 合計サマリー */}
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-[10px] uppercase tracking-wider text-amber-700 mb-2">請求合計</p>
+          <p className="text-2xl font-bold font-mono text-amber-900">{yen(grandTotal)}</p>
+          <dl className="mt-3 space-y-1 text-xs">
+            <Row label="入金額" value={yen(paidSum)} />
+            <Row
+              label="残額"
+              value={yen(balance)}
+              valueClass={balance > 0 ? 'text-rose-700 font-bold' : 'text-emerald-700 font-bold'}
+            />
+            <Row label="粗利益" value={yen(grossProfit)} valueClass="text-zinc-600" />
+          </dl>
+        </div>
+      </aside>
+
+      {/* ─── 右スクロール（メインコンテンツ）─────────────── */}
+      <main className="space-y-4 min-w-0">
+        {/* メモ */}
+        {(m.internal_memo || m.work_order_note || m.general_note) && (
+          <section className="bg-white border border-zinc-200 rounded-lg p-4">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">メモ</h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <Memo label="整備メモ（印字なし）" value={m.internal_memo} />
+              <Memo label="作業指示備考" value={m.work_order_note} />
+              <Memo label="備考（見積書に印字）" value={m.general_note} />
+            </dl>
+          </section>
+        )}
+
+        {/* 車両詳細 */}
+        {v && (
+          <section className="bg-white border border-zinc-200 rounded-lg p-4">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">車両情報</h2>
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2 text-xs">
+              <Item label="運輸支局" value={v.transport_branch ?? '—'} />
+              <Item label="分類番号" value={v.classification_number ?? '—'} />
+              <Item label="かな" value={v.kana ?? '—'} />
+              <Item label="ナンバー" value={v.plate_number ?? '—'} />
+              <Item label="種別" value={v.vehicle_kind ?? '—'} />
+              <Item label="用途" value={v.vehicle_usage ?? '—'} />
+              <Item label="自家・事業" value={v.private_business ?? '—'} />
+              <Item label="車体の形状" value={v.body_shape ?? '—'} />
+              <Item label="車台番号" value={v.vin ?? '—'} />
+              <Item label="型式" value={v.type_designation ?? '—'} />
+              <Item label="類別区分" value={v.class_category ?? '—'} />
+              <Item label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/') || '—'} />
+            </dl>
+            {v.memo && <p className="text-xs text-zinc-500 mt-3 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {v.memo}</p>}
+          </section>
+        )}
+
+        {/* 作業項目 */}
+        <section className="bg-white border border-zinc-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">整備費用</h2>
-            <Link href={editHref('lines')} className="text-xs text-blue-600 hover:underline">✏️ 行アイテムを編集</Link>
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.lineItem} 作業項目</h2>
+            <Link href={editHref('lines')} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">✏️ 編集</Link>
           </div>
           {lines.length === 0 ? (
             <p className="text-sm text-zinc-400 py-6 text-center">作業項目はまだありません</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="bg-zinc-50 border-y border-zinc-200">
+                <thead className="bg-amber-50 border-y border-amber-200">
                   <tr>
-                    <th className="px-2 py-1 text-left font-medium text-zinc-600 w-8">#</th>
-                    <th className="px-2 py-1 text-left font-medium text-zinc-600 w-20">区分</th>
-                    <th className="px-2 py-1 text-left font-medium text-zinc-600">作業項目</th>
-                    <th className="px-2 py-1 text-right font-medium text-zinc-600 w-14">工数</th>
-                    <th className="px-2 py-1 text-right font-medium text-zinc-600 w-20">工賃</th>
-                    <th className="px-2 py-1 text-right font-medium text-zinc-600 w-12">部品数</th>
-                    <th className="px-2 py-1 text-right font-medium text-zinc-600 w-20">部品単価</th>
-                    <th className="px-2 py-1 text-right font-medium text-zinc-600 w-20">小計</th>
-                    <th className="px-2 py-1 text-center font-medium text-zinc-600 w-12">状況</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-amber-900 w-8">#</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-amber-900 w-20">区分</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-amber-900">作業項目</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-14">工数</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-20">工賃</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-12">数</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-20">単価</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-20">小計</th>
+                    <th className="px-2 py-1.5 text-center font-medium text-amber-900 w-12">状況</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -237,13 +250,13 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                     const unit  = Number(l.parts_unit_price ?? 0)
                     const sub = (Number.isFinite(labor) ? labor : 0) + (Number.isFinite(qty) && Number.isFinite(unit) ? qty * unit : 0)
                     return (
-                      <tr key={l.id} className={l.is_excluded ? 'opacity-50' : ''}>
+                      <tr key={l.id} className={l.is_excluded ? 'opacity-50 bg-zinc-50' : ''}>
                         <td className="px-2 py-1.5 text-zinc-400 font-mono">{i + 1}</td>
                         <td className="px-2 py-1.5 text-zinc-700">{l.work_category ?? '—'}</td>
                         <td className="px-2 py-1.5 text-zinc-800">
                           {l.item_name}
-                          {l.is_excluded && <span className="ml-1 text-[10px] text-red-600 bg-red-50 px-1 rounded">除外</span>}
-                          {l.state && <span className="ml-1 text-[10px] text-yellow-700 bg-yellow-50 px-1 rounded">{l.state}</span>}
+                          {l.is_excluded && <span className="ml-1 text-[10px] text-rose-700 bg-rose-50 px-1 rounded">除外</span>}
+                          {l.state && <span className="ml-1 text-[10px] text-amber-800 bg-amber-50 px-1 rounded">{l.state}</span>}
                           {l.note && <p className="text-[10px] text-zinc-500 mt-0.5">{l.note}</p>}
                         </td>
                         <td className="px-2 py-1.5 text-right font-mono text-zinc-700">{l.hours ?? '—'}</td>
@@ -253,14 +266,14 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                         <td className="px-2 py-1.5 text-right font-mono font-semibold text-zinc-900">{yen(sub)}</td>
                         <td className="px-2 py-1.5 text-center">
                           {l.work_status === '完了'
-                            ? <span className="text-[10px] text-green-700 bg-green-50 px-1 rounded">完了</span>
+                            ? <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 rounded">完了</span>
                             : <span className="text-[10px] text-zinc-500 bg-zinc-100 px-1 rounded">未完了</span>}
                         </td>
                       </tr>
                     )
                   })}
                 </tbody>
-                <tfoot className="bg-zinc-50 border-t-2 border-zinc-200">
+                <tfoot className="bg-zinc-50 border-t-2 border-zinc-300">
                   <tr>
                     <td colSpan={4} className="px-2 py-2 text-right text-xs text-zinc-600">作業代計</td>
                     <td className="px-2 py-2 text-right font-mono text-sm">{yen(laborSum)}</td>
@@ -269,7 +282,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                     <td></td>
                   </tr>
                   <tr>
-                    <td colSpan={7} className="px-2 py-2 text-right text-xs font-semibold text-zinc-700">整備費用計</td>
+                    <td colSpan={7} className="px-2 py-2 text-right text-xs font-semibold text-zinc-700">作業項目 計</td>
                     <td className="px-2 py-2 text-right font-mono font-semibold">{yen(linesTotal)}</td>
                     <td></td>
                   </tr>
@@ -279,179 +292,120 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           )}
         </section>
 
-        {/* 右サイドバー */}
-        <div className="space-y-4">
-          {/* 課税諸費用 */}
+        {/* 諸費用 + 入金 2 カラム */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* 諸費用 */}
           <section className="bg-white border border-zinc-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-semibold text-zinc-500 uppercase">課税諸費用</h2>
-              <Link href={editHref('fees')} className="text-[10px] text-blue-600 hover:underline">✏️ 編集</Link>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.fee} 諸費用</h2>
+              <Link href={editHref('fees')} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">✏️ 編集</Link>
             </div>
-            {fees.filter((f) => f.category === '課税').length === 0 ? (
-              <p className="text-xs text-zinc-400 py-2">なし</p>
+            {fees.length === 0 ? (
+              <p className="text-sm text-zinc-400 py-4 text-center">諸費用はまだありません</p>
             ) : (
-              <dl className="space-y-1 text-xs">
-                {fees.filter((f) => f.category === '課税').map((f) => (
-                  <div key={f.id} className="flex justify-between">
-                    <dt className="text-zinc-700 truncate">{f.item_name}</dt>
-                    <dd className="font-mono text-zinc-900 shrink-0 ml-2">{yen(Number(f.amount))}</dd>
+              <>
+                {fees.filter((f) => f.category === '課税').length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[10px] text-zinc-500 uppercase mb-1">課税</p>
+                    <dl className="space-y-0.5 text-xs">
+                      {fees.filter((f) => f.category === '課税').map((f) => (
+                        <div key={f.id} className="flex justify-between">
+                          <dt className="text-zinc-700 truncate">{f.item_name}</dt>
+                          <dd className="font-mono text-zinc-900 shrink-0 ml-2">{yen(Number(f.amount))}</dd>
+                        </div>
+                      ))}
+                      <div className="flex justify-between pt-1 mt-1 border-t border-zinc-100 font-semibold">
+                        <dt>課税計</dt>
+                        <dd className="font-mono">{yen(taxableFees)}</dd>
+                      </div>
+                    </dl>
                   </div>
-                ))}
-              </dl>
+                )}
+                {fees.filter((f) => f.category === '非課税').length > 0 && (
+                  <div>
+                    <p className="text-[10px] text-zinc-500 uppercase mb-1">非課税</p>
+                    <dl className="space-y-0.5 text-xs">
+                      {fees.filter((f) => f.category === '非課税').map((f) => (
+                        <div key={f.id} className="flex justify-between">
+                          <dt className="text-zinc-700 truncate">{f.item_name}</dt>
+                          <dd className="font-mono text-zinc-900 shrink-0 ml-2">{yen(Number(f.amount))}</dd>
+                        </div>
+                      ))}
+                      <div className="flex justify-between pt-1 mt-1 border-t border-zinc-100 font-semibold">
+                        <dt>非課税計</dt>
+                        <dd className="font-mono">{yen(nontaxableFees)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
+              </>
             )}
-            <div className="border-t border-zinc-100 pt-2 mt-2 text-xs flex justify-between font-semibold">
-              <span className="text-zinc-700">課税諸費用計</span>
-              <span className="font-mono">{yen(taxableFees)}</span>
-            </div>
+            {isTaxExternal && linesTotal + taxableFees > 0 && (
+              <p className="text-[10px] text-zinc-500 mt-3 pt-2 border-t border-zinc-100">
+                消費税（外税{taxRate}%）= {yen(consumptionTax)}
+              </p>
+            )}
           </section>
 
-          {/* 非課税諸費用 */}
+          {/* 入金 */}
           <section className="bg-white border border-zinc-200 rounded-lg p-4">
-            <h2 className="text-xs font-semibold text-zinc-500 uppercase mb-2">非課税諸費用</h2>
-            {fees.filter((f) => f.category === '非課税').length === 0 ? (
-              <p className="text-xs text-zinc-400 py-2">なし</p>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.payment} 入金・預かり金</h2>
+              <Link href={editHref('payments')} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">✏️ 編集</Link>
+            </div>
+            {payments.length === 0 ? (
+              <p className="text-sm text-zinc-400 py-4 text-center">入金記録はまだありません</p>
             ) : (
-              <dl className="space-y-1 text-xs">
-                {fees.filter((f) => f.category === '非課税').map((f) => (
-                  <div key={f.id} className="flex justify-between">
-                    <dt className="text-zinc-700 truncate">{f.item_name}</dt>
-                    <dd className="font-mono text-zinc-900 shrink-0 ml-2">{yen(Number(f.amount))}</dd>
-                  </div>
+              <ul className="divide-y divide-zinc-100 text-xs">
+                {payments.map((p) => (
+                  <li key={p.id} className="py-1.5 flex items-center gap-2">
+                    <span className="text-zinc-500 shrink-0">{p.payment_date}</span>
+                    <span className="text-[10px] px-1 py-0.5 rounded bg-zinc-100 text-zinc-700 shrink-0">{p.payment_method}</span>
+                    <span className="font-mono font-semibold text-zinc-900 shrink-0">{yen(Number(p.amount))}</span>
+                    {p.memo && <span className="text-zinc-500 truncate ml-1 italic">「{p.memo}」</span>}
+                  </li>
                 ))}
-              </dl>
+              </ul>
             )}
-            <div className="border-t border-zinc-100 pt-2 mt-2 text-xs flex justify-between font-semibold">
-              <span className="text-zinc-700">非課税諸費用計</span>
-              <span className="font-mono">{yen(nontaxableFees)}</span>
-            </div>
-          </section>
-
-          {/* 車両整備明細 */}
-          <section className="bg-white border border-zinc-200 rounded-lg p-4">
-            <h2 className="text-xs font-semibold text-zinc-500 uppercase mb-2">車両整備明細</h2>
-            <dl className="space-y-1 text-xs">
-              <Row label="整備費用計" value={yen(linesTotal)} />
-              <Row label="課税諸費用計" value={yen(taxableFees)} />
-              {isTaxExternal && (
-                <Row label={`消費税（外税${taxRate}%）`} value={yen(consumptionTax)} />
-              )}
-              <Row label="非課税諸費用計" value={yen(nontaxableFees)} />
-            </dl>
-            <div className="border-t-2 border-zinc-200 pt-2 mt-2 text-sm flex justify-between font-bold">
-              <span>費用計</span>
-              <span className="font-mono text-blue-700">{yen(grandTotal)}</span>
-            </div>
-          </section>
-
-          {/* 粗利益 */}
-          <section className="bg-white border border-zinc-200 rounded-lg p-4">
-            <h2 className="text-xs font-semibold text-zinc-500 uppercase mb-2">粗利益</h2>
-            <dl className="space-y-1 text-xs">
-              <Row label="税別価格" value={yen(linesTotal)} />
-              <Row label="作業原価計（税別）" value={yen(laborCost)} muted />
-              <Row label="部品原価計（税別）" value={yen(partsCost)} muted />
-              <Row label="課税諸費用原価計" value={yen(taxableFeesCost)} muted />
-              <Row label="差引粗利益（税別）" value={yen(grossProfit)} />
-            </dl>
-            <div className="border-t-2 border-zinc-200 pt-2 mt-2 text-sm flex justify-between font-bold">
-              <span>粗利益</span>
-              <span className="font-mono text-green-700">{yen(netGrossProfit)}</span>
-            </div>
+            {payments.length > 0 && (
+              <div className="border-t-2 border-zinc-200 pt-2 mt-3 text-xs">
+                <div className="flex justify-between"><span>入金合計</span><span className="font-mono font-semibold">{yen(paidSum)}</span></div>
+                <div className="flex justify-between mt-1"><span>残額</span><span className={`font-mono font-bold ${balance > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>{yen(balance)}</span></div>
+              </div>
+            )}
           </section>
         </div>
-      </div>
 
-      {/* ── 入金・預かり金 ──────────────────────── */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">入金・預かり金</h2>
-          <Link href={editHref('payments')} className="text-xs text-blue-600 hover:underline">✏️ 入金を編集</Link>
-        </div>
-        {payments.length === 0 ? (
-          <p className="text-sm text-zinc-400 py-4 text-center">入金記録はまだありません</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-zinc-50 border-y border-zinc-200">
-                <tr>
-                  <th className="px-2 py-1 text-left font-medium text-zinc-600 w-8">#</th>
-                  <th className="px-2 py-1 text-left font-medium text-zinc-600 w-24">入金日</th>
-                  <th className="px-2 py-1 text-left font-medium text-zinc-600 w-24">支払方法</th>
-                  <th className="px-2 py-1 text-right font-medium text-zinc-600 w-24">金額</th>
-                  <th className="px-2 py-1 text-left font-medium text-zinc-600">メモ</th>
-                  <th className="px-2 py-1 text-left font-medium text-zinc-600 w-32">担当者</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {payments.map((p, i) => {
-                  const owner = users.find((u) => u.id === p.owner_id)?.name
-                  return (
-                    <tr key={p.id}>
-                      <td className="px-2 py-1.5 text-zinc-400 font-mono">{i + 1}</td>
-                      <td className="px-2 py-1.5 text-zinc-700">{p.payment_date}</td>
-                      <td className="px-2 py-1.5 text-zinc-700">{p.payment_method}</td>
-                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-zinc-900">{yen(Number(p.amount))}</td>
-                      <td className="px-2 py-1.5 text-zinc-500 text-xs truncate">{p.memo ?? ''}</td>
-                      <td className="px-2 py-1.5 text-zinc-600">{owner ?? '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        {/* 帳票印刷（スタブ） */}
+        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.document} 帳票印刷</h2>
+            <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">次フェーズで実装</span>
           </div>
-        )}
-        <div className="border-t-2 border-zinc-200 pt-2 mt-3 grid grid-cols-2 gap-4 text-sm">
-          <div className="flex justify-between">
-            <span className="text-zinc-700">入金額計</span>
-            <span className="font-mono font-semibold">{yen(paidSum)}</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {[
+              '概算見積書', '見積書', '作業指示書', '納品書',
+              '請求書', '次回整備提案書', '入庫概要シート', '領収証',
+              '預かり証', '検査諸費用計算書', 'はがき宛名（車検案内）', '申請書類',
+            ].map((label) => (
+              <button
+                key={label}
+                type="button"
+                disabled
+                className="px-3 py-2 text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-md cursor-not-allowed hover:bg-zinc-100"
+                title="まだ実装されていません"
+              >
+                {AB_ICONS.document} {label}
+              </button>
+            ))}
           </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-700">入金不足額</span>
-            <span className={`font-mono font-bold ${balance > 0 ? 'text-red-600' : 'text-green-700'}`}>{yen(balance)}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 帳票印刷（スタブ）──────────────── */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">帳票印刷</h2>
-          <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">次フェーズで実装予定</span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          {[
-            '📄 概算見積書',
-            '📄 見積書',
-            '📄 作業指示書',
-            '📄 納品書',
-            '📄 請求書',
-            '📄 次回整備提案書',
-            '📄 入庫概要シート',
-            '📄 領収証',
-            '📄 預かり証',
-            '📄 検査諸費用計算書',
-            '📄 はがき宛名（車検案内）',
-            '📄 申請書類',
-          ].map((label) => (
-            <button
-              key={label}
-              type="button"
-              disabled
-              className="px-3 py-2 text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-md cursor-not-allowed"
-              title="まだ実装されていません"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </section>
+        </section>
+      </main>
     </div>
   )
 }
 
-// ───────────────────────────────────────────────
-// 小さなプレゼンテーション用ヘルパ（コンポーネント外で declare）
-// ───────────────────────────────────────────────
+// ─── Presentation helpers ─────────────────────────────────
 function Item({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
@@ -470,11 +424,20 @@ function Memo({ label, value }: { label: string; value: string | null | undefine
   )
 }
 
-function Row({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
+function KV({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex justify-between gap-2">
+      <dt className="text-zinc-500 shrink-0">{label}</dt>
+      <dd className="text-zinc-800 text-right truncate">{value || '—'}</dd>
+    </div>
+  )
+}
+
+function Row({ label, value, valueClass = 'text-zinc-700' }: { label: string; value: string; valueClass?: string }) {
   return (
     <div className="flex justify-between">
-      <dt className={muted ? 'text-zinc-500' : 'text-zinc-700'}>{label}</dt>
-      <dd className={`font-mono ${muted ? 'text-zinc-500' : 'text-zinc-900'}`}>{value}</dd>
+      <dt className="text-zinc-600">{label}</dt>
+      <dd className={`font-mono ${valueClass}`}>{value}</dd>
     </div>
   )
 }

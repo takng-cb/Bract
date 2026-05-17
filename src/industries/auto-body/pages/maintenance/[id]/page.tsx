@@ -25,13 +25,14 @@ import MaintenanceLineItemsEditor from '@/industries/auto-body/components/Mainte
 import MaintenanceFeesEditor from '@/industries/auto-body/components/MaintenanceFeesEditor'
 import MaintenancePaymentsEditor from '@/industries/auto-body/components/MaintenancePaymentsEditor'
 import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFullView'
+import { STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 
 const STATUS_STAGES: StageConfig[] = [
-  { value: '予約',     label: '予約',     activeColor: '#71717a', pastColor: '#d4d4d8' },
-  { value: '受付',     label: '受付',     activeColor: '#2563eb', pastColor: '#93c5fd' },
-  { value: '作業中',   label: '作業中',   activeColor: '#d97706', pastColor: '#fcd34d' },
-  { value: '納車待ち', label: '納車待ち', activeColor: '#ea580c', pastColor: '#fdba74' },
-  { value: '完了',     label: '完了 ✓',   activeColor: '#16a34a', pastColor: '#86efac' },
+  { value: '予約',     label: '予約',     activeColor: STATUS_PALETTE['予約'].activeColor,    pastColor: STATUS_PALETTE['予約'].pastColor },
+  { value: '受付',     label: '受付',     activeColor: STATUS_PALETTE['受付'].activeColor,    pastColor: STATUS_PALETTE['受付'].pastColor },
+  { value: '作業中',   label: '作業中',   activeColor: STATUS_PALETTE['作業中'].activeColor,  pastColor: STATUS_PALETTE['作業中'].pastColor },
+  { value: '納車待ち', label: '納車待ち', activeColor: STATUS_PALETTE['納車待ち'].activeColor,pastColor: STATUS_PALETTE['納車待ち'].pastColor },
+  { value: '完了',     label: '完了 ✓',   activeColor: STATUS_PALETTE['完了'].activeColor,    pastColor: STATUS_PALETTE['完了'].pastColor },
 ]
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -390,7 +391,7 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/maintenance/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">✏️ 編集</Link>
+              <Link href={`/maintenance/${id}/edit`} className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 shadow-sm">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この整備を削除しますか？関連する行アイテム・諸費用・入金もすべて削除されます。" />
             </div>
           </AuthGuard>
