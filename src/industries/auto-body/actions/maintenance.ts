@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { maintenance_records } from '@/lib/schema'
+import { maintenance_records, activities, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { requireEditor } from '@/lib/auth'
 import { redirect } from 'next/navigation'
@@ -117,10 +117,57 @@ export async function deleteMaintenance(id: string) {
   redirect('/maintenance')
 }
 
+// ─── ステータス遷移ごとに自動で活動を作るマッピング ──────────
+const AUTO_ACTIVITY_BY_STATUS: Record<string, { type: string; subject: string; body: string } | null> = {
+  '予約':       null,  // 予約は手動入力時点で完結している想定（活動を作らない）
+  '受付':       { type: 'meeting', subject: '入庫・受付',         body: '受付完了。整備内容を確認し作業を開始予定。' },
+  '作業中':     { type: 'note',    subject: '作業開始',           body: '整備作業に着手。' },
+  '納車待ち':   { type: 'note',    subject: '作業完了 → 納車準備', body: '全工程完了、お客様への納車連絡待ち。' },
+  '完了':       { type: 'meeting', subject: '納車・整備完了',      body: 'お客様への納車完了。' },
+  'キャンセル': { type: 'note',    subject: 'キャンセル受付',      body: 'お客様都合または店舗都合により整備をキャンセル。' },
+}
+
 export async function updateMaintenanceStatus(id: string, status: string) {
   await requireEditor()
+
+  // 旧ステータスを取得して、変更があれば活動を自動生成
+  const before = await db.select({
+    status:     maintenance_records.status,
+    account_id: maintenance_records.account_id,
+    contact_id: maintenance_records.contact_id,
+    owner_id:   maintenance_records.owner_id,
+  })
+    .from(maintenance_records).where(eq(maintenance_records.id, id))
+    .then((r) => r[0] ?? null)
+
   await db.update(maintenance_records)
     .set({ status, updated_at: new Date() })
     .where(eq(maintenance_records.id, id))
+
+  // 変更があれば対応する活動を自動 INSERT
+  if (before && before.status !== status) {
+    const tmpl = AUTO_ACTIVITY_BY_STATUS[status]
+    if (tmpl) {
+      const [a] = await db.insert(activities).values({
+        type:     tmpl.type,
+        subject:  tmpl.subject,
+        body:     tmpl.body,
+        owner_id: before.owner_id,
+      }).returning({ id: activities.id })
+
+      // junction: maintenance / account / contact に紐付け
+      const relations: Array<{ activity_id: string; related_object_api: string; related_record_id: string }> = [
+        { activity_id: a.id, related_object_api: 'maintenance', related_record_id: id },
+      ]
+      if (before.account_id) {
+        relations.push({ activity_id: a.id, related_object_api: 'account', related_record_id: before.account_id })
+      }
+      if (before.contact_id) {
+        relations.push({ activity_id: a.id, related_object_api: 'contact', related_record_id: before.contact_id })
+      }
+      await db.insert(activity_related_records).values(relations)
+    }
+  }
+
   revalidatePath(`/maintenance/${id}`)
 }
