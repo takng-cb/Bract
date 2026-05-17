@@ -24,6 +24,7 @@ import { canEdit } from '@/lib/auth'
 import MaintenanceLineItemsEditor from '@/industries/auto-body/components/MaintenanceLineItemsEditor'
 import MaintenanceFeesEditor from '@/industries/auto-body/components/MaintenanceFeesEditor'
 import MaintenancePaymentsEditor from '@/industries/auto-body/components/MaintenancePaymentsEditor'
+import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFullView'
 
 const STATUS_STAGES: StageConfig[] = [
   { value: '予約',     label: '予約',     activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -359,9 +360,15 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     </div>
   )
 
+  // ── 全体ビュー（CarRide スタイル 1 画面伝票）─────────────────────
+  const fullViewContent = (
+    <MaintenanceFullView maintenanceId={id} users={allUsers} />
+  )
+
   // ── メインタブ ──────────────────────────────────────────────────
   const tabsConfig: TabDef[] = [
-    { id: 'overview', label: '概要', content: overviewContent },
+    { id: 'overview',  label: '概要', content: overviewContent },
+    { id: 'full',      label: '全体', content: fullViewContent },
   ]
   tabsConfig.push({
     id: 'interactions',
