@@ -475,6 +475,26 @@ export const maintenance_template_fees = pgTable('maintenance_template_fees', {
 ])
 
 // ----------------------------------------------------------------
+// maintenance_damage_pins（損傷箇所マップ）
+// 車両俯瞰図 / 4 面図にクリックでピン打ちした損傷箇所の記録。
+// 板金特化機能として CarRide には無いユニーク要素。
+// ----------------------------------------------------------------
+export const maintenance_damage_pins = pgTable('maintenance_damage_pins', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  maintenance_id: uuid('maintenance_id').notNull().references(() => maintenance_records.id, { onDelete: 'cascade' }),
+  view:           text('view').notNull(),       // 'top' | 'front' | 'back' | 'left' | 'right'
+  x_pct:          numeric('x_pct').notNull(),   // 図面内の x 座標 (0-100, %)
+  y_pct:          numeric('y_pct').notNull(),   // 図面内の y 座標 (0-100, %)
+  category:       text('category').notNull(),   // '凹み' | '擦り傷' | '塗装剥がれ' | '破損' | 'サビ' | 'その他'
+  severity:       text('severity').notNull().default('中'),  // '軽' | '中' | '大'
+  note:           text('note'),
+  sort_order:     integer('sort_order').notNull().default(0),
+  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('maintenance_damage_idx').on(t.maintenance_id, t.view, t.sort_order),
+])
+
+// ----------------------------------------------------------------
 // tags（タグマスタ）
 // ----------------------------------------------------------------
 export const tags = pgTable('tags', {

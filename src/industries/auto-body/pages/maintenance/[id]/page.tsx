@@ -25,6 +25,7 @@ import MaintenanceLineItemsEditor from '@/industries/auto-body/components/Mainte
 import MaintenanceFeesEditor from '@/industries/auto-body/components/MaintenanceFeesEditor'
 import MaintenancePaymentsEditor from '@/industries/auto-body/components/MaintenancePaymentsEditor'
 import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFullView'
+import MaintenanceDamageMap from '@/industries/auto-body/components/MaintenanceDamageMap'
 import { STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 
 const STATUS_STAGES: StageConfig[] = [
@@ -251,12 +252,17 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     />
   )
 
+  const damageMapContent = (
+    <MaintenanceDamageMap maintenanceId={id} canEdit={editable} />
+  )
+
   const overviewSubTabs: TabDef[] = [
-    { id: 'basic',     label: '基本情報', content: basicInfoContent },
-    { id: 'lines',     label: '行アイテム', content: linesContent },
-    { id: 'fees',      label: '諸費用',     content: feesContent },
-    { id: 'payments',  label: '入金',       content: paymentsContent },
-    { id: 'documents', label: '帳票',       content: <Placeholder title="帳票" /> },
+    { id: 'basic',     label: '基本情報',    content: basicInfoContent },
+    { id: 'lines',     label: '行アイテム',  content: linesContent },
+    { id: 'fees',      label: '諸費用',      content: feesContent },
+    { id: 'payments',  label: '入金',        content: paymentsContent },
+    { id: 'damage',    label: '損傷マップ',  content: damageMapContent },
+    { id: 'documents', label: '帳票',        content: <Placeholder title="帳票" /> },
   ]
 
   const overviewContent = (

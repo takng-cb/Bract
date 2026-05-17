@@ -14,6 +14,7 @@ import { db } from '@/lib/db'
 import {
   maintenance_records, customer_vehicles, accounts, contacts,
   maintenance_line_items, maintenance_fees, maintenance_payments,
+  maintenance_damage_pins,
 } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
@@ -34,7 +35,7 @@ function yen(n: number | null | undefined): string {
 }
 
 export default async function MaintenanceFullView({ maintenanceId, users }: Props) {
-  const [mRow, lines, fees, payments] = await Promise.all([
+  const [mRow, lines, fees, payments, damagePins] = await Promise.all([
     db.select({
       m:       maintenance_records,
       vehicle: customer_vehicles,
@@ -56,6 +57,9 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
     db.select().from(maintenance_payments)
       .where(eq(maintenance_payments.maintenance_id, maintenanceId))
       .orderBy(asc(maintenance_payments.payment_date)),
+    db.select().from(maintenance_damage_pins)
+      .where(eq(maintenance_damage_pins.maintenance_id, maintenanceId))
+      .orderBy(asc(maintenance_damage_pins.view), asc(maintenance_damage_pins.sort_order)),
   ])
 
   if (!mRow) return null
@@ -216,6 +220,36 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
               <Item label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/') || '—'} />
             </dl>
             {v.memo && <p className="text-xs text-zinc-500 mt-3 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {v.memo}</p>}
+          </section>
+        )}
+
+        {/* 損傷マップ サマリー */}
+        {damagePins.length > 0 && (
+          <section className="bg-white border border-zinc-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">📍 損傷箇所（{damagePins.length} 件）</h2>
+              <Link href={editHref('damage')} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">図面で確認 →</Link>
+            </div>
+            <ul className="divide-y divide-zinc-100 text-xs">
+              {damagePins.map((p, i) => {
+                const sevColor =
+                  p.severity === '大' ? 'text-rose-700 bg-rose-50 border-rose-200' :
+                  p.severity === '中' ? 'text-orange-700 bg-orange-50 border-orange-200' :
+                                        'text-amber-700 bg-amber-50 border-amber-200'
+                const viewLabel: Record<string, string> = {
+                  top: '俯瞰', front: '前面', back: '後面', left: '左側面', right: '右側面',
+                }
+                return (
+                  <li key={p.id} className="py-1.5 flex items-center gap-2">
+                    <span className="text-zinc-400 font-mono w-6 shrink-0">#{i + 1}</span>
+                    <span className="text-[10px] px-1 py-0.5 rounded bg-zinc-100 text-zinc-700 shrink-0">{viewLabel[p.view] ?? p.view}</span>
+                    <span className="text-zinc-800 shrink-0">{p.category}</span>
+                    <span className={`text-[10px] px-1 py-0.5 rounded border ${sevColor} shrink-0`}>{p.severity}</span>
+                    {p.note && <span className="text-zinc-500 truncate italic">「{p.note}」</span>}
+                  </li>
+                )
+              })}
+            </ul>
           </section>
         )}
 
