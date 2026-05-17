@@ -9,9 +9,10 @@
  * 設計:
  *   - サーバー側で **全タブの content を一度にレンダー** して props で渡す
  *   - クライアント側で active タブだけ表示、他は CSS hidden
- *   - タブ切替時に window.history.replaceState で URL に `?tab=<id>` を反映
- *     （Next.js の router.push と違ってサーバー再フェッチが起きないので瞬時）
- *   - 直接 URL を開いた場合は初期 active タブをクエリから読む
+ *   - タブ切替（ヘッダーボタンクリック）時は window.history.replaceState
+ *     で URL に `?tab=<id>` を反映（瞬時）
+ *   - 別ページからの遷移（<Link> など）で URL が変わった場合も追随する
+ *     ように、useSearchParams で URL クエリを購読する
  *
  * 親コンポーネント例:
  *   <RecordTabs defaultTab="overview" tabs={[
@@ -23,7 +24,8 @@
  * tab が空 (badge=0 など) の場合は親側で配列から除外する想定。本コンポーネントは
  * 受け取った tabs を素直に表示するだけ。
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 export type TabDef = {
   id:       string
@@ -40,24 +42,28 @@ type Props = {
 }
 
 export default function RecordTabs({ defaultTab, tabs, paramName = 'tab' }: Props) {
-  // 初期 active タブ: URL クエリ > defaultTab
+  const searchParams = useSearchParams()
+  const urlTab = searchParams?.get(paramName) ?? null
+
+  // 初期 active: URL クエリ > defaultTab
   const [active, setActive] = useState<string>(() => {
-    if (typeof window === 'undefined') return defaultTab
-    const params = new URLSearchParams(window.location.search)
-    const t = params.get(paramName)
-    return tabs.find((x) => x.id === t)?.id ?? defaultTab
+    if (urlTab) {
+      const found = tabs.find((x) => x.id === urlTab)
+      if (found) return found.id
+    }
+    return defaultTab
   })
 
-  // クライアントマウント後に URL を読み直して同期（hydration ズレ対策）
-  const isMountedRef = useRef(false)
+  // URL クエリが変わったら追随する（<Link> 経由の soft navigation も拾える）
   useEffect(() => {
-    if (isMountedRef.current) return
-    isMountedRef.current = true
-    const params = new URLSearchParams(window.location.search)
-    const t = params.get(paramName)
-    const found = tabs.find((x) => x.id === t)?.id
-    if (found && found !== active) setActive(found)
-  }, [active, paramName, tabs])
+    if (urlTab) {
+      const found = tabs.find((x) => x.id === urlTab)
+      if (found && found.id !== active) setActive(found.id)
+    }
+    // urlTab が null（クエリ無し）の場合は明示的に defaultTab に戻さず、
+    // 現在の active を維持する（リロードしないと初期化されない挙動）
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTab])
 
   function handleClick(id: string) {
     if (id === active) return
