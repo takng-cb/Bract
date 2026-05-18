@@ -421,12 +421,12 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
               📍 損傷箇所（{damagePins.length} 件）
             </h2>
             <SectionEditModal triggerLabel="✏️ 図面で編集" title="損傷マップを編集">
-              <MaintenanceDamageMap maintenanceId={maintenanceId} canEdit={editable} />
+              <MaintenanceDamageMap maintenanceId={maintenanceId} canEdit={editable} bodyShape={v?.body_shape} />
             </SectionEditModal>
           </div>
 
           {/* 5 ビュー SVG プレビュー（常に表示） */}
-          <MaintenanceDamageMapPreview pins={damagePins} />
+          <MaintenanceDamageMapPreview pins={damagePins} bodyShape={v?.body_shape} />
 
           {/* ピン一覧（あるときだけ） */}
           {damagePins.length === 0 ? (

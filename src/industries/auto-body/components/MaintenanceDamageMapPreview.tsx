@@ -26,9 +26,11 @@ type Pin = {
 
 type Props = {
   pins: Pin[]
+  /** 車両の body_shape を渡すと SVG シルエットが切り替わる */
+  bodyShape?: string | null
 }
 
-export default function MaintenanceDamageMapPreview({ pins }: Props) {
+export default function MaintenanceDamageMapPreview({ pins, bodyShape }: Props) {
   // 全ピン通し連番（拡大表示と一致させる）
   const indexMap = new Map<string, number>()
   pins.forEach((p, i) => indexMap.set(p.id, i + 1))
@@ -71,7 +73,7 @@ export default function MaintenanceDamageMapPreview({ pins }: Props) {
                 style={{ aspectRatio: '2/1' }}
                 aria-label={`車両図面 ${DAMAGE_VIEW_LABELS[vk]}`}
               >
-                <CarSvg view={vk} />
+                <CarSvg view={vk} shape={bodyShape ?? undefined} />
                 {viewPins.map((p) => {
                   const x = Number(p.x_pct)
                   const y = Number(p.y_pct)
@@ -95,6 +97,7 @@ export default function MaintenanceDamageMapPreview({ pins }: Props) {
       {zoomView && (
         <ZoomModal
           view={zoomView}
+          bodyShape={bodyShape}
           pins={pins.filter((p) => p.view === zoomView)}
           indexMap={indexMap}
           onClose={() => setZoomView(null)}
@@ -106,12 +109,13 @@ export default function MaintenanceDamageMapPreview({ pins }: Props) {
 
 // ─── 拡大モーダル（読み取り専用） ─────────────────────────
 function ZoomModal({
-  view, pins, indexMap, onClose,
+  view, bodyShape, pins, indexMap, onClose,
 }: {
-  view:     DamageViewKey
-  pins:     Pin[]
-  indexMap: Map<string, number>
-  onClose:  () => void
+  view:      DamageViewKey
+  bodyShape?: string | null
+  pins:      Pin[]
+  indexMap:  Map<string, number>
+  onClose:   () => void
 }) {
   return (
     <div
@@ -154,7 +158,7 @@ function ZoomModal({
                 style={{ aspectRatio: '2/1' }}
                 aria-label={`車両図面 ${DAMAGE_VIEW_LABELS[view]} 拡大`}
               >
-                <CarSvg view={view} />
+                <CarSvg view={view} shape={bodyShape ?? undefined} />
                 {pins.map((p) => {
                   const x = Number(p.x_pct)
                   const y = Number(p.y_pct)

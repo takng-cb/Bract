@@ -12,6 +12,7 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import SearchableSelect from '@/components/SearchableSelect'
+import { VEHICLE_BODY_SHAPES } from '@/industries/auto-body/lib/bodyShapes'
 
 type AccountOption = { id: string; name: string }
 type ContactOption = { id: string; full_name: string; account_id: string | null }
@@ -231,8 +232,16 @@ export default function CustomerVehicleForm({
           </div>
           <div>
             <label className="block text-xs text-zinc-500 mb-1">車体の形状</label>
-            <input name="body_shape" defaultValue={defaultValues.body_shape ?? ''}
-              className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <select
+              name="body_shape"
+              defaultValue={defaultValues.body_shape ?? ''}
+              className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">—</option>
+              {VEHICLE_BODY_SHAPES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
         </div>
 

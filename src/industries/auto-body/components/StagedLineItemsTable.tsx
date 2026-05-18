@@ -11,7 +11,7 @@
  *     削除予定 = 赤い取り消し線（解除可能）
  *     新規行 = オレンジ縁
  */
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSectionModal } from './SectionEditModal'
 import ApplyTemplateButton from './ApplyTemplateButton'
@@ -159,6 +159,18 @@ export default function StagedLineItemsTable({
   const router = useRouter()
   const initial = useMemo(() => initialItems.map(toStaged), [initialItems])
   const [rows, setRows] = useState<StagedRow[]>(initial)
+
+  // initialItems が変わった（テンプレ適用などで親が re-fetch した）とき、
+  // ローカル rows にまだ無い DB 行だけマージで追加する。
+  // ユーザーの未保存ローカル編集 (edited / new / deleted) は維持する。
+  useEffect(() => {
+    setRows((current) => {
+      const knownDbIds = new Set(current.map((r) => r._dbId).filter((id): id is string => !!id))
+      const newcomers  = initial.filter((i) => i._dbId && !knownDbIds.has(i._dbId))
+      if (newcomers.length === 0) return current
+      return [...current, ...newcomers]
+    })
+  }, [initial])
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 

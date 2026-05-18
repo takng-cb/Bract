@@ -17,6 +17,8 @@ type Pin = {
 type Props = {
   pins: Pin[]
   canEdit: boolean
+  /** 車両の body_shape を渡すと SVG シルエットが切り替わる */
+  bodyShape?: string | null
   createAction: (data: { view: string; x_pct: number; y_pct: number; category: string; severity: string; note: string | null }) => Promise<void>
   updateAction: (pinId: string, data: { category: string; severity: string; note: string | null }) => Promise<void>
   deleteAction: (pinId: string) => Promise<void>
@@ -33,7 +35,7 @@ const VIEWS: { key: string; label: string }[] = [
 const CATEGORIES = ['凹み', '擦り傷', '塗装剥がれ', '破損', 'サビ', 'その他']
 const SEVERITIES = ['軽', '中', '大']
 
-export default function DamageMapEditor({ pins, canEdit, createAction, updateAction, deleteAction }: Props) {
+export default function DamageMapEditor({ pins, canEdit, bodyShape, createAction, updateAction, deleteAction }: Props) {
   const [activeView, setActiveView] = useState<string>('top')
   const [pendingPin, setPendingPin] = useState<{ view: string; x: number; y: number } | null>(null)
   const [editingPin, setEditingPin] = useState<Pin | null>(null)
@@ -94,7 +96,7 @@ export default function DamageMapEditor({ pins, canEdit, createAction, updateAct
             style={{ aspectRatio: '2/1' }}
           >
             {/* 車両図面 (シンプル線画) */}
-            <CarSvg view={activeView} />
+            <CarSvg view={activeView} shape={bodyShape ?? undefined} />
 
             {/* ピン描画 */}
             {viewPins.map((p) => {

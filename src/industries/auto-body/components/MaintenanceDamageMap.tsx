@@ -12,9 +12,11 @@ import type { DamageView, DamageCategory, DamageSeverity } from '@/industries/au
 type Props = {
   maintenanceId: string
   canEdit:       boolean
+  /** 車両の body_shape を渡すと SVG シルエットが切り替わる */
+  bodyShape?:    string | null
 }
 
-export default async function MaintenanceDamageMap({ maintenanceId, canEdit }: Props) {
+export default async function MaintenanceDamageMap({ maintenanceId, canEdit, bodyShape }: Props) {
   const pins = await db.select().from(maintenance_damage_pins)
     .where(eq(maintenance_damage_pins.maintenance_id, maintenanceId))
     .orderBy(asc(maintenance_damage_pins.view), asc(maintenance_damage_pins.sort_order))
@@ -52,6 +54,7 @@ export default async function MaintenanceDamageMap({ maintenanceId, canEdit }: P
       <DamageMapEditor
         pins={pins}
         canEdit={canEdit}
+        bodyShape={bodyShape}
         createAction={createAction}
         updateAction={updateAction}
         deleteAction={deleteAction}
