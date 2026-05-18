@@ -179,22 +179,22 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         <StageBar stages={STATUS_STAGES} currentStage={m.status} updateAction={changeStatus} />
       </div>
 
-      {/* 帳票ボタン群（矢羽の直下、複数行に折り返し） */}
+      {/* 帳票ボタン群（矢羽の直下、均等な grid 配置） */}
       <div className="bg-white border border-zinc-200 rounded-lg px-3 py-2">
-        <div className="flex items-start gap-2 flex-wrap">
-          <Link
-            href={`/maintenance/${maintenanceId}/documents`}
-            className="text-[10px] uppercase tracking-wider text-zinc-500 hover:text-blue-600 shrink-0 mr-1 self-center py-1"
-            title="全帳票一覧"
-          >
-            {AB_ICONS.document} 帳票
-          </Link>
+        <Link
+          href={`/maintenance/${maintenanceId}/documents`}
+          className="text-[10px] uppercase tracking-wider text-zinc-500 hover:text-blue-600 inline-block mb-1.5"
+          title="全帳票一覧"
+        >
+          {AB_ICONS.document} 帳票（クリックで別タブ印刷プレビュー）
+        </Link>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
           {DOCUMENT_TYPES.map((d) => (
             <Link
               key={d.type}
               href={`/maintenance/${maintenanceId}/documents/${d.type}`}
               target="_blank"
-              className="px-2.5 py-1 text-[11px] text-zinc-700 bg-zinc-50 border border-zinc-200 rounded shrink-0 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 whitespace-nowrap transition-colors"
+              className="px-2 py-1.5 text-[11px] text-zinc-700 bg-zinc-50 border border-zinc-200 rounded text-center hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors truncate"
               title={`${d.label} を別タブで印刷プレビュー`}
             >
               {d.label}
