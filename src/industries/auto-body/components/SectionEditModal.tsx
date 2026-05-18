@@ -27,7 +27,8 @@ export default function SectionEditModal({
   triggerLabel,
   title,
   children,
-  maxWidthClass = 'max-w-5xl',
+  // ほぼ全画面：左右 16px の余白だけ残してビューポート 100% に近い幅・高さ
+  maxWidthClass = 'max-w-[calc(100vw-2rem)]',
 }: Props) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
@@ -62,11 +63,11 @@ export default function SectionEditModal({
       {open && (
         <ModalContext.Provider value={{ close }}>
           <div
-            className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/40 backdrop-blur-[2px] p-2 sm:p-4 overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/40 backdrop-blur-[2px] p-2 sm:p-4 overflow-y-auto"
             onClick={close}
           >
             <div
-              className={`bg-white rounded-lg shadow-xl w-full ${maxWidthClass} my-4 sm:my-0 max-h-[90vh] flex flex-col`}
+              className={`bg-white rounded-lg shadow-xl w-full ${maxWidthClass} h-[calc(100vh-2rem)] sm:h-[calc(100vh-2rem)] flex flex-col`}
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"

@@ -349,7 +349,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           <section className="bg-white border border-zinc-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.fee} 諸費用</h2>
-              <SectionEditModal triggerLabel="✏️ 編集" title="諸費用を編集" maxWidthClass="max-w-3xl">
+              <SectionEditModal triggerLabel="✏️ 編集" title="諸費用を編集">
                 <MaintenanceFeesEditor maintenanceId={maintenanceId} canEdit={editable} />
               </SectionEditModal>
             </div>
@@ -404,7 +404,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           <section className="bg-white border border-zinc-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.payment} 入金・預かり金</h2>
-              <SectionEditModal triggerLabel="✏️ 編集" title="入金を編集" maxWidthClass="max-w-3xl">
+              <SectionEditModal triggerLabel="✏️ 編集" title="入金を編集">
                 <MaintenancePaymentsEditor maintenanceId={maintenanceId} canEdit={editable} users={users} invoiceTotal={invoiceTotal} />
               </SectionEditModal>
             </div>
