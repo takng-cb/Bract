@@ -122,40 +122,42 @@ function SedanSvg({ view }: { view: string }) {
     case 'front':
       return (
         <>
-          {/* タイヤ */}
-          <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-          <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-          {/* ボディ（やや低めのセダン正面） */}
-          <path d="M 30 78 L 30 60 Q 30 50 42 48 L 158 48 Q 170 50 170 60 L 170 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-          {/* ルーフ／ウィンドウ */}
-          <path d="M 55 48 L 65 32 Q 70 28 80 28 L 120 28 Q 130 28 135 32 L 145 48 Z" fill={BODY} stroke={STROKE} strokeWidth="0.6" />
-          <path d="M 62 47 L 70 35 Q 73 32 80 32 L 120 32 Q 127 32 130 35 L 138 47 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
+          {/* タイヤ（車体下に隠れて下半分だけ覗く） */}
+          <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+          <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+          {/* 下部ボディ（中央寄せ・幅 120） */}
+          <path d="M 42 88 L 42 56 Q 44 48 56 46 L 144 46 Q 156 48 158 56 L 158 88 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          {/* ルーフ */}
+          <path d="M 60 46 L 70 22 Q 74 18 82 18 L 118 18 Q 126 18 130 22 L 140 46 Z" fill={BODY} stroke={STROKE} strokeWidth="0.6" />
+          {/* フロントガラス */}
+          <path d="M 64 45 L 73 26 Q 76 23 82 23 L 118 23 Q 124 23 127 26 L 136 45 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
           {/* ボンネット線 */}
-          <line x1="36" y1="56" x2="164" y2="56" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="44" y1="58" x2="156" y2="58" stroke={STROKE} strokeWidth="0.4" />
           {/* グリル */}
-          <rect x="80" y="62" width="40" height="10" rx="1" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
+          <rect x="84" y="64" width="32" height="10" rx="1" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
           {/* ヘッドライト */}
-          <ellipse cx="50" cy="62" rx="8" ry="4.5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-          <ellipse cx="150" cy="62" rx="8" ry="4.5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-          {/* ナンバープレート */}
-          <rect x="88" y="76" width="24" height="7" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+          <ellipse cx="58" cy="66" rx="9" ry="5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+          <ellipse cx="142" cy="66" rx="9" ry="5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+          {/* ナンバープレート（車体内） */}
+          <rect x="88" y="80" width="24" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
         </>
       )
     case 'back':
       return (
         <>
-          <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-          <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-          <path d="M 30 78 L 30 58 Q 30 50 42 48 L 158 48 Q 170 50 170 58 L 170 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-          <path d="M 60 48 L 65 32 Q 70 28 80 28 L 120 28 Q 130 28 135 32 L 140 48 Z" fill={BODY} stroke={STROKE} strokeWidth="0.6" />
-          <path d="M 65 47 L 70 35 Q 73 32 80 32 L 120 32 Q 127 32 130 35 L 135 47 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
-          {/* リアウィンドウからのトランク段差 */}
-          <line x1="32" y1="58" x2="168" y2="58" stroke={STROKE} strokeWidth="0.4" />
+          <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+          <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+          <path d="M 42 88 L 42 56 Q 44 48 56 46 L 144 46 Q 156 48 158 56 L 158 88 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          <path d="M 64 46 L 70 22 Q 74 18 82 18 L 118 18 Q 126 18 130 22 L 136 46 Z" fill={BODY} stroke={STROKE} strokeWidth="0.6" />
+          {/* リアウィンドウ */}
+          <path d="M 68 45 L 73 26 Q 76 23 82 23 L 118 23 Q 124 23 127 26 L 132 45 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
+          {/* リアトランク段差 */}
+          <line x1="44" y1="60" x2="156" y2="60" stroke={STROKE} strokeWidth="0.4" />
           {/* テールライト */}
-          <rect x="36" y="60" width="20" height="10" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
-          <rect x="144" y="60" width="20" height="10" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
+          <rect x="46" y="62" width="20" height="10" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
+          <rect x="134" y="62" width="20" height="10" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
           {/* ナンバープレート */}
-          <rect x="80" y="68" width="40" height="9" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+          <rect x="80" y="76" width="40" height="8" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
         </>
       )
     case 'left':
@@ -195,35 +197,35 @@ function WagonSvg({ view }: { view: string }) {
     case 'front':
       return (
         <>
-          <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-          <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-          {/* ボディ：高さがある正面 */}
-          <path d="M 30 78 L 30 52 Q 30 42 42 40 L 158 40 Q 170 42 170 52 L 170 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+          <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+          {/* ボディ（中央寄せ・幅 120） */}
+          <path d="M 42 88 L 42 46 Q 44 38 56 36 L 144 36 Q 156 38 158 46 L 158 88 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
           {/* ルーフ：低めの台形（SUV 風） */}
-          <path d="M 48 40 L 56 22 L 144 22 L 152 40 Z" fill={BODY} stroke={STROKE} strokeWidth="0.6" />
-          <path d="M 54 39 L 61 26 L 139 26 L 146 39 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
-          <line x1="32" y1="56" x2="168" y2="56" stroke={STROKE} strokeWidth="0.4" />
-          <rect x="78" y="62" width="44" height="10" rx="1" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
-          <rect x="38" y="58" width="20" height="8" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-          <rect x="142" y="58" width="20" height="8" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-          <rect x="86" y="76" width="28" height="7" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+          <path d="M 56 36 L 64 14 L 136 14 L 144 36 Z" fill={BODY} stroke={STROKE} strokeWidth="0.6" />
+          <path d="M 60 35 L 67 18 L 133 18 L 140 35 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
+          <line x1="44" y1="54" x2="156" y2="54" stroke={STROKE} strokeWidth="0.4" />
+          <rect x="82" y="62" width="36" height="12" rx="1" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
+          <rect x="48" y="58" width="22" height="10" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+          <rect x="130" y="58" width="22" height="10" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+          <rect x="86" y="80" width="28" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
         </>
       )
     case 'back':
       return (
         <>
-          <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-          <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-          <path d="M 30 78 L 30 52 Q 30 42 42 40 L 158 40 Q 170 42 170 52 L 170 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-          <path d="M 48 40 L 56 22 L 144 22 L 152 40 Z" fill={BODY} stroke={STROKE} strokeWidth="0.6" />
+          <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+          <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+          <path d="M 42 88 L 42 46 Q 44 38 56 36 L 144 36 Q 156 38 158 46 L 158 88 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          <path d="M 56 36 L 64 14 L 136 14 L 144 36 Z" fill={BODY} stroke={STROKE} strokeWidth="0.6" />
           {/* リアウィンドウ大 */}
-          <path d="M 50 39 L 56 24 L 144 24 L 150 39 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
-          <line x1="32" y1="56" x2="168" y2="56" stroke={STROKE} strokeWidth="0.4" />
+          <path d="M 58 35 L 64 16 L 136 16 L 142 35 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
+          <line x1="44" y1="54" x2="156" y2="54" stroke={STROKE} strokeWidth="0.4" />
           {/* リフトゲート割れ目 */}
-          <line x1="100" y1="40" x2="100" y2="74" stroke={STROKE} strokeWidth="0.3" />
-          <rect x="36" y="58" width="22" height="14" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
-          <rect x="142" y="58" width="22" height="14" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
-          <rect x="84" y="68" width="32" height="9" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+          <line x1="100" y1="36" x2="100" y2="80" stroke={STROKE} strokeWidth="0.3" />
+          <rect x="46" y="58" width="22" height="16" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
+          <rect x="132" y="58" width="22" height="16" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
+          <rect x="84" y="76" width="32" height="8" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
         </>
       )
     case 'left':
@@ -260,16 +262,16 @@ function OpenSvg({ view }: { view: string }) {
   if (view === 'front') {
     return (
       <>
-        <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        <path d="M 30 78 L 30 56 Q 30 46 42 44 L 158 44 Q 170 46 170 56 L 170 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+        <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        <path d="M 42 88 L 42 52 Q 44 44 56 42 L 144 42 Q 156 44 158 52 L 158 88 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
         {/* ルーフなし: フロントガラスだけ */}
-        <path d="M 65 44 L 70 28 L 130 28 L 135 44 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
-        <line x1="36" y1="56" x2="164" y2="56" stroke={STROKE} strokeWidth="0.4" />
-        <rect x="80" y="62" width="40" height="10" rx="1" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
-        <ellipse cx="50" cy="62" rx="8" ry="4.5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-        <ellipse cx="150" cy="62" rx="8" ry="4.5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-        <rect x="88" y="76" width="24" height="7" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+        <path d="M 70 42 L 76 20 L 124 20 L 130 42 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
+        <line x1="44" y1="58" x2="156" y2="58" stroke={STROKE} strokeWidth="0.4" />
+        <rect x="84" y="64" width="32" height="10" rx="1" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
+        <ellipse cx="58" cy="66" rx="9" ry="5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+        <ellipse cx="142" cy="66" rx="9" ry="5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+        <rect x="88" y="80" width="24" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
       </>
     )
   }
@@ -310,34 +312,35 @@ function PickupSvg({ view }: { view: string }) {
   if (view === 'front') {
     return (
       <>
-        <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        <path d="M 32 78 L 32 36 Q 32 28 42 28 L 158 28 Q 168 28 168 36 L 168 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-        {/* キャブ窓（大型） */}
-        <rect x="48" y="34" width="104" height="22" rx="2" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
-        <line x1="100" y1="34" x2="100" y2="56" stroke={STROKE} strokeWidth="0.4" />
-        <line x1="32" y1="60" x2="168" y2="60" stroke={STROKE} strokeWidth="0.4" />
-        <rect x="80" y="64" width="40" height="10" rx="1" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
-        <rect x="40" y="62" width="16" height="8" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-        <rect x="144" y="62" width="16" height="8" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-        <rect x="88" y="76" width="24" height="7" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+        <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        {/* 縦長のキャブ（トラックは背が高い） */}
+        <path d="M 42 88 L 42 22 Q 44 14 56 12 L 144 12 Q 156 14 158 22 L 158 88 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+        {/* キャブ窓 */}
+        <rect x="54" y="20" width="92" height="32" rx="2" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
+        <line x1="100" y1="20" x2="100" y2="52" stroke={STROKE} strokeWidth="0.4" />
+        <line x1="44" y1="58" x2="156" y2="58" stroke={STROKE} strokeWidth="0.4" />
+        <rect x="82" y="64" width="36" height="12" rx="1" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
+        <rect x="48" y="62" width="20" height="10" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+        <rect x="132" y="62" width="20" height="10" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+        <rect x="88" y="80" width="24" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
       </>
     )
   }
   if (view === 'back') {
     return (
       <>
-        <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        {/* 荷台後面（フラットな板） */}
-        <rect x="28" y="34" width="144" height="44" rx="2" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-        <rect x="34" y="38" width="132" height="32" rx="1" fill="#e2e8f0" stroke={STROKE} strokeWidth="0.4" />
+        <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        {/* 荷台後面（フラットな板・縦長） */}
+        <rect x="42" y="16" width="116" height="72" rx="2" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+        <rect x="48" y="22" width="104" height="50" rx="1" fill="#e2e8f0" stroke={STROKE} strokeWidth="0.4" />
         {/* テールゲート開閉ヒンジ */}
-        <line x1="28" y1="70" x2="172" y2="70" stroke={STROKE} strokeWidth="0.4" />
+        <line x1="42" y1="74" x2="158" y2="74" stroke={STROKE} strokeWidth="0.4" />
         {/* ライト */}
-        <rect x="30" y="62" width="12" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
-        <rect x="158" y="62" width="12" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
-        <rect x="80" y="74" width="40" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+        <rect x="46" y="76" width="14" height="8" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
+        <rect x="140" y="76" width="14" height="8" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
+        <rect x="84" y="78" width="32" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
       </>
     )
   }
@@ -375,21 +378,21 @@ function VanSvg({ view }: { view: string }) {
   if (view === 'back') {
     return (
       <>
-        <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        {/* 箱の後扉 */}
-        <rect x="26" y="20" width="148" height="58" rx="2" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+        <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        {/* 箱の後扉（縦長） */}
+        <rect x="42" y="12" width="116" height="76" rx="2" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
         {/* 観音開きライン */}
-        <line x1="100" y1="20" x2="100" y2="78" stroke={STROKE} strokeWidth="0.6" />
+        <line x1="100" y1="12" x2="100" y2="88" stroke={STROKE} strokeWidth="0.6" />
         {/* ヒンジ */}
-        <rect x="40" y="30" width="3" height="4" fill={STROKE} />
-        <rect x="40" y="60" width="3" height="4" fill={STROKE} />
-        <rect x="157" y="30" width="3" height="4" fill={STROKE} />
-        <rect x="157" y="60" width="3" height="4" fill={STROKE} />
+        <rect x="46" y="22" width="3" height="4" fill={STROKE} />
+        <rect x="46" y="74" width="3" height="4" fill={STROKE} />
+        <rect x="151" y="22" width="3" height="4" fill={STROKE} />
+        <rect x="151" y="74" width="3" height="4" fill={STROKE} />
         {/* ハンドル */}
-        <rect x="94" y="45" width="3" height="8" fill={STROKE} />
-        <rect x="103" y="45" width="3" height="8" fill={STROKE} />
-        <rect x="80" y="80" width="40" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+        <rect x="94" y="48" width="3" height="10" fill={STROKE} />
+        <rect x="103" y="48" width="3" height="10" fill={STROKE} />
+        <rect x="84" y="82" width="32" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
       </>
     )
   }
@@ -420,24 +423,26 @@ function BusSvg({ view }: { view: string }) {
     const isFront = view === 'front'
     return (
       <>
-        <rect x="38" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        <rect x="142" y="76" width="20" height="12" rx="2" fill={TIRE} />
-        <rect x="22" y="20" width="156" height="58" rx="3" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+        {/* タイヤ（車体下に隠す） */}
+        <rect x="48" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        <rect x="132" y="82" width="20" height="14" rx="2" fill={TIRE} />
+        {/* バスの正方形に近い前面 / 後面 */}
+        <rect x="42" y="10" width="116" height="78" rx="3" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
         {/* 大きな前/後窓 */}
-        <rect x="32" y="26" width="136" height="28" rx="2" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
+        <rect x="50" y="18" width="100" height="40" rx="2" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
         {isFront ? (
           <>
-            <rect x="40" y="58" width="20" height="10" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-            <rect x="140" y="58" width="20" height="10" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
-            <rect x="80" y="62" width="40" height="8" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
+            <rect x="48" y="62" width="22" height="10" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+            <rect x="130" y="62" width="22" height="10" rx="1" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.4" />
+            <rect x="78" y="64" width="44" height="8" fill={GRILL} stroke={STROKE} strokeWidth="0.4" />
           </>
         ) : (
           <>
-            <rect x="32" y="58" width="24" height="14" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
-            <rect x="144" y="58" width="24" height="14" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
+            <rect x="48" y="62" width="22" height="14" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
+            <rect x="130" y="62" width="22" height="14" rx="1" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.4" />
           </>
         )}
-        <rect x="84" y="76" width="32" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
+        <rect x="84" y="80" width="32" height="6" fill={PLATE} stroke={STROKE} strokeWidth="0.3" />
       </>
     )
   }
