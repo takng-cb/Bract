@@ -7,13 +7,26 @@ import MaintenanceForm from '@/industries/auto-body/components/MaintenanceForm'
 import { updateMaintenance } from '@/industries/auto-body/actions/maintenance'
 import { requireEditor } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
+import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 
 export default async function EditMaintenancePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
 
-  const [m, accountsList, contactsList, vehiclesList, users] = await Promise.all([
-    db.select().from(maintenance_records).where(eq(maintenance_records.id, id)).then((r) => r[0] ?? null),
+  const [mRow, accountsList, contactsList, vehiclesList, users] = await Promise.all([
+    // breadcrumb 表示名のため account/contact/vehicle も同時取得
+    db.select({
+      m:       maintenance_records,
+      account: { id: accounts.id, name: accounts.name },
+      contact: { id: contacts.id, full_name: contacts.full_name },
+      vehicle: { id: customer_vehicles.id, car_model: customer_vehicles.car_model, car_name: customer_vehicles.car_name },
+    })
+      .from(maintenance_records)
+      .leftJoin(accounts, eq(maintenance_records.account_id, accounts.id))
+      .leftJoin(contacts, eq(maintenance_records.contact_id, contacts.id))
+      .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
+      .where(eq(maintenance_records.id, id))
+      .then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
@@ -28,7 +41,14 @@ export default async function EditMaintenancePage({ params }: { params: Promise<
       .orderBy(asc(customer_vehicles.plate_number)),
     getAllUsers(),
   ])
-  if (!m) notFound()
+  if (!mRow) notFound()
+  const m = mRow.m
+  const breadcrumbName = maintenanceDisplayName(
+    m,
+    mRow.account?.id ? mRow.account : null,
+    mRow.contact?.id ? mRow.contact : null,
+    mRow.vehicle?.id ? mRow.vehicle : null,
+  )
 
   const vehicleOptions = vehiclesList.map((v) => ({
     id:         v.id,
@@ -49,7 +69,7 @@ export default async function EditMaintenancePage({ params }: { params: Promise<
     <div className="p-4 md:p-8 max-w-4xl">
       <Breadcrumbs items={[
         { label: '整備', href: '/maintenance' },
-        { label: m.maintenance_no, href: `/maintenance/${id}` },
+        { label: breadcrumbName, href: `/maintenance/${id}` },
         { label: '編集' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">整備を編集</h1>

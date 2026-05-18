@@ -23,6 +23,7 @@ import {
   maintenance_records, customer_vehicles,
 } from '@/lib/schema'
 import { inArray, eq, and } from 'drizzle-orm'
+import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 
 /**
  * 逆引きサブクエリ: 指定オブジェクト・レコードに関連付けられた activity ID 一覧。
@@ -237,9 +238,33 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
   const maintenanceIds = idsByApi.get('maintenance')
   if (maintenanceIds && maintenanceIds.size > 0) {
     fetches.push(
-      db.select({ id: maintenance_records.id, maintenance_no: maintenance_records.maintenance_no })
-        .from(maintenance_records).where(inArray(maintenance_records.id, [...maintenanceIds]))
-        .then((rows) => { for (const r of rows) setLabel('maintenance', r.id, r.maintenance_no) })
+      // 表示名 = {受付日YYYYMMDD}_{顧客}_{車種}
+      db.select({
+        id:             maintenance_records.id,
+        maintenance_no: maintenance_records.maintenance_no,
+        intake_date:    maintenance_records.intake_date,
+        account:        { id: accounts.id, name: accounts.name },
+        contact:        { id: contacts.id, full_name: contacts.full_name },
+        vehicle:        {
+          id:        customer_vehicles.id,
+          car_name:  customer_vehicles.car_name,
+          car_model: customer_vehicles.car_model,
+        },
+      })
+        .from(maintenance_records)
+        .leftJoin(accounts, eq(maintenance_records.account_id, accounts.id))
+        .leftJoin(contacts, eq(maintenance_records.contact_id, contacts.id))
+        .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
+        .where(inArray(maintenance_records.id, [...maintenanceIds]))
+        .then((rows) => {
+          for (const r of rows) {
+            const acc = r.account?.id ? r.account : null
+            const con = r.contact?.id ? r.contact : null
+            const v   = r.vehicle?.id ? r.vehicle : null
+            const label = maintenanceDisplayName({ intake_date: r.intake_date }, acc, con, v)
+            setLabel('maintenance', r.id, label)
+          }
+        })
     )
   }
   const customerVehicleIds = idsByApi.get('customer-vehicle')

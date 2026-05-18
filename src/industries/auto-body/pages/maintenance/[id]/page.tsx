@@ -19,6 +19,7 @@ import { toggleTaskDone } from '@/app/actions/tasks'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { getAllUsers } from '@/lib/userUtils'
 import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFullView'
+import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -61,6 +62,10 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
   const m = mRow.m
   const vehicle = mRow.vehicle
   const account = mRow.account?.id ? mRow.account : null
+  const contact = mRow.contact?.id ? mRow.contact : null
+
+  // 表示用レコード名: {受付日YYYYMMDD}_{顧客}_{車種}
+  const displayName = maintenanceDisplayName(m, account, contact, vehicle)
 
   const [activityRelMap, taskRelMap, expenseRelMap] = await Promise.all([
     batchResolveRelatedRecords('activity', activitiesList.map((a) => a.id)),
@@ -208,7 +213,7 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
       <RecordHeader
         crumbs={[
           { label: '整備', href: '/maintenance' },
-          { label: m.maintenance_no },
+          { label: displayName },
         ]}
         actions={
           <AuthGuard minRole="editor">
@@ -221,12 +226,16 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
       />
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900 font-mono">{m.maintenance_no}</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 break-all">{displayName}</h1>
         <div className="mt-1.5 flex flex-wrap items-center gap-3 text-sm text-zinc-600">
+          <span className="font-mono text-xs text-zinc-400">整備No: {m.maintenance_no}</span>
           {vehicle && (
-            <Link href={`/customer-vehicles/${vehicle.id}`} className="hover:text-blue-600">
-              🚗 {vehicle.plate_number ?? vehicle.car_model ?? '車両'}
-            </Link>
+            <>
+              <span className="text-zinc-300">·</span>
+              <Link href={`/customer-vehicles/${vehicle.id}`} className="hover:text-blue-600">
+                🚗 {vehicle.plate_number ?? vehicle.car_model ?? '車両'}
+              </Link>
+            </>
           )}
           {account && (
             <>

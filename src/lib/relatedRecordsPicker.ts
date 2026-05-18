@@ -12,10 +12,11 @@
  * UI のオプションとして提供する必要がある。
  */
 import { db } from '@/lib/db'
-import { maintenance_records, customer_vehicles, accounts } from '@/lib/schema'
+import { maintenance_records, customer_vehicles, accounts, contacts } from '@/lib/schema'
 import { desc, asc, eq } from 'drizzle-orm'
 import { activeIndustry } from '@/lib/industry'
 import type { ObjectTypeOption, RecordOption } from '@/components/RelatedRecordsPicker'
+import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 
 export type IndustryPickerData = {
   /** objectTypes に追加する選択肢 */
@@ -39,10 +40,18 @@ export async function getIndustryPickerData(): Promise<IndustryPickerData> {
       maintenance_no: maintenance_records.maintenance_no,
       status:         maintenance_records.status,
       intake_date:    maintenance_records.intake_date,
-      account_name:   accounts.name,
+      account:        { id: accounts.id, name: accounts.name },
+      contact:        { id: contacts.id, full_name: contacts.full_name },
+      vehicle:        {
+        id:        customer_vehicles.id,
+        car_name:  customer_vehicles.car_name,
+        car_model: customer_vehicles.car_model,
+      },
     })
       .from(maintenance_records)
       .leftJoin(accounts, eq(maintenance_records.account_id, accounts.id))
+      .leftJoin(contacts, eq(maintenance_records.contact_id, contacts.id))
+      .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
       .orderBy(desc(maintenance_records.created_at)),
     db.select({
       id:           customer_vehicles.id,
@@ -62,10 +71,16 @@ export async function getIndustryPickerData(): Promise<IndustryPickerData> {
       { api: 'customer-vehicle', label: '顧客車両', icon: '🚙' },
     ],
     industryRecordsByObject: {
-      maintenance: maintList.map((m) => ({
-        id:    m.id,
-        label: `${m.maintenance_no} [${m.status}] ${m.account_name ?? '—'}`,
-      })),
+      maintenance: maintList.map((m) => {
+        const acc  = m.account?.id ? m.account : null
+        const con  = m.contact?.id ? m.contact : null
+        const v    = m.vehicle?.id ? m.vehicle : null
+        const name = maintenanceDisplayName({ intake_date: m.intake_date }, acc, con, v)
+        return {
+          id:    m.id,
+          label: `${name} [${m.status}]`,
+        }
+      }),
       'customer-vehicle': cvList.map((v) => ({
         id:    v.id,
         label: [v.plate_number ?? '—', v.car_model, v.account_name].filter(Boolean).join(' / '),

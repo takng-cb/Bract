@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
-import { customer_vehicles, accounts, maintenance_records } from '@/lib/schema'
+import { customer_vehicles, accounts, contacts, maintenance_records } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
@@ -8,6 +9,7 @@ import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { deleteCustomerVehicle } from '@/industries/auto-body/actions/customerVehicles'
+import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 
 const STATUS_COLOR: Record<string, string> = {
   '予約':     'bg-zinc-100 text-zinc-700',
@@ -20,6 +22,10 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default async function CustomerVehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+
+  // 整備一覧で displayName を組み立てるため、整備に紐付く account/contact を別名で join
+  const mAccount = alias(accounts, 'm_account')
+  const mContact = alias(contacts, 'm_contact')
 
   const [vRow, maintenances] = await Promise.all([
     db.select({
@@ -37,8 +43,12 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       delivery_date:  maintenance_records.delivery_date,
       status:         maintenance_records.status,
       mileage:        maintenance_records.mileage,
+      account:        { id: mAccount.id, name: mAccount.name },
+      contact:        { id: mContact.id, full_name: mContact.full_name },
     })
       .from(maintenance_records)
+      .leftJoin(mAccount, eq(maintenance_records.account_id, mAccount.id))
+      .leftJoin(mContact, eq(maintenance_records.contact_id, mContact.id))
       .where(eq(maintenance_records.customer_vehicle_id, id))
       .orderBy(desc(maintenance_records.intake_date), desc(maintenance_records.created_at)),
   ])
@@ -148,6 +158,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 border-b border-zinc-200">
                 <tr>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">整備名</th>
                   <th className="text-left px-4 py-2 font-medium text-zinc-600">整備No</th>
                   <th className="text-left px-4 py-2 font-medium text-zinc-600">入庫日</th>
                   <th className="text-left px-4 py-2 font-medium text-zinc-600">納車日</th>
@@ -156,23 +167,30 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {maintenances.map((m) => (
-                  <tr key={m.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2 font-mono">
-                      <Link href={`/maintenance/${m.id}`} className="text-blue-600 hover:underline">{m.maintenance_no}</Link>
-                    </td>
-                    <td className="px-4 py-2 text-zinc-700">{m.intake_date ?? '—'}</td>
-                    <td className="px-4 py-2 text-zinc-700">{m.delivery_date ?? '—'}</td>
-                    <td className="px-4 py-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[m.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                        {m.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-right text-zinc-500">
-                      {m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {maintenances.map((m) => {
+                  const acc = m.account?.id ? m.account : null
+                  const con = m.contact?.id ? m.contact : null
+                  // 車両は当ページの v をそのまま流用（同じ車両に紐付くため）
+                  const displayName = maintenanceDisplayName(m, acc, con, { car_model: v.car_model, car_name: v.car_name })
+                  return (
+                    <tr key={m.id} className="hover:bg-zinc-50">
+                      <td className="px-4 py-2">
+                        <Link href={`/maintenance/${m.id}`} className="text-blue-600 hover:underline break-all">{displayName}</Link>
+                      </td>
+                      <td className="px-4 py-2 font-mono text-xs text-zinc-500">{m.maintenance_no}</td>
+                      <td className="px-4 py-2 text-zinc-700">{m.intake_date ?? '—'}</td>
+                      <td className="px-4 py-2 text-zinc-700">{m.delivery_date ?? '—'}</td>
+                      <td className="px-4 py-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[m.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                          {m.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right text-zinc-500">
+                        {m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

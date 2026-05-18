@@ -1,9 +1,10 @@
 import { db } from '@/lib/db'
-import { maintenance_records, customer_vehicles, accounts } from '@/lib/schema'
+import { maintenance_records, customer_vehicles, accounts, contacts } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
+import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 
 function statusClass(status: string): string {
   const p = STATUS_PALETTE[status]
@@ -24,12 +25,15 @@ export default async function MaintenanceListPage() {
         id:           customer_vehicles.id,
         plate_number: customer_vehicles.plate_number,
         car_model:    customer_vehicles.car_model,
+        car_name:     customer_vehicles.car_name,
       },
       account: { id: accounts.id, name: accounts.name },
+      contact: { id: contacts.id, full_name: contacts.full_name },
     })
       .from(maintenance_records)
       .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
       .leftJoin(accounts, eq(maintenance_records.account_id, accounts.id))
+      .leftJoin(contacts, eq(maintenance_records.contact_id, contacts.id))
       .orderBy(desc(maintenance_records.intake_date), desc(maintenance_records.created_at)),
     canEdit(),
   ])
@@ -62,6 +66,7 @@ export default async function MaintenanceListPage() {
             <table className="w-full text-sm">
               <thead className="bg-amber-50 border-b border-amber-200">
                 <tr>
+                  <th className="text-left px-4 py-2 font-medium text-amber-900">整備名</th>
                   <th className="text-left px-4 py-2 font-medium text-amber-900">整備No</th>
                   <th className="text-left px-4 py-2 font-medium text-amber-900">入庫日</th>
                   <th className="text-left px-4 py-2 font-medium text-amber-900">納車日</th>
@@ -72,60 +77,70 @@ export default async function MaintenanceListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {rows.map((m) => (
-                  <tr key={m.id} className="hover:bg-amber-50/30">
-                    <td className="px-4 py-2 font-mono">
-                      <Link href={`/maintenance/${m.id}`} className="text-amber-700 hover:text-amber-900 hover:underline">{m.maintenance_no}</Link>
-                    </td>
-                    <td className="px-4 py-2 text-zinc-700">{m.intake_date ?? '—'}</td>
-                    <td className="px-4 py-2 text-zinc-700">{m.delivery_date ?? '—'}</td>
-                    <td className="px-4 py-2 text-zinc-700">
-                      {m.vehicle?.id ? (
-                        <Link href={`/customer-vehicles/${m.vehicle.id}`} className="hover:text-amber-700">
-                          {AB_ICONS.customerVehicle} {m.vehicle.plate_number ?? m.vehicle.car_model ?? '—'}
-                        </Link>
-                      ) : '—'}
-                    </td>
-                    <td className="px-4 py-2 text-zinc-700">
-                      {m.account?.id ? (
-                        <Link href={`/accounts/${m.account.id}`} className="hover:text-amber-700">{m.account.name}</Link>
-                      ) : '—'}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusClass(m.status)}`}>
-                        {m.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-right text-zinc-500 font-mono">
-                      {m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((m) => {
+                  const acc = m.account?.id ? m.account : null
+                  const con = m.contact?.id ? m.contact : null
+                  const displayName = maintenanceDisplayName(m, acc, con, m.vehicle)
+                  return (
+                    <tr key={m.id} className="hover:bg-amber-50/30">
+                      <td className="px-4 py-2">
+                        <Link href={`/maintenance/${m.id}`} className="text-amber-700 hover:text-amber-900 hover:underline break-all">{displayName}</Link>
+                      </td>
+                      <td className="px-4 py-2 font-mono text-xs text-zinc-500">{m.maintenance_no}</td>
+                      <td className="px-4 py-2 text-zinc-700">{m.intake_date ?? '—'}</td>
+                      <td className="px-4 py-2 text-zinc-700">{m.delivery_date ?? '—'}</td>
+                      <td className="px-4 py-2 text-zinc-700">
+                        {m.vehicle?.id ? (
+                          <Link href={`/customer-vehicles/${m.vehicle.id}`} className="hover:text-amber-700">
+                            {AB_ICONS.customerVehicle} {m.vehicle.plate_number ?? m.vehicle.car_model ?? '—'}
+                          </Link>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-2 text-zinc-700">
+                        {acc ? (
+                          <Link href={`/accounts/${acc.id}`} className="hover:text-amber-700">{acc.name}</Link>
+                        ) : con ? (
+                          <Link href={`/contacts/${con.id}`} className="hover:text-amber-700">{AB_ICONS.contact} {con.full_name}</Link>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusClass(m.status)}`}>
+                          {m.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right text-zinc-500 font-mono">
+                        {m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
 
           {/* モバイル: カード */}
           <div className="md:hidden space-y-2">
-            {rows.map((m) => (
-              <Link key={m.id} href={`/maintenance/${m.id}`}
-                className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-amber-300 active:bg-amber-50/30">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-sm font-semibold text-zinc-900">{m.maintenance_no}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusClass(m.status)}`}>
-                    {m.status}
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-500 mt-1">
-                  {AB_ICONS.customerVehicle} {m.vehicle?.plate_number ?? m.vehicle?.car_model ?? '—'}
-                  {m.account?.name && <> · {AB_ICONS.account} {m.account.name}</>}
-                </p>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  入庫: {m.intake_date ?? '—'}
-                  {m.delivery_date && <> · 納車: {m.delivery_date}</>}
-                </p>
-              </Link>
-            ))}
+            {rows.map((m) => {
+              const acc = m.account?.id ? m.account : null
+              const con = m.contact?.id ? m.contact : null
+              const displayName = maintenanceDisplayName(m, acc, con, m.vehicle)
+              return (
+                <Link key={m.id} href={`/maintenance/${m.id}`}
+                  className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-amber-300 active:bg-amber-50/30">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-zinc-900 break-all">{displayName}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusClass(m.status)}`}>
+                      {m.status}
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-mono text-zinc-400 mt-1">整備No: {m.maintenance_no}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    入庫: {m.intake_date ?? '—'}
+                    {m.delivery_date && <> · 納車: {m.delivery_date}</>}
+                  </p>
+                </Link>
+              )
+            })}
           </div>
         </>
       )}
