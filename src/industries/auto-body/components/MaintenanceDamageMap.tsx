@@ -45,7 +45,7 @@ export default async function MaintenanceDamageMap({ maintenanceId, canEdit }: P
 
   return (
     <div className="space-y-3">
-      <div className="bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-xs text-amber-900">
+      <div className="bg-zinc-50 border border-zinc-200 rounded-md px-3 py-2 text-xs text-zinc-700">
         🔧 <strong>損傷マップ</strong> — 車両図面に損傷箇所をピンで記録します（板金特化機能）。
         編集モードでは図面をクリックして追加、ピンをクリックで編集・削除できます。
       </div>

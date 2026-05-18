@@ -6,7 +6,7 @@ type Props = {
   action: (formData: FormData) => Promise<void>
 }
 
-const base = 'w-full border border-zinc-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500'
+const base = 'w-full border border-zinc-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export default function TemplateLineAddForm({ action }: Props) {
   const formRef = useRef<HTMLFormElement>(null)
@@ -18,9 +18,9 @@ export default function TemplateLineAddForm({ action }: Props) {
     null,
   )
   return (
-    <form ref={formRef} action={dispatch} className="px-4 py-3 mt-3 bg-amber-50/30 border border-amber-200 rounded-md space-y-2">
+    <form ref={formRef} action={dispatch} className="px-4 py-3 mt-3 bg-zinc-50/30 border border-zinc-200 rounded-md space-y-2">
       {error && <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{error}</div>}
-      <p className="text-xs text-amber-800 font-medium">＋ 作業項目を追加</p>
+      <p className="text-xs text-zinc-700 font-medium">＋ 作業項目を追加</p>
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
         <div className="sm:col-span-3">
           <input name="work_category" placeholder="区分（車検/板金/消耗品）" className={base} />
@@ -38,7 +38,7 @@ export default function TemplateLineAddForm({ action }: Props) {
         <input type="number" name="cost_unit_price" min="0" placeholder="原単価" className={base} />
       </div>
       <div className="flex justify-end pt-1">
-        <button type="submit" disabled={pending} className="px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded hover:bg-amber-700 disabled:opacity-50">
+        <button type="submit" disabled={pending} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50">
           {pending ? '追加中…' : '＋ 追加'}
         </button>
       </div>

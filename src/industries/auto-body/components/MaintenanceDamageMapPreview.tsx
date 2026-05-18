@@ -53,16 +53,16 @@ export default function MaintenanceDamageMapPreview({ pins }: Props) {
               key={vk}
               type="button"
               onClick={() => setZoomView(vk)}
-              className="bg-zinc-50 border border-zinc-200 rounded-md p-2 text-left hover:border-amber-400 hover:shadow-sm transition-all group"
+              className="bg-zinc-50 border border-zinc-200 rounded-md p-2 text-left hover:border-blue-400 hover:shadow-sm transition-all group"
               aria-label={`${DAMAGE_VIEW_LABELS[vk]} を拡大表示`}
             >
               <p className="text-[10px] uppercase text-zinc-500 mb-1 flex items-center justify-between">
-                <span className="font-medium group-hover:text-amber-700">{DAMAGE_VIEW_LABELS[vk]}</span>
+                <span className="font-medium group-hover:text-blue-700">{DAMAGE_VIEW_LABELS[vk]}</span>
                 <span className="flex items-center gap-1.5">
                   {viewPins.length > 0 && (
-                    <span className="text-amber-700 font-semibold">{viewPins.length}</span>
+                    <span className="text-blue-600 font-semibold">{viewPins.length}</span>
                   )}
-                  <span className="text-zinc-400 group-hover:text-amber-600">🔍</span>
+                  <span className="text-zinc-400 group-hover:text-blue-700">🔍</span>
                 </span>
               </p>
               <svg
@@ -130,7 +130,7 @@ function ZoomModal({
           <h2 className="text-base font-semibold text-zinc-800 flex items-center gap-2">
             <span>📍 損傷マップ</span>
             <span className="text-zinc-400">／</span>
-            <span className="text-amber-700">{DAMAGE_VIEW_LABELS[view]}</span>
+            <span className="text-blue-600">{DAMAGE_VIEW_LABELS[view]}</span>
             <span className="text-xs text-zinc-500 font-normal">（読み取り専用 / {pins.length} 件）</span>
           </h2>
           <button

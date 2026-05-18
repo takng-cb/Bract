@@ -38,14 +38,14 @@ export default async function TemplatesPage() {
         </div>
         {edit && (
           <Link href="/maintenance/templates/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors shadow-sm">
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm">
             ＋ テンプレを作成
           </Link>
         )}
       </div>
 
       <p className="mb-4">
-        <Link href="/maintenance" className="text-xs text-zinc-500 hover:text-amber-700">← 整備一覧に戻る</Link>
+        <Link href="/maintenance" className="text-xs text-zinc-500 hover:text-blue-700">← 整備一覧に戻る</Link>
       </p>
 
       {rows.length === 0 ? (
@@ -57,20 +57,20 @@ export default async function TemplatesPage() {
       ) : (
         <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-amber-50 border-b border-amber-200">
+            <thead className="bg-zinc-50 border-b border-zinc-200">
               <tr>
-                <th className="text-left px-4 py-2 font-medium text-amber-900">テンプレ名</th>
-                <th className="text-left px-4 py-2 font-medium text-amber-900">カテゴリ</th>
-                <th className="text-right px-4 py-2 font-medium text-amber-900">作業項目</th>
-                <th className="text-right px-4 py-2 font-medium text-amber-900">諸費用</th>
-                <th className="text-center px-4 py-2 font-medium text-amber-900">状態</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-700">テンプレ名</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-700">カテゴリ</th>
+                <th className="text-right px-4 py-2 font-medium text-zinc-700">作業項目</th>
+                <th className="text-right px-4 py-2 font-medium text-zinc-700">諸費用</th>
+                <th className="text-center px-4 py-2 font-medium text-zinc-700">状態</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {rows.map((t) => (
-                <tr key={t.id} className="hover:bg-amber-50/30">
+                <tr key={t.id} className="hover:bg-zinc-50/30">
                   <td className="px-4 py-3">
-                    <Link href={`/maintenance/templates/${t.id}`} className="text-amber-700 hover:text-amber-900 hover:underline font-medium">
+                    <Link href={`/maintenance/templates/${t.id}`} className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
                       {AB_ICONS.template} {t.name}
                     </Link>
                     {t.description && <p className="text-xs text-zinc-500 mt-0.5">{t.description}</p>}

@@ -83,7 +83,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/maintenance/templates/${id}/edit`} className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 shadow-sm">✏️ 編集</Link>
+              <Link href={`/maintenance/templates/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 shadow-sm">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="このテンプレを削除しますか？" />
             </div>
           </AuthGuard>
@@ -93,7 +93,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
       <div>
         <h1 className="text-2xl font-bold text-zinc-900">{AB_ICONS.template} {t.name}</h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
-          {t.category && <span className="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">{t.category}</span>}
+          {t.category && <span className="text-xs px-2 py-0.5 rounded bg-zinc-50 text-zinc-700 border border-zinc-200">{t.category}</span>}
           {t.is_active
             ? <span className="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">有効</span>
             : <span className="text-xs px-2 py-0.5 rounded bg-zinc-100 text-zinc-500">無効</span>}
@@ -157,12 +157,12 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
       </section>
 
       {/* テンプレ全体合計 */}
-      <section className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
+      <section className="bg-gradient-to-br from-zinc-50 to-zinc-100 border border-zinc-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-amber-900">テンプレ全体（参考・税抜）</span>
-          <span className="text-xl font-bold font-mono text-amber-900">{yen(subtotal)}</span>
+          <span className="text-sm text-zinc-700">テンプレ全体（参考・税抜）</span>
+          <span className="text-xl font-bold font-mono text-zinc-700">{yen(subtotal)}</span>
         </div>
-        <p className="text-xs text-amber-700 mt-1">適用時はこの行が現在の整備に追記されます（既存行は残ります）。</p>
+        <p className="text-xs text-blue-600 mt-1">適用時はこの行が現在の整備に追記されます（既存行は残ります）。</p>
       </section>
     </div>
   )

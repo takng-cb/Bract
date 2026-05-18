@@ -232,13 +232,13 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
               /* BtoB: 法人取引先 — 取引先（会社名）が主、顧客担当者が副 */
               <>
                 <p className="text-[10px] text-zinc-500 mb-0.5">取引先</p>
-                <Link href={`/accounts/${account.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                <Link href={`/accounts/${account.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
                   {AB_ICONS.account} {account.name}
                 </Link>
                 {contact && (
                   <>
                     <p className="text-[10px] text-zinc-500 mt-2 mb-0.5">顧客担当者</p>
-                    <Link href={`/contacts/${contact.id}`} className="text-xs text-zinc-700 hover:text-amber-700 hover:underline">
+                    <Link href={`/contacts/${contact.id}`} className="text-xs text-zinc-700 hover:text-blue-700 hover:underline">
                       {AB_ICONS.contact} {contact.full_name}
                     </Link>
                   </>
@@ -268,7 +268,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
               /* BtoC: 取引先なし — 顧客 = 人物本人 */
               <>
                 <p className="text-[10px] text-zinc-500 mb-0.5">顧客</p>
-                <Link href={`/contacts/${contact.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                <Link href={`/contacts/${contact.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
                   {AB_ICONS.contact} {contact.full_name}
                 </Link>
                 <dl className="space-y-1 text-xs mt-2">
@@ -294,7 +294,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
             {billingAccount && !billingAccountIsPersonal && billingAccount.id !== account?.id && (
               <div className="mt-3 pt-2 border-t border-zinc-100">
                 <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">請求先（別指定）</p>
-                <Link href={`/accounts/${billingAccount.id}`} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">
+                <Link href={`/accounts/${billingAccount.id}`} className="text-xs text-blue-600 hover:text-blue-800 hover:underline">
                   {AB_ICONS.account} {billingAccount.name}
                 </Link>
               </div>
@@ -309,7 +309,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
             <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">車両</p>
             {v ? (
               <>
-                <Link href={`/customer-vehicles/${v.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                <Link href={`/customer-vehicles/${v.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
                   {AB_ICONS.customerVehicle} {v.plate_number ?? '—'}
                 </Link>
                 <p className="text-xs text-zinc-600 mt-1">{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}</p>
@@ -330,9 +330,9 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         </div>
 
         {/* 合計サマリー */}
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
-          <p className="text-[10px] uppercase tracking-wider text-amber-700 mb-2">請求合計</p>
-          <p className="text-2xl font-bold font-mono text-amber-900">{yen(grandTotal)}</p>
+        <div className="bg-gradient-to-br from-zinc-50 to-zinc-100 border border-zinc-200 rounded-lg p-4">
+          <p className="text-[10px] uppercase tracking-wider text-blue-600 mb-2">請求合計</p>
+          <p className="text-2xl font-bold font-mono text-zinc-700">{yen(grandTotal)}</p>
           <dl className="mt-3 space-y-1 text-xs">
             <Row label="入金額" value={yen(paidSum)} />
             <Row
@@ -439,7 +439,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                 const sevColor =
                   p.severity === '大' ? 'text-rose-700 bg-rose-50 border-rose-200' :
                   p.severity === '中' ? 'text-orange-700 bg-orange-50 border-orange-200' :
-                                        'text-amber-700 bg-amber-50 border-amber-200'
+                                        'text-blue-600 bg-zinc-50 border-zinc-200'
                 const viewLabel: Record<string, string> = {
                   top: '俯瞰', front: '前面', back: '後面', left: '左側面', right: '右側面',
                 }
@@ -470,17 +470,17 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="bg-amber-50 border-y border-amber-200">
+                <thead className="bg-zinc-50 border-y border-zinc-200">
                   <tr>
-                    <th className="px-2 py-1.5 text-left font-medium text-amber-900 w-8">#</th>
-                    <th className="px-2 py-1.5 text-left font-medium text-amber-900 w-20">区分</th>
-                    <th className="px-2 py-1.5 text-left font-medium text-amber-900">作業項目</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-14">工数</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-20">工賃</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-12">数</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-20">単価</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-amber-900 w-20">小計</th>
-                    <th className="px-2 py-1.5 text-center font-medium text-amber-900 w-12">状況</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-8">#</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-20">区分</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700">作業項目</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-14">工数</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-20">工賃</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-12">数</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-20">単価</th>
+                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-20">小計</th>
+                    <th className="px-2 py-1.5 text-center font-medium text-zinc-700 w-12">状況</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -496,7 +496,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                         <td className="px-2 py-1.5 text-zinc-800">
                           {l.item_name}
                           {l.is_excluded && <span className="ml-1 text-[10px] text-rose-700 bg-rose-50 px-1 rounded">除外</span>}
-                          {l.state && <span className="ml-1 text-[10px] text-amber-800 bg-amber-50 px-1 rounded">{l.state}</span>}
+                          {l.state && <span className="ml-1 text-[10px] text-zinc-700 bg-zinc-50 px-1 rounded">{l.state}</span>}
                           {l.note && <p className="text-[10px] text-zinc-500 mt-0.5">{l.note}</p>}
                         </td>
                         <td className="px-2 py-1.5 text-right font-mono text-zinc-700">{l.hours ?? '—'}</td>

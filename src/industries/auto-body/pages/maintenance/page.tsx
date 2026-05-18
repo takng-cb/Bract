@@ -152,7 +152,7 @@ export default async function MaintenanceListPage({
         </div>
         {edit && (
           <Link href="/maintenance/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors shadow-sm">
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm">
             ＋ 整備を作成
           </Link>
         )}
@@ -190,16 +190,16 @@ export default async function MaintenanceListPage({
               {/* PC: テーブル */}
               <div className="hidden md:block bg-white border border-zinc-200 rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-amber-50 border-b border-amber-200">
+                  <thead className="bg-zinc-50 border-b border-zinc-200">
                     <tr>
-                      <th className="text-left px-4 py-2 font-medium text-amber-900">整備名</th>
-                      <th className="text-left px-4 py-2 font-medium text-amber-900">整備No</th>
-                      <th className="text-left px-4 py-2 font-medium text-amber-900">入庫日</th>
-                      <th className="text-left px-4 py-2 font-medium text-amber-900">納車日</th>
-                      <th className="text-left px-4 py-2 font-medium text-amber-900">車両</th>
-                      <th className="text-left px-4 py-2 font-medium text-amber-900">顧客</th>
-                      <th className="text-left px-4 py-2 font-medium text-amber-900">ステータス</th>
-                      <th className="text-right px-4 py-2 font-medium text-amber-900">走行距離</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-700">整備名</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-700">整備No</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-700">入庫日</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-700">納車日</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-700">車両</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-700">顧客</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-700">ステータス</th>
+                      <th className="text-right px-4 py-2 font-medium text-zinc-700">走行距離</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
@@ -208,27 +208,27 @@ export default async function MaintenanceListPage({
                       const con = m.contact?.id ? m.contact : null
                       const displayName = maintenanceDisplayName(m, acc, con, m.vehicle)
                       return (
-                        <tr key={m.id} className="hover:bg-amber-50/30">
+                        <tr key={m.id} className="hover:bg-zinc-50/30">
                           <td className="px-4 py-2">
-                            <Link href={`/maintenance/${m.id}`} className="text-amber-700 hover:text-amber-900 hover:underline break-all">{displayName}</Link>
+                            <Link href={`/maintenance/${m.id}`} className="text-blue-600 hover:text-blue-800 hover:underline break-all">{displayName}</Link>
                           </td>
                           <td className="px-4 py-2 font-mono text-xs text-zinc-500">{m.maintenance_no}</td>
                           <td className="px-4 py-2 text-zinc-700">{m.intake_date ?? '—'}</td>
                           <td className="px-4 py-2 text-zinc-700">{m.delivery_date ?? '—'}</td>
                           <td className="px-4 py-2 text-zinc-700">
                             {m.vehicle?.id ? (
-                              <Link href={`/customer-vehicles/${m.vehicle.id}`} className="hover:text-amber-700">
+                              <Link href={`/customer-vehicles/${m.vehicle.id}`} className="hover:text-blue-700">
                                 {AB_ICONS.customerVehicle} {m.vehicle.plate_number ?? m.vehicle.car_model ?? '—'}
                               </Link>
                             ) : '—'}
                           </td>
                           <td className="px-4 py-2 text-zinc-700">
                             {acc && !isPersonalAccount(acc) ? (
-                              <Link href={`/accounts/${acc.id}`} className="hover:text-amber-700">
+                              <Link href={`/accounts/${acc.id}`} className="hover:text-blue-700">
                                 {AB_ICONS.account} {acc.name}
                               </Link>
                             ) : con ? (
-                              <Link href={`/contacts/${con.id}`} className="hover:text-amber-700">
+                              <Link href={`/contacts/${con.id}`} className="hover:text-blue-700">
                                 {AB_ICONS.contact} {con.full_name}
                               </Link>
                             ) : '—'}
@@ -256,7 +256,7 @@ export default async function MaintenanceListPage({
                   const displayName = maintenanceDisplayName(m, acc, con, m.vehicle)
                   return (
                     <Link key={m.id} href={`/maintenance/${m.id}`}
-                      className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-amber-300 active:bg-amber-50/30">
+                      className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-zinc-300 active:bg-zinc-50/30">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-semibold text-zinc-900 break-all">{displayName}</span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusClass(m.status)}`}>

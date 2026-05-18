@@ -67,12 +67,12 @@ export default function DamageMapEditor({ pins, canEdit, createAction, updateAct
               type="button"
               onClick={() => setActiveView(v.key)}
               className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${
-                active ? 'border-amber-600 text-amber-700' : 'border-transparent text-zinc-600 hover:text-zinc-900'
+                active ? 'border-blue-600 text-blue-600' : 'border-transparent text-zinc-600 hover:text-zinc-900'
               }`}
             >
               {v.label}
               {count > 0 && (
-                <span className={`ml-1.5 px-1 py-0.5 rounded text-[10px] ${active ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-600'}`}>
+                <span className={`ml-1.5 px-1 py-0.5 rounded text-[10px] ${active ? 'bg-zinc-100 text-blue-600' : 'bg-zinc-100 text-zinc-600'}`}>
                   {count}
                 </span>
               )}
@@ -141,7 +141,7 @@ export default function DamageMapEditor({ pins, canEdit, createAction, updateAct
                     <button
                       type="button"
                       onClick={() => setEditingPin(p)}
-                      className="w-full text-left px-2 py-1.5 rounded hover:bg-amber-50/40 flex items-start gap-2"
+                      className="w-full text-left px-2 py-1.5 rounded hover:bg-zinc-50/40 flex items-start gap-2"
                     >
                       <span
                         className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[10px] font-bold shrink-0 mt-0.5"
@@ -255,7 +255,7 @@ function PinEditModal({
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             disabled={!canEdit}
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-zinc-50"
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-zinc-50"
           >
             {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -272,8 +272,8 @@ function PinEditModal({
                 disabled={!canEdit}
                 className={`flex-1 py-2 text-sm rounded-md border transition-colors ${
                   severity === s
-                    ? 'bg-amber-600 text-white border-amber-600'
-                    : 'bg-white text-zinc-700 border-zinc-300 hover:bg-amber-50/40 disabled:opacity-50'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-50/40 disabled:opacity-50'
                 }`}
               >
                 {s}
@@ -290,7 +290,7 @@ function PinEditModal({
             disabled={!canEdit}
             rows={2}
             placeholder="例: 直径 3cm、パテ補修可"
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:bg-zinc-50"
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-zinc-50"
           />
         </div>
 
@@ -318,7 +318,7 @@ function PinEditModal({
               <button
                 type="button"
                 onClick={() => onSubmit({ category, severity, note })}
-                className="px-4 py-2 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 shadow-sm"
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm"
               >
                 {mode === 'create' ? '追加' : '保存'}
               </button>

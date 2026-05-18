@@ -36,7 +36,7 @@ export default function MaintenanceTemplateForm({ action, cancelHref, defaultVal
             required
             defaultValue={defaultValues.name ?? ''}
             placeholder="例: 車検基本パック（普通車）"
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -44,7 +44,7 @@ export default function MaintenanceTemplateForm({ action, cancelHref, defaultVal
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">カテゴリ</label>
             <select name="category" defaultValue={defaultValues.category ?? ''}
-              className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+              className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">—</option>
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -55,7 +55,7 @@ export default function MaintenanceTemplateForm({ action, cancelHref, defaultVal
               type="number"
               name="sort_order"
               defaultValue={defaultValues.sort_order ?? 0}
-              className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function MaintenanceTemplateForm({ action, cancelHref, defaultVal
             defaultValue={defaultValues.description ?? ''}
             rows={2}
             placeholder="例: 24ヶ月点検 + ブレーキ分解清掃 + オイル類交換 + 自賠責/重量税"
-            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
         </div>
 
@@ -89,7 +89,7 @@ export default function MaintenanceTemplateForm({ action, cancelHref, defaultVal
         <button
           type="submit"
           disabled={pending}
-          className="px-5 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 disabled:opacity-50 shadow-sm"
+          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 shadow-sm"
         >
           {pending ? '保存中…' : '保存'}
         </button>

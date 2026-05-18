@@ -158,7 +158,7 @@ export default function MaintenanceBasicInfoEditForm({
   }
 
   const fieldCls =
-    'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500'
+    'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
   /** 1 セル分の入力。パネル側の `<Item label value />` と視覚的に対応する */
   function Cell({ label, children }: { label: string; children: React.ReactNode }) {
@@ -277,7 +277,7 @@ export default function MaintenanceBasicInfoEditForm({
       <div className="sticky bottom-0 bg-white border-t border-zinc-200 mt-4 -mx-5 px-5 py-3 flex items-center justify-between">
         <p className="text-xs text-zinc-500">
           {dirty
-            ? <><span className="text-amber-700 font-semibold">●</span> 未保存の変更があります</>
+            ? <><span className="text-blue-600 font-semibold">●</span> 未保存の変更があります</>
             : '変更なし'}
         </p>
         <div className="flex gap-2">
@@ -292,7 +292,7 @@ export default function MaintenanceBasicInfoEditForm({
             type="button"
             onClick={handleSave}
             disabled={pending || !dirty}
-            className="px-4 py-2 text-sm bg-amber-600 text-white font-medium rounded-md hover:bg-amber-700 disabled:opacity-50 shadow-sm"
+            className="px-4 py-2 text-sm bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 shadow-sm"
           >
             {pending ? '保存中…' : '保存'}
           </button>

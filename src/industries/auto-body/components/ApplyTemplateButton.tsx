@@ -28,7 +28,7 @@ export default function ApplyTemplateButton({ templates, applyAction }: Props) {
     return (
       <Link
         href="/maintenance/templates/new"
-        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-amber-300 text-amber-700 rounded-md hover:bg-amber-50"
+        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-zinc-300 text-blue-600 rounded-md hover:bg-zinc-50"
       >
         📋 整備パッケージを作成
       </Link>
@@ -40,7 +40,7 @@ export default function ApplyTemplateButton({ templates, applyAction }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-amber-600 text-white rounded-md hover:bg-amber-700 shadow-sm"
+        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm"
       >
         📋 テンプレを適用
       </button>
@@ -51,7 +51,7 @@ export default function ApplyTemplateButton({ templates, applyAction }: Props) {
           <div className="absolute right-0 mt-1 w-80 max-h-96 overflow-y-auto bg-white border border-zinc-200 rounded-md shadow-lg z-20">
             <div className="px-3 py-2 border-b border-zinc-100 flex items-center justify-between">
               <span className="text-xs font-medium text-zinc-600">整備パッケージから選択</span>
-              <Link href="/maintenance/templates" className="text-[10px] text-amber-700 hover:text-amber-900">管理 →</Link>
+              <Link href="/maintenance/templates" className="text-[10px] text-blue-600 hover:text-blue-800">管理 →</Link>
             </div>
             {message && (
               <div className="px-3 py-2 text-xs text-emerald-700 bg-emerald-50 border-b border-emerald-200">{message}</div>
@@ -75,11 +75,11 @@ export default function ApplyTemplateButton({ templates, applyAction }: Props) {
                         }
                       })
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-amber-50/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full text-left px-3 py-2 hover:bg-zinc-50/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-zinc-800">📋 {t.name}</span>
-                      {t.category && <span className="text-[10px] px-1 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">{t.category}</span>}
+                      {t.category && <span className="text-[10px] px-1 py-0.5 rounded bg-zinc-50 text-zinc-700 border border-zinc-200">{t.category}</span>}
                     </div>
                     <div className="text-[11px] text-zinc-500 mt-0.5">
                       行 {t.lineCount} 件 / 諸費用 {t.feeCount} 件

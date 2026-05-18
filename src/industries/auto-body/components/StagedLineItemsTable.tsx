@@ -129,7 +129,7 @@ function toFormData(r: StagedRow): FormData {
   return fd
 }
 
-const cell = 'w-full bg-transparent border border-transparent rounded px-2 py-1 text-sm focus:bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-200/50 focus:outline-none disabled:opacity-50'
+const cell = 'w-full bg-transparent border border-transparent rounded px-2 py-1 text-sm focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-200/50 focus:outline-none disabled:opacity-50'
 const cellNum = cell + ' text-right font-mono'
 
 function yen(n: number): string {
@@ -238,7 +238,7 @@ export default function StagedLineItemsTable({
       {canEdit && (
         <div className="flex items-center justify-between flex-wrap gap-2">
           <p className="text-xs text-zinc-500">
-            セルを直接編集 → <strong className="text-amber-700">「保存」</strong> で確定。{leverRate && (
+            セルを直接編集 → <strong className="text-blue-600">「保存」</strong> で確定。{leverRate && (
               <span className="ml-1 text-zinc-400">レバーレート: ¥{Number(leverRate).toLocaleString()}/h</span>
             )}
           </p>
@@ -254,7 +254,7 @@ export default function StagedLineItemsTable({
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[1100px]">
           {/* ヘッダ */}
-          <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-1.5 bg-amber-50 border-b-2 border-amber-200 text-[11px] font-semibold text-amber-900">
+          <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700">
             <div className="text-center">削除 / #</div>
             <div>区分</div>
             <div>作業項目名</div>
@@ -278,9 +278,9 @@ export default function StagedLineItemsTable({
               const sub = (Number.isFinite(lb) ? lb : 0) + (Number.isFinite(qt) && Number.isFinite(un) ? qt * un : 0)
               const rowClass =
                 r._status === 'deleted' ? 'opacity-50 bg-rose-50/50 line-through' :
-                r._status === 'edited'  ? 'bg-amber-50/40' :
+                r._status === 'edited'  ? 'bg-zinc-50/40' :
                 r._status === 'new'     ? 'bg-emerald-50/30 border-l-4 border-emerald-400' :
-                                          'hover:bg-amber-50/20'
+                                          'hover:bg-zinc-50/20'
               return (
                 <div
                   key={r._key}
@@ -293,7 +293,7 @@ export default function StagedLineItemsTable({
                         type="button"
                         onClick={() => toggleDelete(r._key)}
                         className={r._status === 'deleted'
-                          ? 'w-7 h-7 inline-flex items-center justify-center rounded text-amber-600 hover:text-amber-800 hover:bg-amber-50 text-xs'
+                          ? 'w-7 h-7 inline-flex items-center justify-center rounded text-blue-600 hover:text-blue-800 hover:bg-zinc-50 text-xs'
                           : 'w-7 h-7 inline-flex items-center justify-center rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-rose-200'}
                         title={r._status === 'deleted' ? '削除を取り消す' : 'この行を削除'}
                       >
@@ -400,7 +400,7 @@ export default function StagedLineItemsTable({
               type="button"
               onClick={addRow}
               disabled={pending}
-              className="w-full text-center py-2 border-t-2 border-dashed border-amber-200 bg-amber-50/30 text-sm text-amber-700 hover:bg-amber-50 hover:text-amber-900 disabled:opacity-50"
+              className="w-full text-center py-2 border-t-2 border-dashed border-zinc-200 bg-zinc-50/30 text-sm text-blue-600 hover:bg-zinc-50 hover:text-blue-800 disabled:opacity-50"
             >
               ＋ 行を追加
             </button>
@@ -433,7 +433,7 @@ export default function StagedLineItemsTable({
       {canEdit && (
         <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-3 bg-zinc-50 border-t border-zinc-200 flex items-center justify-end gap-2 mt-2">
           {dirtyCount > 0 && (
-            <p className="text-xs text-amber-700 mr-auto">
+            <p className="text-xs text-blue-600 mr-auto">
               未保存の変更: <strong>{dirtyCount}</strong> 件
             </p>
           )}
@@ -449,7 +449,7 @@ export default function StagedLineItemsTable({
             type="button"
             onClick={handleSave}
             disabled={pending || dirtyCount === 0}
-            className="px-4 py-1.5 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 shadow-sm disabled:opacity-50"
+            className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm disabled:opacity-50"
           >
             {pending ? '保存中…' : '保存'}
           </button>

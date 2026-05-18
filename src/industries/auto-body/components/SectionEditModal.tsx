@@ -100,7 +100,7 @@ export default function SectionEditModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900 hover:underline"
+        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
       >
         {triggerLabel}
       </button>

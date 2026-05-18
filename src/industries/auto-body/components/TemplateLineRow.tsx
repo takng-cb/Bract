@@ -23,7 +23,7 @@ type Props = {
   deleteAction: () => Promise<void>
 }
 
-const base = 'w-full border border-zinc-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500'
+const base = 'w-full border border-zinc-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 function yen(n: number | string | null | undefined): string {
   const v = Number(n ?? 0)
@@ -41,7 +41,7 @@ export default function TemplateLineRow({ index, line, canEdit, updateAction, de
   const sub = (Number.isFinite(labor) ? labor : 0) + (Number.isFinite(qty) && Number.isFinite(unit) ? qty * unit : 0)
 
   return (
-    <div className="px-4 py-2 hover:bg-amber-50/30 flex items-start gap-3">
+    <div className="px-4 py-2 hover:bg-zinc-50/30 flex items-start gap-3">
       <span className="text-xs text-zinc-400 font-mono w-6 shrink-0 mt-0.5">#{index + 1}</span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -59,7 +59,7 @@ export default function TemplateLineRow({ index, line, canEdit, updateAction, de
       </div>
       {canEdit && (
         <div className="flex items-center gap-1 shrink-0">
-          <button onClick={() => setEditing(true)} className="text-xs text-amber-700 hover:text-amber-900 px-2 py-1 rounded hover:bg-amber-50">編集</button>
+          <button onClick={() => setEditing(true)} className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-zinc-50">編集</button>
           <form
             action={async () => { await deleteAction() }}
             onSubmit={(e) => { if (!confirm(`「${line.item_name}」を削除しますか？`)) e.preventDefault() }}
@@ -87,7 +87,7 @@ function EditRow({ index, line, action, onCancel }: {
   )
 
   return (
-    <form action={dispatch} className="px-4 py-3 bg-amber-50/40 space-y-2">
+    <form action={dispatch} className="px-4 py-3 bg-zinc-50/40 space-y-2">
       {error && <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{error}</div>}
       <div className="text-xs text-zinc-500">#{index + 1} 編集中</div>
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
@@ -113,7 +113,7 @@ function EditRow({ index, line, action, onCancel }: {
         <input name="note" defaultValue={line.note ?? ''} className={base} />
       </div>
       <div className="flex justify-end gap-2 pt-1">
-        <button type="submit" disabled={pending} className="px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded hover:bg-amber-700 disabled:opacity-50">
+        <button type="submit" disabled={pending} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50">
           {pending ? '保存中…' : '保存'}
         </button>
         <button type="button" onClick={onCancel} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-xs font-medium rounded hover:bg-zinc-50">キャンセル</button>
