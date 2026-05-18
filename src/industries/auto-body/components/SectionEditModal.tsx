@@ -6,8 +6,14 @@
  * - トリガーボタン + モーダル開閉
  * - 中身の編集 UI は「保存」「キャンセル」ボタンを自前で持つことを想定
  * - 中身からは useSectionModal() で `close()` を呼んでモーダルを閉じる
+ *
+ * 重要: モーダルは React Portal で document.body に直接マウントする。
+ * SectionEditModal が `<aside class="sticky">` のような新しい stacking
+ * context の中に置かれていると、`position: fixed; z-50` でも親より上に
+ * 出られず、StageBar 等が突き抜けて見える事象が発生するため。
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 const ModalContext = createContext<{ close: () => void } | null>(null)
 
@@ -50,6 +56,45 @@ export default function SectionEditModal({
     return () => document.removeEventListener('keydown', handler)
   }, [open])
 
+  // SSR ガード: document が無い環境ではポータルを作らない
+  const portalTarget =
+    typeof document !== 'undefined' ? document.body : null
+
+  const overlay = (
+    <ModalContext.Provider value={{ close }}>
+      <div
+        className="fixed inset-0 z-[100] flex items-stretch justify-center bg-black/40 backdrop-blur-[2px] p-2 sm:p-4 overflow-y-auto"
+        onClick={close}
+      >
+        <div
+          className={`bg-white rounded-lg shadow-xl w-full ${maxWidthClass} h-[calc(100vh-2rem)] sm:h-[calc(100vh-2rem)] flex flex-col`}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+        >
+          {/* sticky ヘッダー */}
+          <div className="sticky top-0 bg-white border-b border-zinc-200 px-5 py-3 flex items-center justify-between rounded-t-lg z-10">
+            <h2 className="text-base font-semibold text-zinc-800">{title}</h2>
+            <button
+              type="button"
+              onClick={close}
+              className="w-8 h-8 flex items-center justify-center rounded-md text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 text-2xl leading-none"
+              aria-label="閉じる"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* 本文（中身が自前で 保存/キャンセル のフッタを持つ想定） */}
+          <div className="flex-1 overflow-y-auto p-5">
+            {children}
+          </div>
+        </div>
+      </div>
+    </ModalContext.Provider>
+  )
+
   return (
     <>
       <button
@@ -60,40 +105,7 @@ export default function SectionEditModal({
         {triggerLabel}
       </button>
 
-      {open && (
-        <ModalContext.Provider value={{ close }}>
-          <div
-            className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/40 backdrop-blur-[2px] p-2 sm:p-4 overflow-y-auto"
-            onClick={close}
-          >
-            <div
-              className={`bg-white rounded-lg shadow-xl w-full ${maxWidthClass} h-[calc(100vh-2rem)] sm:h-[calc(100vh-2rem)] flex flex-col`}
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-label={title}
-            >
-              {/* sticky ヘッダー */}
-              <div className="sticky top-0 bg-white border-b border-zinc-200 px-5 py-3 flex items-center justify-between rounded-t-lg z-10">
-                <h2 className="text-base font-semibold text-zinc-800">{title}</h2>
-                <button
-                  type="button"
-                  onClick={close}
-                  className="w-8 h-8 flex items-center justify-center rounded-md text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 text-2xl leading-none"
-                  aria-label="閉じる"
-                >
-                  ×
-                </button>
-              </div>
-
-              {/* 本文（中身が自前で 保存/キャンセル のフッタを持つ想定） */}
-              <div className="flex-1 overflow-y-auto p-5">
-                {children}
-              </div>
-            </div>
-          </div>
-        </ModalContext.Provider>
-      )}
+      {open && portalTarget && createPortal(overlay, portalTarget)}
     </>
   )
 }
