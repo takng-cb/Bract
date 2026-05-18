@@ -26,6 +26,7 @@ import MaintenanceLineItemsEditor from './MaintenanceLineItemsEditor'
 import MaintenanceFeesEditor from './MaintenanceFeesEditor'
 import MaintenancePaymentsEditor from './MaintenancePaymentsEditor'
 import MaintenanceDamageMap from './MaintenanceDamageMap'
+import MaintenanceDamageMapPreview from './MaintenanceDamageMapPreview'
 import StageBar, { type StageConfig } from '@/components/StageBar'
 import { updateMaintenanceStatus } from '@/industries/auto-body/actions/maintenance'
 
@@ -219,54 +220,133 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
 
       {/* ─── 右スクロール（メインコンテンツ）─────────────── */}
       <main className="space-y-4 min-w-0">
-        {/* メモ */}
-        {(m.internal_memo || m.work_order_note || m.general_note) && (
-          <section className="bg-white border border-zinc-200 rounded-lg p-4">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">メモ</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <Memo label="整備メモ（印字なし）" value={m.internal_memo} />
-              <Memo label="作業指示備考" value={m.work_order_note} />
-              <Memo label="備考（見積書に印字）" value={m.general_note} />
-            </dl>
-          </section>
-        )}
+        {/* ============================================================
+            【整備】基本情報 + メモ
+           ============================================================ */}
+        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <span>{AB_ICONS.maintenance}</span><span>整備</span>
+          </h2>
+          <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-2 text-xs">
+            <Item label="拠点" value={m.branch_id ?? '—'} />
+            <Item label="入庫区分" value={m.intake_category ?? '—'} />
+            <Item label="入庫日時" value={`${m.intake_date ?? '—'}${m.intake_time ? ` ${m.intake_time}` : ''}`} />
+            <Item label="納車日時" value={`${m.delivery_date ?? '—'}${m.delivery_time ? ` ${m.delivery_time}` : ''}`} />
+            <Item label="走行距離" value={m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'} />
+            <Item label="売上計上日" value={m.sales_recording_date ?? '—'} />
+            <Item label="引取場所" value={m.pickup_location ?? '—'} />
+            <Item label="引渡場所" value={m.delivery_location ?? '—'} />
+            <Item label="受付担当" value={receptionName} />
+            <Item label="作業担当" value={workerName} />
+            <Item label="消費税区分" value={m.tax_mode ?? '—'} />
+            <Item label="消費税端数" value={m.tax_rounding ?? '—'} />
+            <Item label="レバーレート" value={m.lever_rate ? `¥${Number(m.lever_rate).toLocaleString()}` : '—'} />
+            <Item label="登録日" value={m.created_at ? new Date(m.created_at).toLocaleDateString('ja-JP') : '—'} />
+          </dl>
 
-        {/* 車両詳細 */}
-        {v && (
-          <section className="bg-white border border-zinc-200 rounded-lg p-4">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">車両情報</h2>
-            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2 text-xs">
-              <Item label="運輸支局" value={v.transport_branch ?? '—'} />
-              <Item label="分類番号" value={v.classification_number ?? '—'} />
-              <Item label="かな" value={v.kana ?? '—'} />
-              <Item label="ナンバー" value={v.plate_number ?? '—'} />
-              <Item label="種別" value={v.vehicle_kind ?? '—'} />
-              <Item label="用途" value={v.vehicle_usage ?? '—'} />
-              <Item label="自家・事業" value={v.private_business ?? '—'} />
-              <Item label="車体の形状" value={v.body_shape ?? '—'} />
-              <Item label="車台番号" value={v.vin ?? '—'} />
-              <Item label="型式" value={v.type_designation ?? '—'} />
-              <Item label="類別区分" value={v.class_category ?? '—'} />
-              <Item label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/') || '—'} />
-            </dl>
-            {v.memo && <p className="text-xs text-zinc-500 mt-3 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {v.memo}</p>}
-          </section>
-        )}
+          {/* メモ — 中身があるときだけ表示 */}
+          {(m.internal_memo || m.work_order_note || m.general_note) && (
+            <div className="mt-4 pt-3 border-t border-zinc-100">
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">メモ</p>
+              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <Memo label="整備メモ（印字なし）" value={m.internal_memo} />
+                <Memo label="作業指示備考" value={m.work_order_note} />
+                <Memo label="備考（見積書に印字）" value={m.general_note} />
+              </dl>
+            </div>
+          )}
+        </section>
 
-        {/* 損傷マップ サマリー（0 件でも表示して「編集」から追加できるように） */}
+        {/* ============================================================
+            【顧客・車両】取引先詳細 + 車両情報
+           ============================================================ */}
+        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+            <span>{AB_ICONS.account}</span><span>顧客・車両</span>
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* 取引先 */}
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">取引先</p>
+              {account ? (
+                <dl className="space-y-1 text-xs">
+                  <KV
+                    label="取引先"
+                    value={
+                      <Link href={`/accounts/${account.id}`} className="text-amber-700 hover:text-amber-900 hover:underline">
+                        {AB_ICONS.account} {account.name}
+                      </Link>
+                    }
+                  />
+                  <KV
+                    label="担当者"
+                    value={
+                      contact ? (
+                        <Link href={`/contacts/${contact.id}`} className="text-amber-700 hover:text-amber-900 hover:underline">
+                          {AB_ICONS.contact} {contact.full_name}
+                        </Link>
+                      ) : '—'
+                    }
+                  />
+                  <KV label="電話" value={contact?.phone ?? account.phone ?? '—'} />
+                  <KV label="Email" value={contact?.email ?? '—'} />
+                  <KV label="住所" value={account.address ?? '—'} />
+                </dl>
+              ) : <p className="text-xs text-zinc-400">—</p>}
+            </div>
+
+            {/* 車両 */}
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">車両</p>
+              {v ? (
+                <>
+                  <Link href={`/customer-vehicles/${v.id}`} className="text-xs font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                    {AB_ICONS.customerVehicle} {v.plate_number ?? '—'}（{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}）
+                  </Link>
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs mt-2">
+                    <Item label="運輸支局" value={v.transport_branch ?? '—'} />
+                    <Item label="分類番号" value={v.classification_number ?? '—'} />
+                    <Item label="かな" value={v.kana ?? '—'} />
+                    <Item label="種別" value={v.vehicle_kind ?? '—'} />
+                    <Item label="用途" value={v.vehicle_usage ?? '—'} />
+                    <Item label="自家・事業" value={v.private_business ?? '—'} />
+                    <Item label="車体の形状" value={v.body_shape ?? '—'} />
+                    <Item label="車台番号" value={v.vin ?? '—'} />
+                    <Item label="型式" value={v.type_designation ?? '—'} />
+                    <Item label="類別区分" value={v.class_category ?? '—'} />
+                    <Item label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/') || '—'} />
+                    <Item label="車検満了" value={v.inspection_due_date ?? '—'} />
+                  </dl>
+                  {v.memo && <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {v.memo}</p>}
+                </>
+              ) : <p className="text-xs text-zinc-400">—</p>}
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================
+            【損傷】SVG 5 ビュー + ピン一覧
+           ============================================================ */}
         <section className="bg-white border border-zinc-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
               📍 損傷箇所（{damagePins.length} 件）
             </h2>
-            <SectionEditModal triggerLabel="📍 図面で編集" title="損傷マップを編集">
+            <SectionEditModal triggerLabel="✏️ 図面で編集" title="損傷マップを編集">
               <MaintenanceDamageMap maintenanceId={maintenanceId} canEdit={editable} />
             </SectionEditModal>
           </div>
+
+          {/* 5 ビュー SVG プレビュー（常に表示） */}
+          <MaintenanceDamageMapPreview pins={damagePins} />
+
+          {/* ピン一覧（あるときだけ） */}
           {damagePins.length === 0 ? (
-            <p className="text-xs text-zinc-400 py-2">損傷箇所はまだ記録されていません</p>
+            <p className="text-xs text-zinc-400 py-3 mt-3 text-center border-t border-zinc-100">
+              損傷箇所はまだ記録されていません — 右上の「図面で編集」から追加できます
+            </p>
           ) : (
-            <ul className="divide-y divide-zinc-100 text-xs">
+            <ul className="divide-y divide-zinc-100 text-xs mt-3 pt-3 border-t border-zinc-100">
               {damagePins.map((p, i) => {
                 const sevColor =
                   p.severity === '大' ? 'text-rose-700 bg-rose-50 border-rose-200' :
