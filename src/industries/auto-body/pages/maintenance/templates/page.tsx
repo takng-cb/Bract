@@ -61,9 +61,9 @@ export default async function TemplatesPage() {
               <tr>
                 <th className="text-left px-4 py-2 font-medium text-zinc-700">テンプレ名</th>
                 <th className="text-left px-4 py-2 font-medium text-zinc-700">カテゴリ</th>
-                <th className="text-right px-4 py-2 font-medium text-zinc-700">作業項目</th>
-                <th className="text-right px-4 py-2 font-medium text-zinc-700">諸費用</th>
-                <th className="text-center px-4 py-2 font-medium text-zinc-700">状態</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-700">作業項目</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-700">諸費用</th>
+                <th className="text-left px-4 py-2 font-medium text-zinc-700">状態</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">

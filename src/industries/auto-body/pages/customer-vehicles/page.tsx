@@ -191,7 +191,7 @@ export default async function CustomerVehiclesListPage({
                       <th className="text-left px-4 py-2 font-medium text-zinc-600">車名 / 車種</th>
                       <th className="text-left px-4 py-2 font-medium text-zinc-600">顧客</th>
                       <th className="text-left px-4 py-2 font-medium text-zinc-600">車検満了日</th>
-                      <th className="text-right px-4 py-2 font-medium text-zinc-600">整備履歴</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-600">整備履歴</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">

@@ -162,10 +162,10 @@ export default function StagedPaymentsTable({
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[800px]">
           <div className="grid grid-cols-[4.5rem_7rem_6rem_7rem_minmax(0,1fr)_8rem] gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700 [&>div]:px-2">
-            <div className="text-center">削除 / #</div>
+            <div>削除 / #</div>
             <div>入金日</div>
             <div>支払方法</div>
-            <div className="text-right">金額</div>
+            <div>金額</div>
             <div>メモ</div>
             <div>担当者</div>
           </div>

@@ -257,17 +257,17 @@ export default function StagedLineItemsTable({
           {/* [&>div]:px-2 で各ヘッダセルにデータ input と同じ左右パディングを付けて
               ヘッダとデータ列の文字位置を揃える */}
           <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700 [&>div]:px-2">
-            <div className="text-center">削除 / #</div>
+            <div>削除 / #</div>
             <div>区分</div>
             <div>作業項目名</div>
-            <div className="text-right">工数</div>
-            <div className="text-right">工賃</div>
-            <div className="text-right">数</div>
+            <div>工数</div>
+            <div>工賃</div>
+            <div>数</div>
             <div>単位</div>
-            <div className="text-right">部品単価</div>
-            <div className="text-right">小計</div>
-            <div className="text-center">完了</div>
-            <div className="text-center">除外</div>
+            <div>部品単価</div>
+            <div>小計</div>
+            <div>完了</div>
+            <div>除外</div>
           </div>
 
           {rows.length === 0 ? (

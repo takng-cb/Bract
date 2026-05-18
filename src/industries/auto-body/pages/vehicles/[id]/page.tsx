@@ -232,9 +232,9 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                   <th className="text-left px-3 py-2 font-medium text-zinc-600">サービス</th>
                   <th className="text-left px-3 py-2 font-medium text-zinc-600">区分</th>
                   <th className="text-left px-3 py-2 font-medium text-zinc-600">完了予定</th>
-                  <th className="text-right px-3 py-2 font-medium text-zinc-600">売上</th>
-                  <th className="text-right px-3 py-2 font-medium text-zinc-600">部品原価</th>
-                  <th className="text-right px-3 py-2 font-medium text-zinc-600">利益</th>
+                  <th className="text-left px-3 py-2 font-medium text-zinc-600">売上</th>
+                  <th className="text-left px-3 py-2 font-medium text-zinc-600">部品原価</th>
+                  <th className="text-left px-3 py-2 font-medium text-zinc-600">利益</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">

@@ -475,12 +475,12 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                     <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-8">#</th>
                     <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-20">区分</th>
                     <th className="px-2 py-1.5 text-left font-medium text-zinc-700">作業項目</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-14">工数</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-20">工賃</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-12">数</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-20">単価</th>
-                    <th className="px-2 py-1.5 text-right font-medium text-zinc-700 w-20">小計</th>
-                    <th className="px-2 py-1.5 text-center font-medium text-zinc-700 w-12">状況</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-14">工数</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-20">工賃</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-12">数</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-20">単価</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-20">小計</th>
+                    <th className="px-2 py-1.5 text-left font-medium text-zinc-700 w-12">状況</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">

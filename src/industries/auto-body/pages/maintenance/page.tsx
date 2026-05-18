@@ -199,7 +199,7 @@ export default async function MaintenanceListPage({
                       <th className="text-left px-4 py-2 font-medium text-zinc-700">車両</th>
                       <th className="text-left px-4 py-2 font-medium text-zinc-700">顧客</th>
                       <th className="text-left px-4 py-2 font-medium text-zinc-700">ステータス</th>
-                      <th className="text-right px-4 py-2 font-medium text-zinc-700">走行距離</th>
+                      <th className="text-left px-4 py-2 font-medium text-zinc-700">走行距離</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">

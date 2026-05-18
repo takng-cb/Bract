@@ -187,8 +187,8 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
                 <tr>
                   <th className="text-left  px-3 py-2 font-medium text-zinc-600">日付</th>
                   <th className="text-left  px-3 py-2 font-medium text-zinc-600">種別</th>
-                  <th className="text-right px-3 py-2 font-medium text-zinc-600">数量</th>
-                  <th className="text-right px-3 py-2 font-medium text-zinc-600">単価</th>
+                  <th className="text-left px-3 py-2 font-medium text-zinc-600">数量</th>
+                  <th className="text-left px-3 py-2 font-medium text-zinc-600">単価</th>
                   <th className="text-left  px-3 py-2 font-medium text-zinc-600">メモ</th>
                   <th className="px-3 py-2"></th>
                 </tr>

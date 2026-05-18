@@ -263,7 +263,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
                   <th className="text-left px-4 py-2 font-medium text-zinc-600">入庫日</th>
                   <th className="text-left px-4 py-2 font-medium text-zinc-600">納車日</th>
                   <th className="text-left px-4 py-2 font-medium text-zinc-600">ステータス</th>
-                  <th className="text-right px-4 py-2 font-medium text-zinc-600">走行距離</th>
+                  <th className="text-left px-4 py-2 font-medium text-zinc-600">走行距離</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">

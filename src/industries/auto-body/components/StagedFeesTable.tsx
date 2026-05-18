@@ -150,11 +150,11 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[600px]">
           <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_6rem_6rem] gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700 [&>div]:px-2">
-            <div className="text-center">削除 / #</div>
+            <div>削除 / #</div>
             <div>区分</div>
             <div>項目名</div>
-            <div className="text-right">金額</div>
-            <div className="text-right">原価</div>
+            <div>金額</div>
+            <div>原価</div>
           </div>
 
           {rows.length === 0 ? (
