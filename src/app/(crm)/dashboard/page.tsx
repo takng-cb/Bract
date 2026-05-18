@@ -6,6 +6,7 @@ import { eq, desc, asc, ne, count, and, isNotNull, lte, inArray } from 'drizzle-
 import Link from 'next/link'
 import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
+import { getMaintenanceForecast, sumMaintenanceWeighted } from '@/industries/auto-body/lib/maintenanceForecast'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
 import { getActivityTypes } from '@/lib/activityTypes'
@@ -60,24 +61,29 @@ export default async function DashboardPage({
   const inspectionLimitDate = new Date()
   inspectionLimitDate.setDate(inspectionLimitDate.getDate() + 30)
   const inspectionLimit = formatDateLocal(inspectionLimitDate)
-  const upcomingInspections = isAutoBody
-    ? await db.select({
-        id:                   vehicles.id,
-        maker:                vehicles.maker,
-        model:                vehicles.model,
-        license_plate:        vehicles.license_plate,
-        next_inspection_date: vehicles.next_inspection_date,
-        status:               vehicles.status,
-      })
-        .from(vehicles)
-        .where(and(
-          isNotNull(vehicles.next_inspection_date),
-          lte(vehicles.next_inspection_date, inspectionLimit),
-          ne(vehicles.status, '廃車'),
-        ))
-        .orderBy(asc(vehicles.next_inspection_date))
-        .limit(20)
-    : []
+  const [upcomingInspections, maintList] = await Promise.all([
+    isAutoBody
+      ? db.select({
+          id:                   vehicles.id,
+          maker:                vehicles.maker,
+          model:                vehicles.model,
+          license_plate:        vehicles.license_plate,
+          next_inspection_date: vehicles.next_inspection_date,
+          status:               vehicles.status,
+        })
+          .from(vehicles)
+          .where(and(
+            isNotNull(vehicles.next_inspection_date),
+            lte(vehicles.next_inspection_date, inspectionLimit),
+            ne(vehicles.status, '廃車'),
+          ))
+          .orderBy(asc(vehicles.next_inspection_date))
+          .limit(20)
+      : Promise.resolve([]),
+    // auto-body: 期間内の整備（売上予測加算用）
+    isAutoBody ? getMaintenanceForecast(from, to) : Promise.resolve([]),
+  ])
+  const maintWeighted = sumMaintenanceWeighted(maintList)
 
   const [
     accountCountRows,
@@ -212,10 +218,12 @@ export default async function DashboardPage({
     return fee != null ? calcProfit(fee, o.brokerage_type, oth) : 0
   }
 
-  const forecast = periodOpps.reduce((sum, o) => {
+  const oppForecast = periodOpps.reduce((sum, o) => {
     const base = baseRevenueOf(o)
     return sum + base * (o.probability != null ? o.probability / 100 : 1)
   }, 0)
+  // auto-body は 商談 + 整備 の合算
+  const forecast = oppForecast + maintWeighted
 
   const recent = [
     ...recentAccounts.map((r) => ({ type: '取引先', icon: '🏢', href: `/accounts/${r.id}`, title: r.name, sub: r.industry ?? '', at: r.updated_at })),
@@ -240,8 +248,19 @@ export default async function DashboardPage({
         {[
           { label: 'アクティブな取引先', value: accountCount, unit: '社', href: '/accounts', color: 'text-zinc-800', sub: '期間外集計' },
           { label: '期間内のToDo', value: periodTasks.length, unit: '件', href: '/tasks', color: periodTasks.length > 0 ? 'text-orange-600' : 'text-zinc-800', sub: '未完了・期限が期間内' },
-          { label: '期間内の商談', value: periodOpps.length, unit: '件', href: `/forecast?from=${from}&to=${to}`, color: 'text-blue-600', sub: '完了予定が期間内' },
-          { label: '期間内の想定売上', value: `¥${Math.round(forecast).toLocaleString()}`, unit: '', href: `/forecast?from=${from}&to=${to}`, color: 'text-green-700', sub: isReal ? '確度 × 利益' : '確度 × 金額' },
+          isAutoBody
+            ? { label: '期間内の商談+整備', value: periodOpps.length + maintList.length, unit: '件', href: `/forecast?from=${from}&to=${to}`, color: 'text-blue-600', sub: `商談 ${periodOpps.length} + 整備 ${maintList.length}` }
+            : { label: '期間内の商談', value: periodOpps.length, unit: '件', href: `/forecast?from=${from}&to=${to}`, color: 'text-blue-600', sub: '完了予定が期間内' },
+          {
+            label: '期間内の想定売上',
+            value: `¥${Math.round(forecast).toLocaleString()}`,
+            unit: '',
+            href: `/forecast?from=${from}&to=${to}`,
+            color: 'text-green-700',
+            sub: isAutoBody
+              ? `商談 ¥${Math.round(oppForecast).toLocaleString()} + 整備 ¥${Math.round(maintWeighted).toLocaleString()}`
+              : isReal ? '確度 × 利益' : '確度 × 金額',
+          },
         ].map((k) => (
           <Link key={k.label} href={k.href} className="bg-white border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
             <p className="text-xs text-zinc-400 mb-2">{k.label}</p>

@@ -6,6 +6,7 @@ import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
+import { getMaintenanceForecast, sumMaintenanceWeighted, sumMaintenanceCompleted } from '@/industries/auto-body/lib/maintenanceForecast'
 import { getAllUsers } from '@/lib/userUtils'
 import { formatDateLocal, lastOfMonth, firstOfMonth } from '@/lib/dateUtils'
 import {
@@ -98,7 +99,7 @@ export default async function ForecastPage({
   const isReal     = activeIndustry === 'real-estate'
   const isAutoBody = activeIndustry === 'auto-body'
 
-  const [allOpps, allExpenses, users] = await Promise.all([
+  const [allOpps, allExpenses, users, maintList] = await Promise.all([
     db.select({
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
@@ -120,11 +121,17 @@ export default async function ForecastPage({
       .from(expenses)
       .orderBy(asc(expenses.expense_date)),
     getAllUsers(),
+    // auto-body のみ整備を取得（他業種では空配列）
+    isAutoBody ? getMaintenanceForecast(from, to) : Promise.resolve([]),
   ])
 
   // 期間フィルタ（JS側）
   const opps = allOpps.filter((o) => o.close_date && o.close_date >= from && o.close_date <= to)
   const exps = allExpenses.filter((e) => e.expense_date && e.expense_date >= from && e.expense_date <= to)
+
+  // 整備の集計（auto-body のみ）
+  const maintWeighted  = sumMaintenanceWeighted(maintList)
+  const maintCompleted = sumMaintenanceCompleted(maintList)
 
   /**
    * 1商談の「売上ベース額」を返す。
@@ -146,15 +153,19 @@ export default async function ForecastPage({
     return Number(o.amount ?? 0)
   }
 
-  const weightedRevenue = opps.reduce((sum, o) => {
+  const oppWeighted = opps.reduce((sum, o) => {
     const base = baseRevenueOf(o)
     const prob = o.probability != null ? o.probability / 100 : 1
     return sum + base * prob
   }, 0)
 
-  const actualClosedWon = opps
+  const oppClosedWon = opps
     .filter((o) => o.stage === 'closed_won')
     .reduce((s, o) => s + baseRevenueOf(o), 0)
+
+  // auto-body は 商談 + 整備 の合算を「想定売上」「受注済」とする
+  const weightedRevenue = oppWeighted + maintWeighted
+  const actualClosedWon = oppClosedWon + maintCompleted
 
   const totalExpenses = exps.reduce((s, e) => s + Number(e.amount), 0)
   const grossProfit   = weightedRevenue - totalExpenses
@@ -163,7 +174,7 @@ export default async function ForecastPage({
   const granularity = pickGranularity(from, to)
   const buckets     = enumerateBuckets(from, to, granularity)
 
-  // 時系列: 想定売上 vs 受注済
+  // 時系列: 想定売上 vs 受注済（商談 + 整備）
   const timeSeriesMap = new Map<string, { weighted: number; closedWon: number }>()
   for (const b of buckets) timeSeriesMap.set(b, { weighted: 0, closedWon: 0 })
   for (const o of opps) {
@@ -174,6 +185,14 @@ export default async function ForecastPage({
     const prob = o.probability != null ? o.probability / 100 : 1
     cur.weighted += base * prob
     if (o.stage === 'closed_won') cur.closedWon += base
+    timeSeriesMap.set(key, cur)
+  }
+  // auto-body: 整備も time series に加算
+  for (const m of maintList) {
+    const key = bucketKey(m.forecastDate, granularity)
+    const cur = timeSeriesMap.get(key) ?? { weighted: 0, closedWon: 0 }
+    cur.weighted += m.weightedRevenue
+    if (m.status === '完了') cur.closedWon += m.salesAmount
     timeSeriesMap.set(key, cur)
   }
   const timeSeriesData: TimeBucket[] = buckets.map((label) => ({
@@ -245,7 +264,9 @@ export default async function ForecastPage({
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">売上予測</h1>
-          <p className="text-sm text-zinc-500 mt-1">{from} 〜 {to} の商談・経費サマリー（{granularity === 'month' ? '月別' : '週別'}集計）</p>
+          <p className="text-sm text-zinc-500 mt-1">
+            {from} 〜 {to} の {isAutoBody ? '商談・整備・経費' : '商談・経費'} サマリー（{granularity === 'month' ? '月別' : '週別'}集計）
+          </p>
         </div>
         <PeriodSelector from={from} to={to} />
       </div>
@@ -253,8 +274,22 @@ export default async function ForecastPage({
       {/* KPI */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: '想定売上', value: `¥${Math.round(weightedRevenue).toLocaleString()}`, sub: (isReal || isAutoBody) ? '確度 × 利益' : '確度 × 金額', color: 'text-blue-600' },
-          { label: '受注済', value: `¥${Math.round(actualClosedWon).toLocaleString()}`, sub: `${opps.filter(o => o.stage === 'closed_won').length} 件`, color: 'text-green-600' },
+          {
+            label: '想定売上',
+            value: `¥${Math.round(weightedRevenue).toLocaleString()}`,
+            sub: isAutoBody
+              ? `商談 ¥${Math.round(oppWeighted).toLocaleString()} + 整備 ¥${Math.round(maintWeighted).toLocaleString()}`
+              : isReal ? '確度 × 利益' : '確度 × 金額',
+            color: 'text-blue-600',
+          },
+          {
+            label: '受注済',
+            value: `¥${Math.round(actualClosedWon).toLocaleString()}`,
+            sub: isAutoBody
+              ? `商談 ${opps.filter((o) => o.stage === 'closed_won').length} 件 + 整備完了 ${maintList.filter((m) => m.status === '完了').length} 件`
+              : `${opps.filter((o) => o.stage === 'closed_won').length} 件`,
+            color: 'text-green-600',
+          },
           { label: '経費合計', value: `¥${totalExpenses.toLocaleString()}`, sub: `${exps.length} 件`, color: 'text-orange-600' },
           { label: '想定粗利', value: `¥${Math.round(grossProfit).toLocaleString()}`, sub: '想定売上 − 経費', color: grossProfit >= 0 ? 'text-green-700' : 'text-red-600' },
         ].map((k) => (
@@ -366,13 +401,70 @@ export default async function ForecastPage({
                 </tbody>
                 <tfoot className="border-t-2 border-zinc-200 bg-zinc-50">
                   <tr>
-                    <td colSpan={4} className="px-3 py-2 text-xs font-semibold text-zinc-600">想定売上合計</td>
+                    <td colSpan={4} className="px-3 py-2 text-xs font-semibold text-zinc-600">想定売上合計（商談分）</td>
                     <td className="px-3 py-2 text-right font-bold text-blue-700">
-                      ¥{Math.round(weightedRevenue).toLocaleString()}
+                      ¥{Math.round(oppWeighted).toLocaleString()}
                     </td>
                   </tr>
                 </tfoot>
               </table>
+            </div>
+          )}
+
+          {/* 整備一覧 (auto-body のみ) */}
+          {isAutoBody && (
+            <div className="mt-6">
+              <h2 className="text-sm font-semibold text-zinc-700 mb-3">
+                対象整備 <span className="text-zinc-400 font-normal">({maintList.length} 件)</span>
+              </h2>
+              {maintList.length === 0 ? (
+                <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
+                  この期間の整備がありません
+                </div>
+              ) : (
+                <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-zinc-50 border-b border-zinc-200">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium text-zinc-600">整備</th>
+                        <th className="text-left px-3 py-2 font-medium text-zinc-600">ステータス</th>
+                        <th className="text-right px-3 py-2 font-medium text-zinc-600">売上 (税抜)</th>
+                        <th className="text-right px-3 py-2 font-medium text-zinc-600">確度</th>
+                        <th className="text-right px-3 py-2 font-medium text-zinc-600">想定売上</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {maintList.map((m) => (
+                        <tr key={m.id} className="hover:bg-zinc-50">
+                          <td className="px-3 py-2">
+                            <Link href={`/maintenance/${m.id}`} className="font-mono text-xs font-medium hover:text-blue-600 block">{m.maintenance_no}</Link>
+                            <span className="text-xs text-zinc-400">
+                              {m.account?.name ?? m.contact?.full_name ?? '—'}
+                              {m.vehicle?.plate_number && ` / ${m.vehicle.plate_number}`}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-xs">{m.status}</td>
+                          <td className="px-3 py-2 text-right text-zinc-700">
+                            {m.salesAmount > 0 ? `¥${Math.round(m.salesAmount).toLocaleString()}` : '—'}
+                          </td>
+                          <td className="px-3 py-2 text-right text-zinc-500">{m.probability}%</td>
+                          <td className="px-3 py-2 text-right font-medium text-blue-700">
+                            ¥{Math.round(m.weightedRevenue).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t-2 border-zinc-200 bg-zinc-50">
+                      <tr>
+                        <td colSpan={4} className="px-3 py-2 text-xs font-semibold text-zinc-600">想定売上合計（整備分）</td>
+                        <td className="px-3 py-2 text-right font-bold text-blue-700">
+                          ¥{Math.round(maintWeighted).toLocaleString()}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
