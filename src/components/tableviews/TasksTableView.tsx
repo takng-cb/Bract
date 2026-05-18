@@ -7,6 +7,7 @@ import type { FieldDef } from '@/components/FilterBuilder'
 type Task = {
   id: string
   title: string
+  description: string | null
   due_date: string | null
   priority: string
   done: boolean
@@ -54,6 +55,22 @@ const ALL_COLS: ColDef[] = [
       : <span className="text-zinc-400 text-sm">未完了</span>,
   },
   {
+    key: 'description', label: '詳細',
+    render: (r) => {
+      const d = (r as unknown as Task).description
+      if (!d) return <span className="text-zinc-300">—</span>
+      // 表セルでは長文の最初の 80 文字程度を 1〜2 行で表示
+      return (
+        <span
+          className="text-zinc-700 text-sm whitespace-pre-wrap line-clamp-2 break-words"
+          title={d}
+        >
+          {d}
+        </span>
+      )
+    },
+  },
+  {
     key: 'account', label: '取引先',
     render: (r) => {
       const acc = (r as unknown as Task).accounts
@@ -64,7 +81,7 @@ const ALL_COLS: ColDef[] = [
   },
 ]
 
-const DEFAULT_KEYS = ['title', 'due_date', 'priority', 'done']
+const DEFAULT_KEYS = ['title', 'due_date', 'priority', 'done', 'description']
 
 type Props = {
   records: Record<string, unknown>[]

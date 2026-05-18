@@ -163,13 +163,14 @@ export const expense_related_records = pgTable('expense_related_records', {
 // tasks（タスク / ToDo）
 // ----------------------------------------------------------------
 export const tasks = pgTable('tasks', {
-  id:         uuid('id').primaryKey().defaultRandom(),
-  title:      text('title').notNull(),
-  due_date:   date('due_date'),
-  done:       boolean('done').notNull().default(false),
-  priority:   text('priority').notNull().default('medium'),
-  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:          uuid('id').primaryKey().defaultRandom(),
+  title:       text('title').notNull(),
+  description: text('description'),                                    // 詳細・メモ（任意・複数行）
+  due_date:    date('due_date'),
+  done:        boolean('done').notNull().default(false),
+  priority:    text('priority').notNull().default('medium'),
+  created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
   // 関連先は task_related_records junction で管理（Phase 2 で FK 列撤廃）
 })
 

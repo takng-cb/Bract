@@ -28,6 +28,7 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
 
 const FIELDS: FieldDef[] = [
   { value: 'title',         label: 'タイトル', type: 'text' },
+  { value: 'description',   label: '詳細',     type: 'text' },
   { value: 'accounts.name', label: '取引先',   type: 'text' },
   {
     value: 'priority', label: '優先度', type: 'select',
@@ -48,12 +49,13 @@ const FIELDS: FieldDef[] = [
 ]
 
 type SelectRow = {
-  id:         string
-  title:      string
-  done:       boolean
-  priority:   string
-  due_date:   string | null
-  account_id: string | null
+  id:          string
+  title:       string
+  description: string | null
+  done:        boolean
+  priority:    string
+  due_date:    string | null
+  account_id:  string | null
   accounts:      { id: string; name: string } | null
   opportunities: { id: string; name: string } | null
 }
@@ -90,11 +92,12 @@ export default async function TasksPage({
 
   // ── ステップ1: 全タスクを取得（FK 列に依存しない） ─────────────────────
   const allTasks = await db.select({
-    id:       tasks.id,
-    title:    tasks.title,
-    done:     tasks.done,
-    priority: tasks.priority,
-    due_date: tasks.due_date,
+    id:          tasks.id,
+    title:       tasks.title,
+    description: tasks.description,
+    done:        tasks.done,
+    priority:    tasks.priority,
+    due_date:    tasks.due_date,
   }).from(tasks).orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
 
   // ── ステップ2: junction 経由で関連 account / opportunity を bulk fetch ─

@@ -111,9 +111,10 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
           objectTypes={objectTypes}
           recordsByObject={recordsByObject}
           defaultValues={{
-            title:    task.title,
-            due_date: task.due_date,
-            priority: task.priority,
+            title:       task.title,
+            description: task.description,
+            due_date:    task.due_date,
+            priority:    task.priority,
             related_records: defaultRelated,
           }}
         />

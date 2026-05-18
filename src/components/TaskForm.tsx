@@ -16,6 +16,7 @@ type TaskFormProps = {
   recordsByObject: Record<string, RecordOption[]>
   defaultValues?: {
     title?:           string
+    description?:     string | null
     due_date?:        string | null
     priority?:        string
     related_records?: RelatedRecordSelection[]
@@ -54,8 +55,8 @@ export default function TaskForm({ action, cancelHref, objectTypes, recordsByObj
       <div className="flex justify-end">
         <FormFillModal
           formRef={formRef}
-          csvFormat="タイトル,期日,優先度"
-          fieldMap={{ 'タイトル': 'title', '期日': 'due_date', '優先度': 'priority' }}
+          csvFormat="タイトル,期日,優先度,詳細"
+          fieldMap={{ 'タイトル': 'title', '期日': 'due_date', '優先度': 'priority', '詳細': 'description' }}
           valueMap={{ priority: { '高': 'high', '中': 'medium', '低': 'low' } }}
         />
       </div>
@@ -114,6 +115,19 @@ export default function TaskForm({ action, cancelHref, objectTypes, recordsByObj
             ))}
           </div>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
+          詳細・メモ <span className="text-zinc-400 font-normal text-xs">（任意・複数行可）</span>
+        </label>
+        <textarea
+          name="description"
+          defaultValue={defaultValues.description ?? ''}
+          rows={4}
+          placeholder="例: 添付の見積書をベースに、特記事項として配送料を別途記載する"
+          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+        />
       </div>
 
       <div className="flex gap-3 pt-2">

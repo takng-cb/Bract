@@ -21,7 +21,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 
   const [task, relatedPairs] = await Promise.all([
     db.select({
-      id: tasks.id, title: tasks.title, done: tasks.done,
+      id: tasks.id, title: tasks.title, description: tasks.description, done: tasks.done,
       priority: tasks.priority, due_date: tasks.due_date, created_at: tasks.created_at,
     })
       .from(tasks)
@@ -127,6 +127,12 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
             <dd className="text-sm text-zinc-800">{task.created_at ? new Date(task.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs text-zinc-400 mb-1">詳細・メモ</dt>
+            <dd className="text-sm text-zinc-800 whitespace-pre-wrap break-words">
+              {task.description ? task.description : <span className="text-zinc-300">—</span>}
+            </dd>
           </div>
         </dl>
       </div>

@@ -59,10 +59,13 @@ export async function createTask(formData: FormData) {
   const return_to  = (formData.get('return_to') as string) || null
   const selections = parseRelatedRecords(formData)
 
+  const description = (formData.get('description') as string)?.trim() || null
+
   const [row] = await db.insert(tasks).values({
-    title:    title.trim(),
-    due_date: (formData.get('due_date') as string) || null,
-    priority: (formData.get('priority') as string) || 'medium',
+    title:       title.trim(),
+    description,
+    due_date:    (formData.get('due_date') as string) || null,
+    priority:    (formData.get('priority') as string) || 'medium',
   }).returning({ id: tasks.id })
 
   await syncTaskRelatedRecords(row.id, selections)
@@ -86,11 +89,14 @@ export async function updateTask(id: string, formData: FormData) {
 
   const selections = parseRelatedRecords(formData)
 
+  const description = (formData.get('description') as string)?.trim() || null
+
   await db.update(tasks).set({
-    title:      title.trim(),
-    due_date:   (formData.get('due_date') as string) || null,
-    priority:   (formData.get('priority') as string) || 'medium',
-    updated_at: new Date(),
+    title:       title.trim(),
+    description,
+    due_date:    (formData.get('due_date') as string) || null,
+    priority:    (formData.get('priority') as string) || 'medium',
+    updated_at:  new Date(),
   }).where(eq(tasks.id, id))
 
   await syncTaskRelatedRecords(id, selections)
