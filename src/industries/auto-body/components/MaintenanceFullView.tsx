@@ -20,6 +20,7 @@ import {
 import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
+import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { canEdit } from '@/lib/auth'
 import SectionEditModal from './SectionEditModal'
 import MaintenanceLineItemsEditor from './MaintenanceLineItemsEditor'
@@ -111,6 +112,15 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   const v = mRow.vehicle
   const account = mRow.account?.id ? mRow.account : null
   const contact = mRow.contact?.id ? mRow.contact : null
+
+  // 取引先が「個人」プレースホルダ or 未設定なら ToC 扱いで顧客名は contact を主とする
+  const accountIsPersonal = isPersonalAccount(account)
+
+  // 請求先（別途指定されていれば accountsList から名前を引く）
+  const billingAccount = m.billing_account_id
+    ? accountsList.find((a) => a.id === m.billing_account_id) ?? null
+    : null
+  const billingAccountIsPersonal = isPersonalAccount(billingAccount)
 
   const receptionName = m.reception_owner_id ? users.find((u) => u.id === m.reception_owner_id)?.name ?? '—' : '—'
   const workerName    = m.worker_owner_id    ? users.find((u) => u.id === m.worker_owner_id)?.name    ?? '—' : '—'
@@ -218,7 +228,8 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           {/* 顧客 */}
           <div className="p-4">
             <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">顧客</p>
-            {account ? (
+            {(account && !accountIsPersonal) ? (
+              /* BtoB: 法人取引先がある場合 — 会社名を主、担当者を副 */
               <>
                 <Link href={`/accounts/${account.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
                   {AB_ICONS.account} {account.name}
@@ -249,7 +260,40 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                   )}
                 </dl>
               </>
-            ) : <p className="text-xs text-zinc-400">—</p>}
+            ) : contact ? (
+              /* ToC: 個人プレースホルダの場合は contact を主にする（取引先名は出さない） */
+              <>
+                <Link href={`/contacts/${contact.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                  {AB_ICONS.contact} {contact.full_name}
+                </Link>
+                <dl className="space-y-1 text-xs mt-2">
+                  {contact.phone && (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-zinc-500 shrink-0">📞 電話</dt>
+                      <dd className="text-zinc-800 text-right truncate">{contact.phone}</dd>
+                    </div>
+                  )}
+                  {contact.email && (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-zinc-500 shrink-0">✉️ Email</dt>
+                      <dd className="text-zinc-800 text-right truncate">{contact.email}</dd>
+                    </div>
+                  )}
+                </dl>
+              </>
+            ) : (
+              <p className="text-xs text-zinc-400">—</p>
+            )}
+
+            {/* 請求先（別途指定 かつ 個人プレースホルダでない場合のみ表示） */}
+            {billingAccount && !billingAccountIsPersonal && billingAccount.id !== account?.id && (
+              <div className="mt-3 pt-2 border-t border-zinc-100">
+                <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">請求先（別指定）</p>
+                <Link href={`/accounts/${billingAccount.id}`} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">
+                  {AB_ICONS.account} {billingAccount.name}
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* 区切り */}

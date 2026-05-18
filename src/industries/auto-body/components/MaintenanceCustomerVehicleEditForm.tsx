@@ -3,14 +3,19 @@
 /**
  * 顧客・車両セクションの編集フォーム（モーダル内で使用）。
  *
- * - 顧客車両 / 顧客（取引先） / 顧客担当者 / 請求先別指定 を編集
+ * レイアウトは表示パネル（左 sticky）と同じ「顧客が上、車両が下」の縦並び。
+ * 顧客ブロック内に 取引先 / 顧客担当者 / 請求先別指定 を、車両ブロック内に
+ * 顧客車両 を配置する。
+ *
  * - 即時保存ではなく「保存」「キャンセル」を明示
  * - 既存 MaintenanceForm と同じく SearchableSelect ピッカーを利用
+ * - 取引先「個人」は ToC プレースホルダ。プレースホルダ表示「— 個人」を出す
  */
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SearchableSelect from '@/components/SearchableSelect'
+import { AB_ICONS } from '@/industries/auto-body/lib/icons'
 import { updateMaintenanceCustomerVehicle } from '@/industries/auto-body/actions/maintenance'
 import { useSectionModal } from './SectionEditModal'
 
@@ -95,8 +100,78 @@ export default function MaintenanceCustomerVehicleEditForm({
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-md">{error}</div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
+        {/* ─── 顧客（上半分）─── */}
+        <section className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.account} 顧客</h3>
+            <p className="text-[10px] text-zinc-400 mt-0.5">
+              個人のお客様（BtoC）は取引先に「個人」を選択してください。表示時には取引先名は出ません。
+            </p>
+          </div>
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                顧客（取引先） <span className="text-red-500">*</span>
+              </label>
+              <SearchableSelect
+                key={`account-${accountId}`}
+                name="account_id"
+                defaultValue={accountId || undefined}
+                options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+                placeholder="選択してください（個人 / 会社名）"
+                onSelect={(id) => {
+                  setAccountId(id)
+                  // 取引先を変えたら、フィルタが効かなくなる担当者をリセット
+                  if (id !== accountId) setContactId('')
+                }}
+              />
+              <p className="text-[11px] text-zinc-400 mt-1">
+                BtoB は会社名、BtoC は「個人」を選択
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                顧客担当者（人物）
+              </label>
+              <SearchableSelect
+                key={`contact-${accountId}-${contactId}`}
+                name="contact_id"
+                defaultValue={contactId || undefined}
+                options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
+                placeholder="—"
+                onSelect={(id) => setContactId(id)}
+              />
+              <p className="text-[11px] text-zinc-400 mt-1">
+                取引先内の担当者で絞り込み。BtoC では本人を選択
+              </p>
+            </div>
+
+            <div className="sm:col-span-2 pt-2 border-t border-zinc-100">
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                請求先別指定
+              </label>
+              <SearchableSelect
+                key={`billing-${billingAccountId}`}
+                name="billing_account_id"
+                defaultValue={billingAccountId || undefined}
+                options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+                placeholder="—（指定なし。顧客と同じ）"
+                onSelect={(id) => setBillingAccountId(id)}
+              />
+              <p className="text-[11px] text-zinc-400 mt-1">
+                整備の代金請求先が顧客と異なる場合のみ指定（例: 保険会社・親会社）
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 車両（下半分）─── */}
+        <section className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.customerVehicle} 車両</h3>
+          </div>
+          <div className="p-4">
             <label className="block text-sm font-medium text-zinc-700 mb-1">
               顧客車両 <span className="text-red-500">*</span>
             </label>
@@ -115,47 +190,10 @@ export default function MaintenanceCustomerVehicleEditForm({
               >
                 ＋ 新しい顧客車両を登録（別タブ）
               </Link>
+              <span className="ml-2 text-[11px]">車両を選ぶと所有者の取引先が自動入力されます（顧客未設定時のみ）</span>
             </p>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              顧客（取引先） <span className="text-red-500">*</span>
-            </label>
-            <SearchableSelect
-              key={`account-${accountId}`}
-              name="account_id"
-              defaultValue={accountId || undefined}
-              options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-              placeholder="選択してください"
-              onSelect={setAccountId}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">顧客担当者</label>
-            <SearchableSelect
-              key={`contact-${accountId}-${contactId}`}
-              name="contact_id"
-              defaultValue={contactId || undefined}
-              options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
-              placeholder="—"
-              onSelect={(id) => setContactId(id)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">請求先別指定</label>
-            <SearchableSelect
-              key={`billing-${billingAccountId}`}
-              name="billing_account_id"
-              defaultValue={billingAccountId || undefined}
-              options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-              placeholder="—（指定なし。顧客と同じ）"
-              onSelect={(id) => setBillingAccountId(id)}
-            />
-          </div>
-        </div>
+        </section>
       </div>
 
       {/* sticky フッタ */}
@@ -186,3 +224,4 @@ export default function MaintenanceCustomerVehicleEditForm({
     </div>
   )
 }
+

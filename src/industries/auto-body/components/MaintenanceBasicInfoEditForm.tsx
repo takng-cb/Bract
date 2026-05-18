@@ -3,7 +3,11 @@
 /**
  * 整備本体（基本情報 + メモ）の編集フォーム（モーダル内で使用）。
  *
- * - 日時／場所、走行距離、拠点、入庫区分、受付/作業担当、税情報、レバーレート、3 メモ を編集
+ * レイアウトは表示パネル（右側の【整備】セクション）と同じく
+ *   - 基本情報は 4 列グリッド（パネルと同じ並び順）
+ *   - その下にメモ 3 列
+ * で揃えてある。
+ *
  * - 即時保存ではなく「保存」「キャンセル」を明示
  * - 顧客・車両・ステータスは別モーダル・別アクション
  */
@@ -156,74 +160,64 @@ export default function MaintenanceBasicInfoEditForm({
   const fieldCls =
     'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500'
 
+  /** 1 セル分の入力。パネル側の `<Item label value />` と視覚的に対応する */
+  function Cell({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+      <div>
+        <label className="block text-[10px] text-zinc-500 mb-0.5">{label}</label>
+        {children}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* 本文 */}
-      <div className="flex-1 overflow-y-auto space-y-5">
+      <div className="flex-1 overflow-y-auto space-y-4">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-md">{error}</div>
         )}
 
-        {/* 日時 */}
-        <section>
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">日時</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">入庫日</label>
-              <input type="date" value={state.intake_date} onChange={onInput('intake_date')} className={fieldCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">入庫時間</label>
-              <input type="time" value={state.intake_time} onChange={onInput('intake_time')} className={fieldCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">納車日</label>
-              <input type="date" value={state.delivery_date} onChange={onInput('delivery_date')} className={fieldCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">納車時間</label>
-              <input type="time" value={state.delivery_time} onChange={onInput('delivery_time')} className={fieldCls} />
-            </div>
-          </div>
-        </section>
-
-        {/* 場所・距離 */}
-        <section>
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">場所・距離</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">引取場所</label>
-              <input value={state.pickup_location} onChange={onInput('pickup_location')} className={fieldCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">引渡場所</label>
-              <input value={state.delivery_location} onChange={onInput('delivery_location')} className={fieldCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">売上計上日</label>
-              <input type="date" value={state.sales_recording_date} onChange={onInput('sales_recording_date')} className={fieldCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">総走行距離 (km)</label>
-              <input type="number" value={state.mileage} onChange={onInput('mileage')} min="0" className={fieldCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">拠点</label>
+        {/* ─── 基本情報グリッド（パネルと同じ 4 列・同じ並び順）─── */}
+        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">基本情報</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-3">
+            {/* Row 1: 拠点 / 入庫区分 / 入庫日 / 入庫時間 */}
+            <Cell label="拠点">
               <input value={state.branch_id} onChange={onInput('branch_id')} placeholder="例: 本店" className={fieldCls} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">入庫区分</label>
+            </Cell>
+            <Cell label="入庫区分">
               <input value={state.intake_category} onChange={onInput('intake_category')} placeholder="例: 車検 / 一般整備 / 板金" className={fieldCls} />
-            </div>
-          </div>
-        </section>
+            </Cell>
+            <Cell label="入庫日">
+              <input type="date" value={state.intake_date} onChange={onInput('intake_date')} className={fieldCls} />
+            </Cell>
+            <Cell label="入庫時間">
+              <input type="time" value={state.intake_time} onChange={onInput('intake_time')} className={fieldCls} />
+            </Cell>
 
-        {/* 担当 */}
-        <section>
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">担当</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">受付担当者</label>
+            {/* Row 2: 納車日 / 納車時間 / 走行距離 / 売上計上日 */}
+            <Cell label="納車日">
+              <input type="date" value={state.delivery_date} onChange={onInput('delivery_date')} className={fieldCls} />
+            </Cell>
+            <Cell label="納車時間">
+              <input type="time" value={state.delivery_time} onChange={onInput('delivery_time')} className={fieldCls} />
+            </Cell>
+            <Cell label="走行距離 (km)">
+              <input type="number" value={state.mileage} onChange={onInput('mileage')} min="0" className={fieldCls} />
+            </Cell>
+            <Cell label="売上計上日">
+              <input type="date" value={state.sales_recording_date} onChange={onInput('sales_recording_date')} className={fieldCls} />
+            </Cell>
+
+            {/* Row 3: 引取場所 / 引渡場所 / 受付担当 / 作業担当 */}
+            <Cell label="引取場所">
+              <input value={state.pickup_location} onChange={onInput('pickup_location')} className={fieldCls} />
+            </Cell>
+            <Cell label="引渡場所">
+              <input value={state.delivery_location} onChange={onInput('delivery_location')} className={fieldCls} />
+            </Cell>
+            <Cell label="受付担当">
               <SearchableSelect
                 key={`reception-${state.reception_owner_id}`}
                 name="reception_owner_id"
@@ -232,9 +226,8 @@ export default function MaintenanceBasicInfoEditForm({
                 placeholder="—"
                 onSelect={(id) => set('reception_owner_id', id)}
               />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">作業担当者</label>
+            </Cell>
+            <Cell label="作業担当">
               <SearchableSelect
                 key={`worker-${state.worker_owner_id}`}
                 name="worker_owner_id"
@@ -243,54 +236,38 @@ export default function MaintenanceBasicInfoEditForm({
                 placeholder="—"
                 onSelect={(id) => set('worker_owner_id', id)}
               />
-            </div>
-          </div>
-        </section>
+            </Cell>
 
-        {/* 税 */}
-        <section>
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">税</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">消費税区分</label>
+            {/* Row 4: 消費税区分 / 消費税端数 / レバーレート / （空） */}
+            <Cell label="消費税区分">
               <select value={state.tax_mode} onChange={onInput('tax_mode')} className={`${fieldCls} bg-white`}>
                 {TAX_MODES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">消費税端数</label>
+            </Cell>
+            <Cell label="消費税端数">
               <select value={state.tax_rounding} onChange={onInput('tax_rounding')} className={`${fieldCls} bg-white`}>
                 {TAX_ROUNDINGS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">レバーレート（税別）</label>
+            </Cell>
+            <Cell label="レバーレート（税別）">
               <input type="number" value={state.lever_rate} onChange={onInput('lever_rate')} min="0" className={fieldCls} />
-            </div>
+            </Cell>
+            <div className="hidden lg:block" />{/* 4 列目を埋めるダミー */}
           </div>
-        </section>
 
-        {/* メモ */}
-        <section>
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">メモ</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">
-                整備メモ <span className="text-zinc-400 font-normal">（印字なし）</span>
-              </label>
-              <textarea value={state.internal_memo} onChange={onInput('internal_memo')} rows={2} className={`${fieldCls} resize-y`} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">
-                作業指示備考 <span className="text-zinc-400 font-normal">（作業指示書に印字）</span>
-              </label>
-              <textarea value={state.work_order_note} onChange={onInput('work_order_note')} rows={2} className={`${fieldCls} resize-y`} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">
-                備考 <span className="text-zinc-400 font-normal">（見積書等に印字）</span>
-              </label>
-              <textarea value={state.general_note} onChange={onInput('general_note')} rows={2} className={`${fieldCls} resize-y`} />
+          {/* メモ（パネルと同じく仕切り線下に 3 列） */}
+          <div className="mt-4 pt-3 border-t border-zinc-100">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">メモ</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Cell label="整備メモ（印字なし）">
+                <textarea value={state.internal_memo} onChange={onInput('internal_memo')} rows={3} className={`${fieldCls} resize-y`} />
+              </Cell>
+              <Cell label="作業指示備考（作業指示書に印字）">
+                <textarea value={state.work_order_note} onChange={onInput('work_order_note')} rows={3} className={`${fieldCls} resize-y`} />
+              </Cell>
+              <Cell label="備考（見積書等に印字）">
+                <textarea value={state.general_note} onChange={onInput('general_note')} rows={3} className={`${fieldCls} resize-y`} />
+              </Cell>
             </div>
           </div>
         </section>
