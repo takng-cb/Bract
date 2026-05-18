@@ -21,6 +21,7 @@ import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
+import { DOCUMENT_TYPES } from '@/industries/auto-body/lib/documents'
 import { canEdit } from '@/lib/auth'
 import SectionEditModal from './SectionEditModal'
 import MaintenanceLineItemsEditor from './MaintenanceLineItemsEditor'
@@ -181,23 +182,23 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       {/* 帳票ボタン群（矢羽の直下、横1列・必要なら横スクロール） */}
       <div className="bg-white border border-zinc-200 rounded-lg px-3 py-2">
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="text-[10px] uppercase tracking-wider text-zinc-500 shrink-0 mr-1">
+          <Link
+            href={`/maintenance/${maintenanceId}/documents`}
+            className="text-[10px] uppercase tracking-wider text-zinc-500 hover:text-blue-600 shrink-0 mr-1"
+            title="全帳票一覧"
+          >
             {AB_ICONS.document} 帳票
-          </span>
-          {[
-            '概算見積書', '見積書', '作業指示書', '納品書',
-            '請求書', '次回整備提案書', '入庫概要シート', '領収証',
-            '預かり証', '検査諸費用計算書', 'はがき宛名（車検案内）', '申請書類',
-          ].map((label) => (
-            <button
-              key={label}
-              type="button"
-              disabled
-              className="px-2.5 py-1 text-[11px] text-zinc-600 bg-zinc-50 border border-zinc-200 rounded shrink-0 cursor-not-allowed hover:bg-zinc-100 whitespace-nowrap"
-              title="まだ実装されていません（次フェーズ）"
+          </Link>
+          {DOCUMENT_TYPES.map((d) => (
+            <Link
+              key={d.type}
+              href={`/maintenance/${maintenanceId}/documents/${d.type}`}
+              target="_blank"
+              className="px-2.5 py-1 text-[11px] text-zinc-700 bg-zinc-50 border border-zinc-200 rounded shrink-0 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 whitespace-nowrap transition-colors"
+              title={`${d.label} を別タブで印刷プレビュー`}
             >
-              {label}
-            </button>
+              {d.label}
+            </Link>
           ))}
         </div>
       </div>
