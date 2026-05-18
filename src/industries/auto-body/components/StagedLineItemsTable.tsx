@@ -254,7 +254,9 @@ export default function StagedLineItemsTable({
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[1100px]">
           {/* ヘッダ */}
-          <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700">
+          {/* [&>div]:px-2 で各ヘッダセルにデータ input と同じ左右パディングを付けて
+              ヘッダとデータ列の文字位置を揃える */}
+          <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700 [&>div]:px-2">
             <div className="text-center">削除 / #</div>
             <div>区分</div>
             <div>作業項目名</div>
@@ -406,9 +408,9 @@ export default function StagedLineItemsTable({
             </button>
           )}
 
-          {/* 合計 */}
+          {/* 合計（ヘッダと同じく [&>div]:px-2 でデータ列と文字位置を揃える） */}
           {rows.filter((r) => r._status !== 'deleted').length > 0 && (
-            <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm">
+            <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm [&>div]:px-2">
               <div></div>
               <div></div>
               <div className="text-right text-xs text-zinc-600 font-medium">合計</div>
