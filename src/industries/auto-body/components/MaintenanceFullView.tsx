@@ -229,15 +229,19 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           <div className="p-4">
             <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">顧客</p>
             {(account && !accountIsPersonal) ? (
-              /* BtoB: 法人取引先がある場合 — 会社名を主、担当者を副 */
+              /* BtoB: 法人取引先 — 取引先（会社名）が主、顧客担当者が副 */
               <>
+                <p className="text-[10px] text-zinc-500 mb-0.5">取引先</p>
                 <Link href={`/accounts/${account.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
                   {AB_ICONS.account} {account.name}
                 </Link>
                 {contact && (
-                  <Link href={`/contacts/${contact.id}`} className="block text-xs text-zinc-600 hover:text-amber-700 mt-1">
-                    {AB_ICONS.contact} {contact.full_name}
-                  </Link>
+                  <>
+                    <p className="text-[10px] text-zinc-500 mt-2 mb-0.5">顧客担当者</p>
+                    <Link href={`/contacts/${contact.id}`} className="text-xs text-zinc-700 hover:text-amber-700 hover:underline">
+                      {AB_ICONS.contact} {contact.full_name}
+                    </Link>
+                  </>
                 )}
                 <dl className="space-y-1 text-xs mt-2">
                   {(contact?.phone || account.phone) && (
@@ -261,8 +265,9 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                 </dl>
               </>
             ) : contact ? (
-              /* ToC: 個人プレースホルダの場合は contact を主にする（取引先名は出さない） */
+              /* BtoC: 取引先なし — 顧客 = 人物本人 */
               <>
+                <p className="text-[10px] text-zinc-500 mb-0.5">顧客</p>
                 <Link href={`/contacts/${contact.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
                   {AB_ICONS.contact} {contact.full_name}
                 </Link>

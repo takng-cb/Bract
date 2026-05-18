@@ -4,12 +4,13 @@
  * 顧客・車両セクションの編集フォーム（モーダル内で使用）。
  *
  * レイアウトは表示パネル（左 sticky）と同じ「顧客が上、車両が下」の縦並び。
- * 顧客ブロック内に 取引先 / 顧客担当者 / 請求先別指定 を、車両ブロック内に
- * 顧客車両 を配置する。
+ *
+ * 顧客の表記ロジック:
+ *   - BtoB（取引先に会社を選択）: 「顧客担当者」ラベル。会社配下の人物を絞り込み
+ *   - BtoC（取引先 = 空）: 「顧客」ラベル。親を持たない人物（ToC 顧客）のみ表示
  *
  * - 即時保存ではなく「保存」「キャンセル」を明示
  * - 既存 MaintenanceForm と同じく SearchableSelect ピッカーを利用
- * - 取引先「個人」は ToC プレースホルダ。プレースホルダ表示「— 個人」を出す
  */
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
@@ -57,9 +58,12 @@ export default function MaintenanceCustomerVehicleEditForm({
     }
   }
 
+  // 顧客担当者（人物）の絞り込み:
+  //   - 取引先が選択されている: その会社の人物のみ
+  //   - 取引先が空（BtoC）: 親を持たない人物 = ToC 顧客のみ
   const filteredContacts = accountId
     ? contacts.filter((c) => c.account_id === accountId)
-    : contacts
+    : contacts.filter((c) => !c.account_id)
 
   const dirty =
     vehicleId         !== (initial.customer_vehicle_id ?? '') ||
@@ -67,15 +71,22 @@ export default function MaintenanceCustomerVehicleEditForm({
     contactId         !== (initial.contact_id ?? '') ||
     billingAccountId  !== (initial.billing_account_id ?? '')
 
+  // 取引先が空のときは「顧客」、入っているときは「顧客担当者」と表示
+  const contactLabel = accountId ? '顧客担当者' : '顧客'
+  const isToC = !accountId
+
   function handleSave() {
     setError(null)
     if (!vehicleId) { setError('顧客車両は必須です'); return }
-    if (!accountId) { setError('顧客（取引先）は必須です'); return }
+    // BtoB は取引先、BtoC は顧客（人物）が必須。どちらか必須。
+    if (!accountId && !contactId) {
+      setError(`${contactLabel}は必須です（取引先 or 人物 のいずれか）`); return
+    }
     startTransition(async () => {
       try {
         await updateMaintenanceCustomerVehicle(maintenanceId, {
           customer_vehicle_id: vehicleId,
-          account_id:          accountId,
+          account_id:          accountId || null,
           contact_id:          contactId || null,
           billing_account_id:  billingAccountId || null,
         })
@@ -105,20 +116,20 @@ export default function MaintenanceCustomerVehicleEditForm({
           <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
             <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.account} 顧客</h3>
             <p className="text-[10px] text-zinc-400 mt-0.5">
-              個人のお客様（BtoC）は取引先に「個人」を選択してください。表示時には取引先名は出ません。
+              BtoB は取引先（会社）を選択。BtoC（個人のお客様）は取引先を空のままにして、下の「顧客」欄で人物を選択してください。
             </p>
           </div>
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                顧客（取引先） <span className="text-red-500">*</span>
+                取引先 <span className="text-zinc-400 font-normal">（空でも可・BtoC のとき）</span>
               </label>
               <SearchableSelect
                 key={`account-${accountId}`}
                 name="account_id"
                 defaultValue={accountId || undefined}
                 options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-                placeholder="選択してください（個人 / 会社名）"
+                placeholder="— （個人のお客様）"
                 onSelect={(id) => {
                   setAccountId(id)
                   // 取引先を変えたら、フィルタが効かなくなる担当者をリセット
@@ -126,24 +137,27 @@ export default function MaintenanceCustomerVehicleEditForm({
                 }}
               />
               <p className="text-[11px] text-zinc-400 mt-1">
-                BtoB は会社名、BtoC は「個人」を選択
+                会社名なら BtoB。空のままなら BtoC（個人）
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                顧客担当者（人物）
+                {contactLabel}
+                {isToC && <span className="text-red-500"> *</span>}
               </label>
               <SearchableSelect
                 key={`contact-${accountId}-${contactId}`}
                 name="contact_id"
                 defaultValue={contactId || undefined}
                 options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
-                placeholder="—"
+                placeholder={isToC ? '本人を選択（ToC 顧客）' : '—'}
                 onSelect={(id) => setContactId(id)}
               />
               <p className="text-[11px] text-zinc-400 mt-1">
-                取引先内の担当者で絞り込み。BtoC では本人を選択
+                {isToC
+                  ? '取引先を持たない人物（ToC 顧客）のみ表示。空のままだと保存できません'
+                  : '選択中の取引先に紐付く担当者のみ表示'}
               </p>
             </div>
 

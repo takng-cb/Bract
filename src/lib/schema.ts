@@ -322,8 +322,11 @@ export const maintenance_records = pgTable('maintenance_records', {
   maintenance_no:       text('maintenance_no').notNull().unique(), // 'YYYYMMDD-NNN'
 
   // 主体
+  //   BtoB: account_id（会社）+ contact_id（窓口担当者）
+  //   BtoC: account_id NULL + contact_id（本人＝顧客）
+  //   いずれか必須（アプリ層で検証）。
   customer_vehicle_id:  uuid('customer_vehicle_id').notNull().references(() => customer_vehicles.id, { onDelete: 'restrict' }),
-  account_id:           uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'restrict' }),
+  account_id:           uuid('account_id').references(() => accounts.id, { onDelete: 'restrict' }),
   contact_id:           uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
   billing_account_id:   uuid('billing_account_id').references(() => accounts.id, { onDelete: 'set null' }),
 

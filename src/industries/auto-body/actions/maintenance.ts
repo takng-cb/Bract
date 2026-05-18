@@ -26,7 +26,11 @@ export async function createMaintenance(formData: FormData): Promise<string> {
   const customer_vehicle_id = pick(formData, 'customer_vehicle_id')
   if (!customer_vehicle_id) throw new Error('顧客車両は必須です')
   const account_id = pick(formData, 'account_id')
-  if (!account_id) throw new Error('顧客（取引先）は必須です')
+  const contact_id_check = pick(formData, 'contact_id')
+  // BtoB は取引先（会社）、BtoC は contact（人物）のみで成立。いずれか必須。
+  if (!account_id && !contact_id_check) {
+    throw new Error('顧客（取引先または人物）は必須です')
+  }
 
   // UNIQUE 違反したら 5 回まで番号再採番（同時 INSERT 対策）
   let lastErr: unknown = null
@@ -77,7 +81,10 @@ export async function updateMaintenance(id: string, formData: FormData) {
   const customer_vehicle_id = pick(formData, 'customer_vehicle_id')
   if (!customer_vehicle_id) throw new Error('顧客車両は必須です')
   const account_id = pick(formData, 'account_id')
-  if (!account_id) throw new Error('顧客（取引先）は必須です')
+  const contact_id_check = pick(formData, 'contact_id')
+  if (!account_id && !contact_id_check) {
+    throw new Error('顧客（取引先または人物）は必須です')
+  }
 
   await db.update(maintenance_records).set({
     customer_vehicle_id,
@@ -127,14 +134,17 @@ export async function updateMaintenanceCustomerVehicle(
   id: string,
   data: {
     customer_vehicle_id: string
-    account_id:          string
+    account_id:          string | null
     contact_id:          string | null
     billing_account_id:  string | null
   },
 ) {
   await requireEditor()
   if (!data.customer_vehicle_id) throw new Error('顧客車両は必須です')
-  if (!data.account_id)          throw new Error('顧客（取引先）は必須です')
+  // BtoB は取引先（会社）、BtoC は contact（人物）のみで成立。いずれか必須。
+  if (!data.account_id && !data.contact_id) {
+    throw new Error('顧客（取引先または人物）は必須です')
+  }
 
   await db.update(maintenance_records).set({
     customer_vehicle_id: data.customer_vehicle_id,
