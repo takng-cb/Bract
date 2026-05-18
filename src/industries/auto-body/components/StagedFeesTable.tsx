@@ -149,13 +149,12 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
 
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[600px]">
-          <div className="grid grid-cols-[2rem_5rem_minmax(0,1fr)_6rem_6rem_5rem] gap-1 px-2 py-1.5 bg-amber-50 border-b-2 border-amber-200 text-[11px] font-semibold text-amber-900">
-            <div className="text-center">#</div>
+          <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_6rem_6rem] gap-1 px-2 py-1.5 bg-amber-50 border-b-2 border-amber-200 text-[11px] font-semibold text-amber-900">
+            <div className="text-center">削除 / #</div>
             <div>区分</div>
             <div>項目名</div>
             <div className="text-right">金額</div>
             <div className="text-right">原価</div>
-            <div className="text-right">操作</div>
           </div>
 
           {rows.length === 0 ? (
@@ -170,8 +169,22 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
                 r._status === 'new'     ? 'bg-emerald-50/30 border-l-4 border-emerald-400' :
                                           'hover:bg-amber-50/20'
               return (
-                <div key={r._key} className={`grid grid-cols-[2rem_5rem_minmax(0,1fr)_6rem_6rem_5rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 ${cls}`}>
-                  <div className="text-xs text-zinc-400 font-mono text-center">{r._status === 'new' ? '＋' : idx + 1}</div>
+                <div key={r._key} className={`grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_6rem_6rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 ${cls}`}>
+                  <div className="flex items-center gap-1">
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => toggleDelete(r._key)}
+                        className={r._status === 'deleted'
+                          ? 'w-7 h-7 inline-flex items-center justify-center rounded text-amber-600 hover:text-amber-800 hover:bg-amber-50 text-xs'
+                          : 'w-7 h-7 inline-flex items-center justify-center rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-rose-200'}
+                        title={r._status === 'deleted' ? '削除を取り消す' : 'この行を削除'}
+                      >
+                        {r._status === 'deleted' ? '↩' : '🗑'}
+                      </button>
+                    )}
+                    <div className="text-xs text-zinc-400 font-mono text-center flex-1">{r._status === 'new' ? '＋' : idx + 1}</div>
+                  </div>
                   <select
                     value={r.category}
                     onChange={(e) => update(r._key, 'category', e.target.value)}
@@ -184,19 +197,6 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
                   <input value={r.item_name} onChange={(e) => update(r._key, 'item_name', e.target.value)} placeholder="項目名" required disabled={!canEdit || r._status === 'deleted'} className={cell} />
                   <input type="number" min="0" value={r.amount} onChange={(e) => update(r._key, 'amount', e.target.value)} placeholder="金額" disabled={!canEdit || r._status === 'deleted'} className={cellNum} />
                   <input type="number" min="0" value={r.cost_amount} onChange={(e) => update(r._key, 'cost_amount', e.target.value)} placeholder="原価" disabled={!canEdit || r._status === 'deleted'} className={cellNum} />
-                  <div className="flex items-center justify-end gap-1 text-xs">
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={() => toggleDelete(r._key)}
-                        className={r._status === 'deleted'
-                          ? 'text-amber-600 hover:text-amber-800 px-1 py-0.5 rounded hover:bg-amber-50 text-[10px]'
-                          : 'text-rose-500 hover:text-rose-700 px-1 py-0.5 rounded hover:bg-rose-50'}
-                      >
-                        {r._status === 'deleted' ? '↩ 戻す' : '🗑'}
-                      </button>
-                    )}
-                  </div>
                 </div>
               )
             })
@@ -214,16 +214,16 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
           )}
 
           {rows.filter((r) => r._status !== 'deleted').length > 0 && (
-            <div className="grid grid-cols-[2rem_5rem_minmax(0,1fr)_6rem_6rem_5rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm">
+            <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_6rem_6rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm">
               <div></div>
               <div></div>
               <div className="text-right text-xs text-zinc-600">
                 <span className="mr-3">課税計 <span className="font-mono">¥{taxable.toLocaleString()}</span></span>
                 <span className="mr-3">非課税計 <span className="font-mono">¥{nonTaxable.toLocaleString()}</span></span>
+                <span>合計</span>
               </div>
               <div className="text-right font-mono font-bold text-zinc-900">¥{total.toLocaleString()}</div>
               <div className="text-right text-xs text-zinc-500 font-mono">¥{costSum.toLocaleString()}</div>
-              <div></div>
             </div>
           )}
         </div>

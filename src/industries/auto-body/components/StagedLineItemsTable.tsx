@@ -254,8 +254,8 @@ export default function StagedLineItemsTable({
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[1100px]">
           {/* ヘッダ */}
-          <div className="grid grid-cols-[2rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_5rem] gap-1 px-2 py-1.5 bg-amber-50 border-b-2 border-amber-200 text-[11px] font-semibold text-amber-900">
-            <div className="text-center">#</div>
+          <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-1.5 bg-amber-50 border-b-2 border-amber-200 text-[11px] font-semibold text-amber-900">
+            <div className="text-center">削除 / #</div>
             <div>区分</div>
             <div>作業項目名</div>
             <div className="text-right">工数</div>
@@ -265,7 +265,7 @@ export default function StagedLineItemsTable({
             <div className="text-right">部品単価</div>
             <div className="text-right">小計</div>
             <div className="text-center">完了</div>
-            <div className="text-right">操作</div>
+            <div className="text-center">除外</div>
           </div>
 
           {rows.length === 0 ? (
@@ -284,10 +284,25 @@ export default function StagedLineItemsTable({
               return (
                 <div
                   key={r._key}
-                  className={`grid grid-cols-[2rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_5rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 ${rowClass} ${r.is_excluded ? 'opacity-60' : ''}`}
+                  className={`grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 ${rowClass} ${r.is_excluded ? 'opacity-60' : ''}`}
                 >
-                  <div className="text-xs text-zinc-400 font-mono text-center">
-                    {r._status === 'new' ? '＋' : idx + 1}
+                  {/* 削除ボタン + 行番号 */}
+                  <div className="flex items-center gap-1">
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => toggleDelete(r._key)}
+                        className={r._status === 'deleted'
+                          ? 'w-7 h-7 inline-flex items-center justify-center rounded text-amber-600 hover:text-amber-800 hover:bg-amber-50 text-xs'
+                          : 'w-7 h-7 inline-flex items-center justify-center rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-rose-200'}
+                        title={r._status === 'deleted' ? '削除を取り消す' : 'この行を削除'}
+                      >
+                        {r._status === 'deleted' ? '↩' : '🗑'}
+                      </button>
+                    )}
+                    <div className="text-xs text-zinc-400 font-mono text-center flex-1">
+                      {r._status === 'new' ? '＋' : idx + 1}
+                    </div>
                   </div>
                   <input
                     value={r.work_category}
@@ -365,29 +380,14 @@ export default function StagedLineItemsTable({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center justify-end gap-1 text-xs">
-                    <label className="flex items-center gap-0.5 cursor-pointer" title="集計対象外">
-                      <input
-                        type="checkbox"
-                        checked={r.is_excluded}
-                        onChange={(e) => update(r._key, 'is_excluded', e.target.checked)}
-                        disabled={!canEdit || r._status === 'deleted'}
-                        className="w-3 h-3"
-                      />
-                      <span className="text-[10px] text-zinc-500">除外</span>
-                    </label>
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={() => toggleDelete(r._key)}
-                        className={r._status === 'deleted'
-                          ? 'text-amber-600 hover:text-amber-800 px-1 py-0.5 rounded hover:bg-amber-50 text-[10px]'
-                          : 'text-rose-500 hover:text-rose-700 px-1 py-0.5 rounded hover:bg-rose-50'}
-                        title={r._status === 'deleted' ? '削除を取り消す' : '削除予定'}
-                      >
-                        {r._status === 'deleted' ? '↩ 戻す' : '🗑'}
-                      </button>
-                    )}
+                  <div className="flex items-center justify-center" title="集計対象外（金額計算から除く）">
+                    <input
+                      type="checkbox"
+                      checked={r.is_excluded}
+                      onChange={(e) => update(r._key, 'is_excluded', e.target.checked)}
+                      disabled={!canEdit || r._status === 'deleted'}
+                      className="w-4 h-4 cursor-pointer"
+                    />
                   </div>
                 </div>
               )
@@ -408,7 +408,7 @@ export default function StagedLineItemsTable({
 
           {/* 合計 */}
           {rows.filter((r) => r._status !== 'deleted').length > 0 && (
-            <div className="grid grid-cols-[2rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_5rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm">
+            <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm">
               <div></div>
               <div></div>
               <div className="text-right text-xs text-zinc-600 font-medium">合計</div>
@@ -419,7 +419,7 @@ export default function StagedLineItemsTable({
               <div className="text-right font-mono">{yen(partsSum)}</div>
               <div className="text-right font-mono font-bold text-zinc-900">{yen(subtotal)}</div>
               <div></div>
-              <div className="text-right text-xs text-zinc-500">原価 {yen(costSum)}</div>
+              <div className="text-right text-[10px] text-zinc-500">原価<br/><span className="font-mono">{yen(costSum)}</span></div>
             </div>
           )}
         </div>

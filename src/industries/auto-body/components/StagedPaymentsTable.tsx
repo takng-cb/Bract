@@ -161,14 +161,13 @@ export default function StagedPaymentsTable({
 
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[800px]">
-          <div className="grid grid-cols-[2rem_7rem_6rem_7rem_minmax(0,1fr)_8rem_5rem] gap-1 px-2 py-1.5 bg-amber-50 border-b-2 border-amber-200 text-[11px] font-semibold text-amber-900">
-            <div className="text-center">#</div>
+          <div className="grid grid-cols-[4.5rem_7rem_6rem_7rem_minmax(0,1fr)_8rem] gap-1 px-2 py-1.5 bg-amber-50 border-b-2 border-amber-200 text-[11px] font-semibold text-amber-900">
+            <div className="text-center">削除 / #</div>
             <div>入金日</div>
             <div>支払方法</div>
             <div className="text-right">金額</div>
             <div>メモ</div>
             <div>担当者</div>
-            <div className="text-right">操作</div>
           </div>
 
           {rows.length === 0 ? (
@@ -183,8 +182,22 @@ export default function StagedPaymentsTable({
                 r._status === 'new'     ? 'bg-emerald-50/30 border-l-4 border-emerald-400' :
                                           'hover:bg-amber-50/20'
               return (
-                <div key={r._key} className={`grid grid-cols-[2rem_7rem_6rem_7rem_minmax(0,1fr)_8rem_5rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 ${cls}`}>
-                  <div className="text-xs text-zinc-400 font-mono text-center">{r._status === 'new' ? '＋' : idx + 1}</div>
+                <div key={r._key} className={`grid grid-cols-[4.5rem_7rem_6rem_7rem_minmax(0,1fr)_8rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 ${cls}`}>
+                  <div className="flex items-center gap-1">
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => toggleDelete(r._key)}
+                        className={r._status === 'deleted'
+                          ? 'w-7 h-7 inline-flex items-center justify-center rounded text-amber-600 hover:text-amber-800 hover:bg-amber-50 text-xs'
+                          : 'w-7 h-7 inline-flex items-center justify-center rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-rose-200'}
+                        title={r._status === 'deleted' ? '削除を取り消す' : 'この行を削除'}
+                      >
+                        {r._status === 'deleted' ? '↩' : '🗑'}
+                      </button>
+                    )}
+                    <div className="text-xs text-zinc-400 font-mono text-center flex-1">{r._status === 'new' ? '＋' : idx + 1}</div>
+                  </div>
                   <input type="date" value={r.payment_date} onChange={(e) => update(r._key, 'payment_date', e.target.value)} required disabled={!canEdit || r._status === 'deleted'} className={cell} />
                   <select value={r.payment_method} onChange={(e) => update(r._key, 'payment_method', e.target.value)} required disabled={!canEdit || r._status === 'deleted'} className={`${cell} bg-white`}>
                     {METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
@@ -195,19 +208,6 @@ export default function StagedPaymentsTable({
                     <option value="">— 担当者 —</option>
                     {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
-                  <div className="flex items-center justify-end gap-1 text-xs">
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={() => toggleDelete(r._key)}
-                        className={r._status === 'deleted'
-                          ? 'text-amber-600 hover:text-amber-800 px-1 py-0.5 rounded hover:bg-amber-50 text-[10px]'
-                          : 'text-rose-500 hover:text-rose-700 px-1 py-0.5 rounded hover:bg-rose-50'}
-                      >
-                        {r._status === 'deleted' ? '↩ 戻す' : '🗑'}
-                      </button>
-                    )}
-                  </div>
                 </div>
               )
             })
@@ -225,7 +225,7 @@ export default function StagedPaymentsTable({
           )}
 
           {rows.filter((r) => r._status !== 'deleted').length > 0 && (
-            <div className="grid grid-cols-[2rem_7rem_6rem_7rem_minmax(0,1fr)_8rem_5rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm">
+            <div className="grid grid-cols-[4.5rem_7rem_6rem_7rem_minmax(0,1fr)_8rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm">
               <div></div>
               <div></div>
               <div className="text-right text-xs text-zinc-600">入金合計</div>
@@ -243,7 +243,6 @@ export default function StagedPaymentsTable({
                   <div></div>
                 </>
               )}
-              <div></div>
             </div>
           )}
         </div>
