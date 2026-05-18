@@ -26,6 +26,16 @@ import MaintenanceLineItemsEditor from './MaintenanceLineItemsEditor'
 import MaintenanceFeesEditor from './MaintenanceFeesEditor'
 import MaintenancePaymentsEditor from './MaintenancePaymentsEditor'
 import MaintenanceDamageMap from './MaintenanceDamageMap'
+import StageBar, { type StageConfig } from '@/components/StageBar'
+import { updateMaintenanceStatus } from '@/industries/auto-body/actions/maintenance'
+
+const STATUS_STAGES: StageConfig[] = [
+  { value: '予約',     label: '予約',     activeColor: STATUS_PALETTE['予約'].activeColor,    pastColor: STATUS_PALETTE['予約'].pastColor },
+  { value: '受付',     label: '受付',     activeColor: STATUS_PALETTE['受付'].activeColor,    pastColor: STATUS_PALETTE['受付'].pastColor },
+  { value: '作業中',   label: '作業中',   activeColor: STATUS_PALETTE['作業中'].activeColor,  pastColor: STATUS_PALETTE['作業中'].pastColor },
+  { value: '納車待ち', label: '納車待ち', activeColor: STATUS_PALETTE['納車待ち'].activeColor,pastColor: STATUS_PALETTE['納車待ち'].pastColor },
+  { value: '完了',     label: '完了 ✓',   activeColor: STATUS_PALETTE['完了'].activeColor,    pastColor: STATUS_PALETTE['完了'].pastColor },
+]
 
 type Props = {
   maintenanceId: string
@@ -120,9 +130,20 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   // 計算結果を子コンポーネント (payments editor) で参照する用
   const invoiceTotal = linesTotal + taxableFees + nontaxableFees
 
+  async function changeStatus(status: string) {
+    'use server'
+    await updateMaintenanceStatus(maintenanceId, status)
+  }
+
   // ─── レンダー ──────────────────────────────────
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+    <div className="space-y-4">
+      {/* ステータス遷移バー（全幅） */}
+      <div className="bg-white border border-zinc-200 rounded-lg p-3">
+        <StageBar stages={STATUS_STAGES} currentStage={m.status} updateAction={changeStatus} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
       {/* ─── 左 sticky パネル ─────────────────────────────── */}
       <aside className="lg:sticky lg:top-4 self-start space-y-3">
         {/* ステータス */}
@@ -456,6 +477,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           </div>
         </section>
       </main>
+      </div>
     </div>
   )
 }

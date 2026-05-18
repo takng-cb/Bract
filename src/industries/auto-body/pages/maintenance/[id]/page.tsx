@@ -2,10 +2,9 @@ import { db } from '@/lib/db'
 import {
   maintenance_records, customer_vehicles, accounts, contacts,
   activities, tasks, expenses, change_logs,
-  maintenance_line_items, maintenance_fees,
 } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
-import { eq, and, desc, asc, inArray, count, sql } from 'drizzle-orm'
+import { eq, and, desc, asc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
@@ -15,26 +14,11 @@ import DeleteButton from '@/components/DeleteButton'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
-import StageBar, { type StageConfig } from '@/components/StageBar'
-import { deleteMaintenance, updateMaintenanceStatus } from '@/industries/auto-body/actions/maintenance'
+import { deleteMaintenance } from '@/industries/auto-body/actions/maintenance'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { getAllUsers } from '@/lib/userUtils'
-import { canEdit } from '@/lib/auth'
-import MaintenanceLineItemsEditor from '@/industries/auto-body/components/MaintenanceLineItemsEditor'
-import MaintenanceFeesEditor from '@/industries/auto-body/components/MaintenanceFeesEditor'
-import MaintenancePaymentsEditor from '@/industries/auto-body/components/MaintenancePaymentsEditor'
 import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFullView'
-import MaintenanceDamageMap from '@/industries/auto-body/components/MaintenanceDamageMap'
-import { STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
-
-const STATUS_STAGES: StageConfig[] = [
-  { value: '予約',     label: '予約',     activeColor: STATUS_PALETTE['予約'].activeColor,    pastColor: STATUS_PALETTE['予約'].pastColor },
-  { value: '受付',     label: '受付',     activeColor: STATUS_PALETTE['受付'].activeColor,    pastColor: STATUS_PALETTE['受付'].pastColor },
-  { value: '作業中',   label: '作業中',   activeColor: STATUS_PALETTE['作業中'].activeColor,  pastColor: STATUS_PALETTE['作業中'].pastColor },
-  { value: '納車待ち', label: '納車待ち', activeColor: STATUS_PALETTE['納車待ち'].activeColor,pastColor: STATUS_PALETTE['納車待ち'].pastColor },
-  { value: '完了',     label: '完了 ✓',   activeColor: STATUS_PALETTE['完了'].activeColor,    pastColor: STATUS_PALETTE['完了'].pastColor },
-]
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -42,19 +26,10 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   low:    { label: '低', color: 'text-green-700 bg-green-50' },
 }
 
-// 行アイテム以外のサブタブ用プレースホルダ（次フェーズ実装予定）
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
-      <p className="text-sm text-zinc-500">{title} は次のフェーズで実装予定です</p>
-    </div>
-  )
-}
-
 export default async function MaintenanceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [mRow, activitiesList, tasksList, expensesList, activityTypes, allUsers, changeLogCountRow, editable, lineTotalsRow, feeTotalsRow] = await Promise.all([
+  const [mRow, activitiesList, tasksList, expensesList, activityTypes, allUsers, changeLogCountRow] = await Promise.all([
     db.select({
       m:       maintenance_records,
       vehicle: customer_vehicles,
@@ -80,22 +55,12 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     getAllUsers(),
     db.select({ c: count() }).from(change_logs)
       .where(and(eq(change_logs.object_type, 'maintenance'), eq(change_logs.object_id, id))),
-    canEdit(),
-    // 集計（請求合計の参考表示用）
-    db.select({
-      labor: sql<string>`COALESCE(SUM(CASE WHEN ${maintenance_line_items.is_excluded} THEN 0 ELSE COALESCE(${maintenance_line_items.labor_amount}, 0) END), 0)`,
-      parts: sql<string>`COALESCE(SUM(CASE WHEN ${maintenance_line_items.is_excluded} THEN 0 ELSE COALESCE(${maintenance_line_items.parts_qty}, 0) * COALESCE(${maintenance_line_items.parts_unit_price}, 0) END), 0)`,
-    }).from(maintenance_line_items).where(eq(maintenance_line_items.maintenance_id, id)),
-    db.select({
-      fees: sql<string>`COALESCE(SUM(COALESCE(${maintenance_fees.amount}, 0)), 0)`,
-    }).from(maintenance_fees).where(eq(maintenance_fees.maintenance_id, id)),
   ])
 
   if (!mRow) notFound()
   const m = mRow.m
   const vehicle = mRow.vehicle
   const account = mRow.account?.id ? mRow.account : null
-  const contact = mRow.contact?.id ? mRow.contact : null
 
   const [activityRelMap, taskRelMap, expenseRelMap] = await Promise.all([
     batchResolveRelatedRecords('activity', activitiesList.map((a) => a.id)),
@@ -108,17 +73,9 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
   for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
 
-  const receptionUser = m.reception_owner_id ? allUsers.find((u) => u.id === m.reception_owner_id) : null
-  const workerUser    = m.worker_owner_id    ? allUsers.find((u) => u.id === m.worker_owner_id)    : null
-
   async function handleDelete() {
     'use server'
     await deleteMaintenance(id)
-  }
-
-  async function changeStatus(status: string) {
-    'use server'
-    await updateMaintenanceStatus(id, status)
   }
 
   async function toggleTask(formData: FormData) {
@@ -127,147 +84,6 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     const done   = formData.get('done') === 'true'
     await toggleTaskDone(taskId, done, `/maintenance/${id}`)
   }
-
-  // ── 概要タブ内のサブタブ ───────────────────────────────────────
-
-  // 1. 基本情報
-  const basicInfoContent = (
-    <>
-      <div className="mb-6">
-        <StageBar stages={STATUS_STAGES} currentStage={m.status} updateAction={changeStatus} />
-      </div>
-
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">概要</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div><dt className="text-xs text-zinc-400 mb-1">整備No</dt><dd className="text-sm font-mono text-zinc-800">{m.maintenance_no}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">入庫日時</dt><dd className="text-sm text-zinc-800">{m.intake_date ?? '—'} {m.intake_time}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">納車日時</dt><dd className="text-sm text-zinc-800">{m.delivery_date ?? '—'} {m.delivery_time}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">引取場所</dt><dd className="text-sm text-zinc-800">{m.pickup_location ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">引渡場所</dt><dd className="text-sm text-zinc-800">{m.delivery_location ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">売上計上日</dt><dd className="text-sm text-zinc-800">{m.sales_recording_date ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">総走行距離</dt><dd className="text-sm text-zinc-800">{m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">拠点</dt><dd className="text-sm text-zinc-800">{m.branch_id ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">入庫区分</dt><dd className="text-sm text-zinc-800">{m.intake_category ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">受付担当者</dt><dd className="text-sm text-zinc-800">{receptionUser?.name ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">作業担当者</dt><dd className="text-sm text-zinc-800">{workerUser?.name ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">登録日</dt><dd className="text-sm text-zinc-800">{m.created_at ? new Date(m.created_at).toLocaleDateString('ja-JP') : '—'}</dd></div>
-        </dl>
-      </div>
-
-      {/* 顧客・車両 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">顧客・車両</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">顧客（取引先）</dt>
-            <dd className="text-sm">{account ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">🏢 {account.name}</Link> : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">顧客担当者</dt>
-            <dd className="text-sm">{contact ? <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">👤 {contact.full_name}</Link> : '—'}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-xs text-zinc-400 mb-1">車両</dt>
-            <dd className="text-sm">
-              {vehicle ? (
-                <Link href={`/customer-vehicles/${vehicle.id}`} className="text-blue-600 hover:underline">
-                  🚗 {vehicle.plate_number ?? '—'}（{[vehicle.car_name, vehicle.car_model, vehicle.grade].filter(Boolean).join(' / ')}）
-                </Link>
-              ) : '—'}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      {/* メモ */}
-      {(m.internal_memo || m.work_order_note || m.general_note) && (
-        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">メモ</h2>
-          <div className="space-y-3 text-sm">
-            {m.internal_memo && (
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">整備メモ（印字なし）</dt>
-                <dd className="whitespace-pre-wrap text-zinc-800">{m.internal_memo}</dd>
-              </div>
-            )}
-            {m.work_order_note && (
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">作業指示備考</dt>
-                <dd className="whitespace-pre-wrap text-zinc-800">{m.work_order_note}</dd>
-              </div>
-            )}
-            {m.general_note && (
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">備考</dt>
-                <dd className="whitespace-pre-wrap text-zinc-800">{m.general_note}</dd>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 税情報 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">税</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div><dt className="text-xs text-zinc-400 mb-1">消費税区分</dt><dd className="text-sm text-zinc-800">{m.tax_mode}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">消費税端数</dt><dd className="text-sm text-zinc-800">{m.tax_rounding}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">レバーレート</dt><dd className="text-sm text-zinc-800">{m.lever_rate ? `¥${Number(m.lever_rate).toLocaleString()}` : '—'}</dd></div>
-        </dl>
-      </div>
-    </>
-  )
-
-  // 2-5: 行アイテム / 諸費用 / 入金 / 帳票
-  // 帳票はスタブ（Placeholder はファイル末尾にホイスト済み）
-
-  // 売上額（税抜）= 行アイテム（除外除く）の労務+部品 + 諸費用合計
-  const labor = Number(lineTotalsRow[0]?.labor ?? 0)
-  const parts = Number(lineTotalsRow[0]?.parts ?? 0)
-  const feesT = Number(feeTotalsRow[0]?.fees ?? 0)
-  const invoiceTotal = labor + parts + feesT
-
-  const linesContent = (
-    <MaintenanceLineItemsEditor
-      maintenanceId={id}
-      canEdit={editable}
-      leverRate={m.lever_rate}
-    />
-  )
-
-  const feesContent = (
-    <MaintenanceFeesEditor
-      maintenanceId={id}
-      canEdit={editable}
-    />
-  )
-
-  const paymentsContent = (
-    <MaintenancePaymentsEditor
-      maintenanceId={id}
-      canEdit={editable}
-      users={allUsers}
-      invoiceTotal={invoiceTotal}
-    />
-  )
-
-  const damageMapContent = (
-    <MaintenanceDamageMap maintenanceId={id} canEdit={editable} />
-  )
-
-  const overviewSubTabs: TabDef[] = [
-    { id: 'basic',     label: '基本情報',    content: basicInfoContent },
-    { id: 'lines',     label: '行アイテム',  content: linesContent },
-    { id: 'fees',      label: '諸費用',      content: feesContent },
-    { id: 'payments',  label: '入金',        content: paymentsContent },
-    { id: 'damage',    label: '損傷マップ',  content: damageMapContent },
-    { id: 'documents', label: '帳票',        content: <Placeholder title="帳票" /> },
-  ]
-
-  const overviewContent = (
-    <RecordTabs defaultTab="basic" tabs={overviewSubTabs} paramName="sub" />
-  )
 
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
@@ -367,15 +183,15 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     </div>
   )
 
-  // ── 全体ビュー（CarRide スタイル 1 画面伝票）─────────────────────
+  // ── 全体ビュー（メインの編集 UI）─────────────────────────────
   const fullViewContent = (
     <MaintenanceFullView maintenanceId={id} users={allUsers} />
   )
 
   // ── メインタブ ──────────────────────────────────────────────────
+  // 概要タブは廃止し、全体ビューを既定タブにする（編集はそのモーダル経由）。
   const tabsConfig: TabDef[] = [
-    { id: 'overview',  label: '概要', content: overviewContent },
-    { id: 'full',      label: '全体', content: fullViewContent },
+    { id: 'full', label: '全体', content: fullViewContent },
   ]
   tabsConfig.push({
     id: 'interactions',
@@ -421,7 +237,7 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
         </div>
       </div>
 
-      <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+      <RecordTabs defaultTab="full" tabs={tabsConfig} />
 
       <div className="mt-6 text-right">
         <RecordId id={id} />
