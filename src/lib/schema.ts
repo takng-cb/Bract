@@ -286,7 +286,10 @@ export const part_movements = pgTable('part_movements', {
 // ----------------------------------------------------------------
 export const customer_vehicles = pgTable('customer_vehicles', {
   id:                       uuid('id').primaryKey().defaultRandom(),
-  account_id:               uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  // 所有者: BtoB は account_id（会社）、BtoC は contact_id（本人）。
+  // どちらか一方が入る運用（アプリ層で検証）。
+  account_id:               uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
+  contact_id:               uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
   // ナンバープレート
   transport_branch:         text('transport_branch'),       // 運輸支局
   classification_number:    text('classification_number'),  // 分類番号
