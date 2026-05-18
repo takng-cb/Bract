@@ -86,7 +86,6 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   const v = mRow.vehicle
   const account = mRow.account?.id ? mRow.account : null
   const contact = mRow.contact?.id ? mRow.contact : null
-  const statusPalette = STATUS_PALETTE[m.status] ?? STATUS_PALETTE['予約']
 
   const receptionName = m.reception_owner_id ? users.find((u) => u.id === m.reception_owner_id)?.name ?? '—' : '—'
   const workerName    = m.worker_owner_id    ? users.find((u) => u.id === m.worker_owner_id)?.name    ?? '—' : '—'
@@ -139,67 +138,103 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   // ─── レンダー ──────────────────────────────────
   return (
     <div className="space-y-4">
-      {/* ステータス遷移バー（全幅） */}
+      {/* ステータス遷移バー（全幅・矢羽） */}
       <div className="bg-white border border-zinc-200 rounded-lg p-3">
         <StageBar stages={STATUS_STAGES} currentStage={m.status} updateAction={changeStatus} />
+      </div>
+
+      {/* 帳票ボタン群（矢羽の直下、横1列・必要なら横スクロール） */}
+      <div className="bg-white border border-zinc-200 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500 shrink-0 mr-1">
+            {AB_ICONS.document} 帳票
+          </span>
+          {[
+            '概算見積書', '見積書', '作業指示書', '納品書',
+            '請求書', '次回整備提案書', '入庫概要シート', '領収証',
+            '預かり証', '検査諸費用計算書', 'はがき宛名（車検案内）', '申請書類',
+          ].map((label) => (
+            <button
+              key={label}
+              type="button"
+              disabled
+              className="px-2.5 py-1 text-[11px] text-zinc-600 bg-zinc-50 border border-zinc-200 rounded shrink-0 cursor-not-allowed hover:bg-zinc-100 whitespace-nowrap"
+              title="まだ実装されていません（次フェーズ）"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
       {/* ─── 左 sticky パネル ─────────────────────────────── */}
       <aside className="lg:sticky lg:top-4 self-start space-y-3">
-        {/* ステータス */}
-        <div className={`rounded-lg border-2 ${statusPalette.border} ${statusPalette.bg} px-4 py-3`}>
-          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">ステータス</p>
-          <p className={`text-lg font-bold ${statusPalette.text}`}>{m.status}</p>
-        </div>
-
-        {/* 基本キー情報 */}
-        <div className="bg-white border border-zinc-200 rounded-lg p-4">
-          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">整備</p>
-          <p className="font-mono text-base font-bold text-zinc-900 mb-3">{m.maintenance_no}</p>
-          <dl className="space-y-2 text-xs">
-            <KV label={`${AB_ICONS.maintenance} 入庫`} value={`${m.intake_date ?? '—'}${m.intake_time ? ` ${m.intake_time}` : ''}`} />
-            <KV label={`${AB_ICONS.done} 納車`} value={`${m.delivery_date ?? '—'}${m.delivery_time ? ` ${m.delivery_time}` : ''}`} />
-            <KV label="入庫区分" value={m.intake_category ?? '—'} />
-            <KV label={`${AB_ICONS.branch} 拠点`} value={m.branch_id ?? '—'} />
-            <KV label="受付担当" value={receptionName} />
-            <KV label="作業担当" value={workerName} />
-            <KV label="走行距離" value={m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—'} />
-          </dl>
-        </div>
-
-        {/* 顧客 */}
-        <div className="bg-white border border-zinc-200 rounded-lg p-4">
-          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">顧客</p>
-          {account ? (
-            <>
-              <Link href={`/accounts/${account.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
-                {AB_ICONS.account} {account.name}
-              </Link>
-              {contact && (
-                <Link href={`/contacts/${contact.id}`} className="block text-xs text-zinc-600 hover:text-amber-700 mt-1">
-                  {AB_ICONS.contact} {contact.full_name}
+        {/* 顧客・車両（統合パネル：顧客が上、車両が下） */}
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          {/* 顧客 */}
+          <div className="p-4">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">顧客</p>
+            {account ? (
+              <>
+                <Link href={`/accounts/${account.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                  {AB_ICONS.account} {account.name}
                 </Link>
-              )}
-              {(contact?.phone || account.phone) && <p className="text-xs text-zinc-500 mt-1">📞 {contact?.phone ?? account.phone}</p>}
-            </>
-          ) : <p className="text-xs text-zinc-400">—</p>}
-        </div>
+                {contact && (
+                  <Link href={`/contacts/${contact.id}`} className="block text-xs text-zinc-600 hover:text-amber-700 mt-1">
+                    {AB_ICONS.contact} {contact.full_name}
+                  </Link>
+                )}
+                <dl className="space-y-1 text-xs mt-2">
+                  {(contact?.phone || account.phone) && (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-zinc-500 shrink-0">📞 電話</dt>
+                      <dd className="text-zinc-800 text-right truncate">{contact?.phone ?? account.phone}</dd>
+                    </div>
+                  )}
+                  {contact?.email && (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-zinc-500 shrink-0">✉️ Email</dt>
+                      <dd className="text-zinc-800 text-right truncate">{contact.email}</dd>
+                    </div>
+                  )}
+                  {account.address && (
+                    <div>
+                      <dt className="text-zinc-500 text-[10px]">📍 住所</dt>
+                      <dd className="text-zinc-700 text-[11px] mt-0.5 break-words">{account.address}</dd>
+                    </div>
+                  )}
+                </dl>
+              </>
+            ) : <p className="text-xs text-zinc-400">—</p>}
+          </div>
 
-        {/* 車両 */}
-        <div className="bg-white border border-zinc-200 rounded-lg p-4">
-          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">車両</p>
-          {v ? (
-            <>
-              <Link href={`/customer-vehicles/${v.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
-                {AB_ICONS.customerVehicle} {v.plate_number ?? '—'}
-              </Link>
-              <p className="text-xs text-zinc-600 mt-1">{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ')}</p>
-              {v.inspection_due_date && (
-                <p className="text-xs text-zinc-500 mt-1">{AB_ICONS.warning} 車検満了: {v.inspection_due_date}</p>
-              )}
-            </>
-          ) : <p className="text-xs text-zinc-400">—</p>}
+          {/* 区切り */}
+          <div className="border-t border-zinc-200 bg-zinc-50/50" />
+
+          {/* 車両 */}
+          <div className="p-4">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">車両</p>
+            {v ? (
+              <>
+                <Link href={`/customer-vehicles/${v.id}`} className="text-sm font-semibold text-amber-700 hover:text-amber-900 hover:underline">
+                  {AB_ICONS.customerVehicle} {v.plate_number ?? '—'}
+                </Link>
+                <p className="text-xs text-zinc-600 mt-1">{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}</p>
+                <dl className="space-y-1 text-xs mt-2">
+                  {v.vin && <KV label="車台番号" value={v.vin} />}
+                  {v.type_designation && <KV label="型式" value={v.type_designation} />}
+                  {(v.first_registration_year || v.first_registration_month) && (
+                    <KV label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/')} />
+                  )}
+                  {v.inspection_due_date && (
+                    <KV label={`${AB_ICONS.warning} 車検満了`} value={v.inspection_due_date} />
+                  )}
+                </dl>
+                {v.memo && <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {v.memo}</p>}
+              </>
+            ) : <p className="text-xs text-zinc-400">—</p>}
+          </div>
         </div>
 
         {/* 合計サマリー */}
@@ -255,73 +290,6 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
               </dl>
             </div>
           )}
-        </section>
-
-        {/* ============================================================
-            【顧客・車両】取引先詳細 + 車両情報
-           ============================================================ */}
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-            <span>{AB_ICONS.account}</span><span>顧客・車両</span>
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* 取引先 */}
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">取引先</p>
-              {account ? (
-                <dl className="space-y-1 text-xs">
-                  <KV
-                    label="取引先"
-                    value={
-                      <Link href={`/accounts/${account.id}`} className="text-amber-700 hover:text-amber-900 hover:underline">
-                        {AB_ICONS.account} {account.name}
-                      </Link>
-                    }
-                  />
-                  <KV
-                    label="担当者"
-                    value={
-                      contact ? (
-                        <Link href={`/contacts/${contact.id}`} className="text-amber-700 hover:text-amber-900 hover:underline">
-                          {AB_ICONS.contact} {contact.full_name}
-                        </Link>
-                      ) : '—'
-                    }
-                  />
-                  <KV label="電話" value={contact?.phone ?? account.phone ?? '—'} />
-                  <KV label="Email" value={contact?.email ?? '—'} />
-                  <KV label="住所" value={account.address ?? '—'} />
-                </dl>
-              ) : <p className="text-xs text-zinc-400">—</p>}
-            </div>
-
-            {/* 車両 */}
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">車両</p>
-              {v ? (
-                <>
-                  <Link href={`/customer-vehicles/${v.id}`} className="text-xs font-semibold text-amber-700 hover:text-amber-900 hover:underline">
-                    {AB_ICONS.customerVehicle} {v.plate_number ?? '—'}（{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}）
-                  </Link>
-                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs mt-2">
-                    <Item label="運輸支局" value={v.transport_branch ?? '—'} />
-                    <Item label="分類番号" value={v.classification_number ?? '—'} />
-                    <Item label="かな" value={v.kana ?? '—'} />
-                    <Item label="種別" value={v.vehicle_kind ?? '—'} />
-                    <Item label="用途" value={v.vehicle_usage ?? '—'} />
-                    <Item label="自家・事業" value={v.private_business ?? '—'} />
-                    <Item label="車体の形状" value={v.body_shape ?? '—'} />
-                    <Item label="車台番号" value={v.vin ?? '—'} />
-                    <Item label="型式" value={v.type_designation ?? '—'} />
-                    <Item label="類別区分" value={v.class_category ?? '—'} />
-                    <Item label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/') || '—'} />
-                    <Item label="車検満了" value={v.inspection_due_date ?? '—'} />
-                  </dl>
-                  {v.memo && <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {v.memo}</p>}
-                </>
-              ) : <p className="text-xs text-zinc-400">—</p>}
-            </div>
-          </div>
         </section>
 
         {/* ============================================================
@@ -532,30 +500,6 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           </section>
         </div>
 
-        {/* 帳票印刷（スタブ） */}
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.document} 帳票印刷</h2>
-            <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">次フェーズで実装</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {[
-              '概算見積書', '見積書', '作業指示書', '納品書',
-              '請求書', '次回整備提案書', '入庫概要シート', '領収証',
-              '預かり証', '検査諸費用計算書', 'はがき宛名（車検案内）', '申請書類',
-            ].map((label) => (
-              <button
-                key={label}
-                type="button"
-                disabled
-                className="px-3 py-2 text-xs text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-md cursor-not-allowed hover:bg-zinc-100"
-                title="まだ実装されていません"
-              >
-                {AB_ICONS.document} {label}
-              </button>
-            ))}
-          </div>
-        </section>
       </main>
       </div>
     </div>
