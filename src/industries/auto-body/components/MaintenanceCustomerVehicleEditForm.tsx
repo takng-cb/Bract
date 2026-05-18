@@ -112,8 +112,8 @@ export default function MaintenanceCustomerVehicleEditForm({
         )}
 
         {/* ─── 顧客（上半分）─── */}
-        <section className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-          <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
+        <section className="bg-white border border-zinc-200 rounded-lg">
+          <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40 rounded-t-lg">
             <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.account} 顧客</h3>
             <p className="text-[10px] text-zinc-400 mt-0.5">
               BtoB は取引先（会社）を選択。BtoC（個人のお客様）は取引先を空のままにして、下の「顧客」欄で人物を選択してください。
@@ -181,8 +181,8 @@ export default function MaintenanceCustomerVehicleEditForm({
         </section>
 
         {/* ─── 車両（下半分）─── */}
-        <section className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-          <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
+        <section className="bg-white border border-zinc-200 rounded-lg">
+          <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40 rounded-t-lg">
             <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.customerVehicle} 車両</h3>
           </div>
           <div className="p-4">
