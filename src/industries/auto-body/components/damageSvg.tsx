@@ -446,119 +446,158 @@ function BusSvg({ view }: { view: string }) {
 
 // ─────────────────────────────────────────────────
 // 側面シルエット（共通: variant 毎にプロポーションを変える）
+//   - canvas 200x100 をなるべく縦方向にも使い、車らしさを向上
+//   - 車輪は r=10、cy=88 で大きめに
+//   - 屋根は y=14〜20 付近、ガラスは y=24〜36 付近
+//   - 「← 前」テキストは右側面ビューでは反転して読めなくなるので、
+//      非ミラー時 (= 左 / その他) のみ表示する
+//   - バスのドアは日本では助手席側 (左側面) にのみ存在するため
+//      view==='left' のときだけ描画
 // ─────────────────────────────────────────────────
 function SideSilhouette({ view, variant }: { view: string; variant: 'sedan' | 'wagon' | 'open' | 'pickup' | 'van' | 'bus' }) {
   const mirror = view === 'right' ? -1 : 1
   const transform = mirror === -1 ? 'translate(200, 0) scale(-1, 1)' : undefined
+  const isLeftView = view !== 'right'  // 左側面 (mirror なし) のとき true
 
   switch (variant) {
     case 'sedan':
       return (
         <g transform={transform}>
-          {/* 下部ボディ */}
-          <path d="M 18 78 L 18 64 Q 22 60 30 58 L 70 56 Q 75 44 86 42 L 122 42 Q 134 44 140 56 L 178 60 Q 184 62 184 68 L 184 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          {/* 下部ボディ（拡大版） */}
+          <path d="M 10 88 L 10 66 Q 14 60 24 56 L 64 52 Q 72 30 88 26 L 122 26 Q 138 30 144 52 L 184 56 Q 192 60 192 70 L 192 88 Z"
+            fill={BODY} stroke={STROKE} strokeWidth="0.9" />
           {/* ウィンドウ */}
-          <path d="M 74 56 Q 78 46 88 44 L 120 44 Q 130 46 134 56 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
-          <line x1="100" y1="44" x2="100" y2="56" stroke={STROKE} strokeWidth="0.4" />
-          {/* ドア */}
-          <line x1="68" y1="56" x2="68" y2="78" stroke={STROKE} strokeWidth="0.4" />
-          <line x1="100" y1="56" x2="100" y2="78" stroke={STROKE} strokeWidth="0.4" />
-          <line x1="138" y1="56" x2="138" y2="78" stroke={STROKE} strokeWidth="0.4" />
+          <path d="M 70 52 Q 76 34 90 30 L 120 30 Q 134 34 140 52 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
+          <line x1="105" y1="30" x2="105" y2="52" stroke={STROKE} strokeWidth="0.4" />
+          {/* ドア線 */}
+          <line x1="62" y1="52" x2="62" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="105" y1="52" x2="105" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="144" y1="52" x2="144" y2="88" stroke={STROKE} strokeWidth="0.4" />
           {/* ハンドル */}
-          <rect x="84" y="62" width="6" height="2" fill={STROKE} />
-          <rect x="116" y="62" width="6" height="2" fill={STROKE} />
-          <Tire cx={50} cy={78} />
-          <Tire cx={150} cy={78} />
+          <rect x="82" y="64" width="8" height="2.5" fill={STROKE} />
+          <rect x="120" y="64" width="8" height="2.5" fill={STROKE} />
+          <Tire cx={48} cy={88} r={10} />
+          <Tire cx={152} cy={88} r={10} />
           {/* ライト */}
-          <rect x="18" y="62" width="6" height="5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <rect x="176" y="62" width="6" height="5" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <text x="30" y="40" fontSize="3" fill={STROKE}>← 前</text>
+          <rect x="10" y="62" width="8" height="6" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          <rect x="182" y="62" width="8" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          {isLeftView && <text x="20" y="22" fontSize="4" fill={STROKE}>← 前</text>}
         </g>
       )
     case 'wagon':
       return (
         <g transform={transform}>
-          <path d="M 16 78 L 16 62 Q 18 56 30 54 L 50 52 Q 55 36 70 32 L 145 32 Q 155 34 158 52 L 184 56 Q 188 60 188 68 L 188 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-          <path d="M 54 52 Q 58 38 72 36 L 144 36 Q 154 38 156 52 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
-          <line x1="75" y1="36" x2="75" y2="52" stroke={STROKE} strokeWidth="0.4" />
-          <line x1="100" y1="36" x2="100" y2="52" stroke={STROKE} strokeWidth="0.4" />
-          <line x1="130" y1="36" x2="130" y2="52" stroke={STROKE} strokeWidth="0.4" />
-          <line x1="65" y1="52" x2="65" y2="78" stroke={STROKE} strokeWidth="0.4" />
-          <line x1="100" y1="52" x2="100" y2="78" stroke={STROKE} strokeWidth="0.4" />
-          <line x1="140" y1="52" x2="140" y2="78" stroke={STROKE} strokeWidth="0.4" />
-          <Tire cx={50} cy={78} />
-          <Tire cx={150} cy={78} />
-          <rect x="16" y="60" width="6" height="6" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <rect x="180" y="58" width="6" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <text x="30" y="44" fontSize="3" fill={STROKE}>← 前</text>
+          {/* SUV/ミニバン: 背の高い箱型 */}
+          <path d="M 10 88 L 10 64 Q 14 56 28 52 L 46 48 Q 52 18 70 14 L 150 14 Q 162 18 164 48 L 184 52 Q 192 58 192 70 L 192 88 Z"
+            fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          {/* 大きなサイドウィンドウ */}
+          <path d="M 50 48 Q 54 22 72 18 L 148 18 Q 160 22 162 48 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
+          {/* ピラー */}
+          <line x1="76" y1="18" x2="76" y2="48" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="105" y1="18" x2="105" y2="48" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="135" y1="18" x2="135" y2="48" stroke={STROKE} strokeWidth="0.4" />
+          {/* ドア線 */}
+          <line x1="60" y1="48" x2="60" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="105" y1="48" x2="105" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="148" y1="48" x2="148" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          {/* ハンドル */}
+          <rect x="82" y="62" width="8" height="2.5" fill={STROKE} />
+          <rect x="122" y="62" width="8" height="2.5" fill={STROKE} />
+          <Tire cx={48} cy={88} r={10} />
+          <Tire cx={152} cy={88} r={10} />
+          <rect x="10" y="60" width="8" height="8" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          <rect x="182" y="58" width="8" height="10" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          {isLeftView && <text x="20" y="12" fontSize="4" fill={STROKE}>← 前</text>}
         </g>
       )
     case 'open':
       return (
         <g transform={transform}>
-          <path d="M 18 78 L 18 64 Q 22 60 30 58 L 70 56 L 130 56 L 178 60 Q 184 62 184 68 L 184 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-          {/* フロントガラス */}
-          <path d="M 75 56 L 78 42 L 92 42 L 95 56 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
+          {/* 低めセダン（ルーフなし） */}
+          <path d="M 10 88 L 10 66 Q 14 60 24 56 L 70 52 L 130 52 L 184 56 Q 192 60 192 70 L 192 88 Z"
+            fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          {/* フロントガラスのみ */}
+          <path d="M 76 52 L 80 32 L 96 32 L 100 52 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
           {/* 座席 */}
-          <rect x="92" y="50" width="40" height="6" fill="#1e293b" fillOpacity="0.2" stroke={STROKE} strokeWidth="0.3" />
-          <Tire cx={50} cy={78} />
-          <Tire cx={150} cy={78} />
-          <rect x="18" y="62" width="6" height="5" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <rect x="176" y="62" width="6" height="5" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <text x="30" y="40" fontSize="3" fill={STROKE}>← 前</text>
+          <rect x="100" y="44" width="44" height="8" fill="#1e293b" fillOpacity="0.25" stroke={STROKE} strokeWidth="0.3" />
+          <line x1="62" y1="52" x2="62" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="144" y1="52" x2="144" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          <Tire cx={48} cy={88} r={10} />
+          <Tire cx={152} cy={88} r={10} />
+          <rect x="10" y="62" width="8" height="6" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          <rect x="182" y="62" width="8" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          {isLeftView && <text x="20" y="22" fontSize="4" fill={STROKE}>← 前</text>}
         </g>
       )
     case 'pickup':
       return (
         <g transform={transform}>
           {/* キャブ */}
-          <path d="M 16 78 L 16 64 Q 20 56 32 54 L 50 52 Q 55 34 70 32 L 92 32 Q 100 34 102 52 L 102 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          <path d="M 10 88 L 10 66 Q 14 56 28 52 L 46 48 Q 52 18 72 14 L 96 14 Q 104 18 106 48 L 106 88 Z"
+            fill={BODY} stroke={STROKE} strokeWidth="0.9" />
           {/* キャブ窓 */}
-          <path d="M 54 52 Q 58 38 72 36 L 90 36 Q 98 38 100 52 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
-          <line x1="75" y1="36" x2="75" y2="52" stroke={STROKE} strokeWidth="0.4" />
-          {/* 荷台 */}
-          <rect x="102" y="48" width="84" height="30" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-          <rect x="106" y="52" width="76" height="22" fill="#e2e8f0" stroke={STROKE} strokeWidth="0.4" />
-          <Tire cx={48} cy={78} />
-          <Tire cx={150} cy={78} />
-          <rect x="16" y="62" width="6" height="6" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <rect x="180" y="62" width="6" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <text x="28" y="44" fontSize="3" fill={STROKE}>← 前</text>
+          <path d="M 50 48 Q 54 22 74 18 L 94 18 Q 102 22 104 48 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
+          <line x1="78" y1="18" x2="78" y2="48" stroke={STROKE} strokeWidth="0.4" />
+          {/* 荷台（開放） */}
+          <rect x="106" y="42" width="84" height="46" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          {/* 荷台床 */}
+          <rect x="110" y="50" width="76" height="34" fill="#e2e8f0" stroke={STROKE} strokeWidth="0.4" />
+          {/* 荷台の壁段差 */}
+          <line x1="106" y1="50" x2="190" y2="50" stroke={STROKE} strokeWidth="0.4" />
+          <Tire cx={46} cy={88} r={10} />
+          <Tire cx={156} cy={88} r={10} />
+          <rect x="10" y="62" width="8" height="6" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          <rect x="182" y="62" width="8" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          {isLeftView && <text x="20" y="12" fontSize="4" fill={STROKE}>← 前</text>}
         </g>
       )
     case 'van':
       return (
         <g transform={transform}>
           {/* キャブ */}
-          <path d="M 16 78 L 16 64 Q 20 56 32 54 L 50 52 Q 55 38 70 36 L 88 36 Q 94 38 96 52 L 96 78 Z" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-          <path d="M 54 52 Q 58 42 72 40 L 86 40 Q 92 42 94 52 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
+          <path d="M 10 88 L 10 66 Q 14 58 28 54 L 48 50 Q 52 22 70 18 L 92 18 Q 98 22 100 50 L 100 88 Z"
+            fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          <path d="M 52 50 Q 56 26 72 22 L 90 22 Q 96 26 98 50 Z" fill={GLASS} stroke={STROKE} strokeWidth="0.4" />
           {/* 箱型荷室 */}
-          <rect x="96" y="28" width="92" height="50" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          <rect x="100" y="12" width="90" height="76" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
           {/* パネル割 */}
-          <line x1="140" y1="28" x2="140" y2="78" stroke={STROKE} strokeWidth="0.4" />
-          <line x1="170" y1="28" x2="170" y2="78" stroke={STROKE} strokeWidth="0.4" />
-          <Tire cx={48} cy={78} />
-          <Tire cx={156} cy={78} />
-          <rect x="16" y="62" width="6" height="6" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <rect x="184" y="60" width="4" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <text x="28" y="46" fontSize="3" fill={STROKE}>← 前</text>
+          <line x1="140" y1="12" x2="140" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          <line x1="170" y1="12" x2="170" y2="88" stroke={STROKE} strokeWidth="0.4" />
+          {/* 荷室の小窓 */}
+          <rect x="106" y="20" width="28" height="14" rx="1" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
+          <Tire cx={46} cy={88} r={10} />
+          <Tire cx={158} cy={88} r={10} />
+          <rect x="10" y="62" width="8" height="6" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          <rect x="186" y="58" width="4" height="8" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          {isLeftView && <text x="20" y="12" fontSize="4" fill={STROKE}>← 前</text>}
         </g>
       )
     case 'bus':
       return (
         <g transform={transform}>
-          <rect x="10" y="32" width="180" height="46" rx="3" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
-          {/* 窓を等間隔 */}
-          {[28, 52, 76, 100, 124, 148, 172].map((x) => (
-            <rect key={x} x={x} y="38" width="18" height="14" rx="1" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
+          {/* 長い箱型ボディ（縦方向に大きく） */}
+          <rect x="6" y="20" width="188" height="68" rx="4" fill={BODY} stroke={STROKE} strokeWidth="0.9" />
+          {/* 等間隔の側面窓 */}
+          {[14, 38, 62, 86, 110, 134, 158, 178].map((x) => (
+            <rect key={x} x={x} y="28" width="18" height="22" rx="1" fill={GLASS} stroke={STROKE} strokeWidth="0.3" />
           ))}
-          {/* ドア */}
-          <rect x="18" y="54" width="6" height="22" fill="#94a3b8" stroke={STROKE} strokeWidth="0.4" />
-          <Tire cx={36} cy={78} r={7} />
-          <Tire cx={166} cy={78} r={7} />
-          <rect x="10" y="58" width="4" height="6" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <rect x="186" y="58" width="4" height="6" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
-          <text x="28" y="28" fontSize="3" fill={STROKE}>← 前</text>
+          {/* 床ライン */}
+          <line x1="6" y1="58" x2="194" y2="58" stroke={STROKE} strokeWidth="0.4" />
+          {/* 乗降ドアは日本では助手席側 (左側面) のみ → mirror なし時のみ描画
+              左側面において車体の「前寄り」(canvas 左寄り)、運転席後ろ位置 */}
+          {isLeftView && (
+            <>
+              <rect x="20" y="58" width="14" height="30" fill="#94a3b8" stroke={STROKE} strokeWidth="0.4" />
+              {/* ドア中央の縦線（観音開き） */}
+              <line x1="27" y1="58" x2="27" y2="88" stroke={STROKE} strokeWidth="0.4" />
+            </>
+          )}
+          <Tire cx={34} cy={88} r={10} />
+          <Tire cx={166} cy={88} r={10} />
+          {/* ヘッドライト・テールライト */}
+          <rect x="6" y="62" width="6" height="8" fill={HEADLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          <rect x="188" y="62" width="6" height="8" fill={TAILLIGHT} stroke={STROKE} strokeWidth="0.3" />
+          {isLeftView && <text x="18" y="16" fontSize="4" fill={STROKE}>← 前</text>}
         </g>
       )
   }
