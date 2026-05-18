@@ -1,6 +1,17 @@
 'use client'
 
-import { useState, useActionState } from 'react'
+/**
+ * 作業項目テーブルの 1 行（既存行）。
+ *
+ * 表組みのセルに直接 input を埋め込み、フォーカスを外す（blur）か
+ * Enter 押下で 自動保存。Excel ライクな編集体験。
+ *
+ * - 完了チェック / 除外チェック は変更即保存
+ * - 入力フィールド変更は blur で保存（変更があった場合のみ送信）
+ * - 削除ボタンは確認ダイアログ付き
+ */
+import { useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 
 type LineItem = {
   id:                string
@@ -27,230 +38,215 @@ type Props = {
   toggleAction: (completed: boolean) => Promise<void>
 }
 
-const WORK_STATUSES = ['未完了', '完了']
+const cellInput = 'w-full bg-transparent border border-transparent rounded px-2 py-1 text-sm focus:bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-200/50 focus:outline-none'
+const cellInputNum = cellInput + ' text-right font-mono'
 
-const base = 'w-full border border-zinc-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+function yen(n: number | string | null | undefined): string {
+  const v = Number(n ?? 0)
+  if (!Number.isFinite(v)) return '—'
+  return `¥${Math.round(v).toLocaleString()}`
+}
 
 export default function LineItemRow({
   index, item, canEdit, updateAction, deleteAction, toggleAction,
 }: Props) {
-  const [editing, setEditing] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  const [, startTransition] = useTransition()
+  const [saving, setSaving] = useState(false)
+  const [snapshot, setSnapshot] = useState<string>(() => serializeRow(item))
+  const router = useRouter()
 
-  if (!editing) return (
-    <ViewRow
-      index={index}
-      item={item}
-      canEdit={canEdit}
-      onEdit={() => setEditing(true)}
-      deleteAction={deleteAction}
-      toggleAction={toggleAction}
-    />
-  )
+  // input change → snapshot で dirty 判定
+  function maybeSave() {
+    if (!canEdit || !formRef.current) return
+    const current = serializeRowFromForm(formRef.current)
+    if (current === snapshot) return  // 変更なし
+    const fd = new FormData(formRef.current)
+    setSaving(true)
+    startTransition(async () => {
+      try {
+        await updateAction(fd)
+        setSnapshot(current)
+        router.refresh()
+      } finally {
+        setSaving(false)
+      }
+    })
+  }
 
-  return (
-    <EditRow
-      index={index}
-      item={item}
-      action={updateAction}
-      onCancel={() => setEditing(false)}
-    />
-  )
-}
-
-function ViewRow({
-  index, item, canEdit, onEdit, deleteAction, toggleAction,
-}: {
-  index: number
-  item: LineItem
-  canEdit: boolean
-  onEdit: () => void
-  deleteAction: () => Promise<void>
-  toggleAction: (completed: boolean) => Promise<void>
-}) {
   const labor = Number(item.labor_amount ?? 0)
   const qty   = Number(item.parts_qty ?? 0)
   const unit  = Number(item.parts_unit_price ?? 0)
-  const partsSub = (Number.isFinite(qty) && Number.isFinite(unit)) ? qty * unit : 0
-  const subtotal = (Number.isFinite(labor) ? labor : 0) + partsSub
-
-  const done = item.work_status === '完了'
+  const sub = (Number.isFinite(labor) ? labor : 0) + (Number.isFinite(qty) && Number.isFinite(unit) ? qty * unit : 0)
 
   return (
-    <div className={`px-4 py-3 ${item.is_excluded ? 'opacity-50' : ''}`}>
-      <div className="flex items-start gap-3">
-        {/* 完了チェックボックス */}
+    <form
+      ref={formRef}
+      onBlur={maybeSave}
+      onKeyDown={(e) => { if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); maybeSave() } }}
+      className={`grid grid-cols-[2rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_6rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 hover:bg-amber-50/20 ${item.is_excluded ? 'opacity-60 bg-zinc-50' : ''}`}
+    >
+      {/* # */}
+      <div className="text-xs text-zinc-400 font-mono text-center">{index + 1}</div>
+
+      {/* 区分 */}
+      <input
+        name="work_category"
+        defaultValue={item.work_category ?? ''}
+        placeholder="区分"
+        disabled={!canEdit}
+        className={cellInput}
+      />
+
+      {/* 作業項目名 */}
+      <input
+        name="item_name"
+        defaultValue={item.item_name ?? ''}
+        required
+        placeholder="作業項目名"
+        disabled={!canEdit}
+        className={cellInput}
+      />
+
+      {/* 工数 */}
+      <input
+        type="number"
+        name="hours"
+        step="0.1"
+        defaultValue={item.hours ?? ''}
+        disabled={!canEdit}
+        className={cellInputNum}
+      />
+
+      {/* 工賃 */}
+      <input
+        type="number"
+        name="labor_amount"
+        min="0"
+        defaultValue={item.labor_amount ?? ''}
+        disabled={!canEdit}
+        className={cellInputNum}
+      />
+
+      {/* 部品数 */}
+      <input
+        type="number"
+        name="parts_qty"
+        step="0.01"
+        defaultValue={item.parts_qty ?? ''}
+        disabled={!canEdit}
+        className={cellInputNum}
+      />
+
+      {/* 単位 */}
+      <input
+        name="parts_unit"
+        defaultValue={item.parts_unit ?? ''}
+        placeholder="単位"
+        disabled={!canEdit}
+        className={cellInput}
+      />
+
+      {/* 部品単価 */}
+      <input
+        type="number"
+        name="parts_unit_price"
+        min="0"
+        defaultValue={item.parts_unit_price ?? ''}
+        disabled={!canEdit}
+        className={cellInputNum}
+      />
+
+      {/* 小計（自動計算・read-only） */}
+      <div className="text-right font-mono text-sm font-semibold text-zinc-800 px-2">
+        {yen(sub)}
+      </div>
+
+      {/* 状況 — checkbox 即保存 */}
+      <div className="flex items-center justify-center gap-1">
         {canEdit ? (
-          <form
-            action={async () => { await toggleAction(!done) }}
-            className="shrink-0 mt-0.5"
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              const newDone = item.work_status !== '完了'
+              startTransition(async () => { await toggleAction(newDone); router.refresh() })
+            }}
+            className={`w-6 h-6 rounded border-2 flex items-center justify-center text-xs ${
+              item.work_status === '完了'
+                ? 'bg-emerald-600 border-emerald-600 text-white'
+                : 'border-zinc-300 hover:border-emerald-400'
+            }`}
+            title={item.work_status === '完了' ? '完了 → 未完了に戻す' : '完了にする'}
           >
-            <button
-              type="submit"
-              className={`w-5 h-5 rounded border-2 flex items-center justify-center ${done ? 'bg-green-600 border-green-600 text-white' : 'border-zinc-300 hover:border-green-400'}`}
-              title={done ? '未完了に戻す' : '完了にする'}
-            >
-              {done && <span className="text-xs leading-none">✓</span>}
-            </button>
-          </form>
+            {item.work_status === '完了' ? '✓' : ''}
+          </button>
         ) : (
-          <span className={`mt-0.5 inline-flex items-center justify-center w-5 h-5 rounded border-2 ${done ? 'bg-green-600 border-green-600 text-white' : 'border-zinc-200'}`}>
-            {done && <span className="text-xs leading-none">✓</span>}
+          <span className={`w-6 h-6 inline-flex items-center justify-center rounded border-2 ${item.work_status === '完了' ? 'bg-emerald-600 border-emerald-600 text-white text-xs' : 'border-zinc-200'}`}>
+            {item.work_status === '完了' ? '✓' : ''}
           </span>
         )}
+      </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-zinc-400 font-mono">#{index + 1}</span>
-            {item.work_category && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600">{item.work_category}</span>
-            )}
-            <span className={`text-sm font-medium ${done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>
-              {item.item_name || '(無題)'}
-            </span>
-            {item.is_excluded && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-red-50 text-red-600">除外</span>
-            )}
-            {item.state && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-50 text-yellow-700">{item.state}</span>
-            )}
-          </div>
-
-          <div className="mt-1 grid grid-cols-2 sm:grid-cols-5 gap-x-3 gap-y-1 text-xs text-zinc-600">
-            <div>工数: <span className="font-mono">{item.hours ?? '—'}</span></div>
-            <div>工賃: <span className="font-mono">¥{labor ? labor.toLocaleString() : '—'}</span></div>
-            <div>部品: <span className="font-mono">{item.parts_qty ?? '—'} {item.parts_unit ?? ''}</span></div>
-            <div>単価: <span className="font-mono">¥{unit ? unit.toLocaleString() : '—'}</span></div>
-            <div>小計: <span className="font-mono font-semibold text-zinc-800">¥{subtotal.toLocaleString()}</span></div>
-          </div>
-
-          {item.note && (
-            <p className="mt-1 text-xs text-zinc-500 whitespace-pre-wrap">📝 {item.note}</p>
-          )}
-        </div>
-
+      {/* 操作 */}
+      <div className="flex items-center justify-end gap-1 text-xs">
+        {saving && <span className="text-amber-700 text-[10px]">保存中…</span>}
+        {/* 除外チェック */}
+        <label className="flex items-center gap-1 cursor-pointer" title="集計対象外にする">
+          <input
+            type="checkbox"
+            name="is_excluded"
+            defaultChecked={item.is_excluded}
+            disabled={!canEdit}
+            onChange={maybeSave}
+            className="w-3 h-3"
+          />
+          <span className="text-[10px] text-zinc-500">除外</span>
+        </label>
         {canEdit && (
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={onEdit}
-              className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
-            >
-              編集
-            </button>
-            <form
-              action={async () => { await deleteAction() }}
-              onSubmit={(e) => {
-                if (!confirm(`「${item.item_name ?? '無題'}」を削除しますか？`)) e.preventDefault()
-              }}
-            >
-              <button type="submit" className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50">
-                削除
-              </button>
-            </form>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (!confirm(`「${item.item_name ?? '無題'}」を削除しますか？`)) return
+              startTransition(async () => { await deleteAction(); router.refresh() })
+            }}
+            className="text-rose-500 hover:text-rose-700 px-1 py-0.5 rounded hover:bg-rose-50"
+            title="削除"
+          >
+            🗑
+          </button>
         )}
       </div>
-    </div>
+
+      {/* hidden: work_status を保持（toggleAction で別途更新するが、行 update でも送る） */}
+      <input type="hidden" name="work_status" value={item.work_status} />
+      {/* hidden: state / note も保持（テーブル外に出すと幅取りすぎるので隠す。簡易編集のため触らない値） */}
+      <input type="hidden" name="state" defaultValue={item.state ?? ''} />
+      <input type="hidden" name="note" defaultValue={item.note ?? ''} />
+      <input type="hidden" name="cost_unit_price" defaultValue={item.cost_unit_price ?? ''} />
+    </form>
   )
 }
 
-function EditRow({
-  index, item, action, onCancel,
-}: {
-  index: number
-  item: LineItem
-  action: (formData: FormData) => Promise<void>
-  onCancel: () => void
-}) {
-  const [error, dispatch, pending] = useActionState(
-    async (_prev: string | null, fd: FormData) => {
-      try { await action(fd); onCancel(); return null }
-      catch (e) { return (e as Error).message }
-    },
-    null,
-  )
+// ── helpers ──────────────────────────────────────────────
+function serializeRow(item: LineItem): string {
+  return [
+    item.work_category ?? '', item.item_name ?? '', item.hours ?? '',
+    item.labor_amount ?? '', item.parts_qty ?? '', item.parts_unit ?? '',
+    item.parts_unit_price ?? '', item.is_excluded ? '1' : '0',
+  ].join('\x1f')
+}
 
-  return (
-    <form action={dispatch} className="px-4 py-4 bg-blue-50/40 space-y-3">
-      {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{error}</div>
-      )}
-
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-zinc-400 font-mono">#{index + 1}</span>
-        <span className="text-xs text-zinc-500">編集中</span>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-        <div className="sm:col-span-3">
-          <label className="block text-xs text-zinc-500 mb-0.5">作業区分</label>
-          <input name="work_category" defaultValue={item.work_category ?? ''} placeholder="例: 板金 / 塗装 / 一般" className={base} />
-        </div>
-        <div className="sm:col-span-9">
-          <label className="block text-xs text-zinc-500 mb-0.5">作業項目名 <span className="text-red-500">*</span></label>
-          <input name="item_name" defaultValue={item.item_name ?? ''} required className={base} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-        <div>
-          <label className="block text-xs text-zinc-500 mb-0.5">工数</label>
-          <input type="number" name="hours" step="0.1" defaultValue={item.hours ?? ''} className={base} />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-500 mb-0.5">工賃（税別）</label>
-          <input type="number" name="labor_amount" min="0" defaultValue={item.labor_amount ?? ''} className={base} />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-500 mb-0.5">部品数</label>
-          <input type="number" name="parts_qty" step="0.01" defaultValue={item.parts_qty ?? ''} className={base} />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-500 mb-0.5">単位</label>
-          <input name="parts_unit" defaultValue={item.parts_unit ?? ''} placeholder="個 / L" className={base} />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-500 mb-0.5">部品単価</label>
-          <input type="number" name="parts_unit_price" min="0" defaultValue={item.parts_unit_price ?? ''} className={base} />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-500 mb-0.5">原単価</label>
-          <input type="number" name="cost_unit_price" min="0" defaultValue={item.cost_unit_price ?? ''} className={base} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-        <div className="sm:col-span-3">
-          <label className="block text-xs text-zinc-500 mb-0.5">状態</label>
-          <input name="state" defaultValue={item.state ?? ''} placeholder="例: 部品取置中" className={base} />
-        </div>
-        <div className="sm:col-span-3">
-          <label className="block text-xs text-zinc-500 mb-0.5">作業状況</label>
-          <select name="work_status" defaultValue={item.work_status ?? '未完了'} className={`${base} bg-white`}>
-            {WORK_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <div className="sm:col-span-6">
-          <label className="block text-xs text-zinc-500 mb-0.5">備考</label>
-          <input name="note" defaultValue={item.note ?? ''} className={base} />
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <label className="flex items-center gap-2 text-xs text-zinc-700 cursor-pointer">
-          <input type="checkbox" name="is_excluded" defaultChecked={item.is_excluded} className="w-3.5 h-3.5 rounded" />
-          除外（集計対象外）
-        </label>
-        <div className="flex gap-2">
-          <button type="submit" disabled={pending}
-            className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50">
-            {pending ? '保存中…' : '保存'}
-          </button>
-          <button type="button" onClick={onCancel}
-            className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-xs font-medium rounded hover:bg-zinc-50">
-            キャンセル
-          </button>
-        </div>
-      </div>
-    </form>
-  )
+function serializeRowFromForm(form: HTMLFormElement): string {
+  const get = (name: string): string => {
+    const el = form.querySelector(`[name="${name}"]`) as HTMLInputElement | null
+    if (!el) return ''
+    if (el.type === 'checkbox') return el.checked ? '1' : '0'
+    return el.value
+  }
+  return [
+    get('work_category'), get('item_name'), get('hours'),
+    get('labor_amount'), get('parts_qty'), get('parts_unit'),
+    get('parts_unit_price'), get('is_excluded'),
+  ].join('\x1f')
 }

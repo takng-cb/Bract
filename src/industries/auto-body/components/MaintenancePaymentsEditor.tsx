@@ -1,15 +1,17 @@
+/**
+ * 入金の表形式編集 UI（インライン）。
+ */
 import { db } from '@/lib/db'
 import { maintenance_payments } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import { createPayment, updatePayment, deletePayment } from '@/industries/auto-body/actions/maintenancePayments'
 import PaymentRow from './PaymentRow'
-import PaymentAddForm from './PaymentAddForm'
+import PaymentAddRow from './PaymentAddRow'
 
 type Props = {
   maintenanceId: string
   canEdit:       boolean
   users:         { id: string; name: string }[]
-  /** 売上額（行アイテム + 諸費用、税抜想定）。請求合計の参考表示用。 */
   invoiceTotal?: number
 }
 
@@ -31,54 +33,67 @@ export default async function MaintenancePaymentsEditor({ maintenanceId, canEdit
   }
 
   return (
-    <div className="space-y-4">
-      {payments.length === 0 ? (
-        <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
-          <p className="text-sm text-zinc-400">入金記録はまだありません</p>
-          {canEdit && <p className="text-xs text-zinc-400 mt-1">下のフォームから追加してください</p>}
-        </div>
-      ) : (
-        <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
-          {payments.map((p, idx) => (
-            <PaymentRow
-              key={p.id}
-              index={idx}
-              payment={p}
-              users={users}
-              canEdit={canEdit}
-              updateAction={updatePayment.bind(null, maintenanceId, p.id)}
-              deleteAction={deletePayment.bind(null, maintenanceId, p.id)}
-            />
-          ))}
-        </div>
+    <div className="space-y-2">
+      {canEdit && (
+        <p className="text-xs text-zinc-500">
+          セルをクリックで編集 → フォーカスを外すかセレクト変更で保存。
+        </p>
       )}
 
-      {payments.length > 0 && (
-        <div className="bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-3">
-          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <div>
-              <dt className="text-xs text-zinc-500">入金合計</dt>
-              <dd className="font-mono font-semibold text-zinc-900">¥{paidSum.toLocaleString()}</dd>
+      <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
+        <div className="min-w-[800px]">
+          {/* ヘッダ */}
+          <div className="grid grid-cols-[2rem_7rem_6rem_7rem_minmax(0,1fr)_8rem_5rem] gap-1 px-2 py-1.5 bg-amber-50 border-b-2 border-amber-200 text-[11px] font-semibold text-amber-900">
+            <div className="text-center">#</div>
+            <div>入金日</div>
+            <div>支払方法</div>
+            <div className="text-right">金額</div>
+            <div>メモ</div>
+            <div>担当者</div>
+            <div className="text-right">操作</div>
+          </div>
+
+          {payments.length === 0 ? (
+            <div className="px-3 py-4 text-center text-sm text-zinc-400 border-b border-zinc-100">
+              入金記録はまだありません。下の行から追加してください。
             </div>
-            {invoiceTotal != null && (
-              <>
-                <div>
-                  <dt className="text-xs text-zinc-500">請求合計（税抜参考）</dt>
-                  <dd className="font-mono text-zinc-700">¥{invoiceTotal.toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-zinc-500">残額</dt>
-                  <dd className={`font-mono font-semibold ${balance != null && balance > 0 ? 'text-red-600' : 'text-green-700'}`}>
-                    ¥{(balance ?? 0).toLocaleString()}
-                  </dd>
-                </div>
-              </>
-            )}
-          </dl>
-        </div>
-      )}
+          ) : (
+            payments.map((p, idx) => (
+              <PaymentRow
+                key={p.id}
+                index={idx}
+                payment={p}
+                users={users}
+                canEdit={canEdit}
+                updateAction={updatePayment.bind(null, maintenanceId, p.id)}
+                deleteAction={deletePayment.bind(null, maintenanceId, p.id)}
+              />
+            ))
+          )}
 
-      {canEdit && <PaymentAddForm action={createAction} users={users} />}
+          {canEdit && <PaymentAddRow action={createAction} users={users} />}
+
+          {payments.length > 0 && (
+            <div className="grid grid-cols-[2rem_7rem_6rem_7rem_minmax(0,1fr)_8rem_5rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm">
+              <div></div>
+              <div></div>
+              <div className="text-right text-xs text-zinc-600">入金合計</div>
+              <div className="text-right font-mono font-bold">¥{paidSum.toLocaleString()}</div>
+              {invoiceTotal != null && (
+                <>
+                  <div className="text-right text-xs text-zinc-600">
+                    請求合計 <span className="font-mono">¥{invoiceTotal.toLocaleString()}</span>
+                  </div>
+                  <div className={`text-right text-xs font-bold ${balance != null && balance > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+                    残額 <span className="font-mono">¥{(balance ?? 0).toLocaleString()}</span>
+                  </div>
+                </>
+              )}
+              <div></div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
