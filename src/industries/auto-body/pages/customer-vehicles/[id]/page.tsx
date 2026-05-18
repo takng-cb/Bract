@@ -10,6 +10,8 @@ import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { deleteCustomerVehicle } from '@/industries/auto-body/actions/customerVehicles'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
+import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
+import { AB_ICONS } from '@/industries/auto-body/lib/icons'
 
 const STATUS_COLOR: Record<string, string> = {
   '予約':     'bg-zinc-100 text-zinc-700',
@@ -30,10 +32,22 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
   const [vRow, maintenances] = await Promise.all([
     db.select({
       v:       customer_vehicles,
-      account: { id: accounts.id, name: accounts.name },
+      account: {
+        id:      accounts.id,
+        name:    accounts.name,
+        phone:   accounts.phone,
+        address: accounts.address,
+      },
+      contact: {
+        id:        contacts.id,
+        full_name: contacts.full_name,
+        email:     contacts.email,
+        phone:     contacts.phone,
+      },
     })
       .from(customer_vehicles)
       .leftJoin(accounts, eq(customer_vehicles.account_id, accounts.id))
+      .leftJoin(contacts, eq(customer_vehicles.contact_id, contacts.id))
       .where(eq(customer_vehicles.id, id))
       .then((r) => r[0] ?? null),
     db.select({
@@ -56,6 +70,8 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
   if (!vRow) notFound()
   const v = vRow.v
   const account = vRow.account?.id ? vRow.account : null
+  const contact = vRow.contact?.id ? vRow.contact : null
+  const accountIsPersonal = isPersonalAccount(account)
 
   // RSC は 1 リクエストにつき 1 回しか render されないため Date.now() は安定。
   // react-hooks/purity は client component 向けの規則なのでここでは無効化する。
@@ -93,7 +109,91 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
         <p className="text-sm text-zinc-500 mt-1">
           {[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}
         </p>
-        {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
+        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+          {account && !accountIsPersonal ? (
+            <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">
+              {AB_ICONS.account} {account.name}
+            </Link>
+          ) : contact ? (
+            <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">
+              {AB_ICONS.contact} {contact.full_name}
+            </Link>
+          ) : (
+            <span className="text-zinc-400">所有者未設定</span>
+          )}
+        </div>
+      </div>
+
+      {/* 顧客（所有者） */}
+      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">顧客（所有者）</h2>
+        {(account && !accountIsPersonal) ? (
+          /* BtoB: 法人取引先 */
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div>
+              <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
+              <dd>
+                <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline font-medium">
+                  {AB_ICONS.account} {account.name}
+                </Link>
+              </dd>
+            </div>
+            {contact && (
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">顧客担当者</dt>
+                <dd>
+                  <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">
+                    {AB_ICONS.contact} {contact.full_name}
+                  </Link>
+                </dd>
+              </div>
+            )}
+            {(contact?.phone || account.phone) && (
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">電話</dt>
+                <dd className="text-zinc-800">📞 {contact?.phone ?? account.phone}</dd>
+              </div>
+            )}
+            {contact?.email && (
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">Email</dt>
+                <dd className="text-zinc-800">✉️ {contact.email}</dd>
+              </div>
+            )}
+            {account.address && (
+              <div className="sm:col-span-2">
+                <dt className="text-xs text-zinc-400 mb-1">住所</dt>
+                <dd className="text-zinc-800">📍 {account.address}</dd>
+              </div>
+            )}
+          </dl>
+        ) : contact ? (
+          /* BtoC: 個人 */
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-zinc-400 mb-1">顧客</dt>
+              <dd>
+                <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline font-medium">
+                  {AB_ICONS.contact} {contact.full_name}
+                </Link>
+              </dd>
+            </div>
+            {contact.phone && (
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">電話</dt>
+                <dd className="text-zinc-800">📞 {contact.phone}</dd>
+              </div>
+            )}
+            {contact.email && (
+              <div>
+                <dt className="text-xs text-zinc-400 mb-1">Email</dt>
+                <dd className="text-zinc-800">✉️ {contact.email}</dd>
+              </div>
+            )}
+          </dl>
+        ) : (
+          <p className="text-sm text-zinc-400">所有者が設定されていません。「✏️ 編集」から取引先 または 顧客（人物）を選択してください。</p>
+        )}
       </div>
 
       {/* ナンバープレート */}
