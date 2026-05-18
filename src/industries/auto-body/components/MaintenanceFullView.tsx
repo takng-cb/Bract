@@ -7,8 +7,9 @@
  *
  * 配色は工場感を出すため amber アクセント（CarRide の blue とは別系統）。
  *
- * read-only 設計。各セクションの「✏️ 編集」リンクで概要タブの該当
- * サブタブに遷移する。
+ * 編集操作: 各セクションの「✏️ 編集」ボタンを押すと **モーダル** が開き、
+ * その中で 追加・編集・削除 がインラインでできる（編集 UI は概要サブタブと
+ * 同じコンポーネントを再利用）。
  */
 import { db } from '@/lib/db'
 import {
@@ -19,6 +20,12 @@ import {
 import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
+import { canEdit } from '@/lib/auth'
+import SectionEditModal from './SectionEditModal'
+import MaintenanceLineItemsEditor from './MaintenanceLineItemsEditor'
+import MaintenanceFeesEditor from './MaintenanceFeesEditor'
+import MaintenancePaymentsEditor from './MaintenancePaymentsEditor'
+import MaintenanceDamageMap from './MaintenanceDamageMap'
 
 type Props = {
   maintenanceId: string
@@ -35,7 +42,7 @@ function yen(n: number | null | undefined): string {
 }
 
 export default async function MaintenanceFullView({ maintenanceId, users }: Props) {
-  const [mRow, lines, fees, payments, damagePins] = await Promise.all([
+  const [mRow, lines, fees, payments, damagePins, editable] = await Promise.all([
     db.select({
       m:       maintenance_records,
       vehicle: customer_vehicles,
@@ -60,6 +67,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
     db.select().from(maintenance_damage_pins)
       .where(eq(maintenance_damage_pins.maintenance_id, maintenanceId))
       .orderBy(asc(maintenance_damage_pins.view), asc(maintenance_damage_pins.sort_order)),
+    canEdit(),
   ])
 
   if (!mRow) return null
@@ -109,7 +117,8 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   const balance = grandTotal - paidSum
 
   const grossProfit = linesTotal - partsCost
-  const editHref = (subTab: string) => `/maintenance/${maintenanceId}?tab=overview&sub=${subTab}`
+  // 計算結果を子コンポーネント (payments editor) で参照する用
+  const invoiceTotal = linesTotal + taxableFees + nontaxableFees
 
   // ─── レンダー ──────────────────────────────────
   return (
@@ -223,13 +232,19 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           </section>
         )}
 
-        {/* 損傷マップ サマリー */}
-        {damagePins.length > 0 && (
-          <section className="bg-white border border-zinc-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">📍 損傷箇所（{damagePins.length} 件）</h2>
-              <Link href={editHref('damage')} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">図面で確認 →</Link>
-            </div>
+        {/* 損傷マップ サマリー（0 件でも表示して「編集」から追加できるように） */}
+        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
+              📍 損傷箇所（{damagePins.length} 件）
+            </h2>
+            <SectionEditModal triggerLabel="📍 図面で編集" title="損傷マップを編集">
+              <MaintenanceDamageMap maintenanceId={maintenanceId} canEdit={editable} />
+            </SectionEditModal>
+          </div>
+          {damagePins.length === 0 ? (
+            <p className="text-xs text-zinc-400 py-2">損傷箇所はまだ記録されていません</p>
+          ) : (
             <ul className="divide-y divide-zinc-100 text-xs">
               {damagePins.map((p, i) => {
                 const sevColor =
@@ -250,14 +265,16 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                 )
               })}
             </ul>
-          </section>
-        )}
+          )}
+        </section>
 
         {/* 作業項目 */}
         <section className="bg-white border border-zinc-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.lineItem} 作業項目</h2>
-            <Link href={editHref('lines')} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">✏️ 編集</Link>
+            <SectionEditModal triggerLabel="✏️ 編集" title="作業項目を編集">
+              <MaintenanceLineItemsEditor maintenanceId={maintenanceId} canEdit={editable} leverRate={m.lever_rate} />
+            </SectionEditModal>
           </div>
           {lines.length === 0 ? (
             <p className="text-sm text-zinc-400 py-6 text-center">作業項目はまだありません</p>
@@ -332,7 +349,9 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           <section className="bg-white border border-zinc-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.fee} 諸費用</h2>
-              <Link href={editHref('fees')} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">✏️ 編集</Link>
+              <SectionEditModal triggerLabel="✏️ 編集" title="諸費用を編集" maxWidthClass="max-w-3xl">
+                <MaintenanceFeesEditor maintenanceId={maintenanceId} canEdit={editable} />
+              </SectionEditModal>
             </div>
             {fees.length === 0 ? (
               <p className="text-sm text-zinc-400 py-4 text-center">諸費用はまだありません</p>
@@ -385,7 +404,9 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           <section className="bg-white border border-zinc-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.payment} 入金・預かり金</h2>
-              <Link href={editHref('payments')} className="text-xs text-amber-700 hover:text-amber-900 hover:underline">✏️ 編集</Link>
+              <SectionEditModal triggerLabel="✏️ 編集" title="入金を編集" maxWidthClass="max-w-3xl">
+                <MaintenancePaymentsEditor maintenanceId={maintenanceId} canEdit={editable} users={users} invoiceTotal={invoiceTotal} />
+              </SectionEditModal>
             </div>
             {payments.length === 0 ? (
               <p className="text-sm text-zinc-400 py-4 text-center">入金記録はまだありません</p>
