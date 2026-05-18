@@ -84,28 +84,63 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       .orderBy(asc(maintenance_damage_pins.view), asc(maintenance_damage_pins.sort_order)),
     canEdit(),
     // 顧客・車両 編集モーダル用ピッカーデータ
+    // プレビュー表示で詳細を出すため、選択用フィールドだけでなく
+    // 連絡先・住所・車検満了など主要フィールドも合わせて取得
     db.select({
-      id:           customer_vehicles.id,
-      plate_number: customer_vehicles.plate_number,
-      car_model:    customer_vehicles.car_model,
-      account_id:   customer_vehicles.account_id,
+      id:                  customer_vehicles.id,
+      plate_number:        customer_vehicles.plate_number,
+      car_name:            customer_vehicles.car_name,
+      car_model:           customer_vehicles.car_model,
+      grade:               customer_vehicles.grade,
+      vehicle_kind:        customer_vehicles.vehicle_kind,
+      body_shape:          customer_vehicles.body_shape,
+      vin:                 customer_vehicles.vin,
+      type_designation:    customer_vehicles.type_designation,
+      inspection_due_date: customer_vehicles.inspection_due_date,
+      account_id:          customer_vehicles.account_id,
+      contact_id:          customer_vehicles.contact_id,
     })
       .from(customer_vehicles)
       .orderBy(asc(customer_vehicles.plate_number)),
-    db.select({ id: accounts.id, name: accounts.name })
+    db.select({
+      id:       accounts.id,
+      name:     accounts.name,
+      phone:    accounts.phone,
+      address:  accounts.address,
+      industry: accounts.industry,
+      website:  accounts.website,
+    })
       .from(accounts)
       .where(eq(accounts.status, 'active'))
       .orderBy(asc(accounts.name)),
-    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
+    db.select({
+      id:         contacts.id,
+      full_name:  contacts.full_name,
+      account_id: contacts.account_id,
+      email:      contacts.email,
+      phone:      contacts.phone,
+      title:      contacts.title,
+      department: contacts.department,
+    })
       .from(contacts)
       .orderBy(asc(contacts.full_name)),
   ])
 
-  // 顧客車両ピッカー用ラベル整形
+  // 顧客車両ピッカー用ラベル整形（追加詳細は別途渡す）
   const vehicleOptions = vehiclesList.map((v) => ({
-    id:         v.id,
-    label:      [v.plate_number ?? '—', v.car_model].filter(Boolean).join(' / ') || '車両',
-    account_id: v.account_id,
+    id:                  v.id,
+    label:               [v.plate_number ?? '—', v.car_model].filter(Boolean).join(' / ') || '車両',
+    account_id:          v.account_id,
+    contact_id:          v.contact_id,
+    plate_number:        v.plate_number,
+    car_name:            v.car_name,
+    car_model:           v.car_model,
+    grade:               v.grade,
+    vehicle_kind:        v.vehicle_kind,
+    body_shape:          v.body_shape,
+    vin:                 v.vin,
+    type_designation:    v.type_designation,
+    inspection_due_date: v.inspection_due_date,
   }))
 
   if (!mRow) return null
