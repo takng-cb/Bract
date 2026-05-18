@@ -20,7 +20,7 @@
  * Phase A+ perceived performance 改善 (#40 Sprint 3+)。
  */
 import { useEffect, useRef, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 /** mutation が SETTLE_MS 間無ければ「実コンテンツ paint 完了」とみなす */
 const SETTLE_MS = 200
@@ -33,6 +33,9 @@ const FALLBACK_MS = 700
 
 export default function NavigationOverlay() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  // 検索文字列を 1 つの key にまとめて effect の依存にする
+  const searchKey = searchParams?.toString() ?? ''
   const [visible, setVisible] = useState(false)
   const navigatingRef = useRef(false)
   const obsRef = useRef<MutationObserver | null>(null)
@@ -66,13 +69,23 @@ export default function NavigationOverlay() {
 
       navigatingRef.current = true
       setVisible(true)
+
+      // 防御線: pathname / searchParams が一度も変わらない（=React の effect が
+      // 走らない）異常ケースに備え、click 時点でも hard cap を仕掛けておく。
+      // この timer は通常 useEffect 側で先にクリアされる。
+      hardCapRef.current = setTimeout(() => {
+        setVisible(false)
+        navigatingRef.current = false
+      }, HARD_CAP_MS)
     }
     document.addEventListener('click', handler, true)
     return () => document.removeEventListener('click', handler, true)
   }, [])
 
-  // 2. pathname 変化 = navigation 完了の最初のシグナル
+  // 2. pathname or searchParams 変化 = navigation 完了の最初のシグナル
   //    実コンテンツ paint まで MutationObserver で待つ
+  //    同一 pathname で ?tab=foo&sub=bar だけ変わるケース（タブ切替）も
+  //    必ず spinner を消すため、searchParams も依存に含める。
   useEffect(() => {
     if (!navigatingRef.current) return
 
@@ -113,7 +126,8 @@ export default function NavigationOverlay() {
       if (settleTimerRef.current) { clearTimeout(settleTimerRef.current); settleTimerRef.current = null }
       if (hardCapRef.current) { clearTimeout(hardCapRef.current); hardCapRef.current = null }
     }
-  }, [pathname])
+  // searchKey は string なので primitive で比較されて安定
+  }, [pathname, searchKey])
 
   if (!visible) return null
 
