@@ -15,6 +15,21 @@ import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSectionModal } from './SectionEditModal'
 import ApplyTemplateButton from './ApplyTemplateButton'
+import { useResizableColumns, ColResizeHandle, type ResizableColumn } from './useResizableColumns'
+
+const LINE_COLUMNS: ResizableColumn[] = [
+  { key: 'delete',    label: '削除 / #',  widthRem: 4.5 },
+  { key: 'category',  label: '区分',      widthRem: 5 },
+  { key: 'item_name', label: '作業項目名', widthRem: 12, flex: true },
+  { key: 'hours',     label: '工数',      widthRem: 4 },
+  { key: 'labor',     label: '工賃',      widthRem: 6 },
+  { key: 'qty',       label: '数',        widthRem: 4 },
+  { key: 'unit',      label: '単位',      widthRem: 4 },
+  { key: 'price',     label: '部品単価',  widthRem: 6 },
+  { key: 'subtotal',  label: '小計',      widthRem: 6 },
+  { key: 'done',      label: '完了',      widthRem: 5 },
+  { key: 'excluded',  label: '除外',      widthRem: 3.5 },
+]
 
 type LineItemInitial = {
   id:                string
@@ -147,6 +162,10 @@ export default function StagedLineItemsTable({
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
+  // 列幅リサイズ
+  const { columns, widths, gridTemplate, setWidth, resetWidths } =
+    useResizableColumns('staged-line-items.cols.v1', LINE_COLUMNS)
+
   const dirtyCount = rows.filter((r) => r._status !== 'unchanged').length
 
   function mark(key: string, status: RowStatus) {
@@ -242,7 +261,17 @@ export default function StagedLineItemsTable({
               <span className="ml-1 text-zinc-400">レバーレート: ¥{Number(leverRate).toLocaleString()}/h</span>
             )}
           </p>
-          <ApplyTemplateButton templates={templates} applyAction={handleApply} />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={resetWidths}
+              className="text-[11px] text-zinc-500 hover:text-blue-600 hover:underline"
+              title="列幅を既定値に戻す"
+            >
+              ↻ 列幅リセット
+            </button>
+            <ApplyTemplateButton templates={templates} applyAction={handleApply} />
+          </div>
         </div>
       )}
 
@@ -253,21 +282,19 @@ export default function StagedLineItemsTable({
       {/* 表 */}
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[1100px]">
-          {/* ヘッダ */}
-          {/* [&>div]:px-2 で各ヘッダセルにデータ input と同じ左右パディングを付けて
-              ヘッダとデータ列の文字位置を揃える */}
-          <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700 [&>div]:px-2">
-            <div>削除 / #</div>
-            <div>区分</div>
-            <div>作業項目名</div>
-            <div>工数</div>
-            <div>工賃</div>
-            <div>数</div>
-            <div>単位</div>
-            <div>部品単価</div>
-            <div>小計</div>
-            <div>完了</div>
-            <div>除外</div>
+          {/* ヘッダ（列幅ドラッグ調整可能） */}
+          <div
+            className="grid gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700 [&>div]:px-2"
+            style={{ gridTemplateColumns: gridTemplate }}
+          >
+            {columns.map((col, i) => (
+              <div key={col.key} className="relative">
+                {col.label}
+                {!col.flex && i < columns.length - 1 && (
+                  <ColResizeHandle currentRem={widths[i]} onResize={(rem) => setWidth(i, rem)} />
+                )}
+              </div>
+            ))}
           </div>
 
           {rows.length === 0 ? (
@@ -286,7 +313,8 @@ export default function StagedLineItemsTable({
               return (
                 <div
                   key={r._key}
-                  className={`grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 ${rowClass} ${r.is_excluded ? 'opacity-60' : ''}`}
+                  className={`grid items-center gap-1 px-2 py-1 border-b border-zinc-100 ${rowClass} ${r.is_excluded ? 'opacity-60' : ''}`}
+                  style={{ gridTemplateColumns: gridTemplate }}
                 >
                   {/* 削除ボタン + 行番号 */}
                   <div className="flex items-center gap-1">
@@ -410,7 +438,10 @@ export default function StagedLineItemsTable({
 
           {/* 合計（ヘッダと同じく [&>div]:px-2 でデータ列と文字位置を揃える） */}
           {rows.filter((r) => r._status !== 'deleted').length > 0 && (
-            <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_4rem_6rem_4rem_4rem_6rem_6rem_5rem_3.5rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm [&>div]:px-2">
+            <div
+              className="grid gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm [&>div]:px-2"
+              style={{ gridTemplateColumns: gridTemplate }}
+            >
               <div></div>
               <div></div>
               <div className="text-right text-xs text-zinc-600 font-medium">合計</div>

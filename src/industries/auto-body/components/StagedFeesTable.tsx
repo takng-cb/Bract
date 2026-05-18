@@ -7,6 +7,15 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSectionModal } from './SectionEditModal'
+import { useResizableColumns, ColResizeHandle, type ResizableColumn } from './useResizableColumns'
+
+const FEE_COLUMNS: ResizableColumn[] = [
+  { key: 'delete',    label: '削除 / #', widthRem: 4.5 },
+  { key: 'category',  label: '区分',     widthRem: 5 },
+  { key: 'item_name', label: '項目名',   widthRem: 12, flex: true },
+  { key: 'amount',    label: '金額',     widthRem: 6 },
+  { key: 'cost',      label: '原価',     widthRem: 6 },
+]
 
 type FeeInitial = {
   id:           string
@@ -74,6 +83,10 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
+  // 列幅リサイズ
+  const { columns, widths, gridTemplate, setWidth, resetWidths } =
+    useResizableColumns('staged-fees.cols.v1', FEE_COLUMNS)
+
   const dirtyCount = rows.filter((r) => r._status !== 'unchanged').length
 
   function update<K extends keyof StagedRow>(key: string, field: K, value: StagedRow[K]) {
@@ -139,9 +152,19 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
   return (
     <div className="flex flex-col gap-2">
       {canEdit && (
-        <p className="text-xs text-zinc-500">
-          セルを直接編集 → <strong className="text-blue-600">「保存」</strong> で確定。
-        </p>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-xs text-zinc-500">
+            セルを直接編集 → <strong className="text-blue-600">「保存」</strong> で確定。
+          </p>
+          <button
+            type="button"
+            onClick={resetWidths}
+            className="text-[11px] text-zinc-500 hover:text-blue-600 hover:underline"
+            title="列幅を既定値に戻す"
+          >
+            ↻ 列幅リセット
+          </button>
+        </div>
       )}
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{error}</div>
@@ -149,12 +172,18 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
 
       <div className="bg-white border border-zinc-200 rounded-lg overflow-x-auto">
         <div className="min-w-[600px]">
-          <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_6rem_6rem] gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700 [&>div]:px-2">
-            <div>削除 / #</div>
-            <div>区分</div>
-            <div>項目名</div>
-            <div>金額</div>
-            <div>原価</div>
+          <div
+            className="grid gap-1 px-2 py-1.5 bg-zinc-50 border-b-2 border-zinc-200 text-[11px] font-semibold text-zinc-700 [&>div]:px-2"
+            style={{ gridTemplateColumns: gridTemplate }}
+          >
+            {columns.map((col, i) => (
+              <div key={col.key} className="relative">
+                {col.label}
+                {!col.flex && i < columns.length - 1 && (
+                  <ColResizeHandle currentRem={widths[i]} onResize={(rem) => setWidth(i, rem)} />
+                )}
+              </div>
+            ))}
           </div>
 
           {rows.length === 0 ? (
@@ -169,7 +198,11 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
                 r._status === 'new'     ? 'bg-emerald-50/30 border-l-4 border-emerald-400' :
                                           'hover:bg-zinc-50/20'
               return (
-                <div key={r._key} className={`grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_6rem_6rem] items-center gap-1 px-2 py-1 border-b border-zinc-100 ${cls}`}>
+                <div
+                  key={r._key}
+                  className={`grid items-center gap-1 px-2 py-1 border-b border-zinc-100 ${cls}`}
+                  style={{ gridTemplateColumns: gridTemplate }}
+                >
                   <div className="flex items-center gap-1">
                     {canEdit && (
                       <button
@@ -214,7 +247,10 @@ export default function StagedFeesTable({ initialFees, canEdit, createAction, up
           )}
 
           {rows.filter((r) => r._status !== 'deleted').length > 0 && (
-            <div className="grid grid-cols-[4.5rem_5rem_minmax(0,1fr)_6rem_6rem] gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm [&>div]:px-2">
+            <div
+              className="grid gap-1 px-2 py-2 bg-zinc-50 border-t-2 border-zinc-300 text-sm [&>div]:px-2"
+              style={{ gridTemplateColumns: gridTemplate }}
+            >
               <div></div>
               <div></div>
               <div className="text-right text-xs text-zinc-600">
