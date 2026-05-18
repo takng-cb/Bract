@@ -117,6 +117,89 @@ export async function deleteMaintenance(id: string) {
   redirect('/maintenance')
 }
 
+// ─── 部分更新アクション（全体ビューのポップアップ編集用） ───
+// updateMaintenance はリダイレクトする上に全項目必須の FormData を要求するため、
+// インラインで部分更新するには扱いが重い。そこで「顧客・車両」と「整備基本情報+メモ」を
+// 独立に更新できる軽量アクションを用意する。
+
+/** 顧客・車両 セクション（左 sticky パネル）専用の更新アクション */
+export async function updateMaintenanceCustomerVehicle(
+  id: string,
+  data: {
+    customer_vehicle_id: string
+    account_id:          string
+    contact_id:          string | null
+    billing_account_id:  string | null
+  },
+) {
+  await requireEditor()
+  if (!data.customer_vehicle_id) throw new Error('顧客車両は必須です')
+  if (!data.account_id)          throw new Error('顧客（取引先）は必須です')
+
+  await db.update(maintenance_records).set({
+    customer_vehicle_id: data.customer_vehicle_id,
+    account_id:          data.account_id,
+    contact_id:          data.contact_id,
+    billing_account_id:  data.billing_account_id,
+    updated_at:          new Date(),
+  }).where(eq(maintenance_records.id, id))
+
+  revalidatePath(`/maintenance/${id}`)
+}
+
+/** 整備本体（基本情報 + メモ）専用の更新アクション。
+ *  ステータス・顧客・車両・請求先は別アクションのため触らない。
+ */
+export async function updateMaintenanceBasicAndMemo(
+  id: string,
+  data: {
+    intake_date:          string | null
+    intake_time:          string | null
+    delivery_date:        string | null
+    delivery_time:        string | null
+    pickup_location:      string | null
+    delivery_location:    string | null
+    sales_recording_date: string | null
+    mileage:              number | null
+    branch_id:            string | null
+    intake_category:      string | null
+    reception_owner_id:   string | null
+    worker_owner_id:      string | null
+    internal_memo:        string | null
+    work_order_note:      string | null
+    general_note:         string | null
+    tax_mode:             string | null
+    tax_rounding:         string | null
+    lever_rate:           string | null
+  },
+) {
+  await requireEditor()
+
+  await db.update(maintenance_records).set({
+    intake_date:          data.intake_date,
+    intake_time:          data.intake_time,
+    delivery_date:        data.delivery_date,
+    delivery_time:        data.delivery_time,
+    pickup_location:      data.pickup_location,
+    delivery_location:    data.delivery_location,
+    sales_recording_date: data.sales_recording_date,
+    mileage:              data.mileage,
+    branch_id:            data.branch_id,
+    intake_category:      data.intake_category,
+    reception_owner_id:   data.reception_owner_id,
+    worker_owner_id:      data.worker_owner_id,
+    internal_memo:        data.internal_memo,
+    work_order_note:      data.work_order_note,
+    general_note:         data.general_note,
+    tax_mode:             data.tax_mode ?? '税別10%',
+    tax_rounding:         data.tax_rounding ?? '切り捨て',
+    lever_rate:           data.lever_rate,
+    updated_at:           new Date(),
+  }).where(eq(maintenance_records.id, id))
+
+  revalidatePath(`/maintenance/${id}`)
+}
+
 // ─── ステータス遷移ごとに自動で活動を作るマッピング ──────────
 const AUTO_ACTIVITY_BY_STATUS: Record<string, { type: string; subject: string; body: string } | null> = {
   '予約':       null,  // 予約は手動入力時点で完結している想定（活動を作らない）

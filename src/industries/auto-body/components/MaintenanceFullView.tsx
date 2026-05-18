@@ -27,6 +27,8 @@ import MaintenanceFeesEditor from './MaintenanceFeesEditor'
 import MaintenancePaymentsEditor from './MaintenancePaymentsEditor'
 import MaintenanceDamageMap from './MaintenanceDamageMap'
 import MaintenanceDamageMapPreview from './MaintenanceDamageMapPreview'
+import MaintenanceCustomerVehicleEditForm from './MaintenanceCustomerVehicleEditForm'
+import MaintenanceBasicInfoEditForm from './MaintenanceBasicInfoEditForm'
 import StageBar, { type StageConfig } from '@/components/StageBar'
 import { updateMaintenanceStatus } from '@/industries/auto-body/actions/maintenance'
 
@@ -53,7 +55,7 @@ function yen(n: number | null | undefined): string {
 }
 
 export default async function MaintenanceFullView({ maintenanceId, users }: Props) {
-  const [mRow, lines, fees, payments, damagePins, editable] = await Promise.all([
+  const [mRow, lines, fees, payments, damagePins, editable, vehiclesList, accountsList, contactsList] = await Promise.all([
     db.select({
       m:       maintenance_records,
       vehicle: customer_vehicles,
@@ -79,7 +81,30 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       .where(eq(maintenance_damage_pins.maintenance_id, maintenanceId))
       .orderBy(asc(maintenance_damage_pins.view), asc(maintenance_damage_pins.sort_order)),
     canEdit(),
+    // 顧客・車両 編集モーダル用ピッカーデータ
+    db.select({
+      id:           customer_vehicles.id,
+      plate_number: customer_vehicles.plate_number,
+      car_model:    customer_vehicles.car_model,
+      account_id:   customer_vehicles.account_id,
+    })
+      .from(customer_vehicles)
+      .orderBy(asc(customer_vehicles.plate_number)),
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts)
+      .where(eq(accounts.status, 'active'))
+      .orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
+      .from(contacts)
+      .orderBy(asc(contacts.full_name)),
   ])
+
+  // 顧客車両ピッカー用ラベル整形
+  const vehicleOptions = vehiclesList.map((v) => ({
+    id:         v.id,
+    label:      [v.plate_number ?? '—', v.car_model].filter(Boolean).join(' / ') || '車両',
+    account_id: v.account_id,
+  }))
 
   if (!mRow) return null
   const m = mRow.m
@@ -172,6 +197,24 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       <aside className="lg:sticky lg:top-4 self-start space-y-3">
         {/* 顧客・車両（統合パネル：顧客が上、車両が下） */}
         <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          {/* ヘッダー（編集ボタン） */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">顧客・車両</h3>
+            <SectionEditModal triggerLabel="✏️ 編集" title="顧客・車両を編集">
+              <MaintenanceCustomerVehicleEditForm
+                maintenanceId={maintenanceId}
+                initial={{
+                  customer_vehicle_id: m.customer_vehicle_id,
+                  account_id:          m.account_id,
+                  contact_id:          m.contact_id,
+                  billing_account_id:  m.billing_account_id,
+                }}
+                vehicles={vehicleOptions}
+                accounts={accountsList}
+                contacts={contactsList}
+              />
+            </SectionEditModal>
+          </div>
           {/* 顧客 */}
           <div className="p-4">
             <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">顧客</p>
@@ -259,9 +302,37 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
             【整備】基本情報 + メモ
            ============================================================ */}
         <section className="bg-white border border-zinc-200 rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-            <span>{AB_ICONS.maintenance}</span><span>整備</span>
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide flex items-center gap-1.5">
+              <span>{AB_ICONS.maintenance}</span><span>整備</span>
+            </h2>
+            <SectionEditModal triggerLabel="✏️ 編集" title="整備（基本情報・メモ）を編集">
+              <MaintenanceBasicInfoEditForm
+                maintenanceId={maintenanceId}
+                initial={{
+                  intake_date:          m.intake_date,
+                  intake_time:          m.intake_time,
+                  delivery_date:        m.delivery_date,
+                  delivery_time:        m.delivery_time,
+                  pickup_location:      m.pickup_location,
+                  delivery_location:    m.delivery_location,
+                  sales_recording_date: m.sales_recording_date,
+                  mileage:              m.mileage,
+                  branch_id:            m.branch_id,
+                  intake_category:      m.intake_category,
+                  reception_owner_id:   m.reception_owner_id,
+                  worker_owner_id:      m.worker_owner_id,
+                  internal_memo:        m.internal_memo,
+                  work_order_note:      m.work_order_note,
+                  general_note:         m.general_note,
+                  tax_mode:             m.tax_mode,
+                  tax_rounding:         m.tax_rounding,
+                  lever_rate:           m.lever_rate,
+                }}
+                users={users}
+              />
+            </SectionEditModal>
+          </div>
           <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-2 text-xs">
             <Item label="拠点" value={m.branch_id ?? '—'} />
             <Item label="入庫区分" value={m.intake_category ?? '—'} />
