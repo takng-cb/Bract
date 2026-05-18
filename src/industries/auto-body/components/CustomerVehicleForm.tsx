@@ -3,13 +3,22 @@
 /**
  * 顧客車両（customer_vehicles）の新規・編集フォーム。
  * 板金・自動車整備業の業務オーバーレイ。
+ *
+ * 顧客の表現:
+ *   - BtoB: 取引先（会社）を選択。顧客担当者（contact）を任意で紐付け
+ *   - BtoC: 取引先を空にし、顧客（contact）に本人を選択
+ *   maintenance 編集モーダルと同じパターン。
  */
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import SearchableSelect from '@/components/SearchableSelect'
 
+type AccountOption = { id: string; name: string }
+type ContactOption = { id: string; full_name: string; account_id: string | null }
+
 export type CustomerVehicleFormDefaults = {
   account_id?: string | null
+  contact_id?: string | null
   transport_branch?: string | null
   classification_number?: string | null
   kana?: string | null
@@ -34,13 +43,26 @@ export type CustomerVehicleFormDefaults = {
 type Props = {
   action:        (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref:    string
-  accounts:      { id: string; name: string }[]
+  accounts:      AccountOption[]
+  contacts:      ContactOption[]
   users:         { id: string; name: string }[]
   defaultValues?: CustomerVehicleFormDefaults
 }
 
-export default function CustomerVehicleForm({ action, cancelHref, accounts, users, defaultValues = {} }: Props) {
+export default function CustomerVehicleForm({
+  action, cancelHref, accounts, contacts, users, defaultValues = {},
+}: Props) {
   const [error, formAction, pending] = useActionState(action, null)
+  const [accountId, setAccountId] = useState<string>(defaultValues.account_id ?? '')
+  const [contactId, setContactId] = useState<string>(defaultValues.contact_id ?? '')
+
+  // 取引先選択 → 担当者を絞り込み（BtoC のときは親なし contacts のみ）
+  const filteredContacts = accountId
+    ? contacts.filter((c) => c.account_id === accountId)
+    : contacts.filter((c) => !c.account_id)
+
+  const isToC = !accountId
+  const contactLabel = accountId ? '顧客担当者' : '顧客'
 
   return (
     <form action={formAction} className="space-y-6">
@@ -58,28 +80,78 @@ export default function CustomerVehicleForm({ action, cancelHref, accounts, user
         </Link>
       </div>
 
-      {/* 顧客（取引先） */}
+      {/* 顧客（取引先 / 担当者）— maintenance と同じパターン */}
       <div className="bg-white border border-zinc-200 rounded-lg p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">顧客</h2>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">
-            取引先 <span className="text-red-500">*</span>
-          </label>
-          <SearchableSelect
-            name="account_id"
-            defaultValue={defaultValues.account_id ?? undefined}
-            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-            placeholder="選択してください"
-          />
-        </div>
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-zinc-700 mb-1">担当</label>
-          <SearchableSelect
-            name="owner_id"
-            defaultValue={defaultValues.owner_id ?? undefined}
-            options={users.map((u) => ({ value: u.id, label: u.name }))}
-            placeholder="—"
-          />
+        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-1">顧客</h2>
+        <p className="text-xs text-zinc-400 mb-4">
+          BtoB は取引先（会社）を選択。BtoC（個人のお客様）は取引先を空のままにして、下の「顧客」欄で人物を選択してください。
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">
+              取引先 <span className="text-zinc-400 font-normal">（空でも可・BtoC のとき）</span>
+            </label>
+            <SearchableSelect
+              key={`account-${accountId}`}
+              name="account_id"
+              defaultValue={accountId || undefined}
+              options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+              placeholder="— （個人のお客様）"
+              onSelect={(id) => {
+                setAccountId(id)
+                if (id !== accountId) setContactId('')
+              }}
+            />
+            <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-2">
+              <span>会社名なら BtoB。空のままなら BtoC（個人）</span>
+              <Link
+                href="/accounts/new"
+                target="_blank"
+                className="text-blue-600 hover:underline shrink-0"
+              >
+                ＋ 新規登録（別タブ）
+              </Link>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">
+              {contactLabel}
+              {isToC && <span className="text-red-500"> *</span>}
+            </label>
+            <SearchableSelect
+              key={`contact-${accountId}-${contactId}`}
+              name="contact_id"
+              defaultValue={contactId || undefined}
+              options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
+              placeholder={isToC ? '本人を選択（ToC 顧客）' : '—'}
+              onSelect={(id) => setContactId(id)}
+            />
+            <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-2">
+              <span>
+                {isToC
+                  ? '取引先を持たない人物（ToC 顧客）のみ表示。空だと保存不可'
+                  : '選択中の取引先に紐付く担当者のみ表示'}
+              </span>
+              <Link
+                href={accountId ? `/contacts/new?account_id=${accountId}` : '/contacts/new'}
+                target="_blank"
+                className="text-blue-600 hover:underline shrink-0"
+              >
+                ＋ 新規登録（別タブ）
+              </Link>
+            </p>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-zinc-700 mb-1">担当（社内）</label>
+            <SearchableSelect
+              name="owner_id"
+              defaultValue={defaultValues.owner_id ?? undefined}
+              options={users.map((u) => ({ value: u.id, label: u.name }))}
+              placeholder="—"
+            />
+          </div>
         </div>
       </div>
 

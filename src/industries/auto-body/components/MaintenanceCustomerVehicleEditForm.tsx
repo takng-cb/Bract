@@ -136,8 +136,15 @@ export default function MaintenanceCustomerVehicleEditForm({
                   if (id !== accountId) setContactId('')
                 }}
               />
-              <p className="text-[11px] text-zinc-400 mt-1">
-                会社名なら BtoB。空のままなら BtoC（個人）
+              <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-2">
+                <span>会社名なら BtoB。空のままなら BtoC（個人）</span>
+                <Link
+                  href="/accounts/new"
+                  target="_blank"
+                  className="text-blue-600 hover:underline shrink-0"
+                >
+                  ＋ 新規登録（別タブ）
+                </Link>
               </p>
             </div>
 
@@ -154,10 +161,19 @@ export default function MaintenanceCustomerVehicleEditForm({
                 placeholder={isToC ? '本人を選択（ToC 顧客）' : '—'}
                 onSelect={(id) => setContactId(id)}
               />
-              <p className="text-[11px] text-zinc-400 mt-1">
-                {isToC
-                  ? '取引先を持たない人物（ToC 顧客）のみ表示。空のままだと保存できません'
-                  : '選択中の取引先に紐付く担当者のみ表示'}
+              <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-2">
+                <span>
+                  {isToC
+                    ? '取引先を持たない人物（ToC 顧客）のみ表示。空だと保存不可'
+                    : '選択中の取引先に紐付く担当者のみ表示'}
+                </span>
+                <Link
+                  href={accountId ? `/contacts/new?account_id=${accountId}` : '/contacts/new'}
+                  target="_blank"
+                  className="text-blue-600 hover:underline shrink-0"
+                >
+                  ＋ 新規登録（別タブ）
+                </Link>
               </p>
             </div>
 

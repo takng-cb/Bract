@@ -20,10 +20,15 @@ export async function createCustomerVehicle(formData: FormData): Promise<string>
   await requireEditor()
 
   const account_id = pickField(formData, 'account_id')
-  if (!account_id) throw new Error('顧客（取引先）は必須です')
+  const contact_id = pickField(formData, 'contact_id')
+  // BtoB は account_id、BtoC は contact_id。どちらか必須。
+  if (!account_id && !contact_id) {
+    throw new Error('顧客（取引先または人物）は必須です')
+  }
 
   const [row] = await db.insert(customer_vehicles).values({
     account_id,
+    contact_id,
     transport_branch:         pickField(formData, 'transport_branch'),
     classification_number:    pickField(formData, 'classification_number'),
     kana:                     pickField(formData, 'kana'),
@@ -52,10 +57,14 @@ export async function updateCustomerVehicle(id: string, formData: FormData) {
   await requireEditor()
 
   const account_id = pickField(formData, 'account_id')
-  if (!account_id) throw new Error('顧客（取引先）は必須です')
+  const contact_id = pickField(formData, 'contact_id')
+  if (!account_id && !contact_id) {
+    throw new Error('顧客（取引先または人物）は必須です')
+  }
 
   await db.update(customer_vehicles).set({
     account_id,
+    contact_id,
     transport_branch:         pickField(formData, 'transport_branch'),
     classification_number:    pickField(formData, 'classification_number'),
     kana:                     pickField(formData, 'kana'),

@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { accounts } from '@/lib/schema'
+import { accounts, contacts } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import CustomerVehicleForm from '@/industries/auto-body/components/CustomerVehicleForm'
@@ -16,9 +16,11 @@ export default async function NewCustomerVehiclePage({
   await requireEditor()
   const { account_id } = await searchParams
 
-  const [accountsList, users] = await Promise.all([
+  const [accountsList, contactsList, users] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
+      .from(contacts).orderBy(asc(contacts.full_name)),
     getAllUsers(),
   ])
 
@@ -45,6 +47,7 @@ export default async function NewCustomerVehiclePage({
         action={createAction}
         cancelHref={account_id ? `/accounts/${account_id}` : '/customer-vehicles'}
         accounts={accountsList}
+        contacts={contactsList}
         users={users}
         defaultValues={{ account_id: account_id ?? null }}
       />

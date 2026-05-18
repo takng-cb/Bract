@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { customer_vehicles, accounts } from '@/lib/schema'
+import { customer_vehicles, accounts, contacts } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Breadcrumbs from '@/components/Breadcrumbs'
@@ -12,10 +12,12 @@ export default async function EditCustomerVehiclePage({ params }: { params: Prom
   const { id } = await params
   await requireEditor()
 
-  const [v, accountsList, users] = await Promise.all([
+  const [v, accountsList, contactsList, users] = await Promise.all([
     db.select().from(customer_vehicles).where(eq(customer_vehicles.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name, account_id: contacts.account_id })
+      .from(contacts).orderBy(asc(contacts.full_name)),
     getAllUsers(),
   ])
   if (!v) notFound()
@@ -41,9 +43,11 @@ export default async function EditCustomerVehiclePage({ params }: { params: Prom
         action={updateAction}
         cancelHref={`/customer-vehicles/${id}`}
         accounts={accountsList}
+        contacts={contactsList}
         users={users}
         defaultValues={{
           account_id:               v.account_id,
+          contact_id:               v.contact_id,
           transport_branch:         v.transport_branch,
           classification_number:    v.classification_number,
           kana:                     v.kana,
