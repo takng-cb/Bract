@@ -179,12 +179,12 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         <StageBar stages={STATUS_STAGES} currentStage={m.status} updateAction={changeStatus} />
       </div>
 
-      {/* 帳票ボタン群（矢羽の直下、横1列・必要なら横スクロール） */}
+      {/* 帳票ボタン群（矢羽の直下、複数行に折り返し） */}
       <div className="bg-white border border-zinc-200 rounded-lg px-3 py-2">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="flex items-start gap-2 flex-wrap">
           <Link
             href={`/maintenance/${maintenanceId}/documents`}
-            className="text-[10px] uppercase tracking-wider text-zinc-500 hover:text-blue-600 shrink-0 mr-1"
+            className="text-[10px] uppercase tracking-wider text-zinc-500 hover:text-blue-600 shrink-0 mr-1 self-center py-1"
             title="全帳票一覧"
           >
             {AB_ICONS.document} 帳票
