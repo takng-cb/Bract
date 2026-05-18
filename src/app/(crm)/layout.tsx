@@ -94,22 +94,32 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     : null
 
   return (
-    <div className="flex min-h-screen bg-zinc-50">
+    <div className="flex min-h-screen bg-zinc-50 print:bg-white print:min-h-0">
       {/* 画面上部の進捗バー + 中央スピナー（perceived perf）*/}
-      <NavigationProgress />
-      <NavigationOverlay />
-      <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} />
-      <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} />
-      <main className={`flex-1 overflow-auto pt-14 md:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'}`}>
+      <div className="print:hidden">
+        <NavigationProgress />
+        <NavigationOverlay />
+      </div>
+      <div className="print:hidden">
+        <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} />
+      </div>
+      <div className="print:hidden">
+        <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} />
+      </div>
+      <main className={`flex-1 overflow-auto pt-14 md:pt-0 print:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'} print:pb-0`}>
         {children}
       </main>
-      <BottomNav />
-      <PwaInstallBanner />
+      <div className="print:hidden">
+        <BottomNav />
+        <PwaInstallBanner />
+      </div>
       {impersonation && (
-        <ImpersonationBanner
-          adminEmail={impersonation.adminEmail}
-          targetEmail={impersonation.targetEmail}
-        />
+        <div className="print:hidden">
+          <ImpersonationBanner
+            adminEmail={impersonation.adminEmail}
+            targetEmail={impersonation.targetEmail}
+          />
+        </div>
       )}
     </div>
   )

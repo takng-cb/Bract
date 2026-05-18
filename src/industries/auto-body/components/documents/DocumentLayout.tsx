@@ -60,7 +60,9 @@ export default function DocumentLayout({ title, maintenanceId, children }: Props
 
       {/* 印刷用ヒント（画面のみ） */}
       <div className="print:hidden text-center text-xs text-zinc-500 py-2 px-4">
-        ブラウザの「印刷」ダイアログから「PDF として保存」を選ぶと PDF 化できます。用紙: A4 縦 / 余白: 標準
+        ブラウザの「印刷」ダイアログから「PDF として保存」を選ぶと PDF 化できます。
+        <br />
+        用紙: A4 縦 / 余白: 標準 / 「<strong>ヘッダーとフッター</strong>」のチェックを外すと URL や日付が紙に出ません
       </div>
 
       {/* A4 用紙風の本体 */}
