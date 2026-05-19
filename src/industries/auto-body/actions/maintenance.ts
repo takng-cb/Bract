@@ -1,12 +1,42 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { maintenance_records, activities, activity_related_records } from '@/lib/schema'
+import { maintenance_records, vehicles, activities, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { requireEditor } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { generateMaintenanceNo } from '@/industries/auto-body/lib/maintenanceNo'
+
+// 代車運用 (Issue #45):
+//   vehicles.status は '在庫' / '販売済' / '整備中' などを取り得るが、
+//   代車として貸出中は '代車中' を表す。専用テーブルは作らない方針。
+const VEHICLE_STATUS_LOANER = '代車中'
+const VEHICLE_STATUS_STOCK  = '在庫'
+
+/**
+ * 代車として割り当てた車両の vehicles.status を同期する。
+ *   - 旧 loaner_vehicle_id があり、新と異なる/解除される → 旧を '在庫' に戻す
+ *   - 新 loaner_vehicle_id があり、旧と異なる → 新を '代車中' に
+ *   - 安全のため、旧車両が現在 '代車中' でなかった場合は触らない（手動で別状態にされていた可能性）
+ */
+async function syncLoanerVehicleStatus(
+  previousLoanerVehicleId: string | null,
+  nextLoanerVehicleId: string | null,
+) {
+  if (previousLoanerVehicleId === nextLoanerVehicleId) return
+
+  if (previousLoanerVehicleId) {
+    await db.update(vehicles)
+      .set({ status: VEHICLE_STATUS_STOCK, updated_at: new Date() })
+      .where(eq(vehicles.id, previousLoanerVehicleId))
+  }
+  if (nextLoanerVehicleId) {
+    await db.update(vehicles)
+      .set({ status: VEHICLE_STATUS_LOANER, updated_at: new Date() })
+      .where(eq(vehicles.id, nextLoanerVehicleId))
+  }
+}
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -119,9 +149,69 @@ export async function updateMaintenance(id: string, formData: FormData) {
 
 export async function deleteMaintenance(id: string) {
   await requireEditor()
+
+  // 代車が割り当てられたままなら、削除前に '在庫' に戻す
+  const before = await db.select({
+    loaner_vehicle_id: maintenance_records.loaner_vehicle_id,
+  })
+    .from(maintenance_records).where(eq(maintenance_records.id, id))
+    .then((r) => r[0] ?? null)
+  if (before?.loaner_vehicle_id) {
+    await syncLoanerVehicleStatus(before.loaner_vehicle_id, null)
+  }
+
   await db.delete(maintenance_records).where(eq(maintenance_records.id, id))
   revalidatePath('/maintenance')
   redirect('/maintenance')
+}
+
+/**
+ * 代車セクション専用の部分更新アクション。
+ * loaner_vehicle_id が変更された場合、vehicles.status を自動で同期する。
+ */
+export async function updateMaintenanceLoaner(
+  id: string,
+  data: {
+    loaner_vehicle_id:   string | null
+    loaner_handover_at:  string | null  // ISO8601 (datetime-local) or null
+    loaner_return_at:    string | null
+    loaner_mileage_out:  number | null
+    loaner_mileage_in:   number | null
+    loaner_fuel_out:     string | null
+    loaner_fuel_in:      string | null
+    loaner_notes:        string | null
+  },
+) {
+  await requireEditor()
+
+  // 旧 loaner_vehicle_id を取得
+  const before = await db.select({
+    loaner_vehicle_id: maintenance_records.loaner_vehicle_id,
+  })
+    .from(maintenance_records).where(eq(maintenance_records.id, id))
+    .then((r) => r[0] ?? null)
+  if (!before) throw new Error('整備レコードが見つかりません')
+
+  // ISO8601 文字列を Date に変換（空なら null）
+  const toDate = (s: string | null) => (s && s.trim() ? new Date(s) : null)
+
+  await db.update(maintenance_records).set({
+    loaner_vehicle_id:  data.loaner_vehicle_id,
+    loaner_handover_at: toDate(data.loaner_handover_at),
+    loaner_return_at:   toDate(data.loaner_return_at),
+    loaner_mileage_out: data.loaner_mileage_out,
+    loaner_mileage_in:  data.loaner_mileage_in,
+    loaner_fuel_out:    data.loaner_fuel_out,
+    loaner_fuel_in:     data.loaner_fuel_in,
+    loaner_notes:       data.loaner_notes,
+    updated_at:         new Date(),
+  }).where(eq(maintenance_records.id, id))
+
+  // vehicles.status を同期
+  await syncLoanerVehicleStatus(before.loaner_vehicle_id, data.loaner_vehicle_id)
+
+  revalidatePath(`/maintenance/${id}`)
+  revalidatePath('/auto-body/vehicles')
 }
 
 // ─── 部分更新アクション（全体ビューのポップアップ編集用） ───
@@ -225,16 +315,33 @@ export async function updateMaintenanceStatus(id: string, status: string) {
 
   // 旧ステータスを取得して、変更があれば活動を自動生成
   const before = await db.select({
-    status:     maintenance_records.status,
-    account_id: maintenance_records.account_id,
-    contact_id: maintenance_records.contact_id,
-    owner_id:   maintenance_records.owner_id,
+    status:            maintenance_records.status,
+    account_id:        maintenance_records.account_id,
+    contact_id:        maintenance_records.contact_id,
+    owner_id:          maintenance_records.owner_id,
+    loaner_vehicle_id: maintenance_records.loaner_vehicle_id,
+    loaner_return_at:  maintenance_records.loaner_return_at,
   })
     .from(maintenance_records).where(eq(maintenance_records.id, id))
     .then((r) => r[0] ?? null)
 
+  // 完了/キャンセル遷移時、代車が割り当てられていれば自動返却
+  //   - vehicles.status を '在庫' に戻す
+  //   - 整備側の loaner_return_at が未記録なら現在時刻で埋める（手動修正可能）
+  const isClosing = status === '完了' || status === 'キャンセル'
+  const wasClosed = before?.status === '完了' || before?.status === 'キャンセル'
+  const shouldAutoReturn = isClosing && !wasClosed && !!before?.loaner_vehicle_id
+
+  if (shouldAutoReturn && before) {
+    await syncLoanerVehicleStatus(before.loaner_vehicle_id, null)
+  }
+
   await db.update(maintenance_records)
-    .set({ status, updated_at: new Date() })
+    .set({
+      status,
+      ...(shouldAutoReturn && !before?.loaner_return_at ? { loaner_return_at: new Date() } : {}),
+      updated_at: new Date(),
+    })
     .where(eq(maintenance_records.id, id))
 
   // 変更があれば対応する活動を自動 INSERT

@@ -362,6 +362,19 @@ export const maintenance_records = pgTable('maintenance_records', {
   // ステータス
   status:               text('status').notNull().default('予約'), // 予約/受付/作業中/納車待ち/完了/キャンセル
 
+  // 代車 (Issue #45)
+  //   loaner_vehicle_id がセットされている間、vehicles.status は '代車中'。
+  //   maintenance.status が「完了」「キャンセル」に変わったタイミングで
+  //   自動的に '在庫' に戻す（アプリ層のサーバーアクションで担保）。
+  loaner_vehicle_id:    uuid('loaner_vehicle_id').references(() => vehicles.id, { onDelete: 'set null' }),
+  loaner_handover_at:   timestamp('loaner_handover_at', { withTimezone: true }),
+  loaner_return_at:     timestamp('loaner_return_at', { withTimezone: true }),
+  loaner_mileage_out:   integer('loaner_mileage_out'),
+  loaner_mileage_in:    integer('loaner_mileage_in'),
+  loaner_fuel_out:      text('loaner_fuel_out'),
+  loaner_fuel_in:       text('loaner_fuel_in'),
+  loaner_notes:         text('loaner_notes'),
+
   owner_id:             uuid('owner_id'),
   created_at:           timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:           timestamp('updated_at', { withTimezone: true }).defaultNow(),
