@@ -169,6 +169,7 @@ export const tasks = pgTable('tasks', {
   due_date:    date('due_date'),
   done:        boolean('done').notNull().default(false),
   priority:    text('priority').notNull().default('medium'),
+  owner_id:    uuid('owner_id'),                                       // 担当者 (auth user id)
   created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
   // 関連先は task_related_records junction で管理（Phase 2 で FK 列撤廃）

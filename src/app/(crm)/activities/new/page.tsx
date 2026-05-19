@@ -4,8 +4,9 @@ import { eq, asc, and } from 'drizzle-orm'
 import ActivityForm from '@/components/ActivityForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { createActivity } from '@/app/actions/activities'
-import { requireEditor } from '@/lib/auth'
+import { requireEditor, getCurrentUserId } from '@/lib/auth'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { getAllUsers } from '@/lib/userUtils'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
@@ -43,7 +44,7 @@ export default async function NewActivityPage({
   await requireEditor()
 
   // 標準 + 有効カスタムオブジェクト + 業種固有オブジェクトを並列取得
-  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, activityTypes, industryPicker] = await Promise.all([
+  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, activityTypes, industryPicker, users, currentUserId] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
@@ -66,6 +67,8 @@ export default async function NewActivityPage({
     }).from(custom_records),
     getActivityTypes(),
     getIndustryPickerData(),
+    getAllUsers(),
+    getCurrentUserId(),
   ])
 
   // 関連レコード Picker の入力データを組み立て
@@ -156,7 +159,11 @@ export default async function NewActivityPage({
           objectTypes={objectTypes}
           recordsByObject={recordsByObject}
           activityTypes={activityTypes}
-          defaultValues={{ related_records: defaultRelated }}
+          users={users}
+          defaultValues={{
+            related_records: defaultRelated,
+            owner_id:        currentUserId ?? null,
+          }}
         />
       </div>
     </div>

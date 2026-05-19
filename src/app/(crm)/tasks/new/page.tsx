@@ -4,7 +4,8 @@ import { eq, asc, and } from 'drizzle-orm'
 import TaskForm from '@/components/TaskForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { createTask } from '@/app/actions/tasks'
-import { requireEditor } from '@/lib/auth'
+import { requireEditor, getCurrentUserId } from '@/lib/auth'
+import { getAllUsers } from '@/lib/userUtils'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
@@ -37,7 +38,7 @@ export default async function NewTaskPage({
   }
   await requireEditor()
 
-  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, industryPicker] = await Promise.all([
+  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, industryPicker, users, currentUserId] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
     db.select({ id: contacts.id, full_name: contacts.full_name })
@@ -59,6 +60,8 @@ export default async function NewTaskPage({
       data:      custom_records.data,
     }).from(custom_records),
     getIndustryPickerData(),
+    getAllUsers(),
+    getCurrentUserId(),
   ])
 
   const objectTypes: ObjectTypeOption[] = [
@@ -130,7 +133,11 @@ export default async function NewTaskPage({
           cancelHref={cancelHref}
           objectTypes={objectTypes}
           recordsByObject={recordsByObject}
-          defaultValues={{ related_records: defaultRelated }}
+          users={users}
+          defaultValues={{
+            related_records: defaultRelated,
+            owner_id:        currentUserId ?? null,  // 新規作成時は自分を初期セット
+          }}
         />
       </div>
     </div>

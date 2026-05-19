@@ -6,6 +6,7 @@ import TaskForm from '@/components/TaskForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateTask } from '@/app/actions/tasks'
 import { requireEditor } from '@/lib/auth'
+import { getAllUsers } from '@/lib/userUtils'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
@@ -23,7 +24,7 @@ function customRecordTitle(
 export default async function EditTaskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [task, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, industryPicker] = await Promise.all([
+  const [task, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, industryPicker, users] = await Promise.all([
     db.select().from(tasks).where(eq(tasks.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
@@ -52,6 +53,7 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
       .from(task_related_records)
       .where(eq(task_related_records.task_id, id)),
     getIndustryPickerData(),
+    getAllUsers(),
   ])
 
   if (!task) notFound()
@@ -110,11 +112,13 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
           cancelHref={`/tasks/${id}`}
           objectTypes={objectTypes}
           recordsByObject={recordsByObject}
+          users={users}
           defaultValues={{
             title:       task.title,
             description: task.description,
             due_date:    task.due_date,
             priority:    task.priority,
+            owner_id:    task.owner_id,
             related_records: defaultRelated,
           }}
         />

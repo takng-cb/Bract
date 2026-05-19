@@ -60,12 +60,14 @@ export async function createTask(formData: FormData) {
   const selections = parseRelatedRecords(formData)
 
   const description = (formData.get('description') as string)?.trim() || null
+  const owner_id    = (formData.get('owner_id') as string)?.trim() || null
 
   const [row] = await db.insert(tasks).values({
     title:       title.trim(),
     description,
     due_date:    (formData.get('due_date') as string) || null,
     priority:    (formData.get('priority') as string) || 'medium',
+    owner_id,
   }).returning({ id: tasks.id })
 
   await syncTaskRelatedRecords(row.id, selections)
@@ -90,12 +92,14 @@ export async function updateTask(id: string, formData: FormData) {
   const selections = parseRelatedRecords(formData)
 
   const description = (formData.get('description') as string)?.trim() || null
+  const owner_id    = (formData.get('owner_id') as string)?.trim() || null
 
   await db.update(tasks).set({
     title:       title.trim(),
     description,
     due_date:    (formData.get('due_date') as string) || null,
     priority:    (formData.get('priority') as string) || 'medium',
+    owner_id,
     updated_at:  new Date(),
   }).where(eq(tasks.id, id))
 

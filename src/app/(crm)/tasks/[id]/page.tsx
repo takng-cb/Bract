@@ -8,6 +8,7 @@ import { deleteTask, toggleTaskDone } from '@/app/actions/tasks'
 import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
+import { getAllUsers } from '@/lib/userUtils'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
 
 const PRIORITY_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -19,10 +20,10 @@ const PRIORITY_CONFIG: Record<string, { label: string; bg: string; text: string 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [task, relatedPairs] = await Promise.all([
+  const [task, relatedPairs, allUsers] = await Promise.all([
     db.select({
       id: tasks.id, title: tasks.title, description: tasks.description, done: tasks.done,
-      priority: tasks.priority, due_date: tasks.due_date, created_at: tasks.created_at,
+      priority: tasks.priority, due_date: tasks.due_date, owner_id: tasks.owner_id, created_at: tasks.created_at,
     })
       .from(tasks)
       .where(eq(tasks.id, id))
@@ -33,9 +34,11 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     })
       .from(task_related_records)
       .where(eq(task_related_records.task_id, id)),
+    getAllUsers(),
   ])
 
   if (!task) notFound()
+  const ownerName = task.owner_id ? (allUsers.find((u) => u.id === task.owner_id)?.name ?? null) : null
 
   const allRelated = await resolveRelatedRecords(relatedPairs)
   const priority   = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
@@ -127,6 +130,10 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
             <dd className="text-sm text-zinc-800">{task.created_at ? new Date(task.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+            <dd className="text-sm text-zinc-800">{ownerName ?? <span className="text-zinc-300">—</span>}</dd>
           </div>
           <div className="sm:col-span-2">
             <dt className="text-xs text-zinc-400 mb-1">詳細・メモ</dt>

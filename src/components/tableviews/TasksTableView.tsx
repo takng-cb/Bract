@@ -11,6 +11,7 @@ type Task = {
   due_date: string | null
   priority: string
   done: boolean
+  owner_name: string | null  // 担当者氏名（リスト側で解決済み）
   accounts: { id: string; name: string } | null
 }
 
@@ -79,9 +80,16 @@ const ALL_COLS: ColDef[] = [
         : '—'
     },
   },
+  {
+    key: 'owner', label: '担当者',
+    render: (r) => {
+      const name = (r as unknown as Task).owner_name
+      return name ? <span className="text-zinc-700 text-sm">{name}</span> : <span className="text-zinc-300">—</span>
+    },
+  },
 ]
 
-const DEFAULT_KEYS = ['title', 'due_date', 'priority', 'done', 'description']
+const DEFAULT_KEYS = ['title', 'due_date', 'priority', 'done', 'owner', 'description']
 
 type Props = {
   records: Record<string, unknown>[]

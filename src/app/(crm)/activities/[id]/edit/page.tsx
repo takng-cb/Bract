@@ -15,6 +15,7 @@ import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateActivity } from '@/app/actions/activities'
 import { requireEditor } from '@/lib/auth'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { getAllUsers } from '@/lib/userUtils'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 
@@ -32,7 +33,7 @@ function customRecordTitle(
 export default async function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   await requireEditor()
-  const [activity, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, activityTypes, industryPicker] = await Promise.all([
+  const [activity, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, activityTypes, industryPicker, users] = await Promise.all([
     db.select().from(activities).where(eq(activities.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
@@ -62,6 +63,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
       .where(eq(activity_related_records.activity_id, id)),
     getActivityTypes(),
     getIndustryPickerData(),
+    getAllUsers(),
   ])
 
   if (!activity) notFound()
@@ -122,6 +124,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
           objectTypes={objectTypes}
           recordsByObject={recordsByObject}
           activityTypes={activityTypes}
+          users={users}
           defaultValues={{
             type: activity.type,
             subject: activity.subject,
@@ -129,6 +132,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
             occurred_at: activity.occurred_at
               ? new Date(activity.occurred_at).toISOString().slice(0, 16)
               : '',
+            owner_id:        activity.owner_id,
             related_records: defaultRelated,
           }}
         />

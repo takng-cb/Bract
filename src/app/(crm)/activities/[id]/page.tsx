@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { deleteActivity } from '@/app/actions/activities'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
+import { getAllUsers } from '@/lib/userUtils'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
 import { getActivityTypes } from '@/lib/activityTypes'
@@ -14,10 +15,11 @@ import { resolveRelatedRecords } from '@/lib/relatedRecords'
 export default async function ActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [activityRow, relatedPairs] = await Promise.all([
+  const [activityRow, relatedPairs, allUsers] = await Promise.all([
     db.select({
       id: activities.id, type: activities.type, subject: activities.subject,
       body: activities.body, occurred_at: activities.occurred_at, created_at: activities.created_at,
+      owner_id: activities.owner_id,
     })
       .from(activities)
       .where(eq(activities.id, id))
@@ -28,9 +30,11 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
     })
       .from(activity_related_records)
       .where(eq(activity_related_records.activity_id, id)),
+    getAllUsers(),
   ])
 
   if (!activityRow) notFound()
+  const ownerName = activityRow.owner_id ? (allUsers.find((u) => u.id === activityRow.owner_id)?.name ?? null) : null
 
   // junction 経由で全関連レコードを解決
   const allRelated = await resolveRelatedRecords(relatedPairs)
@@ -114,6 +118,10 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
             <dd className="text-sm text-zinc-800">{activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
+            <dd className="text-sm text-zinc-800">{ownerName ?? <span className="text-zinc-300">—</span>}</dd>
           </div>
           <div className="col-span-1 sm:col-span-2">
             <dt className="text-xs text-zinc-400 mb-1">人物（複数選択された場合）</dt>

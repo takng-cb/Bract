@@ -3,6 +3,7 @@
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
+import SearchableSelect from '@/components/SearchableSelect'
 import RelatedRecordsPicker, {
   type ObjectTypeOption,
   type RecordOption,
@@ -14,11 +15,13 @@ type TaskFormProps = {
   cancelHref:      string
   objectTypes:     ObjectTypeOption[]
   recordsByObject: Record<string, RecordOption[]>
+  users:           { id: string; name: string }[]
   defaultValues?: {
     title?:           string
     description?:     string | null
     due_date?:        string | null
     priority?:        string
+    owner_id?:        string | null
     related_records?: RelatedRecordSelection[]
   }
 }
@@ -29,7 +32,7 @@ const PRIORITIES = [
   { value: 'low',    label: '🟢 低', color: 'text-green-600' },
 ]
 
-export default function TaskForm({ action, cancelHref, objectTypes, recordsByObject, defaultValues = {} }: TaskFormProps) {
+export default function TaskForm({ action, cancelHref, objectTypes, recordsByObject, users, defaultValues = {} }: TaskFormProps) {
   const [error, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -88,7 +91,7 @@ export default function TaskForm({ action, cancelHref, objectTypes, recordsByObj
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">期限</label>
           <input
@@ -114,6 +117,15 @@ export default function TaskForm({ action, cancelHref, objectTypes, recordsByObj
               </label>
             ))}
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <SearchableSelect
+            name="owner_id"
+            defaultValue={defaultValues.owner_id ?? undefined}
+            options={users.map((u) => ({ value: u.id, label: u.name }))}
+            placeholder="—"
+          />
         </div>
       </div>
 

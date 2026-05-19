@@ -3,6 +3,7 @@
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
+import SearchableSelect from '@/components/SearchableSelect'
 import RelatedRecordsPicker, {
   type ObjectTypeOption,
   type RecordOption,
@@ -19,11 +20,14 @@ type ActivityFormProps = {
   recordsByObject: Record<string, RecordOption[]>
   /** /admin/objects で編集される活動種別。サーバ側から流す。 */
   activityTypes:   ActivityType[]
+  /** 担当者ピッカー用ユーザー一覧 */
+  users:           { id: string; name: string }[]
   defaultValues?: {
     type?:            string
     subject?:         string
     body?:            string | null
     occurred_at?:     string
+    owner_id?:        string | null
     related_records?: RelatedRecordSelection[]
   }
 }
@@ -34,6 +38,7 @@ export default function ActivityForm({
   objectTypes,
   recordsByObject,
   activityTypes,
+  users,
   defaultValues = {},
 }: ActivityFormProps) {
   // 表示用に value→label / label→value Map を作成（FormFillModal で使用）
@@ -138,16 +143,27 @@ export default function ActivityForm({
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-zinc-700 mb-1">日時</label>
-        <input
-          name="occurred_at"
-          type="datetime-local"
-          defaultValue={defaultValues.occurred_at
-            ? new Date(new Date(defaultValues.occurred_at).getTime() - new Date(defaultValues.occurred_at).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-            : localDatetime}
-          className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">日時</label>
+          <input
+            name="occurred_at"
+            type="datetime-local"
+            defaultValue={defaultValues.occurred_at
+              ? new Date(new Date(defaultValues.occurred_at).getTime() - new Date(defaultValues.occurred_at).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+              : localDatetime}
+            className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1">担当者</label>
+          <SearchableSelect
+            name="owner_id"
+            defaultValue={defaultValues.owner_id ?? undefined}
+            options={users.map((u) => ({ value: u.id, label: u.name }))}
+            placeholder="—"
+          />
+        </div>
       </div>
 
       <div className="flex gap-3 pt-2">

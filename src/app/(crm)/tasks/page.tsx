@@ -11,6 +11,7 @@ import { toggleTaskDone } from '@/app/actions/tasks'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
+import { getAllUsers } from '@/lib/userUtils'
 import { getListViewColumns } from '@/lib/listViewSettings'
 import { getDefaultView } from '@/lib/savedViews'
 import TasksTableView from '@/components/tableviews/TasksTableView'
@@ -55,6 +56,8 @@ type SelectRow = {
   done:        boolean
   priority:    string
   due_date:    string | null
+  owner_id:    string | null
+  owner_name:  string | null
   account_id:  string | null
   accounts:      { id: string; name: string } | null
   opportunities: { id: string; name: string } | null
@@ -98,6 +101,7 @@ export default async function TasksPage({
     done:        tasks.done,
     priority:    tasks.priority,
     due_date:    tasks.due_date,
+    owner_id:    tasks.owner_id,
   }).from(tasks).orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
 
   // ── ステップ2: junction 経由で関連 account / opportunity を bulk fetch ─
@@ -138,16 +142,22 @@ export default async function TasksPage({
     opportunitiesByTaskId.get(r.task_id)!.push({ id: r.opportunity_id, name: r.opportunity_name })
   }
 
+  // 担当者名を resolve するため users を取得
+  const allUsers = await getAllUsers()
+  const userNameById = new Map(allUsers.map((u) => [u.id, u.name]))
+
   // ── ステップ3: 表示用 SelectRow を構築 ─────────────────────────────
   const rawRows: SelectRow[] = []
   for (const t of allTasks) {
     const accs = accountsByTaskId.get(t.id) ?? []
     const opps = opportunitiesByTaskId.get(t.id) ?? []
+    const owner_name = t.owner_id ? (userNameById.get(t.owner_id) ?? null) : null
     if (isGrouped && accs.length > 1) {
       // グループ時のみ account ごとに行を duplicate
       for (const acc of accs) {
         rawRows.push({
           ...t,
+          owner_name,
           account_id:    acc.id,
           accounts:      acc,
           opportunities: opps[0] ?? null,
@@ -157,6 +167,7 @@ export default async function TasksPage({
       // 非グループ時 or 関連 account が 0/1 個: 1 行
       rawRows.push({
         ...t,
+        owner_name,
         account_id:    accs[0]?.id ?? null,
         accounts:      accs[0] ?? null,
         opportunities: opps[0] ?? null,

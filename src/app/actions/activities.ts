@@ -69,11 +69,14 @@ export async function updateActivity(id: string, formData: FormData) {
   const occurred_at = formData.get('occurred_at') as string
   const selections  = parseRelatedRecords(formData)
 
+  const owner_id = (formData.get('owner_id') as string)?.trim() || null
+
   await db.update(activities).set({
     subject:        subject.trim(),
     type,
     body:           (formData.get('body') as string) || null,
     occurred_at:    occurred_at ? new Date(occurred_at) : new Date(),
+    owner_id,
     // FK 列は syncActivityRelatedRecords の中でまとめて更新
   }).where(eq(activities.id, id))
 
@@ -100,11 +103,14 @@ export async function createActivity(formData: FormData) {
   const return_to   = (formData.get('return_to') as string) || null
   const selections  = parseRelatedRecords(formData)
 
+  const owner_id = (formData.get('owner_id') as string)?.trim() || null
+
   const [row] = await db.insert(activities).values({
     subject:     subject.trim(),
     type,
     body:        (formData.get('body') as string) || null,
     occurred_at: occurred_at ? new Date(occurred_at) : new Date(),
+    owner_id,
     // FK 列は syncActivityRelatedRecords の中で書く
   }).returning({ id: activities.id })
 
