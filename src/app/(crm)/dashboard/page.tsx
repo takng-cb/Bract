@@ -12,6 +12,7 @@ import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { daysUntilInspection } from '@/industries/auto-body/lib/autoBodyService'
 import { calcStock, stockBadgeColor } from '@/industries/auto-body/lib/partsHelpers'
+import { getReceivables, sumReceivables } from '@/industries/auto-body/lib/maintenanceReceivables'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'bg-red-50 text-red-600' },
@@ -62,7 +63,7 @@ export default async function DashboardPage({
   const inspectionLimitDate = new Date()
   inspectionLimitDate.setDate(inspectionLimitDate.getDate() + 30)
   const inspectionLimit = formatDateLocal(inspectionLimitDate)
-  const [upcomingInspections, maintList, activeLoaners, allParts, allPartMovements] = await Promise.all([
+  const [upcomingInspections, maintList, activeLoaners, allParts, allPartMovements, receivables] = await Promise.all([
     isAutoBody
       ? db.select({
           id:                   vehicles.id,
@@ -129,7 +130,11 @@ export default async function DashboardPage({
           quantity:      part_movements.quantity,
         }).from(part_movements)
       : Promise.resolve([]),
+    // auto-body: 売掛金（未入金） — Issue #48 Phase 1
+    isAutoBody ? getReceivables(10) : Promise.resolve([]),
   ])
+
+  const totalReceivables = sumReceivables(receivables)
 
   // 部品の現在庫を集計し、reorder_level 以下の部品を抽出（最大 10 件）
   const lowStockParts = (() => {
@@ -610,6 +615,65 @@ export default async function DashboardPage({
                       </div>
                     </Link>
                   ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 売掛金アラート（auto-body のみ） — Issue #48 */}
+          {isAutoBody && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-zinc-800">
+                  💰 未入金の整備
+                  <span className="ml-2 text-zinc-400 font-normal text-sm">({receivables.length})</span>
+                </h2>
+                <span className="text-xs text-zinc-500">合計 <span className="font-mono font-bold text-rose-700">¥{totalReceivables.toLocaleString()}</span></span>
+              </div>
+              {receivables.length === 0 ? (
+                <div className="bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center text-sm text-zinc-400">
+                  未入金の整備はありません 🎉
+                </div>
+              ) : (
+                <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
+                  {receivables.map((r) => {
+                    const customer = r.account?.name ?? r.contact?.full_name ?? '—'
+                    const isOverdue30 = r.daysOverdue != null && r.daysOverdue > 30
+                    const isOverdue60 = r.daysOverdue != null && r.daysOverdue > 60
+                    return (
+                      <Link key={r.id} href={`/maintenance/${r.id}`} className="block px-4 py-3 hover:bg-zinc-50">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-zinc-900 truncate">
+                              {customer}
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 ml-2 align-middle">{r.status}</span>
+                            </p>
+                            <p className="text-xs text-zinc-400 mt-0.5 truncate">
+                              🔧 {r.maintenance_no}
+                              {r.vehicle?.plate_number && <span className="ml-2">🚗 {r.vehicle.plate_number}</span>}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-mono font-bold text-sm text-rose-700">¥{r.outstanding.toLocaleString()}</p>
+                            {r.daysOverdue != null && (
+                              <p className={`text-xs mt-0.5 ${
+                                isOverdue60 ? 'text-red-700 font-semibold' :
+                                isOverdue30 ? 'text-orange-700' :
+                                'text-zinc-500'
+                              }`}>
+                                {r.daysOverdue < 0 ? `あと${-r.daysOverdue}日` : `${r.daysOverdue}日経過`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {r.paidTotal > 0 && (
+                          <p className="text-[10px] text-zinc-400 mt-1">
+                            一部入金済: ¥{r.paidTotal.toLocaleString()} / 請求 ¥{r.invoiceTotal.toLocaleString()}
+                          </p>
+                        )}
+                      </Link>
+                    )
+                  })}
                 </div>
               )}
             </section>
