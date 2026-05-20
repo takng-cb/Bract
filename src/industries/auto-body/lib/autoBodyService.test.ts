@@ -33,6 +33,7 @@ describe('calcAutoBodyProfit（利益 = 売上 − 部品仕入原価）', () =>
 describe('vehicleStatusColor（状態に応じた Tailwind バッジ色）', () => {
   it('既知の状態は対応色を返す', () => {
     expect(vehicleStatusColor('在庫')).toContain('blue')
+    expect(vehicleStatusColor('代車中')).toContain('teal')
     expect(vehicleStatusColor('販売済')).toContain('green')
     expect(vehicleStatusColor('修理中')).toContain('orange')
     expect(vehicleStatusColor('メンテ中')).toContain('yellow')

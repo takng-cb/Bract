@@ -14,8 +14,12 @@ export const SERVICE_TYPES = ['車両販売', '板金修理', '整備', '車検'
 export type ServiceType = typeof SERVICE_TYPES[number]
 
 // ── 車両の状態 ──────────────────────────────
+//   '代車中' は整備の loaner_vehicle_id にセットされた際に
+//   actions/maintenance.ts の syncLoanerVehicleStatus が自動で立てる。
+//   整備完了/キャンセル時に '在庫' に戻る。
 export const VEHICLE_STATUSES = [
   '在庫',
+  '代車中',
   '販売済',
   '修理中',
   'メンテ中',
@@ -29,6 +33,7 @@ export type VehicleStatus = typeof VEHICLE_STATUSES[number]
 export function vehicleStatusColor(status: string | null | undefined): string {
   switch (status) {
     case '在庫':     return 'bg-blue-50  text-blue-700'
+    case '代車中':   return 'bg-teal-50  text-teal-700'
     case '販売済':   return 'bg-green-50 text-green-700'
     case '修理中':   return 'bg-orange-50 text-orange-700'
     case 'メンテ中': return 'bg-yellow-50 text-yellow-700'
