@@ -71,6 +71,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         { href: '/customer-vehicles',     label: '顧客車両',     icon: '🚙' },
         { href: '/vehicles',              label: '車両',         icon: '🚗' },
         { href: '/parts',                 label: '部品',         icon: '🪛' },
+        { href: '/receivables',           label: '売掛金',       icon: '💰' },
       ]
     : []
 

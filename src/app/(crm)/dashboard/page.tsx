@@ -628,7 +628,10 @@ export default async function DashboardPage({
                   💰 未入金の整備
                   <span className="ml-2 text-zinc-400 font-normal text-sm">({receivables.length})</span>
                 </h2>
-                <span className="text-xs text-zinc-500">合計 <span className="font-mono font-bold text-rose-700">¥{totalReceivables.toLocaleString()}</span></span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-zinc-500">合計 <span className="font-mono font-bold text-rose-700">¥{totalReceivables.toLocaleString()}</span></span>
+                  <Link href="/receivables" className="text-xs text-blue-600 hover:text-blue-800">売掛金一覧 →</Link>
+                </div>
               </div>
               {receivables.length === 0 ? (
                 <div className="bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center text-sm text-zinc-400">
