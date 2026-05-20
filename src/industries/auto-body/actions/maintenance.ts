@@ -211,7 +211,7 @@ export async function updateMaintenanceLoaner(
   await syncLoanerVehicleStatus(before.loaner_vehicle_id, data.loaner_vehicle_id)
 
   revalidatePath(`/maintenance/${id}`)
-  revalidatePath('/auto-body/vehicles')
+  revalidatePath('/vehicles')
 }
 
 // ─── 部分更新アクション（全体ビューのポップアップ編集用） ───

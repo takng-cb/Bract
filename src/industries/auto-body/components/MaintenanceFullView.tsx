@@ -15,9 +15,9 @@ import { db } from '@/lib/db'
 import {
   maintenance_records, customer_vehicles, accounts, contacts,
   maintenance_line_items, maintenance_fees, maintenance_payments,
-  maintenance_damage_pins,
+  maintenance_damage_pins, vehicles,
 } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import { eq, or, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
@@ -31,6 +31,7 @@ import MaintenanceDamageMap from './MaintenanceDamageMap'
 import MaintenanceDamageMapPreview from './MaintenanceDamageMapPreview'
 import MaintenanceCustomerVehicleEditForm from './MaintenanceCustomerVehicleEditForm'
 import MaintenanceBasicInfoEditForm from './MaintenanceBasicInfoEditForm'
+import MaintenanceLoanerEditForm from './MaintenanceLoanerEditForm'
 import StageBar, { type StageConfig } from '@/components/StageBar'
 import { updateMaintenanceStatus } from '@/industries/auto-body/actions/maintenance'
 
@@ -57,6 +58,7 @@ function yen(n: number | null | undefined): string {
 }
 
 export default async function MaintenanceFullView({ maintenanceId, users }: Props) {
+  // 1 回目のクエリ群: 整備本体 + 関連情報を取得（loaner_vehicle_id を含む）
   const [mRow, lines, fees, payments, damagePins, editable, vehiclesList, accountsList, contactsList] = await Promise.all([
     db.select({
       m:       maintenance_records,
@@ -148,6 +150,27 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   const v = mRow.vehicle
   const account = mRow.account?.id ? mRow.account : null
   const contact = mRow.contact?.id ? mRow.contact : null
+
+  // 代車選択肢: 在庫車両 + 現在この整備に割当中の代車（リストから消えないように）
+  const loanerVehicleOptions = await db.select({
+    id:            vehicles.id,
+    maker:         vehicles.maker,
+    model:         vehicles.model,
+    license_plate: vehicles.license_plate,
+    status:        vehicles.status,
+  })
+    .from(vehicles)
+    .where(
+      m.loaner_vehicle_id
+        ? or(eq(vehicles.status, '在庫'), eq(vehicles.id, m.loaner_vehicle_id))
+        : eq(vehicles.status, '在庫'),
+    )
+    .orderBy(asc(vehicles.license_plate))
+
+  // 現在の代車情報（表示用）
+  const currentLoaner = m.loaner_vehicle_id
+    ? loanerVehicleOptions.find((vh) => vh.id === m.loaner_vehicle_id) ?? null
+    : null
 
   // 取引先が「個人」プレースホルダ or 未設定なら ToC 扱いで顧客名は contact を主とする
   const accountIsPersonal = isPersonalAccount(account)
@@ -362,6 +385,68 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                 {v.memo && <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {v.memo}</p>}
               </>
             ) : <p className="text-xs text-zinc-400">—</p>}
+          </div>
+        </div>
+
+        {/* 代車（Issue #45） */}
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">代車</h3>
+            <SectionEditModal triggerLabel="✏️ 編集" title="代車を編集">
+              <MaintenanceLoanerEditForm
+                maintenanceId={maintenanceId}
+                initial={{
+                  loaner_vehicle_id:  m.loaner_vehicle_id,
+                  loaner_handover_at: m.loaner_handover_at,
+                  loaner_return_at:   m.loaner_return_at,
+                  loaner_mileage_out: m.loaner_mileage_out,
+                  loaner_mileage_in:  m.loaner_mileage_in,
+                  loaner_fuel_out:    m.loaner_fuel_out,
+                  loaner_fuel_in:     m.loaner_fuel_in,
+                  loaner_notes:       m.loaner_notes,
+                }}
+                vehicles={loanerVehicleOptions}
+              />
+            </SectionEditModal>
+          </div>
+          <div className="p-4">
+            {currentLoaner ? (
+              <>
+                <Link href={`/vehicles/${currentLoaner.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+                  🚙 {currentLoaner.license_plate ?? '—'}
+                </Link>
+                <p className="text-xs text-zinc-600 mt-1">
+                  {[currentLoaner.maker, currentLoaner.model].filter(Boolean).join(' ') || '—'}
+                </p>
+                <dl className="space-y-1 text-xs mt-2">
+                  {m.loaner_handover_at && (
+                    <KV label="貸出日時" value={new Date(m.loaner_handover_at).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} />
+                  )}
+                  {m.loaner_return_at && (
+                    <KV label="返却日時" value={new Date(m.loaner_return_at).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} />
+                  )}
+                  {m.loaner_mileage_out != null && (
+                    <KV label="貸出時メーター" value={`${Number(m.loaner_mileage_out).toLocaleString()} km`} />
+                  )}
+                  {m.loaner_mileage_in != null && (
+                    <KV label="返却時メーター" value={`${Number(m.loaner_mileage_in).toLocaleString()} km`} />
+                  )}
+                  {m.loaner_mileage_out != null && m.loaner_mileage_in != null && (
+                    <KV
+                      label="走行距離"
+                      value={`${(Number(m.loaner_mileage_in) - Number(m.loaner_mileage_out)).toLocaleString()} km`}
+                    />
+                  )}
+                  {m.loaner_fuel_out && <KV label="貸出時燃料" value={m.loaner_fuel_out} />}
+                  {m.loaner_fuel_in  && <KV label="返却時燃料" value={m.loaner_fuel_in} />}
+                </dl>
+                {m.loaner_notes && (
+                  <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {m.loaner_notes}</p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-zinc-400">代車の割り当てなし</p>
+            )}
           </div>
         </div>
 
