@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { vehicles } from '@/industries/auto-body/schema'
-import { accounts, opportunities, activities, tasks, expenses, change_logs } from '@/lib/schema'
+import { accounts, opportunities, activities, tasks, expenses, change_logs, maintenance_records, customer_vehicles, contacts } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { alias } from 'drizzle-orm/pg-core'
@@ -33,7 +33,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   const supplier = alias(accounts, 'supplier')
   const buyer    = alias(accounts, 'buyer')
 
-  const [vRow, relatedOpps, activitiesList, tasksList, expensesList, activityTypes, changeLogCountRow] = await Promise.all([
+  const [vRow, relatedOpps, activitiesList, tasksList, expensesList, activityTypes, changeLogCountRow, loanerHistory] = await Promise.all([
     db.select({
       id:                   vehicles.id,
       maker:                vehicles.maker,
@@ -84,6 +84,26 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
     getActivityTypes(),
     db.select({ c: count() }).from(change_logs)
       .where(and(eq(change_logs.object_type, 'vehicle'), eq(change_logs.object_id, id))),
+    // この車両を代車として使った（または現在使っている）整備の履歴
+    // 最新順。アクティブ判定は status と loaner_return_at で行う。
+    db.select({
+      id:                 maintenance_records.id,
+      maintenance_no:     maintenance_records.maintenance_no,
+      status:             maintenance_records.status,
+      intake_date:        maintenance_records.intake_date,
+      delivery_date:      maintenance_records.delivery_date,
+      loaner_handover_at: maintenance_records.loaner_handover_at,
+      loaner_return_at:   maintenance_records.loaner_return_at,
+      customer_account:   { id: accounts.id, name: accounts.name },
+      customer_contact:   { id: contacts.id, full_name: contacts.full_name },
+      vehicle:            { id: customer_vehicles.id, plate_number: customer_vehicles.plate_number, car_model: customer_vehicles.car_model },
+    })
+      .from(maintenance_records)
+      .leftJoin(accounts,          eq(maintenance_records.account_id, accounts.id))
+      .leftJoin(contacts,          eq(maintenance_records.contact_id, contacts.id))
+      .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
+      .where(eq(maintenance_records.loaner_vehicle_id, id))
+      .orderBy(desc(maintenance_records.created_at)),
   ])
 
   if (!vRow) notFound()
@@ -104,6 +124,14 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   const days = daysUntilInspection(v.next_inspection_date)
   const expiringSoon = days != null && days <= 30
+
+  // 代車利用: アクティブ = ステータスが完了/キャンセルでない、かつ返却日時が未記録
+  const activeLoan  = loanerHistory.find((l) => l.status !== '完了' && l.status !== 'キャンセル' && !l.loaner_return_at) ?? null
+  const pastLoans   = loanerHistory.filter((l) => l !== activeLoan)
+  const customerLabelOf = (l: typeof loanerHistory[number]) =>
+    l.customer_account?.id ? l.customer_account.name
+      : l.customer_contact?.id ? l.customer_contact.full_name
+      : '—'
 
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
   for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
@@ -210,6 +238,81 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-2">備考</h2>
           <p className="text-sm text-zinc-800 whitespace-pre-wrap">{v.description}</p>
+        </div>
+      )}
+
+      {/* 代車利用（Issue #45） */}
+      {(activeLoan || pastLoans.length > 0) && (
+        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">
+            🚙 代車利用
+          </h2>
+
+          {/* 現在の貸出先 */}
+          {activeLoan ? (
+            <div className="bg-teal-50 border border-teal-200 rounded-md p-4 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-semibold text-teal-700 uppercase tracking-wide">現在貸出中</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white text-zinc-600 border border-zinc-200">
+                  {activeLoan.status}
+                </span>
+              </div>
+              <Link
+                href={`/maintenance/${activeLoan.id}`}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline block"
+              >
+                整備 {activeLoan.maintenance_no}
+              </Link>
+              <p className="text-xs text-zinc-600 mt-1">
+                顧客: {customerLabelOf(activeLoan)}
+                {activeLoan.vehicle?.plate_number && (
+                  <span className="ml-2 text-zinc-400">／ 顧客車両: 🚗 {activeLoan.vehicle.plate_number}</span>
+                )}
+              </p>
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2">
+                <div className="flex justify-between">
+                  <dt className="text-zinc-500">入庫日</dt>
+                  <dd className="text-zinc-700">{activeLoan.intake_date ?? '—'}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-zinc-500">納車予定</dt>
+                  <dd className="text-zinc-700">{activeLoan.delivery_date ?? '—'}</dd>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <dt className="text-zinc-500">貸出日時</dt>
+                  <dd className="text-zinc-700">
+                    {activeLoan.loaner_handover_at ? new Date(activeLoan.loaner_handover_at).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-400 mb-3">現在の貸出はありません</p>
+          )}
+
+          {/* 過去の貸出履歴 */}
+          {pastLoans.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+                過去の貸出履歴 <span className="text-zinc-400">({pastLoans.length})</span>
+              </p>
+              <ul className="divide-y divide-zinc-100 text-xs">
+                {pastLoans.map((l) => (
+                  <li key={l.id} className="py-1.5 flex items-center gap-3">
+                    <Link href={`/maintenance/${l.id}`} className="text-blue-600 hover:underline shrink-0">
+                      {l.maintenance_no}
+                    </Link>
+                    <span className="text-zinc-700 truncate">{customerLabelOf(l)}</span>
+                    <span className="text-zinc-400 ml-auto shrink-0">
+                      {l.loaner_handover_at ? new Date(l.loaner_handover_at).toLocaleDateString('ja-JP') : '—'}
+                      {l.loaner_return_at && ` → ${new Date(l.loaner_return_at).toLocaleDateString('ja-JP')}`}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 shrink-0">{l.status}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

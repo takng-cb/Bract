@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, activities, tasks, vehicles, task_related_records, activity_related_records } from '@/lib/schema'
-import { eq, desc, asc, ne, count, and, isNotNull, lte, inArray } from 'drizzle-orm'
+import { accounts, contacts, opportunities, activities, tasks, vehicles, task_related_records, activity_related_records, maintenance_records, customer_vehicles } from '@/lib/schema'
+import { eq, desc, asc, ne, count, and, isNotNull, lte, inArray, notInArray } from 'drizzle-orm'
 import Link from 'next/link'
 import PeriodSelector from '@/components/PeriodSelector'
 import { activeIndustry } from '@/lib/industry'
@@ -61,7 +61,7 @@ export default async function DashboardPage({
   const inspectionLimitDate = new Date()
   inspectionLimitDate.setDate(inspectionLimitDate.getDate() + 30)
   const inspectionLimit = formatDateLocal(inspectionLimitDate)
-  const [upcomingInspections, maintList] = await Promise.all([
+  const [upcomingInspections, maintList, activeLoaners] = await Promise.all([
     isAutoBody
       ? db.select({
           id:                   vehicles.id,
@@ -82,6 +82,33 @@ export default async function DashboardPage({
       : Promise.resolve([]),
     // auto-body: 期間内の整備（売上予測加算用）
     isAutoBody ? getMaintenanceForecast(from, to) : Promise.resolve([]),
+    // auto-body: 現在代車として貸出中の車両（Issue #45）
+    //   整備の loaner_vehicle_id がセット中 かつ 整備が未完了/未キャンセル のもの
+    isAutoBody
+      ? db.select({
+          maintenance_id:      maintenance_records.id,
+          maintenance_no:      maintenance_records.maintenance_no,
+          maintenance_status:  maintenance_records.status,
+          loaner_handover_at:  maintenance_records.loaner_handover_at,
+          vehicle:             {
+            id: vehicles.id, maker: vehicles.maker, model: vehicles.model, license_plate: vehicles.license_plate,
+          },
+          customer_account:    { id: accounts.id, name: accounts.name },
+          customer_contact:    { id: contacts.id, full_name: contacts.full_name },
+          customer_vehicle:    { id: customer_vehicles.id, plate_number: customer_vehicles.plate_number },
+        })
+          .from(maintenance_records)
+          .innerJoin(vehicles, eq(maintenance_records.loaner_vehicle_id, vehicles.id))
+          .leftJoin(accounts, eq(maintenance_records.account_id, accounts.id))
+          .leftJoin(contacts, eq(maintenance_records.contact_id, contacts.id))
+          .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
+          .where(and(
+            isNotNull(maintenance_records.loaner_vehicle_id),
+            notInArray(maintenance_records.status, ['完了', 'キャンセル']),
+          ))
+          .orderBy(desc(maintenance_records.loaner_handover_at))
+          .limit(10)
+      : Promise.resolve([]),
   ])
   const maintWeighted = sumMaintenanceWeighted(maintList)
 
@@ -457,6 +484,55 @@ export default async function DashboardPage({
 
         {/* 右カラム */}
         <div className="col-span-1 md:col-span-2 space-y-6">
+
+          {/* 代車中の車両（auto-body のみ） — Issue #45 */}
+          {isAutoBody && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-zinc-800">
+                  🚙 代車中の車両
+                  <span className="ml-2 text-zinc-400 font-normal text-sm">({activeLoaners.length})</span>
+                </h2>
+                <Link href="/vehicles?f=status%3Deq%3A%E4%BB%A3%E8%BB%8A%E4%B8%AD" className="text-xs text-blue-600 hover:text-blue-800">代車中一覧 →</Link>
+              </div>
+              {activeLoaners.length === 0 ? (
+                <div className="bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center text-sm text-zinc-400">
+                  現在代車中の車両はありません
+                </div>
+              ) : (
+                <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
+                  {activeLoaners.map((l) => {
+                    const customer = l.customer_account?.id ? l.customer_account.name
+                      : l.customer_contact?.id ? l.customer_contact.full_name
+                      : '—'
+                    return (
+                      <div key={l.maintenance_id} className="block px-4 py-3 hover:bg-zinc-50">
+                        <div className="flex items-center justify-between gap-2">
+                          <Link href={`/vehicles/${l.vehicle.id}`} className="text-sm font-medium text-zinc-900 hover:text-blue-600 truncate">
+                            {l.vehicle.license_plate ?? '—'}
+                            <span className="text-xs text-zinc-400 ml-2">{l.vehicle.maker} {l.vehicle.model}</span>
+                          </Link>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 shrink-0">
+                            {l.maintenance_status}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-1 text-xs text-zinc-500">
+                          <Link href={`/maintenance/${l.maintenance_id}`} className="hover:text-blue-600 truncate">
+                            🔧 {l.maintenance_no} ／ {customer}
+                          </Link>
+                          {l.loaner_handover_at && (
+                            <span className="shrink-0 text-zinc-400">
+                              貸出: {new Date(l.loaner_handover_at).toLocaleDateString('ja-JP')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )}
 
           {/* 車検期限アラート（auto-body のみ） */}
           {isAutoBody && (
