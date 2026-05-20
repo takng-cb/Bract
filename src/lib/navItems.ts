@@ -65,6 +65,7 @@ export const BOTTOM_NAV_ITEMS: NavItem[] = [
   { href: '/admin/users',          label: 'ユーザー管理',     icon: '👥' },
   { href: '/admin/import-logs',    label: 'インポートログ',   icon: '📥' },
   { href: '/admin/audit-log',      label: '監査ログ',         icon: '📝' },
+  { href: '/admin/ai',             label: 'AI 設定',          icon: '🤖' },
   { href: '/settings',       label: '設定',           icon: '⚙️' },
   { href: '/about',          label: '使い方',         icon: '💡' },
 ]

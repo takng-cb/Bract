@@ -1,0 +1,80 @@
+/**
+ * Groq プロバイダ実装。
+ *
+ * Groq は OpenAI 互換の Chat Completions API を提供する。
+ *   POST https://api.groq.com/openai/v1/chat/completions
+ *
+ * docs: https://console.groq.com/docs/api-reference
+ */
+import type { AIProvider, AICompletionRequest, AICompletionResult } from '../types'
+import { AIProviderError } from '../types'
+
+const ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
+
+type GroqResponse = {
+  choices?: Array<{
+    message?: { content?: string }
+  }>
+  usage?: {
+    prompt_tokens?: number
+    completion_tokens?: number
+  }
+  error?: { message?: string; type?: string }
+}
+
+export const groqProvider: AIProvider = {
+  kind: 'groq',
+  async complete(req: AICompletionRequest): Promise<AICompletionResult> {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), req.timeoutMs ?? 30000)
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${req.apiKey}`,
+        },
+        body: JSON.stringify({
+          model:       req.model,
+          messages: [
+            { role: 'system', content: req.system },
+            { role: 'user',   content: req.user },
+          ],
+          max_tokens:  req.maxTokens ?? 1024,
+          temperature: req.temperature ?? 0.3,
+        }),
+        signal: controller.signal,
+      })
+
+      const json = await res.json().catch(() => ({})) as GroqResponse
+
+      if (!res.ok) {
+        const msg = json?.error?.message ?? `Groq API error (HTTP ${res.status})`
+        throw new AIProviderError(msg, 'groq', res.status)
+      }
+
+      const text = json.choices?.[0]?.message?.content ?? ''
+      if (!text) {
+        throw new AIProviderError('Groq API: 空のレスポンス', 'groq', res.status)
+      }
+
+      return {
+        text,
+        model:    req.model,
+        provider: 'groq',
+        usage: {
+          inputTokens:  json.usage?.prompt_tokens,
+          outputTokens: json.usage?.completion_tokens,
+        },
+      }
+    } catch (e) {
+      if (e instanceof AIProviderError) throw e
+      if (e instanceof Error && e.name === 'AbortError') {
+        throw new AIProviderError(`Groq API: タイムアウト (${req.timeoutMs ?? 30000}ms)`, 'groq')
+      }
+      throw new AIProviderError(`Groq API: ${e instanceof Error ? e.message : String(e)}`, 'groq')
+    } finally {
+      clearTimeout(timer)
+    }
+  },
+}

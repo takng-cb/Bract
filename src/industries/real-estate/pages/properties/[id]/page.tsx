@@ -17,6 +17,8 @@ import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import { getActivityTypes } from '@/lib/activityTypes'
+import AISummaryButton from '@/components/AISummaryButton'
+import { summarizeProperty } from '@/app/actions/ai'
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -292,6 +294,12 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     </>
   )
 
+  // AI 要約用 Server Action（id を closure に閉じ込める）
+  async function handlePropertySummarize(from: string, to: string) {
+    'use server'
+    return summarizeProperty(id, from, to)
+  }
+
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const interactionsContent = interactionCount === 0 ? (
@@ -409,11 +417,23 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   const tabsConfig: TabDef[] = [
     { id: 'overview', label: '概要', content: overviewContent },
   ]
+  // AI まとめボタンを活動タブに合体
+  const interactionsWithAI = (
+    <>
+      <AuthGuard minRole="editor">
+        <div className="mb-4 flex justify-end">
+          <AISummaryButton label="🤖 AI で活動をまとめる" action={handlePropertySummarize} />
+        </div>
+      </AuthGuard>
+      {interactionsContent}
+    </>
+  )
+
   tabsConfig.push({
     id: 'interactions',
     label: '活動・ToDo・経費',
     badge: interactionCount > 0 ? interactionCount : undefined,
-    content: interactionsContent,
+    content: interactionsWithAI,
   })
   if (changeLogCount > 0) {
     tabsConfig.push({ id: 'history', label: '履歴', badge: changeLogCount, content: historyContent })

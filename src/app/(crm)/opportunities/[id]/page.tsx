@@ -22,6 +22,8 @@ import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
+import AISummaryButton from '@/components/AISummaryButton'
+import { summarizeOpportunity } from '@/app/actions/ai'
 import { calcProfit, commissionBreakdown, effectiveCommissionRatePct, effectiveCommissionMonths } from '@/industries/real-estate/lib/realEstateCommission'
 import { calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
 import { vehicles } from '@/lib/schema'
@@ -424,6 +426,12 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     </>
   )
 
+  // AI 要約用 Server Action（id を closure に閉じ込める）
+  async function handleSummarize(from: string, to: string) {
+    'use server'
+    return summarizeOpportunity(id, from, to)
+  }
+
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const interactionsContent = interactionCount === 0 ? (
@@ -556,11 +564,23 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const tabsConfig: TabDef[] = [
     { id: 'overview', label: '概要', content: overviewContent },
   ]
+  // AI まとめボタンと活動セクションを束ねる（タブの実コンテンツ）
+  const interactionsWithAI = (
+    <>
+      <AuthGuard minRole="editor">
+        <div className="mb-4 flex justify-end">
+          <AISummaryButton label="🤖 AI で活動をまとめる" action={handleSummarize} />
+        </div>
+      </AuthGuard>
+      {interactionsContent}
+    </>
+  )
+
   tabsConfig.push({
     id: 'interactions',
     label: '活動・ToDo・経費',
     badge: interactionCount > 0 ? interactionCount : undefined,
-    content: interactionsContent,
+    content: interactionsWithAI,
   })
   if (changeLogCount > 0) {
     tabsConfig.push({ id: 'history', label: '履歴', badge: changeLogCount, content: historyContent })

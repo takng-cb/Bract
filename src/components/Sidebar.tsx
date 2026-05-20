@@ -8,7 +8,7 @@ import SignOutButton from '@/components/SignOutButton'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
 /** 管理者のみ表示するボトムナビの href */
-const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs'])
+const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs', '/admin/audit-log', '/admin/ai'])
 
 type Props = {
   mainItems:   NavItem[]
