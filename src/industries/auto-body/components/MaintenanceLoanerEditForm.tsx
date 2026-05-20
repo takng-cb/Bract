@@ -57,6 +57,27 @@ function toStr(v: string | number | null | undefined): string {
   return v == null ? '' : String(v)
 }
 
+// 入力欄の共通スタイル。コンポーネント外で定義することで、再レンダー時に
+// 同じ参照が使い回されてフォーカスが外れない。
+const FIELD_CLS =
+  'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+
+/**
+ * 入力 1 セル分のラベル付きラッパー。
+ * ⚠️ コンポーネント関数の外で定義すること。中で定義すると毎回新しい
+ * コンポーネント型として扱われ、setState のたびに input がアンマウントされて
+ * フォーカスを失う。
+ */
+function Cell({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
+  return (
+    <div>
+      <label className="block text-[10px] text-zinc-500 mb-0.5">{label}</label>
+      {children}
+      {hint && <p className="text-[10px] text-zinc-400 mt-0.5">{hint}</p>}
+    </div>
+  )
+}
+
 /** Date | string | null を datetime-local 入力用文字列 "YYYY-MM-DDTHH:mm" に変換 */
 function toLocalDT(v: Date | string | null | undefined): string {
   if (!v) return ''
@@ -151,19 +172,6 @@ export default function MaintenanceLoanerEditForm({
     })
   }
 
-  const fieldCls =
-    'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-
-  function Cell({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
-    return (
-      <div>
-        <label className="block text-[10px] text-zinc-500 mb-0.5">{label}</label>
-        {children}
-        {hint && <p className="text-[10px] text-zinc-400 mt-0.5">{hint}</p>}
-      </div>
-    )
-  }
-
   const hasVehicleSelected = state.loaner_vehicle_id !== ''
 
   return (
@@ -197,7 +205,7 @@ export default function MaintenanceLoanerEditForm({
                       type="datetime-local"
                       value={state.loaner_handover_at}
                       onChange={onInput('loaner_handover_at')}
-                      className={fieldCls}
+                      className={FIELD_CLS}
                     />
                   </Cell>
                   <Cell label="返却日時" hint="完了/キャンセル時は自動で現在時刻が入ります（手動上書き可）">
@@ -205,7 +213,7 @@ export default function MaintenanceLoanerEditForm({
                       type="datetime-local"
                       value={state.loaner_return_at}
                       onChange={onInput('loaner_return_at')}
-                      className={fieldCls}
+                      className={FIELD_CLS}
                     />
                   </Cell>
                 </div>
@@ -221,7 +229,7 @@ export default function MaintenanceLoanerEditForm({
                       value={state.loaner_mileage_out}
                       onChange={onInput('loaner_mileage_out')}
                       min="0"
-                      className={fieldCls}
+                      className={FIELD_CLS}
                     />
                   </Cell>
                   <Cell label="返却時メーター">
@@ -230,7 +238,7 @@ export default function MaintenanceLoanerEditForm({
                       value={state.loaner_mileage_in}
                       onChange={onInput('loaner_mileage_in')}
                       min="0"
-                      className={fieldCls}
+                      className={FIELD_CLS}
                     />
                   </Cell>
                 </div>
@@ -245,7 +253,7 @@ export default function MaintenanceLoanerEditForm({
                       value={state.loaner_fuel_out}
                       onChange={onInput('loaner_fuel_out')}
                       placeholder="満タン"
-                      className={fieldCls}
+                      className={FIELD_CLS}
                     />
                   </Cell>
                   <Cell label="返却時燃料量">
@@ -253,7 +261,7 @@ export default function MaintenanceLoanerEditForm({
                       value={state.loaner_fuel_in}
                       onChange={onInput('loaner_fuel_in')}
                       placeholder="満タン"
-                      className={fieldCls}
+                      className={FIELD_CLS}
                     />
                   </Cell>
                 </div>
@@ -266,7 +274,7 @@ export default function MaintenanceLoanerEditForm({
                     value={state.loaner_notes}
                     onChange={onInput('loaner_notes')}
                     rows={3}
-                    className={`${fieldCls} resize-y`}
+                    className={`${FIELD_CLS} resize-y`}
                   />
                 </Cell>
               </div>
