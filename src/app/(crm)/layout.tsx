@@ -5,6 +5,7 @@ import ImpersonationBanner from '@/components/ImpersonationBanner'
 import PwaInstallBanner from '@/components/PwaInstallBanner'
 import NavigationProgress from '@/components/NavigationProgress'
 import NavigationOverlay from '@/components/NavigationOverlay'
+import SuspenseRescuer from '@/components/SuspenseRescuer'
 import { applyNavOrder, DEFAULT_NAV_ORDER, customObjectsToNavItems, type NavItem } from '@/lib/navItems'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
@@ -100,6 +101,8 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
       <div className="print:hidden">
         <NavigationProgress />
         <NavigationOverlay />
+        {/* Issue #20: Suspense streaming SSR が完了しない事象の防御的 rescue */}
+        <SuspenseRescuer />
       </div>
       <div className="print:hidden">
         <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} />
