@@ -24,6 +24,7 @@ import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import AISummaryButton from '@/components/AISummaryButton'
 import { summarizeOpportunity } from '@/app/actions/ai'
+import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { calcProfit, commissionBreakdown, effectiveCommissionRatePct, effectiveCommissionMonths } from '@/industries/real-estate/lib/realEstateCommission'
 import { calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
 import { vehicles } from '@/lib/schema'
@@ -565,13 +566,17 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     { id: 'overview', label: '概要', content: overviewContent },
   ]
   // AI まとめボタンと活動セクションを束ねる（タブの実コンテンツ）
+  // 注: AI 機能フラグ (AI_FEATURE_ENABLED) が false の場合はボタン自体を出さない。
+  const aiEnabled = isAIFeatureEnabled()
   const interactionsWithAI = (
     <>
-      <AuthGuard minRole="editor">
-        <div className="mb-4 flex justify-end">
-          <AISummaryButton label="🤖 AI で活動をまとめる" action={handleSummarize} />
-        </div>
-      </AuthGuard>
+      {aiEnabled && (
+        <AuthGuard minRole="editor">
+          <div className="mb-4 flex justify-end">
+            <AISummaryButton label="🤖 AI で活動をまとめる" action={handleSummarize} />
+          </div>
+        </AuthGuard>
+      )}
       {interactionsContent}
     </>
   )

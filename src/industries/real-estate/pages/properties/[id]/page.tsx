@@ -19,6 +19,7 @@ import ChangeLogSection from '@/components/ChangeLogSection'
 import { getActivityTypes } from '@/lib/activityTypes'
 import AISummaryButton from '@/components/AISummaryButton'
 import { summarizeProperty } from '@/app/actions/ai'
+import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -418,13 +419,17 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     { id: 'overview', label: '概要', content: overviewContent },
   ]
   // AI まとめボタンを活動タブに合体
+  // 注: AI 機能フラグ (AI_FEATURE_ENABLED) が false の場合はボタン自体を出さない。
+  const aiEnabled = isAIFeatureEnabled()
   const interactionsWithAI = (
     <>
-      <AuthGuard minRole="editor">
-        <div className="mb-4 flex justify-end">
-          <AISummaryButton label="🤖 AI で活動をまとめる" action={handlePropertySummarize} />
-        </div>
-      </AuthGuard>
+      {aiEnabled && (
+        <AuthGuard minRole="editor">
+          <div className="mb-4 flex justify-end">
+            <AISummaryButton label="🤖 AI で活動をまとめる" action={handlePropertySummarize} />
+          </div>
+        </AuthGuard>
+      )}
       {interactionsContent}
     </>
   )

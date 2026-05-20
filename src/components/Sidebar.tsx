@@ -15,7 +15,12 @@ type Props = {
   companyName: string
   displayName: string | null
   isAdmin?:    boolean
+  /** AI 機能が有効か（追加料金プラン、env AI_FEATURE_ENABLED で制御） */
+  aiEnabled?:  boolean
 }
+
+/** AI 機能フラグが false の時に隠す href */
+const AI_GATED_HREFS = new Set(['/admin/ai'])
 
 const ChevronLeft = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -29,7 +34,7 @@ const ChevronRight = () => (
   </svg>
 )
 
-export default function Sidebar({ mainItems, companyName, displayName, isAdmin = false }: Props) {
+export default function Sidebar({ mainItems, companyName, displayName, isAdmin = false, aiEnabled = false }: Props) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -108,7 +113,10 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
 
       {/* ボトムナビ */}
       <div className="px-2 pb-3 border-t border-zinc-800 pt-3 space-y-0.5">
-        {BOTTOM_NAV_ITEMS.filter((item) => !ADMIN_ONLY_HREFS.has(item.href) || isAdmin).map((item) => {
+        {BOTTOM_NAV_ITEMS
+          .filter((item) => !ADMIN_ONLY_HREFS.has(item.href) || isAdmin)
+          .filter((item) => !AI_GATED_HREFS.has(item.href) || aiEnabled)
+          .map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link

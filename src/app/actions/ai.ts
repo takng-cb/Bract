@@ -22,6 +22,7 @@ import {
   AI_SETTING_KEYS,
 } from '@/lib/ai/config'
 import { AIDisabledError, AIProviderError, type AIProviderKind } from '@/lib/ai/types'
+import { ensureAIFeatureEnabled, AIFeatureDisabledError } from '@/lib/ai/featureFlag'
 
 /** 共通: AI 呼び出し結果を Server Action から返す形に整形 */
 type SummaryResponse =
@@ -32,6 +33,9 @@ function toResponse(p: Promise<SummarizationResult>): Promise<SummaryResponse> {
   return p
     .then((result) => ({ ok: true as const, result }))
     .catch((e: unknown) => {
+      if (e instanceof AIFeatureDisabledError) {
+        return { ok: false as const, error: e.message }
+      }
       if (e instanceof AIDisabledError) {
         return { ok: false as const, error: e.message }
       }
@@ -57,6 +61,7 @@ export async function summarizeOpportunity(
   to: string,
 ): Promise<SummaryResponse> {
   await requireEditor()
+  ensureAIFeatureEnabled()
   const cfg = await getAIConfig()
   return toResponse(summarizeActivitiesAndTasks({
     objectApi:    'opportunity',
@@ -79,6 +84,7 @@ export async function summarizeProperty(
   to: string,
 ): Promise<SummaryResponse> {
   await requireEditor()
+  ensureAIFeatureEnabled()
   const cfg = await getAIConfig()
   return toResponse(summarizeActivitiesAndTasks({
     objectApi:    'properties',
@@ -109,6 +115,11 @@ export async function summarizeProperty(
  */
 export async function updateAISettings(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireAdmin()
+  try {
+    ensureAIFeatureEnabled()
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
 
   const updates: Partial<Record<AISettingKey, string>> = {}
   const allowed = new Set<AISettingKey>([...AI_SETTING_KEYS])
@@ -159,6 +170,7 @@ export async function updateAISettings(formData: FormData): Promise<{ ok: true }
 export async function testAIConnection(): Promise<{ ok: true; reply: string; provider: string; model: string } | { ok: false; error: string }> {
   await requireAdmin()
   try {
+    ensureAIFeatureEnabled()
     const { callAI } = await import('@/lib/ai/client')
     const r = await callAI({
       system: 'あなたはテスト用アシスタントです。短く、丁寧に応答してください。',
@@ -169,6 +181,7 @@ export async function testAIConnection(): Promise<{ ok: true; reply: string; pro
     })
     return { ok: true, reply: r.text.trim(), provider: r.provider, model: r.model }
   } catch (e) {
+    if (e instanceof AIFeatureDisabledError) return { ok: false, error: e.message }
     if (e instanceof AIDisabledError) return { ok: false, error: e.message }
     if (e instanceof AIProviderError) {
       return { ok: false, error: `${e.provider} API: ${e.message}${e.statusCode ? ` (HTTP ${e.statusCode})` : ''}` }

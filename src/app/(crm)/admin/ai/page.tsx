@@ -12,14 +12,19 @@
  */
 export const dynamic = 'force-dynamic'
 
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { isAdmin } from '@/lib/auth'
 import { getAISettingsForUI, DEFAULT_OPPORTUNITY_PROMPT, DEFAULT_PROPERTY_PROMPT } from '@/lib/ai/config'
+import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import AISettingsForm from './AISettingsForm'
 
 export default async function AdminAIPage() {
   const adminFlag = await isAdmin()
   if (!adminFlag) redirect('/dashboard')
+
+  // AI 機能がご契約プランに含まれていない場合は 404
+  // （URL を直打ちされても閲覧不可。営業窓口経由でフラグを有効化する運用）
+  if (!isAIFeatureEnabled()) notFound()
 
   const settings = await getAISettingsForUI()
 

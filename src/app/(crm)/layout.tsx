@@ -15,6 +15,7 @@ import { cookies } from 'next/headers'
 import { getCustomObjectsForNav } from '@/lib/objectMetadata'
 import { isAdmin, getSupabaseUser } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
+import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 
 export default async function CrmLayout({ children }: { children: React.ReactNode }) {
   // ── Round 1: 認証を先に取得してユーザー ID を確定 ───────────────────
@@ -105,10 +106,10 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <SuspenseRescuer />
       </div>
       <div className="print:hidden">
-        <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} />
+        <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={isAIFeatureEnabled()} />
       </div>
       <div className="print:hidden">
-        <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} />
+        <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} aiEnabled={isAIFeatureEnabled()} />
       </div>
       <main className={`flex-1 overflow-auto pt-14 md:pt-0 print:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'} print:pb-0`}>
         {children}

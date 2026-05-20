@@ -7,19 +7,25 @@ import Image from 'next/image'
 import { signOut } from '@/app/actions/auth'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
-const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs'])
+const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs', '/admin/audit-log', '/admin/ai'])
+/** AI 機能フラグが false の時に隠す href */
+const AI_GATED_HREFS = new Set(['/admin/ai'])
 
 type Props = {
   mainItems:   NavItem[]
   companyName: string
   isAdmin?:    boolean
+  /** AI 機能が有効か（追加料金プラン、env AI_FEATURE_ENABLED で制御） */
+  aiEnabled?:  boolean
 }
 
-export default function MobileNav({ mainItems, companyName, isAdmin = false }: Props) {
+export default function MobileNav({ mainItems, companyName, isAdmin = false, aiEnabled = false }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
-  const bottomItems = BOTTOM_NAV_ITEMS.filter((item) => !ADMIN_ONLY_HREFS.has(item.href) || isAdmin)
+  const bottomItems = BOTTOM_NAV_ITEMS
+    .filter((item) => !ADMIN_ONLY_HREFS.has(item.href) || isAdmin)
+    .filter((item) => !AI_GATED_HREFS.has(item.href) || aiEnabled)
   const allItems = [...mainItems, ...bottomItems]
 
   return (
