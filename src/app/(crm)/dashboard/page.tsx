@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, activities, tasks, vehicles, task_related_records, activity_related_records, maintenance_records, customer_vehicles } from '@/lib/schema'
+import { accounts, contacts, opportunities, activities, tasks, vehicles, task_related_records, activity_related_records, maintenance_records, customer_vehicles, parts, part_movements } from '@/lib/schema'
 import { eq, desc, asc, ne, count, and, isNotNull, lte, inArray, notInArray } from 'drizzle-orm'
 import Link from 'next/link'
 import PeriodSelector from '@/components/PeriodSelector'
@@ -11,6 +11,7 @@ import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { daysUntilInspection } from '@/industries/auto-body/lib/autoBodyService'
+import { calcStock, stockBadgeColor } from '@/industries/auto-body/lib/partsHelpers'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'bg-red-50 text-red-600' },
@@ -61,7 +62,7 @@ export default async function DashboardPage({
   const inspectionLimitDate = new Date()
   inspectionLimitDate.setDate(inspectionLimitDate.getDate() + 30)
   const inspectionLimit = formatDateLocal(inspectionLimitDate)
-  const [upcomingInspections, maintList, activeLoaners] = await Promise.all([
+  const [upcomingInspections, maintList, activeLoaners, allParts, allPartMovements] = await Promise.all([
     isAutoBody
       ? db.select({
           id:                   vehicles.id,
@@ -109,7 +110,47 @@ export default async function DashboardPage({
           .orderBy(desc(maintenance_records.loaner_handover_at))
           .limit(10)
       : Promise.resolve([]),
+    // auto-body: 部品マスタ（低在庫アラート用） — Issue #47
+    isAutoBody
+      ? db.select({
+          id:                  parts.id,
+          part_number:         parts.part_number,
+          name:                parts.name,
+          reorder_level:       parts.reorder_level,
+          supplier:            { id: accounts.id, name: accounts.name },
+        })
+          .from(parts)
+          .leftJoin(accounts, eq(parts.supplier_account_id, accounts.id))
+      : Promise.resolve([]),
+    isAutoBody
+      ? db.select({
+          part_id:       part_movements.part_id,
+          movement_type: part_movements.movement_type,
+          quantity:      part_movements.quantity,
+        }).from(part_movements)
+      : Promise.resolve([]),
   ])
+
+  // 部品の現在庫を集計し、reorder_level 以下の部品を抽出（最大 10 件）
+  const lowStockParts = (() => {
+    if (!isAutoBody || allParts.length === 0) return []
+    const byPart = new Map<string, { movement_type: string; quantity: number | null }[]>()
+    for (const m of allPartMovements) {
+      const arr = byPart.get(m.part_id) ?? []
+      arr.push({ movement_type: m.movement_type, quantity: m.quantity })
+      byPart.set(m.part_id, arr)
+    }
+    return allParts
+      .map((p) => ({ ...p, stock: calcStock(byPart.get(p.id) ?? []) }))
+      .filter((p) => p.stock <= (p.reorder_level ?? 0))
+      // 在庫切れを最優先、次に在庫が少ない順
+      .sort((a, b) => {
+        if (a.stock === 0 && b.stock !== 0) return -1
+        if (b.stock === 0 && a.stock !== 0) return 1
+        return a.stock - b.stock
+      })
+      .slice(0, 10)
+  })()
   const maintWeighted = sumMaintenanceWeighted(maintList)
 
   const [
@@ -529,6 +570,46 @@ export default async function DashboardPage({
                       </div>
                     )
                   })}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* 低在庫部品アラート（auto-body のみ） — Issue #47 */}
+          {isAutoBody && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-zinc-800">
+                  🔧 要発注の部品
+                  <span className="ml-2 text-zinc-400 font-normal text-sm">({lowStockParts.length})</span>
+                </h2>
+                <Link href="/parts" className="text-xs text-blue-600 hover:text-blue-800">部品マスタ →</Link>
+              </div>
+              {lowStockParts.length === 0 ? (
+                <div className="bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center text-sm text-zinc-400">
+                  発注しきい値を下回る部品はありません 🎉
+                </div>
+              ) : (
+                <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
+                  {lowStockParts.map((p) => (
+                    <Link key={p.id} href={`/parts/${p.id}`} className="block px-4 py-3 hover:bg-zinc-50">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-zinc-900 truncate">
+                            {p.name}
+                            <span className="text-xs text-zinc-400 ml-2 font-mono">{p.part_number}</span>
+                          </p>
+                          <p className="text-xs text-zinc-400 mt-0.5">
+                            発注しきい値 {p.reorder_level ?? 0} 個
+                            {p.supplier?.id && <span className="ml-2">🏢 {p.supplier.name}</span>}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 text-xs font-bold px-2 py-1 rounded ${stockBadgeColor(p.stock, p.reorder_level ?? 0)}`}>
+                          {p.stock === 0 ? '在庫切れ' : `残 ${p.stock} 個`}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               )}
             </section>
