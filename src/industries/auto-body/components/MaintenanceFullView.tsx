@@ -419,30 +419,37 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                   {[currentLoaner.maker, currentLoaner.model].filter(Boolean).join(' ') || '—'}
                 </p>
                 <dl className="space-y-1 text-xs mt-2">
-                  {m.loaner_handover_at && (
-                    <KV label="貸出日時" value={new Date(m.loaner_handover_at).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} />
-                  )}
-                  {m.loaner_return_at && (
-                    <KV label="返却日時" value={new Date(m.loaner_return_at).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} />
-                  )}
-                  {m.loaner_mileage_out != null && (
-                    <KV label="貸出時メーター" value={`${Number(m.loaner_mileage_out).toLocaleString()} km`} />
-                  )}
-                  {m.loaner_mileage_in != null && (
-                    <KV label="返却時メーター" value={`${Number(m.loaner_mileage_in).toLocaleString()} km`} />
-                  )}
-                  {m.loaner_mileage_out != null && m.loaner_mileage_in != null && (
-                    <KV
-                      label="走行距離"
-                      value={`${(Number(m.loaner_mileage_in) - Number(m.loaner_mileage_out)).toLocaleString()} km`}
-                    />
-                  )}
-                  {m.loaner_fuel_out && <KV label="貸出時燃料" value={m.loaner_fuel_out} />}
-                  {m.loaner_fuel_in  && <KV label="返却時燃料" value={m.loaner_fuel_in} />}
+                  <KV
+                    label="貸出日時"
+                    value={m.loaner_handover_at ? new Date(m.loaner_handover_at).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                  />
+                  <KV
+                    label="返却日時"
+                    value={m.loaner_return_at ? new Date(m.loaner_return_at).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                  />
+                  <KV
+                    label="貸出時メーター"
+                    value={m.loaner_mileage_out != null ? `${Number(m.loaner_mileage_out).toLocaleString()} km` : '—'}
+                  />
+                  <KV
+                    label="返却時メーター"
+                    value={m.loaner_mileage_in != null ? `${Number(m.loaner_mileage_in).toLocaleString()} km` : '—'}
+                  />
+                  <KV
+                    label="走行距離"
+                    value={m.loaner_mileage_out != null && m.loaner_mileage_in != null
+                      ? `${(Number(m.loaner_mileage_in) - Number(m.loaner_mileage_out)).toLocaleString()} km`
+                      : '—'}
+                  />
+                  <KV label="貸出時燃料" value={m.loaner_fuel_out ?? '—'} />
+                  <KV label="返却時燃料" value={m.loaner_fuel_in ?? '—'} />
                 </dl>
-                {m.loaner_notes && (
-                  <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2">📝 {m.loaner_notes}</p>
-                )}
+                <div className="mt-2">
+                  <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">メモ</p>
+                  <p className="text-[11px] text-zinc-700 whitespace-pre-wrap bg-zinc-50 rounded p-2 min-h-[2rem]">
+                    {m.loaner_notes ? <>📝 {m.loaner_notes}</> : <span className="text-zinc-300">—</span>}
+                  </p>
+                </div>
               </>
             ) : (
               <p className="text-xs text-zinc-400">代車の割り当てなし</p>
