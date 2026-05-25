@@ -127,6 +127,17 @@ INSERT INTO keep_opportunities
   ORDER BY created_at DESC
   LIMIT 1;
 
+-- 注: opportunities.account_id は ON DELETE CASCADE のため、後段の
+-- DELETE FROM accounts で「kept_account 以外」を消すと、kept_opportunity
+-- がその account を指していた場合 CASCADE で巻き込まれて消えてしまう。
+-- 対策として、keep_opportunities の account_id を keep_accounts に
+-- リペアレントしておく。
+UPDATE opportunities
+  SET account_id = (SELECT id FROM keep_accounts),
+      updated_at = NOW()
+  WHERE id IN (SELECT id FROM keep_opportunities)
+    AND account_id IS DISTINCT FROM (SELECT id FROM keep_accounts);
+
 -- 活動
 CREATE TEMP TABLE keep_activities AS
   SELECT id FROM activities
