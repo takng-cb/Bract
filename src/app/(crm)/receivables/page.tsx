@@ -184,11 +184,12 @@ function ReceivablesTable({ rows }: { rows: ReceivableRow[] }) {
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 border-b border-zinc-200">
             <tr>
-              <th className="text-left px-3 py-2 font-medium text-zinc-600">整備No</th>
-              <th className="text-left px-3 py-2 font-medium text-zinc-600">顧客</th>
+              <th className="text-left px-3 py-2 font-medium text-zinc-600">整備No / 請求No</th>
+              <th className="text-left px-3 py-2 font-medium text-zinc-600">顧客 / 請求先</th>
               <th className="text-left px-3 py-2 font-medium text-zinc-600">車両</th>
               <th className="text-left px-3 py-2 font-medium text-zinc-600">請求日</th>
-              <th className="text-left px-3 py-2 font-medium text-zinc-600">ステータス</th>
+              <th className="text-left px-3 py-2 font-medium text-zinc-600">支払期限</th>
+              <th className="text-left px-3 py-2 font-medium text-zinc-600">支払状況</th>
               <th className="text-right px-3 py-2 font-medium text-zinc-600">請求額</th>
               <th className="text-right px-3 py-2 font-medium text-zinc-600">入金済</th>
               <th className="text-right px-3 py-2 font-medium text-zinc-600">未入金</th>
@@ -208,15 +209,35 @@ function ReceivablesTable({ rows }: { rows: ReceivableRow[] }) {
                 <tr key={r.id} className="hover:bg-zinc-50">
                   <td className="px-3 py-2">
                     <Link href={`/maintenance/${r.id}`} className="font-mono text-xs text-blue-600 hover:underline">{r.maintenance_no}</Link>
+                    {r.invoiceNo && <p className="text-[10px] text-zinc-400 mt-0.5">請求 {r.invoiceNo}</p>}
                   </td>
-                  <td className="px-3 py-2">{customer}</td>
+                  <td className="px-3 py-2">
+                    {customer}
+                    {r.billingTarget && <p className="text-[10px] text-zinc-400 mt-0.5">{r.billingTarget}</p>}
+                  </td>
                   <td className="px-3 py-2 text-zinc-600">
                     {r.vehicle?.plate_number ?? '—'}
                     {r.vehicle?.car_model && <span className="text-xs text-zinc-400 ml-1">{r.vehicle.car_model}</span>}
                   </td>
-                  <td className="px-3 py-2 text-zinc-600 whitespace-nowrap">{r.invoiceDate ?? '—'}</td>
+                  <td className="px-3 py-2 text-zinc-600 whitespace-nowrap">{r.invoiceIssuedAt ?? r.invoiceDate ?? '—'}</td>
+                  <td className={`px-3 py-2 text-xs whitespace-nowrap ${
+                    r.daysPastDue != null && r.daysPastDue > 0 ? 'text-red-700 font-semibold' :
+                    r.daysPastDue != null && r.daysPastDue > -7 ? 'text-orange-700' :
+                    'text-zinc-500'
+                  }`}>
+                    {r.paymentDueDate ?? '—'}
+                    {r.daysPastDue != null && r.daysPastDue > 0 && (
+                      <p className="text-[10px] mt-0.5">{r.daysPastDue}日超過</p>
+                    )}
+                  </td>
                   <td className="px-3 py-2">
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600">{r.status}</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                      r.paymentStatus === '貸倒'    ? 'bg-red-100 text-red-800' :
+                      r.paymentStatus === '一部入金' ? 'bg-yellow-100 text-yellow-800' :
+                      r.paymentStatus === '請求済'   ? 'bg-blue-100 text-blue-800' :
+                      r.paymentStatus === '未請求'   ? 'bg-zinc-100 text-zinc-700' :
+                      'bg-zinc-100 text-zinc-600'
+                    }`}>{r.paymentStatus}</span>
                   </td>
                   <td className="px-3 py-2 text-right font-mono text-zinc-700">¥{r.invoiceTotal.toLocaleString()}</td>
                   <td className="px-3 py-2 text-right font-mono text-zinc-500">{r.paidTotal > 0 ? `¥${r.paidTotal.toLocaleString()}` : '—'}</td>

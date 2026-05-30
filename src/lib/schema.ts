@@ -375,6 +375,20 @@ export const maintenance_records = pgTable('maintenance_records', {
   loaner_fuel_in:       text('loaner_fuel_in'),
   loaner_notes:         text('loaner_notes'),
 
+  // 請求・支払 (Issue #48 Phase 2)
+  //   billing_target:    請求先種別 ('顧客' / '保険会社' / 'リース会社' / 'その他')
+  //   invoice_no:        請求書番号 (自由入力)
+  //   invoice_issued_at: 請求書発行日
+  //   payment_due_date:  支払期限
+  //   payment_status:    '未請求' / '請求済' / '一部入金' / '入金済' / '貸倒'
+  //   payment_terms:     支払条件 (例: '月末締め翌月末払い')
+  billing_target:       text('billing_target'),
+  invoice_no:           text('invoice_no'),
+  invoice_issued_at:    date('invoice_issued_at'),
+  payment_due_date:     date('payment_due_date'),
+  payment_status:       text('payment_status'),
+  payment_terms:        text('payment_terms'),
+
   owner_id:             uuid('owner_id'),
   created_at:           timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:           timestamp('updated_at', { withTimezone: true }).defaultNow(),

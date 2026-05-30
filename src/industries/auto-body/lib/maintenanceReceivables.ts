@@ -27,7 +27,19 @@ export type ReceivableRow = {
   id:               string
   maintenance_no:   string
   status:           string
-  invoiceDate:      string | null  // sales_recording_date > delivery_date > intake_date
+  invoiceDate:      string | null  // invoice_issued_at > sales_recording_date > delivery_date > intake_date
+  /** 請求書発行日 (Issue #48 Phase 2) */
+  invoiceIssuedAt:  string | null
+  /** 請求書番号 (Issue #48 Phase 2) */
+  invoiceNo:        string | null
+  /** 支払期限 (Issue #48 Phase 2) */
+  paymentDueDate:   string | null
+  /** 期限超過日数 (paymentDueDate − 今日)。null = 期限未設定 */
+  daysPastDue:      number | null
+  /** 請求先種別 ('顧客' / '保険会社' / 'リース会社' / 'その他') */
+  billingTarget:    string | null
+  /** 支払状況 (DB 明示値、無ければ outstanding から推定) */
+  paymentStatus:    string
   /** 請求合計（消費税込み） */
   invoiceTotal:     number
   /** 入金合計 */
@@ -42,11 +54,12 @@ export type ReceivableRow = {
 }
 
 function pickInvoiceDate(m: {
+  invoice_issued_at:    string | null
   sales_recording_date: string | null
-  delivery_date: string | null
-  intake_date: string | null
+  delivery_date:        string | null
+  intake_date:          string | null
 }): string | null {
-  return m.sales_recording_date ?? m.delivery_date ?? m.intake_date
+  return m.invoice_issued_at ?? m.sales_recording_date ?? m.delivery_date ?? m.intake_date
 }
 
 function diffDays(fromIso: string, today: Date): number {
@@ -161,11 +174,29 @@ export async function getReceivables(limit?: number): Promise<ReceivableRow[]> {
     const invoiceDate = pickInvoiceDate(r.m)
     const daysOverdue = invoiceDate ? diffDays(invoiceDate, today) : null
 
+    // 支払期限超過日数（payment_due_date が設定されている場合のみ）
+    const daysPastDue = r.m.payment_due_date
+      ? diffDays(r.m.payment_due_date, today)
+      : null
+
+    // 明示的な payment_status があればそれを採用、無ければ outstanding から推定
+    const explicitStatus = r.m.payment_status
+    const derivedStatus = paidTotal === 0      ? '請求済'
+                        : paidTotal < invoiceTotal ? '一部入金'
+                        :                          '入金済'
+    const paymentStatus = explicitStatus ?? derivedStatus
+
     rows.push({
       id:             r.m.id,
       maintenance_no: r.m.maintenance_no,
       status:         r.m.status,
       invoiceDate,
+      invoiceIssuedAt: r.m.invoice_issued_at,
+      invoiceNo:      r.m.invoice_no,
+      paymentDueDate: r.m.payment_due_date,
+      daysPastDue,
+      billingTarget:  r.m.billing_target,
+      paymentStatus,
       invoiceTotal:   Math.round(invoiceTotal),
       paidTotal:      Math.round(paidTotal),
       outstanding:    Math.round(outstanding),

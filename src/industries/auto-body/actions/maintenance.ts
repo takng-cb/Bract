@@ -371,3 +371,36 @@ export async function updateMaintenanceStatus(id: string, status: string) {
 
   revalidatePath(`/maintenance/${id}`)
 }
+
+/**
+ * 請求・支払セクション専用の部分更新アクション (Issue #48 Phase 2)。
+ *
+ * billing_target / invoice_no / invoice_issued_at / payment_due_date /
+ * payment_status / payment_terms を編集する。既存の整備本体や行アイテムは触らない。
+ */
+export async function updateMaintenanceBilling(
+  id: string,
+  data: {
+    billing_target:    string | null
+    invoice_no:        string | null
+    invoice_issued_at: string | null   // ISO date 'YYYY-MM-DD'
+    payment_due_date:  string | null
+    payment_status:    string | null
+    payment_terms:     string | null
+  },
+) {
+  await requireEditor()
+
+  await db.update(maintenance_records).set({
+    billing_target:    data.billing_target,
+    invoice_no:        data.invoice_no,
+    invoice_issued_at: data.invoice_issued_at,
+    payment_due_date:  data.payment_due_date,
+    payment_status:    data.payment_status,
+    payment_terms:     data.payment_terms,
+    updated_at:        new Date(),
+  }).where(eq(maintenance_records.id, id))
+
+  revalidatePath(`/maintenance/${id}`)
+  revalidatePath('/receivables')
+}

@@ -27,6 +27,7 @@ import SectionEditModal from './SectionEditModal'
 import MaintenanceLineItemsEditor from './MaintenanceLineItemsEditor'
 import MaintenanceFeesEditor from './MaintenanceFeesEditor'
 import MaintenancePaymentsEditor from './MaintenancePaymentsEditor'
+import MaintenanceBillingEditForm from './MaintenanceBillingEditForm'
 import MaintenanceDamageMap from './MaintenanceDamageMap'
 import MaintenanceDamageMapPreview from './MaintenanceDamageMapPreview'
 import MaintenanceCustomerVehicleEditForm from './MaintenanceCustomerVehicleEditForm'
@@ -715,6 +716,34 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                 消費税（外税{taxRate}%）= {yen(consumptionTax)}
               </p>
             )}
+          </section>
+
+          {/* 請求・支払（Issue #48 Phase 2） */}
+          <section className="bg-white border border-zinc-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">💳 請求・支払</h2>
+              <SectionEditModal triggerLabel="✏️ 編集" title="請求・支払情報を編集">
+                <MaintenanceBillingEditForm
+                  maintenanceId={maintenanceId}
+                  initial={{
+                    billing_target:    m.billing_target,
+                    invoice_no:        m.invoice_no,
+                    invoice_issued_at: m.invoice_issued_at,
+                    payment_due_date:  m.payment_due_date,
+                    payment_status:    m.payment_status,
+                    payment_terms:     m.payment_terms,
+                  }}
+                />
+              </SectionEditModal>
+            </div>
+            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2 text-xs">
+              <Item label="請求先" value={m.billing_target ?? '—'} />
+              <Item label="請求書番号" value={m.invoice_no ?? '—'} />
+              <Item label="支払状況" value={m.payment_status ?? '— (自動判定)'} />
+              <Item label="請求書発行日" value={m.invoice_issued_at ?? '—'} />
+              <Item label="支払期限" value={m.payment_due_date ?? '—'} />
+              <Item label="支払条件" value={m.payment_terms ?? '—'} />
+            </dl>
           </section>
 
           {/* 入金 */}
