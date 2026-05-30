@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bract CRM - リリース対応タスク</title>
+  <style>
+    :root {
+      --color-bg:         #fafafa;
+      --color-fg:         #18181b;
+      --color-muted:      #71717a;
+      --color-border:     #e4e4e7;
+      --color-card:       #ffffff;
+      --color-accent:     #2563eb;
+      --color-accent-bg:  #eff6ff;
+      --color-phase-0:    #dc2626;
+      --color-phase-0-bg: #fef2f2;
+      --color-phase-1:    #ea580c;
+      --color-phase-1-bg: #fff7ed;
+      --color-phase-2:    #d97706;
+      --color-phase-2-bg: #fffbeb;
+      --color-phase-3:    #16a34a;
+      --color-phase-3-bg: #f0fdf4;
+      --color-done-bg:    #f4f4f5;
+      --color-done-fg:    #a1a1aa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      margin: 0; padding: 0;
+      background: var(--color-bg);
+      color: var(--color-fg);
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+    header {
+      text-align: center;
+      padding: 2rem 0;
+      border-bottom: 2px solid var(--color-border);
+      margin-bottom: 2rem;
+    }
+    h1 { margin: 0 0 0.5rem; font-size: 1.75rem; }
+    header p { margin: 0.25rem 0; color: var(--color-muted); font-size: 0.875rem; }
+    .progress-bar {
+      width: 100%;
+      max-width: 480px;
+      margin: 1rem auto 0;
+      background: var(--color-border);
+      border-radius: 9999px;
+      overflow: hidden;
+      height: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(to right, #3b82f6, #2563eb);
+      transition: width 0.3s ease;
+    }
+    .progress-text {
+      font-size: 0.75rem;
+      color: var(--color-muted);
+      margin-top: 0.5rem;
+    }
+
+    .phase {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .phase-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .phase-badge {
+      display: inline-block;
+      padding: 0.125rem 0.625rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .phase-0 .phase-badge { background: var(--color-phase-0-bg); color: var(--color-phase-0); }
+    .phase-1 .phase-badge { background: var(--color-phase-1-bg); color: var(--color-phase-1); }
+    .phase-2 .phase-badge { background: var(--color-phase-2-bg); color: var(--color-phase-2); }
+    .phase-3 .phase-badge { background: var(--color-phase-3-bg); color: var(--color-phase-3); }
+
+    .phase h2 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+    .phase-counter {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--color-muted);
+    }
+
+    .task {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--color-border);
+      transition: background 0.2s;
+    }
+    .task:last-child { border-bottom: none; }
+    .task:hover { background: var(--color-bg); }
+    .task.done {
+      background: var(--color-done-bg);
+      opacity: 0.7;
+    }
+    .task.done .task-title { text-decoration: line-through; color: var(--color-done-fg); }
+
+    .task-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      cursor: pointer;
+    }
+    .task-checkbox {
+      width: 1.25rem;
+      height: 1.25rem;
+      margin-top: 0.125rem;
+      flex-shrink: 0;
+      cursor: pointer;
+      accent-color: var(--color-accent);
+    }
+    .task-title {
+      font-weight: 500;
+      flex: 1;
+      min-width: 0;
+    }
+    .task-meta {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge-issue {
+      background: var(--color-accent-bg);
+      color: var(--color-accent);
+    }
+    .badge-issue a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .badge-effort {
+      background: #f4f4f5;
+      color: var(--color-muted);
+    }
+    .task-toggle {
+      width: 1.5rem;
+      height: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-muted);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .task.expanded .task-toggle { transform: rotate(90deg); }
+
+    .task-body {
+      display: none;
+      padding: 1rem 0 0 2rem;
+      font-size: 0.9375rem;
+    }
+    .task.expanded .task-body { display: block; }
+
+    .task-body h4 {
+      margin: 1rem 0 0.5rem;
+      font-size: 0.875rem;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .task-body h4:first-child { margin-top: 0; }
+    .task-body ol { margin: 0; padding-left: 1.5rem; }
+    .task-body p { margin: 0.5rem 0; }
+    .task-body code {
+      background: var(--color-bg);
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-size: 0.875rem;
+      font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    }
+    .task-body a {
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+    .task-body a:hover { text-decoration: underline; }
+
+    .claude-section {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+      border-radius: 0.5rem;
+    }
+    .claude-section h2 {
+      margin: 0 0 1rem;
+      font-size: 1.125rem;
+    }
+    .claude-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .claude-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .claude-list li:last-child { border: none; }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--color-border);
+      font-size: 0.75rem;
+      color: var(--color-muted);
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      .container { padding: 1rem; }
+      h1 { font-size: 1.25rem; }
+      .task-header { flex-wrap: wrap; }
+      .task-meta { width: 100%; padding-left: 2rem; margin-top: 0.25rem; }
+      .task-body { padding-left: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <h1>🚀 Bract CRM リリース対応タスク</h1>
+      <p>板金 (auto-body) を中心とした商用リリースに向けて、ユーザー（経営判断・契約・外部設定）の対応が必要な作業の一覧</p>
+      <p style="font-size: 0.75rem;">最終更新: 2026-05-27 | main: af5943d</p>
+      <div class="progress-bar"><div class="progress-bar-fill" id="progressFill" style="width: 0%"></div></div>
+      <div class="progress-text" id="progressText">0 / 14 タスク完了</div>
+    </header>
+
+    <!-- ============================================
+         Phase 0: リリース直前必須
+    ============================================ -->
+    <section class="phase phase-0" data-phase="0">
+      <div class="phase-header">
+        <span class="phase-badge">PHASE 0</span>
+        <h2>リリース直前必須</h2>
+        <span class="phase-counter" data-counter="0"></span>
+      </div>
+
+      <div class="task" data-task-id="0-1">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">Slack / Discord Webhook の発行</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/25" target="_blank">#25</a></span>
+            <span class="badge badge-effort">10分</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>Vercel deploy 失敗・本番アラートをリアルタイム把握。これがないと障害発生に気づけない。</p>
+          <h4>手順</h4>
+          <ol>
+            <li>Slack: ワークスペースで Incoming Webhook を発行（<a href="https://api.slack.com/messaging/webhooks" target="_blank">公式ガイド</a>）</li>
+            <li>Discord: サーバー設定 → 連携サービス → ウェブフック → 新規ウェブフック</li>
+            <li>発行された URL を Claude に共有 → Vercel env / GitHub Actions に組み込み</li>
+          </ol>
+          <h4>Claude の対応</h4>
+          <p>webhook 通知コードを Vercel deployment hook + GitHub Actions に組み込む</p>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="0-2">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">法務文書（利用規約・プライバシーポリシー）の確定</span>
+          <div class="task-meta">
+            <span class="badge badge-effort">1〜2週間</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>商用サービス提供の法的根拠。これがないと契約が結べない / 個人情報を扱えない。</p>
+          <h4>手順</h4>
+          <ol>
+            <li>既存ドラフトを <code>docs/legal-drafts/</code> で確認</li>
+            <li>中小企業向け IT 法務に強い弁護士に相談（着手金 ¥100,000-300,000 + 顧問 ¥30,000-50,000/月）</li>
+            <li>確定版を <code>docs/legal/</code> に配置 + Web 公開ページ作成</li>
+            <li>顧客契約時に必須署名</li>
+          </ol>
+          <h4>Claude の対応</h4>
+          <p>確定後、<code>/about/legal</code> 配下に公開ページ実装可能</p>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="0-3">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">Vercel 環境変数の本番設定確認</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/67" target="_blank">#67</a></span>
+            <span class="badge badge-effort">30分</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>AI 機能・LINE 連携などの feature flag が正しく設定されているか確認</p>
+          <h4>手順</h4>
+          <ol>
+            <li>Vercel プロジェクト → Settings → Environment Variables</li>
+            <li>以下を確認・設定:
+              <ul>
+                <li><code>DATABASE_URL</code> (auto-body Neon)</li>
+                <li><code>NEXT_PUBLIC_INDUSTRY=auto-body</code></li>
+                <li><code>NEXT_PUBLIC_APP_URL</code> (本番 URL)</li>
+                <li><code>SUPABASE_*</code> 系</li>
+                <li><code>AI_FEATURE_ENABLED</code> ← 契約に応じて</li>
+                <li><code>LINE_FEATURE_ENABLED</code> ← 未実装なので未設定</li>
+              </ul>
+            </li>
+            <li>Production / Preview / Development の scope を適切に</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="0-4">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">板金顧客のオンボーディング</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/22" target="_blank">#22</a></span>
+            <span class="badge badge-effort">2〜5日/社</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>最初の数社に渡せる状態にする。導入支援含めて顧客が使えるようになるまで伴走。</p>
+          <h4>手順</h4>
+          <ol>
+            <li>顧客から既存データ（取引先・顧客車両・整備履歴等）の CSV / Excel を受領</li>
+            <li>データの clean up（フォーマット整形、重複除去）</li>
+            <li>CSV インポート機能で投入</li>
+            <li>ユーザーアカウント発行（admin 1 名 + editor / viewer 必要分）</li>
+            <li>業種オーバーレイ機能（整備パッケージ、損傷マップ、帳票テンプレ）の確認</li>
+            <li>オンライン研修（2 時間程度）</li>
+            <li>1 週間のフォロー（チャット/メール対応）</li>
+          </ol>
+          <h4>Claude の対応</h4>
+          <p>必要なテンプレ・帳票調整、UI 修正</p>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="0-5">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">Stripe アカウント開設 & インボイス制度対応</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/16" target="_blank">#16</a></span>
+            <span class="badge badge-effort">1週間+実装1週間</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>顧客から月額・初期費用を徴収できる体制を作る</p>
+          <h4>手順</h4>
+          <ol>
+            <li><a href="https://dashboard.stripe.com/register" target="_blank">Stripe アカウント開設</a></li>
+            <li>KYC（本人確認）完了</li>
+            <li>適格請求書発行事業者の登録（インボイス制度対応）</li>
+            <li>価格表 (<code>docs/pricing.md</code>) の各プランを Stripe Product として登録:
+              <ul>
+                <li>Starter Base (¥8,000/月 月額固定)</li>
+                <li>Starter Per-User (¥3,500/user/月)</li>
+                <li>AI ライセンス (¥5,000/月)</li>
+                <li>初期費用 (one-time ¥100,000-150,000)</li>
+              </ul>
+            </li>
+            <li>Secret Key / Webhook Secret / Publishable Key を Vercel env に追加</li>
+            <li>Claude が Stripe SDK 導入 → Checkout / Customer Portal / Webhook 実装</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         Phase 1: リリース後 1〜3 ヶ月
+    ============================================ -->
+    <section class="phase phase-1" data-phase="1">
+      <div class="phase-header">
+        <span class="phase-badge">PHASE 1</span>
+        <h2>リリース後 1〜3 ヶ月</h2>
+        <span class="phase-counter" data-counter="0"></span>
+      </div>
+
+      <div class="task" data-task-id="1-1">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">Supabase Storage バケットの作成（写真機能用）</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/46" target="_blank">#46</a></span>
+            <span class="badge badge-effort">1h+2〜3日実装</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>整備の損傷写真・進捗写真を保存する場所を確保</p>
+          <h4>手順</h4>
+          <ol>
+            <li>Supabase Dashboard → Storage → New Bucket</li>
+            <li>バケット名: <code>maintenance-photos</code></li>
+            <li>Public/Private: <strong>Private</strong>（認証必須）</li>
+            <li>RLS ポリシー:
+              <ul>
+                <li>読み取り: 認証済み + 当該整備にアクセス権ある user</li>
+                <li>書き込み: editor 以上</li>
+              </ul>
+            </li>
+            <li>CORS 設定（必要に応じて）</li>
+            <li>完了後 Claude に共有 → 機能実装</li>
+          </ol>
+          <h4>Claude の対応</h4>
+          <p>アップロード UI、画像最適化、lightbox 表示、整備詳細への組み込み</p>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="1-2">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">プライバシーマーク取得の準備開始</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/58" target="_blank">#58</a></span>
+            <span class="badge badge-effort">3〜6ヶ月</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>中堅企業案件を獲得可能にする</p>
+          <h4>手順</h4>
+          <ol>
+            <li>JIPDEC のサイトで申請ガイドを取得</li>
+            <li>コンサルタント相見積（推奨: 3 社、費用 ¥300,000-500,000）</li>
+            <li>社内体制整備（個人情報保護管理者・監査責任者の任命）</li>
+            <li>規程類の整備（管理規程、教育規程、苦情対応規程）</li>
+            <li>委託先管理（Vercel / Supabase / Neon の SOC 2 証跡保管）</li>
+            <li>内部監査の実施</li>
+            <li>JIPDEC へ申請 → 現地審査対応</li>
+          </ol>
+          <h4>Claude の対応</h4>
+          <p>委託先管理リスト・データフロー図のドキュメント作成支援</p>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="1-3">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">データバックアップの本番運用判断</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/24" target="_blank">#24</a></span>
+            <span class="badge badge-effort">1日</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>顧客データ消失のリスクを最小化</p>
+          <h4>手順</h4>
+          <ol>
+            <li>Neon の現在のプラン確認（Free vs Launch vs Scale）</li>
+            <li>PITR (Point-In-Time Recovery) の保持期間決定:
+              <ul>
+                <li>Free: 24 時間</li>
+                <li>Launch ($19/月): 7 日間</li>
+                <li>Scale ($69/月〜): 14〜30 日間</li>
+              </ul>
+            </li>
+            <li>顧客契約に応じてプランをアップグレード（推奨: 最低 Launch 以上）</li>
+            <li>別リージョン or 別サービスへの夜間 dump 退避要否判断</li>
+            <li>Claude に方針共有 → 自動化スクリプト整備</li>
+          </ol>
+          <h4>Claude の対応</h4>
+          <p>dump 自動化 (GitHub Actions cron) + リストア手順書</p>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="1-4">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">アーリーアダプター顧客（10 社）の獲得</span>
+          <div class="task-meta">
+            <span class="badge badge-effort">継続</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>アーリーアダプター価格（docs/pricing.md）で 10 社獲得し、実績作り</p>
+          <h4>手順</h4>
+          <ol>
+            <li>ターゲット業界・地域決定（推奨: 関東圏の小規模整備工場 5-10 名規模）</li>
+            <li>営業リスト作成（既存顧客の知人、業界団体、SNS 等）</li>
+            <li>提案資料（docs/pricing.md ベース）作成</li>
+            <li>デモ環境準備（テストデータ整備済み）</li>
+            <li>商談 → 契約 → 導入支援</li>
+          </ol>
+          <h4>Claude の対応</h4>
+          <p>デモ用テストデータ整備、Vercel deploy、提案資料の Markdown 化</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         Phase 2: 顧客拡大期 3〜6 ヶ月
+    ============================================ -->
+    <section class="phase phase-2" data-phase="2">
+      <div class="phase-header">
+        <span class="phase-badge">PHASE 2</span>
+        <h2>顧客拡大期（3〜6 ヶ月）</h2>
+        <span class="phase-counter" data-counter="0"></span>
+      </div>
+
+      <div class="task" data-task-id="2-1">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">UptimeRobot / Statuspage の契約</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/64" target="_blank">#64</a></span>
+            <span class="badge badge-effort">1〜2h</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>稼働率監視と顧客向けステータスページ</p>
+          <h4>手順</h4>
+          <ol>
+            <li>UptimeRobot 無料プラン登録（10 モニター無料）or Better Uptime</li>
+            <li>監視対象: <code>https://app.bract-crm.com/api/health</code></li>
+            <li>通知先: Slack webhook（0-1 で発行済み）</li>
+            <li>Statuspage 検討（任意、月 $29〜）</li>
+            <li>Claude に共有 → SLA ドキュメント整備</li>
+          </ol>
+          <h4>Claude の対応</h4>
+          <p><code>/api/health</code> エンドポイント、SLA ドラフト</p>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="2-2">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">LINE Developer Console セットアップ</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/68" target="_blank">#68</a></span>
+            <span class="badge badge-effort">1h+1〜2週間実装</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>LINE 連携機能を顧客に提供</p>
+          <h4>手順</h4>
+          <ol>
+            <li><a href="https://developers.line.biz/console/" target="_blank">LINE Developers Console</a> にログイン</li>
+            <li>プロバイダー作成（Bract 名）</li>
+            <li>LINE 公式アカウント作成</li>
+            <li>Messaging API チャネル発行</li>
+            <li>Channel ID / Channel Secret / Channel Access Token 取得</li>
+            <li>Webhook URL を Bract に設定: <code>https://app.bract-crm.com/api/webhooks/line</code></li>
+            <li>Webhook の verification ON</li>
+            <li>Claude に Channel credentials 共有 → admin 画面で設定 or env に登録</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="2-3">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">AI プロバイダ（Groq / Gemini / Anthropic）の API キー発行</span>
+          <div class="task-meta">
+            <span class="badge badge-effort">30分/社</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>AI まとめ機能を顧客に提供</p>
+          <h4>手順</h4>
+          <ol>
+            <li>プロバイダ選定（推奨: Groq は低コスト、Gemini は無料枠あり、Anthropic は精度高）</li>
+            <li>各プロバイダのアカウント作成・API キー発行</li>
+            <li>利用量モニタリング設定（コスト爆発防止）</li>
+            <li>Bract の <code>/admin/ai</code> 設定画面で API キー登録</li>
+          </ol>
+          <h4>状態</h4>
+          <p>Claude 実装完了済み。設定 UI も実装済み</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         Phase 3: 中長期 6 ヶ月〜
+    ============================================ -->
+    <section class="phase phase-3" data-phase="3">
+      <div class="phase-header">
+        <span class="phase-badge">PHASE 3</span>
+        <h2>中長期（6 ヶ月〜）</h2>
+        <span class="phase-counter" data-counter="0"></span>
+      </div>
+
+      <div class="task" data-task-id="3-1">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">ISMS / SOC 2 取得（大企業案件参入時）</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/59" target="_blank">#59</a></span>
+            <span class="badge badge-effort">8〜12ヶ月</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>大企業・官公庁案件の参入</p>
+          <h4>手順</h4>
+          <p>プライバシーマーク取得後に着手</p>
+        </div>
+      </div>
+
+      <div class="task" data-task-id="3-2">
+        <div class="task-header">
+          <input type="checkbox" class="task-checkbox" />
+          <span class="task-title">第三者ペネトレーションテスト</span>
+          <div class="task-meta">
+            <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/63" target="_blank">#63</a></span>
+            <span class="badge badge-effort">1〜3ヶ月</span>
+          </div>
+          <div class="task-toggle">▶</div>
+        </div>
+        <div class="task-body">
+          <h4>目的</h4>
+          <p>セキュリティ脆弱性の客観評価</p>
+          <h4>手順</h4>
+          <ol>
+            <li>ベンダー相見積（GMO サイバーセキュリティ / Flatt Security 等）</li>
+            <li>範囲合意（Web / API / インフラ）</li>
+            <li>実施・修正対応</li>
+            <li>報告書を営業資料に活用</li>
+          </ol>
+          <p>費用 ¥500,000-2,000,000</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         Claude が並行で進められる作業
+    ============================================ -->
+    <section class="claude-section">
+      <h2>🤖 Claude が並行で進められる作業（参考）</h2>
+      <ul class="claude-list">
+        <li>🛡️ #67 ライセンス制御 Phase 2（admin UI）</li>
+        <li>🔧 #47 部品在庫 本格対応（schema 含む）</li>
+        <li>💰 #48 売掛金 本格対応（schema 含む）</li>
+        <li>📄 #1 不動産 媒介契約報告書生成</li>
+        <li>🎨 #27 モバイル UX 検証</li>
+        <li>🧑‍💼 #69 staffing 業種オーバーレイ</li>
+        <li>📊 #17 Neon compute hour 監視</li>
+        <li>auto-body Tier 2 機能 (#49-#52)</li>
+      </ul>
+      <p style="margin-top: 1rem; font-size: 0.875rem;">
+        「次は #47 から進めて」「Stripe 開設完了したから連携実装して」など指示があれば対応します。
+      </p>
+    </section>
+
+    <footer>
+      <p>関連ドキュメント:
+        <a href="./pricing.md">価格表 (pricing.md)</a> ·
+        <a href="./release-readiness-tasks.md">タスク詳細 (Markdown)</a> ·
+        <a href="https://github.com/takng-cb/Bract-CRM/issues" target="_blank">GitHub Issues</a>
+      </p>
+      <p>進捗は LocalStorage に保存されます。ブラウザのキャッシュをクリアすると消えます。</p>
+    </footer>
+
+  </div>
+
+  <script>
+    /**
+     * チェックボックスの状態を LocalStorage に保存・復元。
+     * クリックで詳細セクションをトグル。
+     * 進捗バーをリアルタイム更新。
+     */
+    const STORAGE_KEY = 'bract-crm-tasks-progress-v1'
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (!raw) return {}
+        return JSON.parse(raw)
+      } catch { return {} }
+    }
+    function saveProgress(state) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      } catch {}
+    }
+
+    function updateProgress() {
+      const all = document.querySelectorAll('.task-checkbox')
+      const done = document.querySelectorAll('.task-checkbox:checked')
+      const pct = all.length === 0 ? 0 : (done.length / all.length) * 100
+      document.getElementById('progressFill').style.width = pct + '%'
+      document.getElementById('progressText').textContent = `${done.length} / ${all.length} タスク完了 (${pct.toFixed(0)}%)`
+
+      // phase ごとのカウンタも更新
+      document.querySelectorAll('.phase').forEach((phase) => {
+        const total = phase.querySelectorAll('.task-checkbox').length
+        const completed = phase.querySelectorAll('.task-checkbox:checked').length
+        const counter = phase.querySelector('[data-counter]')
+        if (counter) counter.textContent = `${completed} / ${total}`
+      })
+    }
+
+    // 初期化
+    const state = loadProgress()
+    document.querySelectorAll('.task').forEach((task) => {
+      const taskId = task.getAttribute('data-task-id')
+      const checkbox = task.querySelector('.task-checkbox')
+      const header = task.querySelector('.task-header')
+
+      // LocalStorage から状態復元
+      if (state[taskId]) {
+        checkbox.checked = true
+        task.classList.add('done')
+      }
+
+      // チェックボックス変更
+      checkbox.addEventListener('change', (e) => {
+        e.stopPropagation()
+        if (checkbox.checked) {
+          task.classList.add('done')
+          state[taskId] = true
+        } else {
+          task.classList.remove('done')
+          delete state[taskId]
+        }
+        saveProgress(state)
+        updateProgress()
+      })
+
+      // ヘッダクリックで展開トグル（チェックボックス自体は除く）
+      header.addEventListener('click', (e) => {
+        if (e.target.matches('input[type="checkbox"]') || e.target.closest('a')) return
+        task.classList.toggle('expanded')
+      })
+    })
+
+    updateProgress()
+  </script>
+</body>
+</html>
