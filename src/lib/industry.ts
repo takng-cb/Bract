@@ -14,9 +14,9 @@
  * で委譲する。
  */
 
-export type Industry = 'base' | 'real-estate' | 'auto-body'
+export type Industry = 'base' | 'real-estate' | 'auto-body' | 'staffing'
 
-export const INDUSTRIES: readonly Industry[] = ['base', 'real-estate', 'auto-body'] as const
+export const INDUSTRIES: readonly Industry[] = ['base', 'real-estate', 'auto-body', 'staffing'] as const
 
 /**
  * 現在ビルド/起動された業種。`base` がデフォルト。

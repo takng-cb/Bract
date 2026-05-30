@@ -75,6 +75,11 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         { href: '/parts',                 label: '部品',         icon: '🪛' },
         { href: '/receivables',           label: '売掛金',       icon: '💰' },
       ]
+    : activeIndustry === 'staffing'
+    ? [
+        { href: '/staff',       label: 'スタッフ',  icon: '🧑‍💼' },
+        { href: '/assignments', label: '案件',     icon: '📋' },
+      ]
     : []
 
   const allCustomItems: NavItem[] = [

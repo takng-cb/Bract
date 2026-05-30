@@ -27,6 +27,9 @@ export const accounts = pgTable('accounts', {
   address:        text('address'),
   status:         text('status').notNull().default('active'),
   type:           text('type'),
+  // staffing 業種オーバーレイ用 (Issue #69):
+  //   'supplier' (人材会社) / 'client' (派遣先) / 'both' / NULL
+  account_role:   text('account_role'),
   annual_revenue: numeric('annual_revenue'),
   employee_count: integer('employee_count'),
   description:    text('description'),
@@ -775,6 +778,73 @@ export const licenses = pgTable('licenses', {
   notes:                  text('notes'),
   created_at:             timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:             timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// staff（スタッフマスタ）— 業種オーバーレイ：人材アテンド業 (Issue #69)
+//   accounts (人材会社) に属するスタッフ。自社との個別契約は無く、
+//   人材会社からの派遣を仲介する形態。
+//   INDUSTRY=staffing のときのみ UI で使用。
+// ----------------------------------------------------------------
+export const staff = pgTable('staff', {
+  id:                     uuid('id').primaryKey().defaultRandom(),
+  belong_account_id:      uuid('belong_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  name:                   text('name').notNull(),
+  name_kana:              text('name_kana'),
+  gender:                 text('gender'),
+  birth_date:             date('birth_date'),
+  phone:                  text('phone'),
+  email:                  text('email'),
+  skills:                 jsonb('skills'),
+  available_areas:        jsonb('available_areas'),
+  default_hourly_rate:    numeric('default_hourly_rate'),
+  default_cost_per_hour:  numeric('default_cost_per_hour'),
+  photo_url:              text('photo_url'),
+  status:                 text('status').notNull().default('稼働中'),
+  notes:                  text('notes'),
+  owner_id:               uuid('owner_id'),
+  created_at:             timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:             timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// assignments（案件 = アテンド業務の発注）— 業種オーバーレイ：staffing
+//   派遣先 (account_role='client') からの案件発注を管理する。
+//   1 案件に複数スタッフをアサイン可能 (assignment_staff junction)。
+// ----------------------------------------------------------------
+export const assignments = pgTable('assignments', {
+  id:                   uuid('id').primaryKey().defaultRandom(),
+  assignment_no:        text('assignment_no').notNull().unique(),  // 'YYYYMMDD-NNN'
+  client_account_id:    uuid('client_account_id').references(() => accounts.id, { onDelete: 'restrict' }),
+  client_contact_id:    uuid('client_contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  service_date:         date('service_date'),
+  service_start_time:   text('service_start_time'),
+  service_end_time:     text('service_end_time'),
+  service_location:     text('service_location'),
+  service_type:         text('service_type'),
+  service_description:  text('service_description'),
+  staff_count_required: integer('staff_count_required'),
+  status:               text('status').notNull().default('予約'),
+  client_total_fee:     numeric('client_total_fee'),
+  internal_memo:        text('internal_memo'),
+  owner_id:             uuid('owner_id'),
+  created_at:           timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:           timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// assignment_staff（案件 ↔ スタッフ junction with detail）
+// ----------------------------------------------------------------
+export const assignment_staff = pgTable('assignment_staff', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  assignment_id:  uuid('assignment_id').notNull().references(() => assignments.id, { onDelete: 'cascade' }),
+  staff_id:       uuid('staff_id').notNull().references(() => staff.id, { onDelete: 'restrict' }),
+  service_hours:  numeric('service_hours'),
+  hourly_rate:    numeric('hourly_rate'),
+  cost_per_hour:  numeric('cost_per_hour'),
+  status:         text('status').notNull().default('予約'),
+  notes:          text('notes'),
+  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------
