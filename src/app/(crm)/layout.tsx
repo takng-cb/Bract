@@ -96,6 +96,9 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
       })()
     : null
 
+  // AI 機能のライセンス状態を先に解決 (Sidebar / MobileNav に boolean で渡すため)
+  const aiEnabled = await isAIFeatureEnabled()
+
   return (
     <div className="flex min-h-screen bg-zinc-50 print:bg-white print:min-h-0">
       {/* 画面上部の進捗バー + 中央スピナー（perceived perf）*/}
@@ -106,10 +109,10 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <SuspenseRescuer />
       </div>
       <div className="print:hidden">
-        <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={isAIFeatureEnabled()} />
+        <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
       </div>
       <div className="print:hidden">
-        <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} aiEnabled={isAIFeatureEnabled()} />
+        <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
       </div>
       <main className={`flex-1 overflow-auto pt-14 md:pt-0 print:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'} print:pb-0`}>
         {children}

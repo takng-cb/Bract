@@ -723,6 +723,37 @@ export const system_settings = pgTable('system_settings', {
 })
 
 // ----------------------------------------------------------------
+// licenses（ライセンス制御 - Issue #67）
+//   1 行 = 1 テナントの契約状態
+//   現状は単一テナント運用 (tenant_key='default')
+//   将来マルチテナント化時は tenant_key で識別
+// ----------------------------------------------------------------
+export const licenses = pgTable('licenses', {
+  id:                     uuid('id').primaryKey().defaultRandom(),
+  tenant_key:             text('tenant_key').notNull().unique().default('default'),
+  plan:                   text('plan').notNull().default('starter'),
+  // features: JSON で機能フラグを保持
+  //   {
+  //     ai_summary:        boolean,
+  //     line_integration:  boolean,
+  //     extra_industries:  string[],
+  //     custom_documents:  boolean,
+  //     max_users:         number | null,
+  //     max_storage_mb:    number | null,
+  //   }
+  features:               jsonb('features').notNull().default({}),
+  industry_main:          text('industry_main'),     // 'auto-body' / 'real-estate' / 'staffing'
+  status:                 text('status').notNull().default('active'),
+                          // 'active' / 'trial' / 'expired' / 'suspended'
+  starts_at:              timestamp('starts_at', { withTimezone: true }),
+  expires_at:             timestamp('expires_at', { withTimezone: true }),
+  stripe_subscription_id: text('stripe_subscription_id'),
+  notes:                  text('notes'),
+  created_at:             timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:             timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
 // list_view_settings（リストビューのカラム設定）
 // ----------------------------------------------------------------
 export const list_view_settings = pgTable('list_view_settings', {

@@ -61,7 +61,7 @@ export async function summarizeOpportunity(
   to: string,
 ): Promise<SummaryResponse> {
   await requireEditor()
-  ensureAIFeatureEnabled()
+  await ensureAIFeatureEnabled()
   const cfg = await getAIConfig()
   return toResponse(summarizeActivitiesAndTasks({
     objectApi:    'opportunity',
@@ -84,7 +84,7 @@ export async function summarizeProperty(
   to: string,
 ): Promise<SummaryResponse> {
   await requireEditor()
-  ensureAIFeatureEnabled()
+  await ensureAIFeatureEnabled()
   const cfg = await getAIConfig()
   return toResponse(summarizeActivitiesAndTasks({
     objectApi:    'properties',
@@ -116,7 +116,7 @@ export async function summarizeProperty(
 export async function updateAISettings(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireAdmin()
   try {
-    ensureAIFeatureEnabled()
+    await ensureAIFeatureEnabled()
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) }
   }
@@ -170,7 +170,7 @@ export async function updateAISettings(formData: FormData): Promise<{ ok: true }
 export async function testAIConnection(): Promise<{ ok: true; reply: string; provider: string; model: string } | { ok: false; error: string }> {
   await requireAdmin()
   try {
-    ensureAIFeatureEnabled()
+    await ensureAIFeatureEnabled()
     const { callAI } = await import('@/lib/ai/client')
     const r = await callAI({
       system: 'あなたはテスト用アシスタントです。短く、丁寧に応答してください。',

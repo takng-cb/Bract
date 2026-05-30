@@ -24,7 +24,7 @@ export default async function AdminAIPage() {
 
   // AI 機能がご契約プランに含まれていない場合は 404
   // （URL を直打ちされても閲覧不可。営業窓口経由でフラグを有効化する運用）
-  if (!isAIFeatureEnabled()) notFound()
+  if (!(await isAIFeatureEnabled())) notFound()
 
   const settings = await getAISettingsForUI()
 

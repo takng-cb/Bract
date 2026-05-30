@@ -567,7 +567,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   ]
   // AI まとめボタンと活動セクションを束ねる（タブの実コンテンツ）
   // 注: AI 機能フラグ (AI_FEATURE_ENABLED) が false の場合はボタン自体を出さない。
-  const aiEnabled = isAIFeatureEnabled()
+  const aiEnabled = await isAIFeatureEnabled()
   const interactionsWithAI = (
     <>
       {aiEnabled && (
