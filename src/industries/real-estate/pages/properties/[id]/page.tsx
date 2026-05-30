@@ -454,6 +454,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
+              <Link href={`/properties/${id}/brokerage-report`} target="_blank" className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors" title="媒介業務処理状況報告書を新タブで印刷プレビュー">📄 媒介報告書</Link>
               <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
             </div>
