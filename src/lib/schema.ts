@@ -275,6 +275,11 @@ export const part_movements = pgTable('part_movements', {
   occurred_at:    date('occurred_at').notNull().defaultNow(),
   opportunity_id: uuid('opportunity_id'),
   vehicle_id:     uuid('vehicle_id'),
+  // 整備とのリンク (Issue #47 Phase 2)
+  //   整備の作業項目に部品をセットすると自動的に出庫レコードが作られる。
+  //   ここに maintenance_id / line_item_id を持たせて来歴を辿れるようにする。
+  maintenance_id: uuid('maintenance_id'),  // FK は migration 側 (drizzle 循環参照回避のため text)
+  line_item_id:   uuid('line_item_id'),
   notes:          text('notes'),
   owner_id:       uuid('owner_id'),
   created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -413,6 +418,11 @@ export const maintenance_line_items = pgTable('maintenance_line_items', {
   parts_unit:       text('parts_unit'),        // 単位
   parts_unit_price: numeric('parts_unit_price'),
   cost_unit_price:  numeric('cost_unit_price'),// 原単価（税別）
+  // 部品マスタとのリンク (Issue #47 Phase 2)
+  //   part_id をセットすると、整備の完了時に部品在庫から自動出庫される
+  //   （actions/maintenance.ts と actions/maintenanceLineItems.ts で
+  //    part_movement の生成・削除を管理）
+  part_id:          uuid('part_id').references(() => parts.id, { onDelete: 'set null' }),
   note:             text('note'),              // 備考（印字なし）
   state:            text('state'),             // 状態（自由文字列、部品取置中など）
   is_excluded:      boolean('is_excluded').notNull().default(false),
