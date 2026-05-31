@@ -8,16 +8,21 @@
 
 ## 🚨 Phase 0: リリース直前に必須（優先度: 最高）
 
-### ☐ 0-1. Slack / Discord Webhook の発行
+### ☑ 0-1. Discord Webhook 発行 → Vercel webhook 設定 (✅ コード実装済み)
 
-- **目的**: Vercel deploy 失敗・本番アラートをリアルタイム把握するため。これがないと障害発生に気づけない。
+- **目的**: Vercel deploy 失敗・本番アラートを Discord にリアルタイム通知。
 - **関連 Issue**: [#25](https://github.com/takng-cb/Bract-CRM/issues/25)
+- **状態**: コードは実装済み。残る作業は env 設定と Vercel webhook 登録のみ。
 - **手順**:
-  1. Slack の場合: 通知用ワークスペースで Incoming Webhook を発行（https://api.slack.com/messaging/webhooks）
-  2. Discord の場合: サーバー設定 → 連携サービス → ウェブフック → 新規ウェブフック
-  3. 発行された URL を私に共有 → 私が Vercel env / GitHub Actions に組み込み
-- **私の対応**: webhook 通知コードを Vercel deployment hook + GitHub Actions に組み込む
-- **目安**: 10 分
+  1. ✅ Discord webhook URL 発行（チャンネル設定 → 連携サービス → ウェブフック）
+  2. ✅ Vercel project → Settings → Environment Variables に `DISCORD_WEBHOOK_URL` を追加
+  3. ✅ ローカル `.env.local` にも `DISCORD_WEBHOOK_URL` 追加
+  4. ☐ Vercel project → Settings → **Webhooks** で webhook を登録:
+     - URL: `https://<本番URL>/api/webhooks/vercel`
+     - Events: Deployment Succeeded / Deployment Error / Deployment Canceled
+     - 発行された **Secret** を `VERCEL_WEBHOOK_SECRET` として env に追加 (Vercel Pro 以上で利用可)
+  5. ☐ `/admin/notifications` を開いて **🧪 テスト送信** で接続確認
+- **目安**: 残作業 10 分
 
 ### ☐ 0-2. 法務文書（利用規約・プライバシーポリシー）の確定
 
@@ -153,7 +158,7 @@
 - **手順**:
   1. UptimeRobot 無料プラン登録（10 モニター無料）or Better Uptime
   2. 監視対象: `https://app.bract-crm.com/api/health` 等
-  3. 通知先設定: Slack webhook（0-1 で発行済み）
+  3. 通知先設定: Discord webhook（0-1 で発行済み）
   4. Statuspage 検討（任意、月 $29〜）
   5. 私に共有 → SLA ドキュメント整備
 - **私の対応**: `/api/health` エンドポイント実装、SLA 利用規約ドラフト

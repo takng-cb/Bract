@@ -268,24 +268,35 @@
       <div class="task" data-task-id="0-1">
         <div class="task-header">
           <input type="checkbox" class="task-checkbox" />
-          <span class="task-title">Slack / Discord Webhook の発行</span>
+          <span class="task-title">Discord Webhook 発行 → Vercel webhook 設定（コード実装済み ✅）</span>
           <div class="task-meta">
             <span class="badge badge-issue"><a href="https://github.com/takng-cb/Bract-CRM/issues/25" target="_blank">#25</a></span>
-            <span class="badge badge-effort">10分</span>
+            <span class="badge badge-effort">残作業 10分</span>
           </div>
           <div class="task-toggle">▶</div>
         </div>
         <div class="task-body">
           <h4>目的</h4>
-          <p>Vercel deploy 失敗・本番アラートをリアルタイム把握。これがないと障害発生に気づけない。</p>
+          <p>Vercel deploy 成功・失敗・キャンセルを Discord にリアルタイム通知。これがないと障害発生に気づけない。</p>
+          <h4>状態</h4>
+          <p>コード（<code>/api/webhooks/vercel</code>、<code>notifyDiscord()</code> ヘルパー、<code>/admin/notifications</code> UI）はすでに実装済み。残るは env 設定と Vercel 側 webhook 登録のみ。</p>
           <h4>手順</h4>
           <ol>
-            <li>Slack: ワークスペースで Incoming Webhook を発行（<a href="https://api.slack.com/messaging/webhooks" target="_blank">公式ガイド</a>）</li>
-            <li>Discord: サーバー設定 → 連携サービス → ウェブフック → 新規ウェブフック</li>
-            <li>発行された URL を Claude に共有 → Vercel env / GitHub Actions に組み込み</li>
+            <li>✅ Discord でチャンネル設定 → 連携サービス → ウェブフックを作成し URL を取得</li>
+            <li>✅ Vercel project → Settings → Environment Variables に <code>DISCORD_WEBHOOK_URL</code> を追加</li>
+            <li>✅ ローカル <code>.env.local</code> にも <code>DISCORD_WEBHOOK_URL</code> 追加（開発時テスト用）</li>
+            <li>☐ Vercel project → Settings → <strong>Webhooks</strong> で webhook を登録:
+              <ul>
+                <li>URL: <code>https://&lt;本番URL&gt;/api/webhooks/vercel</code></li>
+                <li>Events: <strong>Deployment Succeeded / Deployment Error / Deployment Canceled</strong></li>
+                <li>表示される <strong>Secret</strong> を <code>VERCEL_WEBHOOK_SECRET</code> として env に追加（Vercel Pro 以上）</li>
+              </ul>
+            </li>
+            <li>☐ <code>/admin/notifications</code> を開いて <strong>🧪 テスト送信</strong> で接続確認</li>
+            <li>☐ main に push して動作確認（成功通知が Discord に来るはず）</li>
           </ol>
-          <h4>Claude の対応</h4>
-          <p>webhook 通知コードを Vercel deployment hook + GitHub Actions に組み込む</p>
+          <h4>備考</h4>
+          <p>本番 webhook URL は Vercel project の Domains 設定で確認。通知は <code>target='production'</code> の deploy のみ（preview deploy は通知しない）。</p>
         </div>
       </div>
 
@@ -560,7 +571,7 @@
           <ol>
             <li>UptimeRobot 無料プラン登録（10 モニター無料）or Better Uptime</li>
             <li>監視対象: <code>https://app.bract-crm.com/api/health</code></li>
-            <li>通知先: Slack webhook（0-1 で発行済み）</li>
+            <li>通知先: Discord webhook（0-1 で設定済み）</li>
             <li>Statuspage 検討（任意、月 $29〜）</li>
             <li>Claude に共有 → SLA ドキュメント整備</li>
           </ol>
