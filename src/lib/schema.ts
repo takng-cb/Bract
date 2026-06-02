@@ -732,12 +732,16 @@ export const users = pgTable('users', {
 // user_preferences（ユーザー個別設定）
 // ----------------------------------------------------------------
 export const user_preferences = pgTable('user_preferences', {
-  id:           uuid('id').primaryKey().defaultRandom(),
-  user_id:      text('user_id').notNull().unique(), // Supabase Auth UID
-  nav_order:    text('nav_order'),                  // JSON: string[] of hrefs
-  display_name: text('display_name'),               // サイドバー表示名
-  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at:   timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  id:                 uuid('id').primaryKey().defaultRandom(),
+  user_id:            text('user_id').notNull().unique(), // Supabase Auth UID
+  nav_order:          text('nav_order'),                  // JSON: string[] of hrefs
+  display_name:       text('display_name'),               // サイドバー表示名
+  // ダッシュボードウィジェットの ON/OFF と並び順 (ベース機能)
+  // 形式: { "widget_id": { "enabled": boolean, "order": number } }
+  // 未設定なら DASHBOARD_WIDGETS 定義の defaultEnabled に従う
+  dashboard_widgets:  jsonb('dashboard_widgets'),
+  created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:         timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------

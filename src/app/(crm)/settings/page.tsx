@@ -3,6 +3,7 @@ import ProfileForm from '@/components/ProfileForm'
 import SystemSettingsForm from '@/components/SystemSettingsForm'
 import DangerZone from '@/components/DangerZone'
 import UserManagement from '@/components/UserManagement'
+import DashboardWidgetSettings from '@/components/DashboardWidgetSettings'
 import { getSystemSettings, SYSTEM_DEFAULTS } from '@/lib/systemSettings'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { db } from '@/lib/db'
@@ -10,6 +11,9 @@ import { user_preferences } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { isAdminUser } from '@/lib/userRole'
 import { listUsers } from '@/app/actions/userManagement'
+import { activeIndustry } from '@/lib/industry'
+import { widgetsForIndustry } from '@/lib/dashboard/widgets'
+import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
@@ -95,6 +99,14 @@ export default async function SettingsPage() {
         </div>
 
         <PasswordForm passwordMinLength={passwordMinLen} />
+
+        {/* ダッシュボード表示設定 (各ユーザー単位) */}
+        {user && (
+          <DashboardWidgetSettings
+            availableWidgets={widgetsForIndustry(activeIndustry)}
+            currentPrefs={await getDashboardWidgetPrefs(user.id)}
+          />
+        )}
       </div>
 
       {/* ══════════════════════════════════════

@@ -13,7 +13,7 @@ import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 
-const STATUSES = ['予約', '受付', '作業中', '納車待ち', '完了', 'キャンセル']
+const STATUSES = ['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了', 'キャンセル']
 
 function statusClass(status: string): string {
   const p = STATUS_PALETTE[status]

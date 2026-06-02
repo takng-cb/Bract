@@ -305,6 +305,7 @@ const AUTO_ACTIVITY_BY_STATUS: Record<string, { type: string; subject: string; b
   '予約':       null,  // 予約は手動入力時点で完結している想定（活動を作らない）
   '受付':       { type: 'meeting', subject: '入庫・受付',         body: '受付完了。整備内容を確認し作業を開始予定。' },
   '作業中':     { type: 'note',    subject: '作業開始',           body: '整備作業に着手。' },
+  '部品待ち':   { type: 'note',    subject: '部品入荷待ち',         body: '必要部品の入荷待ち。作業中断中。' },
   '納車待ち':   { type: 'note',    subject: '作業完了 → 納車準備', body: '全工程完了、お客様への納車連絡待ち。' },
   '完了':       { type: 'meeting', subject: '納車・整備完了',      body: 'お客様への納車完了。' },
   'キャンセル': { type: 'note',    subject: 'キャンセル受付',      body: 'お客様都合または店舗都合により整備をキャンセル。' },
