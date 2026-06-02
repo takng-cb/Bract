@@ -21,6 +21,18 @@ const nextConfig: NextConfig = {
       dynamic: 30,
       static: 300,
     },
+    /**
+     * Server Actions の body 上限を 20MB に引き上げる (#46)
+     *
+     * デフォルトは 1MB。スマホで撮影した画像 (通常 2〜8MB) や PDF を
+     * 添付ファイルとしてアップロードできるようにするため拡大する。
+     * 上限値は uploadAttachment の検証 (20MB) と一致させる。
+     *
+     * docs: node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/serverActions.md
+     */
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
   },
   /**
    * /properties/* と /vehicles/* リダイレクト（INDUSTRY 切替）

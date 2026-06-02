@@ -1,6 +1,17 @@
 'use server'
 
-import { supabase } from '@/lib/supabase'
+/**
+ * 添付ファイル Server Action
+ *
+ * Supabase Storage は service_role キー経由で操作する。理由:
+ *   - 既存の `supabase` クライアント (anon キー) では Storage RLS により
+ *     INSERT/DELETE が拒否される (バケットが public でも書き込みは別問題)。
+ *   - Server Action は事前に requireEditor() でロール検証しているので、
+ *     Storage 層の認可は二重で不要。
+ *   - service_role キーはサーバー専用 (NEXT_PUBLIC_ 接頭辞なし) なので
+ *     クライアントには漏れない。
+ */
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { db } from '@/lib/db'
 import { attachments } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
@@ -25,9 +36,11 @@ export async function uploadAttachment(formData: FormData) {
   const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_\-　-鿿＀-￯]/g, '_')
   const storagePath = `${Date.now()}_${baseName}${ext ? '.' + ext : ''}`
 
-  // Supabase Storage にアップロード（ファイルストレージのみ Supabase を利用）
+  const sb = createSupabaseAdminClient()
+
+  // Supabase Storage にアップロード（service_role で RLS をバイパス）
   const arrayBuffer = await file.arrayBuffer()
-  const { error: storageError } = await supabase.storage
+  const { error: storageError } = await sb.storage
     .from('attachments')
     .upload(storagePath, arrayBuffer, {
       contentType: file.type || 'application/octet-stream',
@@ -50,7 +63,7 @@ export async function uploadAttachment(formData: FormData) {
       customer_vehicle_id,
     })
   } catch (dbError) {
-    await supabase.storage.from('attachments').remove([storagePath])
+    await sb.storage.from('attachments').remove([storagePath])
     throw dbError
   }
 
@@ -59,7 +72,8 @@ export async function uploadAttachment(formData: FormData) {
 
 export async function deleteAttachment(id: string, storagePath: string, revalidate: string) {
   await requireEditor()
-  await supabase.storage.from('attachments').remove([storagePath])
+  const sb = createSupabaseAdminClient()
+  await sb.storage.from('attachments').remove([storagePath])
   await db.delete(attachments).where(eq(attachments.id, id))
   revalidatePath(revalidate)
 }
