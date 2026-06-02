@@ -13,6 +13,10 @@ import { getActivityTypes } from '@/lib/activityTypes'
 import { daysUntilInspection } from '@/industries/auto-body/lib/autoBodyService'
 import { calcStock, stockBadgeColor } from '@/industries/auto-body/lib/partsHelpers'
 import { getReceivables, sumReceivables } from '@/industries/auto-body/lib/maintenanceReceivables'
+import { STATUS_PALETTE, MAINTENANCE_STATUSES } from '@/industries/auto-body/lib/icons'
+import { isWidgetEnabled } from '@/lib/dashboard/widgets'
+import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
+import { getCurrentUserId } from '@/lib/auth'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'bg-red-50 text-red-600' },
@@ -58,6 +62,10 @@ export default async function DashboardPage({
 
   const isReal     = activeIndustry === 'real-estate'
   const isAutoBody = activeIndustry === 'auto-body'
+
+  // ユーザー個別のウィジェット設定 (ベース機能)
+  const currentUserId = await getCurrentUserId()
+  const widgetPrefs   = await getDashboardWidgetPrefs(currentUserId)
 
   // 30日先までの車検期限車両（auto-body widget 用）
   const inspectionLimitDate = new Date()
@@ -133,6 +141,31 @@ export default async function DashboardPage({
     // auto-body: 売掛金（未入金） — Issue #48 Phase 1
     isAutoBody ? getReceivables(10) : Promise.resolve([]),
   ])
+
+  // auto-body: 作業進行状況 - ステータス別件数 (Phase A)
+  //   キャンセル含まず、進行中/完了の状態別件数を集計
+  const workProgressCounts: Record<string, number> = {}
+  for (const s of MAINTENANCE_STATUSES) workProgressCounts[s] = 0
+  if (isAutoBody) {
+    const statusRows = await db.select({
+      status: maintenance_records.status,
+      c:      count(),
+    })
+      .from(maintenance_records)
+      .where(notInArray(maintenance_records.status, ['完了', 'キャンセル']))
+      .groupBy(maintenance_records.status)
+    for (const r of statusRows) workProgressCounts[r.status] = Number(r.c ?? 0)
+
+    // 完了は当日納車分だけ
+    const todayStr = todayLocal()
+    const completedToday = await db.select({ c: count() })
+      .from(maintenance_records)
+      .where(and(
+        eq(maintenance_records.status, '完了'),
+        eq(maintenance_records.delivery_date, todayStr),
+      ))
+    workProgressCounts['完了'] = Number(completedToday[0]?.c ?? 0)
+  }
 
   const totalReceivables = sumReceivables(receivables)
 
@@ -531,8 +564,40 @@ export default async function DashboardPage({
         {/* 右カラム */}
         <div className="col-span-1 md:col-span-2 space-y-6">
 
+          {/* 作業進行状況 (auto-body のみ) — Phase A */}
+          {isAutoBody && isWidgetEnabled('auto-body-work-progress', widgetPrefs) && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-zinc-800">
+                  📊 作業進行状況
+                </h2>
+                <Link href="/maintenance" className="text-xs text-blue-600 hover:text-blue-800">整備一覧 →</Link>
+              </div>
+              <div className="bg-white border border-zinc-200 rounded-lg p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                  {(['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了'] as const).map((status) => {
+                    const palette = STATUS_PALETTE[status]
+                    const count = workProgressCounts[status] ?? 0
+                    const isCompleted = status === '完了'
+                    return (
+                      <Link
+                        key={status}
+                        href={`/maintenance?f=status%3Deq%3A${encodeURIComponent(status)}`}
+                        className={`block rounded-lg border-2 p-3 hover:shadow-md transition-shadow ${palette.bg} ${palette.border}`}
+                      >
+                        <p className={`text-xs font-medium ${palette.text} mb-1`}>{status}</p>
+                        <p className={`text-2xl font-bold ${palette.text}`}>{count}</p>
+                        {isCompleted && <p className="text-[10px] text-zinc-500 mt-0.5">本日納車</p>}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* 代車中の車両（auto-body のみ） — Issue #45 */}
-          {isAutoBody && (
+          {isAutoBody && isWidgetEnabled('auto-body-active-loaners', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-zinc-800">
@@ -581,7 +646,7 @@ export default async function DashboardPage({
           )}
 
           {/* 低在庫部品アラート（auto-body のみ） — Issue #47 */}
-          {isAutoBody && (
+          {isAutoBody && isWidgetEnabled('auto-body-low-stock-parts', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-zinc-800">
@@ -621,7 +686,7 @@ export default async function DashboardPage({
           )}
 
           {/* 売掛金アラート（auto-body のみ） — Issue #48 */}
-          {isAutoBody && (
+          {isAutoBody && isWidgetEnabled('auto-body-receivables', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-zinc-800">
@@ -683,7 +748,7 @@ export default async function DashboardPage({
           )}
 
           {/* 車検期限アラート（auto-body のみ） */}
-          {isAutoBody && (
+          {isAutoBody && isWidgetEnabled('auto-body-upcoming-inspections', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-zinc-800">

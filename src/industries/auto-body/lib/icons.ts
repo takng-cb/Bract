@@ -44,7 +44,12 @@ export const STATUS_PALETTE: Record<string, { bg: string; text: string; border: 
   '予約':     { bg: 'bg-slate-100',  text: 'text-slate-700',  border: 'border-slate-300',  activeColor: '#475569', pastColor: '#cbd5e1' },
   '受付':     { bg: 'bg-sky-100',    text: 'text-sky-800',    border: 'border-sky-300',    activeColor: '#0369a1', pastColor: '#7dd3fc' },
   '作業中':   { bg: 'bg-amber-100',  text: 'text-amber-800',  border: 'border-amber-300',  activeColor: '#b45309', pastColor: '#fcd34d' },
+  '部品待ち': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-400', activeColor: '#a16207', pastColor: '#fde047' },
   '納車待ち': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', activeColor: '#c2410c', pastColor: '#fdba74' },
   '完了':     { bg: 'bg-emerald-100',text: 'text-emerald-800',border: 'border-emerald-300',activeColor: '#047857', pastColor: '#6ee7b7' },
   'キャンセル':{ bg: 'bg-rose-100',  text: 'text-rose-800',   border: 'border-rose-300',   activeColor: '#be123c', pastColor: '#fda4af' },
 }
+
+/** 整備のステータス一覧 (実行順 + キャンセル) */
+export const MAINTENANCE_STATUSES = ['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了', 'キャンセル'] as const
+export type MaintenanceStatus = typeof MAINTENANCE_STATUSES[number]

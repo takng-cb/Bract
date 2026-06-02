@@ -46,7 +46,7 @@ type Props = {
   defaultValues?: MaintenanceFormDefaults
 }
 
-const STATUSES = ['予約', '受付', '作業中', '納車待ち', '完了', 'キャンセル']
+const STATUSES = ['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了', 'キャンセル']
 const TAX_MODES = ['税別10%', '税別8%', '税込10%', '税込8%', '非課税']
 const TAX_ROUNDINGS = ['切り捨て', '四捨五入', '切り上げ']
 

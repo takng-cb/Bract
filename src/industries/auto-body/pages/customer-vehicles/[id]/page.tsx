@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { customer_vehicles, accounts, contacts, maintenance_records } from '@/lib/schema'
+import { customer_vehicles, accounts, contacts, maintenance_records, maintenance_line_items } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import Link from 'next/link'
@@ -12,11 +12,13 @@ import { deleteCustomerVehicle } from '@/industries/auto-body/actions/customerVe
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { AB_ICONS } from '@/industries/auto-body/lib/icons'
+import { aggregateLatestConsumables, type LineWithMaintenance } from '@/industries/auto-body/lib/consumablesAggregate'
 
 const STATUS_COLOR: Record<string, string> = {
   '予約':     'bg-zinc-100 text-zinc-700',
   '受付':     'bg-blue-50 text-blue-700',
   '作業中':   'bg-yellow-50 text-yellow-700',
+  '部品待ち': 'bg-yellow-100 text-yellow-800',
   '納車待ち': 'bg-orange-50 text-orange-700',
   '完了':     'bg-green-50 text-green-700',
   'キャンセル': 'bg-red-50 text-red-700',
@@ -29,7 +31,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
   const mAccount = alias(accounts, 'm_account')
   const mContact = alias(contacts, 'm_contact')
 
-  const [vRow, maintenances] = await Promise.all([
+  const [vRow, maintenances, consumableLines] = await Promise.all([
     db.select({
       v:       customer_vehicles,
       account: {
@@ -65,6 +67,18 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       .leftJoin(mContact, eq(maintenance_records.contact_id, mContact.id))
       .where(eq(maintenance_records.customer_vehicle_id, id))
       .orderBy(desc(maintenance_records.intake_date), desc(maintenance_records.created_at)),
+    // 消耗品集計用: 当車両に紐づく全 line_items + 親 maintenance の日付/走行距離を join
+    db.select({
+      maintenance_id: maintenance_line_items.maintenance_id,
+      work_category:  maintenance_line_items.work_category,
+      item_name:      maintenance_line_items.item_name,
+      intake_date:    maintenance_records.intake_date,
+      delivery_date:  maintenance_records.delivery_date,
+      mileage:        maintenance_records.mileage,
+    })
+      .from(maintenance_line_items)
+      .innerJoin(maintenance_records, eq(maintenance_line_items.maintenance_id, maintenance_records.id))
+      .where(eq(maintenance_records.customer_vehicle_id, id)),
   ])
 
   if (!vRow) notFound()
@@ -81,6 +95,9 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
     ? Math.ceil((new Date(v.inspection_due_date).getTime() - nowTime) / 86400000)
     : null
   const urgent = days != null && days <= 30
+
+  // 消耗品の前回交換集計 (Phase A item 4)
+  const consumables = aggregateLatestConsumables(consumableLines as LineWithMaintenance[])
 
   async function handleDelete() {
     'use server'
@@ -240,6 +257,46 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
           </div>
         )}
       </div>
+
+      {/* 消耗品の前回交換 (Phase A item 4) */}
+      <section className="mb-6">
+        <h2 className="text-base font-semibold text-zinc-800 mb-3">
+          🧰 消耗品の前回交換 <span className="text-zinc-400 font-normal text-sm">({consumables.length})</span>
+        </h2>
+        {consumables.length > 0 ? (
+          <div className="bg-white border border-zinc-200 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {consumables.map((c) => (
+              <Link
+                key={c.categoryId}
+                href={`/maintenance/${c.maintenanceId}`}
+                className="block p-3 rounded-md border border-zinc-100 hover:border-blue-300 hover:bg-blue-50/30 transition"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">{c.icon}</span>
+                  <span className="text-xs font-medium text-zinc-700">{c.label}</span>
+                </div>
+                <div className="text-sm text-zinc-800 font-semibold">
+                  {c.date ?? '—'}
+                </div>
+                {c.mileage != null && (
+                  <div className="text-xs text-zinc-500 mt-0.5">
+                    {c.mileage.toLocaleString()} km
+                  </div>
+                )}
+                {c.itemName && (
+                  <div className="text-[10px] text-zinc-400 mt-0.5 truncate" title={c.itemName}>
+                    {c.itemName}
+                  </div>
+                )}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-400 bg-white border border-zinc-200 rounded-lg px-4 py-4 text-center">
+            該当する消耗品の交換履歴がありません
+          </p>
+        )}
+      </section>
 
       {/* 整備履歴 */}
       <section className="mb-6">

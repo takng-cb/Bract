@@ -23,6 +23,7 @@ export const MAINTENANCE_STATUS_PROBABILITY: Record<string, number> = {
   '予約':       50,
   '受付':       80,
   '作業中':     95,
+  '部品待ち':   90,  // 部品調達待ち、確度は作業中よりわずかに低い
   '納車待ち':   99,
   '完了':      100,
   'キャンセル':  0,
