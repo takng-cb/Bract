@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import {
   maintenance_records, customer_vehicles, accounts, contacts,
-  activities, tasks, expenses, change_logs,
+  activities, tasks, expenses, change_logs, attachments,
 } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import { eq, and, desc, asc, inArray, count } from 'drizzle-orm'
@@ -14,12 +14,16 @@ import DeleteButton from '@/components/DeleteButton'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
+import AttachmentsSection from '@/components/AttachmentsSection'
+import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
 import { deleteMaintenance } from '@/industries/auto-body/actions/maintenance'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { getAllUsers } from '@/lib/userUtils'
 import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFullView'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -30,7 +34,7 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
 export default async function MaintenanceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [mRow, activitiesList, tasksList, expensesList, activityTypes, allUsers, changeLogCountRow] = await Promise.all([
+  const [mRow, activitiesList, tasksList, expensesList, activityTypes, allUsers, changeLogCountRow, attachmentRows] = await Promise.all([
     db.select({
       m:       maintenance_records,
       vehicle: customer_vehicles,
@@ -56,6 +60,7 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     getAllUsers(),
     db.select({ c: count() }).from(change_logs)
       .where(and(eq(change_logs.object_type, 'maintenance'), eq(change_logs.object_id, id))),
+    db.select().from(attachments).where(eq(attachments.maintenance_id, id)).orderBy(desc(attachments.created_at)),
   ])
 
   if (!mRow) notFound()
@@ -88,6 +93,20 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     const taskId = formData.get('task_id') as string
     const done   = formData.get('done') === 'true'
     await toggleTaskDone(taskId, done, `/maintenance/${id}`)
+  }
+
+  // 添付ファイル用 Server Actions (id を closure に閉じ込める)
+  async function uploadFile(formData: FormData) {
+    'use server'
+    formData.set('maintenance_id', id)
+    formData.set('revalidate', `/maintenance/${id}`)
+    await uploadAttachment(formData)
+  }
+  async function deleteFile(formData: FormData) {
+    'use server'
+    const attachId = formData.get('attach_id') as string
+    const path     = formData.get('storage_path') as string
+    await deleteAttachment(attachId, path, `/maintenance/${id}`)
   }
 
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
@@ -193,6 +212,17 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     <MaintenanceFullView maintenanceId={id} users={allUsers} />
   )
 
+  // ── 添付ファイルタブ ───────────────────────────────────────────
+  const attachmentsContent = (
+    <AttachmentsSection
+      attachments={attachmentRows}
+      supabaseUrl={SUPABASE_URL}
+      uploadAction={uploadFile}
+      deleteAction={deleteFile}
+      heading="整備の添付ファイル"
+    />
+  )
+
   // ── メインタブ ──────────────────────────────────────────────────
   // 概要タブは廃止し、全体ビューを既定タブにする（編集はそのモーダル経由）。
   const tabsConfig: TabDef[] = [
@@ -203,6 +233,12 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     label: '活動・ToDo・経費',
     badge: interactionCount > 0 ? interactionCount : undefined,
     content: interactionsContent,
+  })
+  tabsConfig.push({
+    id: 'attachments',
+    label: '添付ファイル',
+    badge: attachmentRows.length > 0 ? attachmentRows.length : undefined,
+    content: attachmentsContent,
   })
   if (changeLogCount > 0) {
     tabsConfig.push({ id: 'history', label: '履歴', badge: changeLogCount, content: historyContent })

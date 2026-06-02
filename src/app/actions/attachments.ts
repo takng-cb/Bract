@@ -13,11 +13,13 @@ export async function uploadAttachment(formData: FormData) {
   if (!file || file.size === 0) throw new Error('ファイルを選択してください')
   if (file.size > 20 * 1024 * 1024) throw new Error('ファイルサイズは20MB以下にしてください')
 
-  const account_id     = (formData.get('account_id') as string) || null
-  const contact_id     = (formData.get('contact_id') as string) || null
-  const opportunity_id = (formData.get('opportunity_id') as string) || null
-  const activity_id    = (formData.get('activity_id') as string) || null
-  const revalidate     = (formData.get('revalidate') as string) || '/activities'
+  const account_id          = (formData.get('account_id') as string) || null
+  const contact_id          = (formData.get('contact_id') as string) || null
+  const opportunity_id      = (formData.get('opportunity_id') as string) || null
+  const activity_id         = (formData.get('activity_id') as string) || null
+  const maintenance_id      = (formData.get('maintenance_id') as string) || null
+  const customer_vehicle_id = (formData.get('customer_vehicle_id') as string) || null
+  const revalidate          = (formData.get('revalidate') as string) || '/activities'
 
   const ext      = file.name.split('.').pop() ?? ''
   const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_\-　-鿿＀-￯]/g, '_')
@@ -44,6 +46,8 @@ export async function uploadAttachment(formData: FormData) {
       contact_id,
       opportunity_id,
       activity_id,
+      maintenance_id,
+      customer_vehicle_id,
     })
   } catch (dbError) {
     await supabase.storage.from('attachments').remove([storagePath])

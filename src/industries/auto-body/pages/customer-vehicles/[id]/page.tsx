@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { customer_vehicles, accounts, contacts, maintenance_records, maintenance_line_items } from '@/lib/schema'
+import { customer_vehicles, accounts, contacts, maintenance_records, maintenance_line_items, attachments } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import Link from 'next/link'
@@ -8,11 +8,15 @@ import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
+import AttachmentsSection from '@/components/AttachmentsSection'
+import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
 import { deleteCustomerVehicle } from '@/industries/auto-body/actions/customerVehicles'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { AB_ICONS } from '@/industries/auto-body/lib/icons'
 import { aggregateLatestConsumables, type LineWithMaintenance } from '@/industries/auto-body/lib/consumablesAggregate'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
 const STATUS_COLOR: Record<string, string> = {
   '予約':     'bg-zinc-100 text-zinc-700',
@@ -31,7 +35,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
   const mAccount = alias(accounts, 'm_account')
   const mContact = alias(contacts, 'm_contact')
 
-  const [vRow, maintenances, consumableLines] = await Promise.all([
+  const [vRow, maintenances, consumableLines, attachmentRows] = await Promise.all([
     db.select({
       v:       customer_vehicles,
       account: {
@@ -79,6 +83,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       .from(maintenance_line_items)
       .innerJoin(maintenance_records, eq(maintenance_line_items.maintenance_id, maintenance_records.id))
       .where(eq(maintenance_records.customer_vehicle_id, id)),
+    db.select().from(attachments).where(eq(attachments.customer_vehicle_id, id)).orderBy(desc(attachments.created_at)),
   ])
 
   if (!vRow) notFound()
@@ -102,6 +107,20 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
   async function handleDelete() {
     'use server'
     await deleteCustomerVehicle(id)
+  }
+
+  // 添付ファイル用 Server Actions (id を closure に閉じ込める)
+  async function uploadFile(formData: FormData) {
+    'use server'
+    formData.set('customer_vehicle_id', id)
+    formData.set('revalidate', `/customer-vehicles/${id}`)
+    await uploadAttachment(formData)
+  }
+  async function deleteFile(formData: FormData) {
+    'use server'
+    const attachId = formData.get('attach_id') as string
+    const path     = formData.get('storage_path') as string
+    await deleteAttachment(attachId, path, `/customer-vehicles/${id}`)
   }
 
   return (
@@ -257,6 +276,15 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
           </div>
         )}
       </div>
+
+      {/* 添付ファイル (画像/PDF/書類など、車両に紐付くもの) */}
+      <AttachmentsSection
+        attachments={attachmentRows}
+        supabaseUrl={SUPABASE_URL}
+        uploadAction={uploadFile}
+        deleteAction={deleteFile}
+        heading="車両の添付ファイル"
+      />
 
       {/* 消耗品の前回交換 (Phase A item 4) */}
       <section className="mb-6">
