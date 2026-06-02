@@ -182,16 +182,21 @@ export const tasks = pgTable('tasks', {
 // attachments（添付ファイルのメタデータ）
 // ----------------------------------------------------------------
 export const attachments = pgTable('attachments', {
-  id:             uuid('id').primaryKey().defaultRandom(),
-  file_name:      text('file_name').notNull(),
-  storage_path:   text('storage_path').notNull(),
-  file_size:      bigint('file_size', { mode: 'number' }),
-  content_type:   text('content_type'),
-  account_id:     uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
-  contact_id:     uuid('contact_id').references(() => contacts.id, { onDelete: 'cascade' }),
-  opportunity_id: uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'cascade' }),
-  activity_id:    uuid('activity_id').references(() => activities.id, { onDelete: 'cascade' }),
-  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+  id:                  uuid('id').primaryKey().defaultRandom(),
+  file_name:           text('file_name').notNull(),
+  storage_path:        text('storage_path').notNull(),
+  file_size:           bigint('file_size', { mode: 'number' }),
+  content_type:        text('content_type'),
+  account_id:          uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
+  contact_id:          uuid('contact_id').references(() => contacts.id, { onDelete: 'cascade' }),
+  opportunity_id:      uuid('opportunity_id').references(() => opportunities.id, { onDelete: 'cascade' }),
+  activity_id:         uuid('activity_id').references(() => activities.id, { onDelete: 'cascade' }),
+  // auto-body オブジェクトへの紐付け (#46 関連)
+  // FK は migration 0017 で定義済み。auto-body Neon にのみ参照先テーブルが
+  // 存在する設計のため、Drizzle 側で .references() は付けず column 宣言のみ。
+  maintenance_id:      uuid('maintenance_id'),
+  customer_vehicle_id: uuid('customer_vehicle_id'),
+  created_at:          timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------
