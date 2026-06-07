@@ -66,9 +66,12 @@
 ### REQ-0009  統合版 Bract を実サーバーで動かす
 - 2026-06-07 / 会話
 - 内容：統合版リポ `takng-cb/Bract` を Vercel + Neon + Supabase の実サーバーにデプロイして稼働させる。
-- 状態：合意（手順策定済・着手待ち）
-- 関連：ADR-0003 / docs/deployment-runbook.md
-- 備考：推奨は「まず base として base Neon(`ep-proud-band`) に新規 Vercel project で立て、既存2本番に無影響で検証」。staffing 実サーバー化は機能完成後に別 project。
+- 状態：**進行中** — dev Neon(`ep-autumn-king`) に schema 投入完了(check:schema 緑・全41表) ＋ Vercel Preview ビルド緑（env 登録後）。
+- 関連：ADR-0003, ADR-0014 / docs/deployment-runbook.md
+- 備考：
+  - dev は専用 Neon。Vercel env に DATABASE_URL/SUPABASE/NEXT_PUBLIC_INDUSTRY=base を登録して通過。
+  - **認証は既存 Supabase を共有**（dev も本番も同じ Supabase Auth）。dev ログイン可だが、dev Neon `users` 行が無いと role は既定 `viewer`。admin 化は dev Neon の `users` に該当 Supabase uid の行を追加する。
+  - OPEN-D3（将来）：dev 専用 Supabase に分離するか（現状は共有で許容）。
 
 ---
 
