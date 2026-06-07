@@ -126,19 +126,24 @@ Phase 1〜の機能完成後に、**新しい Vercel project** で：
 ## 6. 新規顧客のプロビジョニング（多社展開時の運用）
 
 1. **Neon project 作成**（顧客専用 DB）。
-2. **スキーマ投入**：`.env.local` の `DATABASE_URL` を当該 Neon に向ける。
-   - **新規（空）DB のブートストラップは `drizzle-kit push`**（schema.ts が真実）を使う。
-     ```bash
-     # DATABASE_URL を .env.local から注入して push（プレビュー→確認で適用）
-     $env:DATABASE_URL = (node -e "require('dotenv').config({path:'.env.local'});process.stdout.write(process.env.DATABASE_URL)")  # PowerShell
-     npx drizzle-kit push
-     npm run check:schema                              # 整合確認
-     ```
+2. **スキーマ投入（新規・空DBのブートストラップ）**：`.env.local` の `DATABASE_URL` を当該 Neon に向ける。
+   **実証済みの手順**＝「schema.ts から完全DDLを生成 → 適用」：
+   ```bash
+   # (a) schema.ts から完全DDLを生成（DB非接続）。out を一時フォルダにする一時configを使う
+   #     drizzle.config.ts の out を './.drizzle-tmp' にした config を用意して:
+   npx drizzle-kit generate --config <tmp-config>      # → .drizzle-tmp/0000_*.sql（全41テーブル）
+   # (b) 空DBに適用（プロジェクト標準スクリプト。HTTPクエリで動作）
+   npx tsx scripts/apply-migration.ts .drizzle-tmp/0000_*.sql
+   # (c) 整合確認（緑になればOK）
+   npm run check:schema
+   ```
+   - ⚠️ **`drizzle-kit push` は使えない**：本リポの DB ドライバは `@neondatabase/serverless`(neon-http) で、
+     drizzle-kit の introspect が websocket を要求し「Pulling schema…」でハングする。上記 generate→apply で代替する。
    - ⚠️ **`supabase/migrations/*.sql` を空 Neon に流さない**：先頭の `init.sql` が Supabase の
      `auth.users` を参照しており、素の Neon では `schema "auth" does not exist` で失敗する。
-     これらは Supabase 起点の既存 DB 向け増分履歴であり、新規ブートストラップ用ではない。
-   - 既存 DB への**増分**変更のみ `supabase/migrations/` or `drizzle/` の新規ファイルを
-     `scripts/apply-migration.ts` で適用（冪等に書く）。
+     また `drizzle/*.sql` の履歴も不完全（vehicles/parts/relationship_* 等が欠落）で、単体では schema.ts を再現できない。
+     → だから **generate（schema.ts が唯一の真実）→ apply** が正解。
+   - 既存 DB への**増分**変更のみ、新規マイグレファイルを `scripts/apply-migration.ts` で適用（冪等に書く）。
 3. **マスタ/ライセンス seed**（業種オブジェクト定義など。`scripts/seed-*.ts`）。
 4. **Vercel project 作成** → §2-2〜2-4（env をその顧客向けに設定）。
 5. **初期ユーザー招待**（Supabase Auth）＋ロール付与。
