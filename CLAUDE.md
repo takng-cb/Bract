@@ -19,7 +19,7 @@
 |---|---|
 | **モジュールファースト** | 機能は `src/modules/<id>/` の自己完結パッケージにする。業種(real-estate 等)も `category:'industry'` のモジュールとして扱う |
 | **コントラクトファースト** | 各モジュールは型付き入力コントラクトを持つ。これが「AI 出力制約 / apply 検証 / CSV import / 将来の MCP 化」の共通の真実。**AI は DB を直接触らず draft-then-apply** |
-| **ランタイム合成 ＋ ビルドプロファイル** | 同梱モジュール群は `BRACT_BUILD_PROFILE` で粗く（ビルド時）、個別 ON/OFF は `licenses.features.modules` で細かく（ランタイム・再ビルド不要） |
+| **ランタイム合成 ＋ ビルドプロファイル** | 同梱モジュール群は `BRACT_BUILD_PROFILE` で粗く（ビルド時）、個別 ON/OFF は `licenses.features.enabled_modules` で細かく（ランタイム・再ビルド不要、上限は `entitled_modules`） |
 | **単一テナント維持** | 1社=1デプロイ+1DB を維持。複数社の「重さ」はプロビジョニング自動化と build profile で対処（テナント方式は変えない） |
 
 既存の `src/lib/license/`（`hasFeature`/`ensureFeature`/`getLicense`、`extra_industries:string[]`）を土台に一般化する。**ゼロから作らない**。

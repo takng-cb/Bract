@@ -20,7 +20,7 @@
 | `crm+erp` | platform + crm + erp | CRM + 基幹業務 |
 | `all` | 全カテゴリ（業種含む） | 業種特化込みフルセット |
 
-> プロファイル内の個別モジュール ON/OFF は **ランタイム**（`licenses.features.modules`）で制御。
+> プロファイル内の個別モジュール ON/OFF は **ランタイム**（`licenses.features.enabled_modules`、上限は `entitled_modules`）で制御。
 
 ---
 

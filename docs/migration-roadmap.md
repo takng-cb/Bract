@@ -27,7 +27,7 @@
 ## Phase 1 — モジュールレジストリ基盤（挙動非変更）
 - `src/lib/modules/types.ts`：`ModuleManifest` / `NavItemDef` / `ObjectSeed` / `ContractRef`。
 - `src/lib/modules/registry.ts`：`MODULE_REGISTRY`・`getEnabledModules`・`isModuleEnabled`・`ensureModuleEnabled`。
-- `src/lib/license/types.ts` に `LicenseFeatures.modules?: string[]` 追加。`getLicense` は流用。
+- `src/lib/license/types.ts` に `LicenseFeatures.entitled_modules?` / `enabled_modules?: string[]` 追加（上限と表示の分離。erp-architecture §8.1）。`getLicense` は流用。
 - **既存業種を industry モジュールとして登録するだけ**（コードは移動しない）。
 - 互換シム：`modules` 未設定 → 現行 `activeIndustry` から有効集合を導出 → 本番無影響。
 - `/admin/modules` を**読み取り専用ビュー**で新設（現状を可視化）。
@@ -37,7 +37,7 @@
 - `src/app/(crm)/<route>/page.tsx` の `if (activeIndustry !== …) notFound()` → `isModuleEnabled(…)` へ置換。
 - `src/lib/navItems.ts` を async 化、`src/app/(crm)/layout.tsx` のサイドバー生成を `getEnabledModules()` 駆動に。
 - `next.config.ts` の industry redirect を縮退（同梱範囲は実行時ゲート）。
-- **受け入れ基準**：`licenses.features.modules` を DB で書き換える → **再ビルドせず**サイドバー項目とページ可否が変わる。
+- **受け入れ基準**：`licenses.features.enabled_modules` を DB で書き換える → **再ビルドせず**サイドバー項目とページ可否が変わる。
 - `/admin/modules` を**トグル可能**化（依存解決・警告つき）。
 
 ## Phase 3 — ビルドプロファイル導入
