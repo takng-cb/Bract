@@ -63,6 +63,13 @@
 - 状態：合意（新規実装）
 - 関連：REQ-0004, ADR-0004, ADR-0008 / spec:staffing#クイック登録
 
+### REQ-0009  統合版 Bract を実サーバーで動かす
+- 2026-06-07 / 会話
+- 内容：統合版リポ `takng-cb/Bract` を Vercel + Neon + Supabase の実サーバーにデプロイして稼働させる。
+- 状態：合意（手順策定済・着手待ち）
+- 関連：ADR-0003 / docs/deployment-runbook.md
+- 備考：推奨は「まず base として base Neon(`ep-proud-band`) に新規 Vercel project で立て、既存2本番に無影響で検証」。staffing 実サーバー化は機能完成後に別 project。
+
 ---
 
 ## 未決（着手前にユーザー合意が必要）
@@ -76,6 +83,11 @@
 - ~~**OPEN-B4**：Gemini 鍵は env 固定か DB 固定か~~ → **決定：Vercel 環境変数で env 固定。ADR-0013**
 
 > ✅ 上記 OPEN（A4/B1-B5/C1-C3）はすべて解消。Phase 1（スキーマ＋マスタ）設計へ進める状態。
+
+## 未決（運用・デプロイ）
+
+- **OPEN-D1**：既存 `Bract-CRM`（旧リポ）と本番2デプロイ（real-estate/auto-body）の今後。推奨：旧リポはアーカイブ扱い、新 `Bract` を唯一の真実とし、本番は準備が整い次第 新リポへ寄せる（時期は別途）。
+- **OPEN-D2**：統合版の最初の実サーバー化を「base ＠ base Neon に新規 project」で行うか（推奨）。要承認。
 - ~~**OPEN-B5**：権限区分~~ → **決定：既存ロール（admin/editor/viewer）流用（推奨採用）**
 - ~~**OPEN-C1**：単価モデル~~ → **決定：案件固定単価を主・登録後も変更可。時給は任意。ADR-0010**
 - ~~**OPEN-C2**：メール送信は Resend でよいか~~ → **保留：B1（リマインドなし）により MVP 不要。ADR-0011**

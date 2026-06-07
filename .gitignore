@@ -56,3 +56,10 @@ next-env.d.ts
 /public/sw.js
 /public/swe-worker-*.js
 /public/workbox-*.js
+
+# ビルド検証ログ（手元の一時ファイル）
+/build-*.log
+
+# Claude Code の worktree コピー残骸（複製時に紛れ込む。git 管理外）
+/.claude/worktrees/
+/docs/legal/_out/
