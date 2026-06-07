@@ -123,6 +123,15 @@
 - 影響：REQ-0008 / spec:staffing §6。`.env.example` に追記。
 - 代替案：DB 固定（既存 /admin/ai） → 顧客自身が鍵を交換する運用が必要になれば移行（providers 抽象で安価）。
 
+### ADR-0014  統合版 Bract は当面「開発(dev)環境」として運用
+- 2026-06-07 / **採用**（OPEN-D2）
+- 文脈：統合版 `takng-cb/Bract` を実サーバーで動かすにあたり、本番か検証用かを決める必要があった。
+- 決定：統合版 Bract は当面 **開発/検証(dev)環境**として 1 つ立てる。**専用の dev Neon ＋ 専用 Vercel project**。既存2本番（real-estate `bract-crm` / auto-body `bract-crm-auto-body`）は**触らず**現行のまま。
+- 理由：本番に無影響でモジュラー化・人材手配を検証できる。dev データは使い捨て可能で安全。
+- 影響：REQ-0009 / docs/deployment-runbook.md。本番への寄せ替え（OPEN-D1）は別途・準備完了後。
+- 代替案：いきなり本番投入 → リスク高で不採用。
+
+
 
 
 
