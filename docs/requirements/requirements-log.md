@@ -66,7 +66,7 @@
 ### REQ-0009  統合版 Bract を実サーバーで動かす
 - 2026-06-07 / 会話
 - 内容：統合版リポ `takng-cb/Bract` を Vercel + Neon + Supabase の実サーバーにデプロイして稼働させる。
-- 状態：**進行中** — dev Neon(`ep-autumn-king`) に schema 投入完了(check:schema 緑・全41表) ＋ Vercel Preview ビルド緑（env 登録後）。
+- 状態：**進行中** — dev Neon(`ep-autumn-king`) に schema 投入完了(check:schema 緑・全41表) ＋ Vercel Preview ビルド緑（env 登録後）。**→ Production 昇格**：develop→main リリース(`--no-ff`)で main を更新し Vercel 本番デプロイを誘発（Production Branch=main 前提・要 Production スコープ env）。
 - 関連：ADR-0003, ADR-0014 / docs/deployment-runbook.md
 - 備考：
   - dev は専用 Neon。Vercel env に DATABASE_URL/SUPABASE/NEXT_PUBLIC_INDUSTRY=base を登録して通過。
@@ -99,6 +99,12 @@
 - 内容：データ入力が手間という課題を解消したい。
 - 状態：検討中。戦略的な解は **AI 入力補助（コントラクトファースト draft-then-apply）を staffing 限定でなく全オブジェクト共通の基盤機能に一般化**すること（REQ-0004/ADR-0004 の拡張）。補助策：インライン編集・一括編集・テンプレ/既定値・CSVインポート（既存）・名刺OCR/音声 等。
 - 関連：REQ-0004, ADR-0004 / docs/ai-input-assistant.md
+
+### REQ-0015  UI をモジュール基準に
+- 2026-06-08 / 会話
+- 内容：UI（サイドバー/ナビ等）を **モジュール > ブック** の階層で構成し、モジュール基準の見せ方にする。
+- 状態：着手（レジストリ駆動 nav。`feature/module-registry` で実装→PR）。
+- 関連：REQ-0001, ADR-0016/0018/0019, #10/#11/#22
 
 ---
 

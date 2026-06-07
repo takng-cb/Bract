@@ -1,0 +1,37 @@
+{
+  "// TypeScript": "ワークスペースの TS バージョンを使う（バージョン差異による型エラーを防ぐ）",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  "// ESLint": "flat config (eslint.config.mjs)。保存時に自動修正",
+  "eslint.useFlatConfig": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.formatOnSave": false,
+
+  "// Tailwind": "TS/TSX 内のクラス補完を有効化",
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+
+  "// 除外": "巨大/生成物をエクスプローラ・検索から除外して軽く保つ",
+  "files.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/*.tsbuildinfo": true
+  },
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/coverage": true,
+    "**/playwright-report": true,
+    "**/test-results": true,
+    "**/package-lock.json": true,
+    "**/.claude/worktrees": true
+  },
+
+  "// 改行/整形": "Vercel/CI 前提で LF を既定に",
+  "files.eol": "\n"
+}

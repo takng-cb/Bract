@@ -1,0 +1,22 @@
+{
+  "folders": [
+    {
+      "name": "Bract (統合版)",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "// メモ": "フォルダ単位の設定は .vscode/settings.json に集約。ここはワークスペース固有の最小限のみ。",
+    "git.openRepositoryInParentFolders": "never"
+  },
+  "extensions": {
+    "recommendations": [
+      "anthropic.claude-code",
+      "dbaeumer.vscode-eslint",
+      "bradlc.vscode-tailwindcss",
+      "ms-playwright.playwright",
+      "vitest.explorer",
+      "eamodio.gitlens"
+    ]
+  }
+}
