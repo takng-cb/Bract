@@ -126,13 +126,19 @@ Phase 1〜の機能完成後に、**新しい Vercel project** で：
 ## 6. 新規顧客のプロビジョニング（多社展開時の運用）
 
 1. **Neon project 作成**（顧客専用 DB）。
-2. **全マイグレーション適用**（冪等）：`.env.local` の `DATABASE_URL` を当該 Neon に向け
-   ```bash
-   npx tsx scripts/snapshot-db.ts                    # 事前バックアップ（既存があれば）
-   # supabase/migrations/*.sql を順に
-   npx tsx scripts/apply-migration.ts <path-to-sql>
-   npm run check:schema                              # 整合確認
-   ```
+2. **スキーマ投入**：`.env.local` の `DATABASE_URL` を当該 Neon に向ける。
+   - **新規（空）DB のブートストラップは `drizzle-kit push`**（schema.ts が真実）を使う。
+     ```bash
+     # DATABASE_URL を .env.local から注入して push（プレビュー→確認で適用）
+     $env:DATABASE_URL = (node -e "require('dotenv').config({path:'.env.local'});process.stdout.write(process.env.DATABASE_URL)")  # PowerShell
+     npx drizzle-kit push
+     npm run check:schema                              # 整合確認
+     ```
+   - ⚠️ **`supabase/migrations/*.sql` を空 Neon に流さない**：先頭の `init.sql` が Supabase の
+     `auth.users` を参照しており、素の Neon では `schema "auth" does not exist` で失敗する。
+     これらは Supabase 起点の既存 DB 向け増分履歴であり、新規ブートストラップ用ではない。
+   - 既存 DB への**増分**変更のみ `supabase/migrations/` or `drizzle/` の新規ファイルを
+     `scripts/apply-migration.ts` で適用（冪等に書く）。
 3. **マスタ/ライセンス seed**（業種オブジェクト定義など。`scripts/seed-*.ts`）。
 4. **Vercel project 作成** → §2-2〜2-4（env をその顧客向けに設定）。
 5. **初期ユーザー招待**（Supabase Auth）＋ロール付与。
