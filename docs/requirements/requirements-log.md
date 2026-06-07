@@ -63,10 +63,10 @@
 - 状態：合意（新規実装）
 - 関連：REQ-0004, ADR-0004, ADR-0008 / spec:staffing#クイック登録
 
-### REQ-0009  統合版 Bract を実サーバーで動かす
+### REQ-0009  統合版 Bract を実サーバーで動かす  ✅ 完了
 - 2026-06-07 / 会話
 - 内容：統合版リポ `takng-cb/Bract` を Vercel + Neon + Supabase の実サーバーにデプロイして稼働させる。
-- 状態：**進行中** — dev Neon(`ep-autumn-king`) に schema 投入完了(check:schema 緑・全41表) ＋ Vercel Preview ビルド緑（env 登録後）。**→ Production 昇格**：develop→main リリース(`--no-ff`)で main を更新し Vercel 本番デプロイを誘発（Production Branch=main 前提・要 Production スコープ env）。
+- 状態：**完了（2026-06-08）** — dev Neon(`ep-autumn-king`) に schema 投入(check:schema 緑・全41表)、Vercel に env 登録、develop→main リリースで **本番デプロイ稼働をユーザー確認済み**。
 - 関連：ADR-0003, ADR-0014 / docs/deployment-runbook.md
 - 備考：
   - dev は専用 Neon。Vercel env に DATABASE_URL/SUPABASE/NEXT_PUBLIC_INDUSTRY=base を登録して通過。
