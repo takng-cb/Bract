@@ -73,6 +73,32 @@
   - **認証は既存 Supabase を共有**（dev も本番も同じ Supabase Auth）。dev ログイン可だが、dev Neon `users` 行が無いと role は既定 `viewer`。admin 化は dev Neon の `users` に該当 Supabase uid の行を追加する。
   - OPEN-D3（将来）：dev 専用 Supabase に分離するか（現状は共有で許容）。
 
+### REQ-0010  「オブジェクト」呼称の変更（脱・Salesforce感）
+- 2026-06-08 / 会話
+- 内容：`object_definitions` 等で「オブジェクト」と呼ぶ概念の呼称を、Salesforce 感を避けて変更したい。
+- 状態：検討中（表示名のみ変更か、コード/DB含む全面リネームか／新名称を決定予定。ADR化予定）
+
+### REQ-0011  オブジェクト間参照のデータモデル方針
+- 2026-06-08 / 会話
+- 内容：参照を「項目(フィールド)」で持つか「専用の関係テーブル」で持つか、方針を決める。
+- 状態：設計判断中（ADR化予定。既存: `relationship_definitions`/`relationship_values` ＋ 参照項目/FK 列が両方ある）
+
+### REQ-0012  リリース後の画面カスタマイズ性向上
+- 2026-06-08 / 会話
+- 内容：ユーザーによるダッシュボード変更など、リリース後の画面カスタマイズを強化したい。
+- 状態：検討中（対象画面・ユーザー単位/テナント単位を決定予定）。既存基盤: `user_dashboard_widgets`/`saved_views`/`list_view_settings`/`user_preferences`/`field_definitions`
+
+### REQ-0013  ERP モジュールの作成
+- 2026-06-08 / 会話
+- 内容：在庫・会計などの ERP モジュールを作る。
+- 状態：検討中（着手順は ADR-0009 と要調整＝レジストリ先行か）。関連: docs/module-catalog.md, #9
+
+### REQ-0014  入力の手間を減らす（入力負荷の軽減）
+- 2026-06-08 / 会話
+- 内容：データ入力が手間という課題を解消したい。
+- 状態：検討中。戦略的な解は **AI 入力補助（コントラクトファースト draft-then-apply）を staffing 限定でなく全オブジェクト共通の基盤機能に一般化**すること（REQ-0004/ADR-0004 の拡張）。補助策：インライン編集・一括編集・テンプレ/既定値・CSVインポート（既存）・名刺OCR/音声 等。
+- 関連：REQ-0004, ADR-0004 / docs/ai-input-assistant.md
+
 ---
 
 ## 未決（着手前にユーザー合意が必要）
