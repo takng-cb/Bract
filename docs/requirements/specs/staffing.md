@@ -1,0 +1,97 @@
+# 仕様：人材手配モジュール（staffing）— 生きた仕様
+
+> **現在の真実**。確定した要件をここに集約し、随時更新する。新メンバーはまずこれを読む。
+> 経緯は `../decisions.md`、出た要件の全量は `../requirements-log.md`、依頼書原文は `../sources/staffing-brief.md`、
+> プラットフォーム全体像は `../../erp-architecture.md`、すり合わせ資料は `../../staffing-alignment.html`。
+>
+> 関連：REQ-0005（親）, REQ-0006/0007/0008, ADR-0007（モジュール化）, ADR-0008（Drizzle維持）
+> 状態：**要件定義中**（一部 OPEN 項目あり。`requirements-log.md` の未決を参照）
+
+## 1. 概要
+
+人材手配・マッチング業を営む**1社専用**の業務管理システム。Excel＋LINE＋口頭管理を一元化する。
+Bract の `staffing` 業種モジュールとして実装（単一テナント：1社=1デプロイ+1DB）。
+
+- 収益＝**発注単価（クライアントから）− 提示単価（紹介会社へ）＝ 粗利**。
+- 狙いの核：LINE のやりとりを「コピペ→AI解析→確認→反映」で構造化し転記をゼロに。
+
+## 2. 登場人物
+
+| 役割 | 説明 | Bract 対応 |
+|---|---|---|
+| 運営会社（ユーザー） | 本システム利用者 | Supabase Auth ユーザー |
+| クライアント | 発注元（発注単価を払う） | `accounts` (account_role='client') |
+| 紹介会社 | 人材の主供給源（提示単価を受ける） | `accounts` (account_role='supplier') |
+| 人材 | アサインされる人 | `staff` (belong_account_id=紹介会社) |
+
+## 3. 業務フロー（案件ステータスで表現）
+
+`受付 → 打診中 → 候補集約 → 確定 → 実施 → 完了`
+
+1. 受付・起票：LINE コピペ→AI解析→案件起票
+2. 調達・調整：複数紹介会社へ RFQ 打診→候補＋提示単価集約→単価比較・日程調整
+3. 確定・実施：候補確定（アサイン）→予定登録→リマインド
+4. 売上・請求：粗利確定→月次集計
+
+## 4. データモデル（ブリーフ → Bract マッピング）
+
+| ブリーフ | Bract | 状態 | メモ |
+|---|---|---|---|
+| clients | `accounts`(client) | 既存 | line_type 等を項目追加 |
+| agencies | `accounts`(supplier) | 既存 | specialties 追加 |
+| talents | `staff` | 既存 | skills/default_rate 既存 |
+| job_orders | `assignments` | 要拡張 | client_rate=client_total_fee、raw_message 等追加 |
+| outreach（RFQ） | 新規 `outreach` | 新規 | 複数紹介会社への打診管理 |
+| candidates | `assignment_staff` | 要拡張 | agency_id/proposed_rate/候補状態を拡張 |
+| activities | `activities` | 既存 | related_type/next_action |
+| events | 新規 `events` | 新規 | reminder_offsets/reminded |
+| invoices | 新規 `invoices` | 要拡張 | 粗利=発注−提示 |
+
+> **OPEN-C1**：単価モデル＝案件固定単価を主、時給を任意（既存 staffing は時給ベース）。要合意。
+
+## 5. 主要機能 / 画面（MVP）
+
+1. ログイン（運営スタッフのみ）— 既存
+2. 案件ボード（カンバン）— 商談ボード流用
+3. **クイック登録（目玉）**— §6
+4. 案件詳細（打診状況/候補比較/活動TL/関連予定）
+5. スケジュール（カレンダー＋リマインド）— §7
+6. 売上ダッシュボード（月次/粗利/入金）
+7. マスタ管理（クライアント/紹介会社/人材）
+8. 設定（Gemini鍵/通知先/リマインドルール）
+
+## 6. クイック登録（コピペ→AI解析→確認→反映）— REQ-0004/0008
+
+```
+＋新規/情報追加 → 基本情報＋LINE貼付 → [AIで解析](Gemini)
+  → 差分プレビュー(新規=緑/追加=青, 手修正可) → [OK] apply層が検証→DB反映
+```
+- intent：`new_job | update_job | activity_only | schedule_only`。更新時は対象案件を推定し確認画面で選択。
+- 相対日付（「明日」）→絶対日付、金額（「2万」）→数値に正規化。低信頼は `ambiguities` 提示。
+- **自動コミット禁止**：必ず確認画面を経て、apply 層（既存 server action / import 経路）で検証後に書込み。LLM は直接 DB を触らない。
+- 鍵はサーバー env のみ。個人情報は LLM 送信を最小化（**OPEN-C3**）。Vertex AI(東京) 切替は providers 抽象で吸収。
+
+## 7. スケジュール & リマインド — REQ-0006
+
+- `events`(type/start_at/end_at/reminder_offsets[P1D,PT2H]/reminded)。
+- Vercel Cron（`CRON_SECRET` 保護）で定期実行→対象抽出→メール送信。LINE push は将来。
+- 既定タイミング：**OPEN-B1**。メール送信基盤：**OPEN-C2**（Resend 想定）。
+
+## 8. 売上・請求 — REQ-0007
+
+- 確定時に `invoices` 生成（請求額=発注単価、支払額=提示単価、粗利確定）。
+- 請求/入金ステータス管理＋月次集計（forecast/recharts 流用）。
+- 請求書PDF/会計連携：**OPEN-B3**（MVP は後回し・CSV エクスポート）。
+
+## 9. 非機能
+
+- UI 日本語。モバイル/PC 両対応。
+- 個人情報：東京リージョン DB・認証必須・アプリ層ロール（ADR-0008）。LLM 送信は最小化。
+- セキュリティ：シークレットはサーバー側のみ、クライアント非露出。入力バリデーション。
+- 品質：TypeScript strict、ローディング/エラー/空状態を丁寧に。
+
+## 10. 開発フェーズ（ブリーフ → Bract）
+
+P0 環境（既存）/ P1 認証+スキーマ+マスタ / P2 案件管理 / P3 クイック登録(目玉) /
+P4 活動+予定+リマインド / P5 売上・請求 / P6 仕上げ。
+（基盤レジストリ化との順序は **OPEN-A4**）

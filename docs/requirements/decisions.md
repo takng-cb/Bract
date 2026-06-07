@@ -1,0 +1,80 @@
+# 決定記録（ADR — Architecture Decision Records）
+
+**追記専用。** 既存エントリは書き換えない。決定を覆す場合は新しい ADR を追加し、旧 ADR の状態を `Superseded by ADR-xxxx` にする（理由が残るように）。
+
+各エントリの書式：
+```
+### ADR-NNNN  〈決定の短いタイトル〉
+- 日付 / 状態（採用|保留|却下|Superseded by ADR-xxxx）
+- 文脈：なぜ判断が必要だったか
+- 決定：何を決めたか
+- 理由：なぜそれを選んだか
+- 影響：関連 REQ / 変わる範囲
+- 代替案：採らなかった選択肢（再考の条件）
+```
+
+---
+
+### ADR-0001  Bract を CRM 専用から CRM/ERP モジュラー基盤へ発展
+- 2026-06-07 / **採用**
+- 文脈：CRM だけでなく ERP にも対応し、顧客ごとに機能を組み合わせたい。現状は業種オーバーレイ（ビルド時固定）で 1社1業種に縛られる。
+- 決定：「業種（industry）」を上位概念「モジュール（module）」へ昇格。業種も `category:'industry'` のモジュールとして扱う。
+- 理由：ERP の横断機能（在庫・会計等）を表現でき、組み合わせ提供が可能になる。
+- 影響：REQ-0001。`src/modules/` 構造、`docs/erp-architecture.md`。
+- 代替案：業種オーバーレイのまま拡張 → 組み合わせ不可のため却下。
+
+### ADR-0002  合成方式はランタイム合成 ＋ ビルドプロファイル（ハイブリッド）
+- 2026-06-07 / **採用**
+- 文脈：機能 ON/OFF を再ビルドなしで変えたい一方、複数社展開時のビルドの軽さも要る。
+- 決定：同梱モジュール「群」は `BRACT_BUILD_PROFILE` でビルド時に粗く選択。範囲内の個別 ON/OFF は `licenses.features.enabled_modules` でランタイム（再ビルド不要）。
+- 理由：軽さ（出荷時に重い ERP/業種を除外可）と柔軟性（日々のトグル）の両立。
+- 影響：REQ-0002, REQ-0003。`next.config.ts`, `src/lib/modules/registry.ts`。
+- 代替案：純ランタイム（全同梱）＝シンプルだが未使用 ERP も同梱／純ビルド時＝柔軟性低。
+
+### ADR-0003  テナントは単一テナント維持（1社=1デプロイ+1DB）
+- 2026-06-07 / **採用**
+- 文脈：複数社展開の「重さ」を懸念。マルチテナント化も選択肢に上がった。
+- 決定：1社=1 Vercel project + 1 Neon DB の物理分離を維持。重さはプロビジョニング自動化とビルドプロファイルで対処。
+- 理由：データ分離が最も堅い。既存資産をそのまま活かせる。人材手配ブリーフの「単一企業向け」とも一致。
+- 影響：REQ-0003。将来マルチテナント化の余地は `licenses.tenant_key` で残す。
+- 代替案：共有アプリ+社ごとDB／完全マルチテナント(RLS) → 現時点では不採用。
+
+### ADR-0004  AI はコントラクトファーストの入力補助（draft-then-apply）
+- 2026-06-07 / **採用**
+- 文脈：「LLM 起点で行動」したいが、まずは入力補助として安全に使いたい。
+- 決定：各モジュールが型付き入力コントラクトを持ち、LLM はスキーマ準拠データを生成 → 人が確認 → 既存 apply 層が検証して DB 反映。**LLM は DB を直接触らない**。
+- 理由：human-in-the-loop で安全。既存 CSV インポート経路を再利用できる。将来の MCP/自律(L2/L3)へ無改修で延ばせる。
+- 影響：REQ-0004。`docs/ai-input-assistant.md`、各 `modules/<id>/contracts.ts`。
+- 代替案：フルのツール実行型エージェント → 現時点ではリスク過大で見送り。
+
+### ADR-0005  モジュール ON/OFF のセキュリティ＝上限と表示の分離＋サーバー側ゲート
+- 2026-06-07 / **採用**
+- 文脈：ランタイム ON/OFF が不正に有効化されない設計が必要。
+- 決定：`entitled_modules`（契約上限・提供側のみ設定）と `enabled_modules`（上限内で表示）を分離。判定は必ずサーバー側（`ensureModuleEnabled`/`requireAdmin`）。入力はホワイトリスト＋上限検証。
+- 理由：外部からの不正 ON を防ぎ、テナント管理者の未契約自己有効化も防ぐ。client 改竄は無効。
+- 影響：REQ-0002。`docs/erp-architecture.md` §8。
+- 代替案：単一 `modules` 配列のみ → 自己有効化を防げず不採用。
+
+### ADR-0006  コードベースは OriginalCRM を複製し新リポ takng-cb/Bract へ統合
+- 2026-06-07 / **採用**
+- 文脈：CRM の資産を活かしつつ ERP モジュラー化を進める受け皿が必要。
+- 決定：`OriginalCRM` を複製し、新規リポジトリ `github.com/takng-cb/Bract` に統合（main = CRM 全履歴）。旧 `Bract-CRM` には push しない。
+- 理由：既存3業種の資産を全継承。本番 CRM リポへの混入を防ぐ。
+- 影響：全体。`CLAUDE.md` 開発標準。
+- 代替案：OriginalCRM 上で直接発展 → 本番に影響しうるため却下。
+
+### ADR-0007  人材手配システムは Bract の `staffing` モジュールとして実装
+- 2026-06-07 / **採用**（本セッションでユーザー合意。すり合わせ資料 `docs/staffing-alignment.html` A1）
+- 文脈：人材手配ブリーフを独立プロダクトにするか、Bract に統合するか。
+- 決定：Bract の `staffing` 業種モジュール＋AI入力補助(L1) として実装。
+- 理由：単一企業向け＝Bract 単一テナントと一致。clients/agencies/talents/job_orders/candidates/粗利は既存 staffing スキーマでほぼ表現済み。目玉のコピペ→AI は draft-then-apply と同一。二重投資回避。
+- 影響：REQ-0005 ほか staffing 系。`docs/staffing-alignment.html`, `specs/staffing.md`。
+- 代替案：完全独立プロダクト → 二重投資のため却下。
+
+### ADR-0008  データアクセスは既存の Drizzle/Neon を維持（supabase-js+RLS に乗り換えない）
+- 2026-06-07 / **採用**（本セッションでユーザー合意。`docs/staffing-alignment.html` A2）
+- 文脈：人材手配ブリーフは Supabase Postgres + RLS を想定。Bract は既に Neon + Drizzle + Supabase Auth。
+- 決定：既存 Drizzle ORM を使用。権限分離はアプリ層ロール＋1社1DB 物理分離。RLS は任意の追加防御として保留。
+- 理由：既存資産（schema.ts 一本・全業種コード・マイグレ・`check:schema`・SQL pushdown）を再利用。型安全。サーバー中心モデルに適合。単一テナントでは RLS の主目的（行分離）が不要。
+- 影響：REQ-0005, REQ-0008。Drizzle ≠ Supabase 排他（Drizzle は任意の Postgres で動く）。
+- 代替案：supabase-js + RLS → 完全独立プロダクト化する場合に再考。

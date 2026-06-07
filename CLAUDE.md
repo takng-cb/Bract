@@ -32,6 +32,18 @@
 - コミット末尾に `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`。
 - push / merge は**ユーザーの指示があってから**。
 
+## 3.5 要件・決定の記録運用（標準・必読）
+
+要件が出るたびに記録し、新メンバーが経緯を理解できる状態を保つ。記録は **Claude が会話の都度** 行う。
+
+- **出た要件は即** `docs/requirements/requirements-log.md` に `REQ-NNNN` で追記（追記専用・判断せずまず記録＝漏れ防止）。
+- **設計判断は** `docs/requirements/decisions.md` に `ADR-NNNN` で追記（**なぜ**を残す。覆す時は新ADRで Supersede）。
+- **確定仕様は** `docs/requirements/specs/<module>.md`（生きた仕様）に反映。新メンバーはまずここを読む。
+- **元資料**（依頼書等）は `docs/requirements/sources/` に原文保存。
+- 役割分担：**GitHub Issues = 作業・不具合**（状態管理）／**docs = 要件・決定・仕様**（恒久の真実）。
+- commit / PR / Issue 本文に `REQ-`/`ADR-`/`#Issue` を書いて**トレーサビリティ**を保つ。
+- 詳しい運用は [`docs/requirements/README.md`](./docs/requirements/README.md)。
+
 ## 4. 各フェーズ完了の検証ゲート（必須）
 
 実装フェーズは main 反映前に下記を緑にする（詳細は AGENTS.md「検証チェックリスト」）:
