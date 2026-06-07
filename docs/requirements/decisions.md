@@ -115,5 +115,14 @@
 - 影響：REQ-0004, REQ-0008 / spec:staffing §6,§9。
 - 備考：もし「氏名等はマスキングして送る」方針が希望なら本 ADR を Supersede する（要連絡）。
 
+### ADR-0013  Gemini API キーは Vercel 環境変数（env 固定）で保持
+- 2026-06-07 / **採用**（OPEN-B4）
+- 文脈：鍵を env 固定か DB 固定（/admin/ai 暗号化保存）か。
+- 決定：サーバー専用の Vercel 環境変数 `GEMINI_API_KEY`（`NEXT_PUBLIC_` 無し）で保持。一度登録すれば全ビルド/デプロイで永続。交換時のみ再デプロイ1回。
+- 理由：最もシンプル・安全（鍵が DB に残らない）。鍵を頻繁に変えない運用前提。
+- 影響：REQ-0008 / spec:staffing §6。`.env.example` に追記。
+- 代替案：DB 固定（既存 /admin/ai） → 顧客自身が鍵を交換する運用が必要になれば移行（providers 抽象で安価）。
+
+
 
 
