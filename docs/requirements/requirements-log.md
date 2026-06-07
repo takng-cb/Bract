@@ -87,6 +87,24 @@
 
 > ✅ 上記 OPEN（A4/B1-B5/C1-C3）はすべて解消。Phase 1（スキーマ＋マスタ）設計へ進める状態。
 
+## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
+
+| Issue | 内容 | 関連 REQ/ADR |
+|---|---|---|
+| #9  | [platform] CRM/ERP モジュラー化 (umbrella) | REQ-0001/0002/0003 |
+| #10 | [platform] Phase1 モジュールレジストリ基盤 | REQ-0002, ADR-0001 |
+| #11 | [platform] Phase2 ランタイム・ゲーティング + /admin/modules（機能ON/OFF） | REQ-0002, ADR-0002/0005 |
+| #12 | [platform] Phase3 ビルドプロファイル | REQ-0003, ADR-0002 |
+| #13 | [platform] Phase4-6 移設/分割/スキーマ分離 | docs/migration-roadmap |
+| #14 | [staffing] 人材手配MVP (umbrella) | REQ-0005, ADR-0007 |
+| #15 | [staffing] Phase1 スキーマ+マスタ | REQ-0005, ADR-0008/0010 |
+| #16 | [staffing] Phase3 クイック登録(AI) | REQ-0004/0008, ADR-0012/0013 |
+| #17 | [ops] dev環境 残作業 | REQ-0009, ADR-0014, OPEN-D3 |
+| #18 | [ops] 旧Bract-CRMの扱い・本番移行 | OPEN-D1, ADR-0006 |
+| #19 | [chore] 複製残骸クリーンアップ | — |
+
+> 設計PR: #20（feature/erp-modular-design → develop）。Git運用は Gitflow（ADR-0015）。
+
 ## 未決（運用・デプロイ）
 
 - **OPEN-D1**：既存 `Bract-CRM`（旧リポ）と本番2デプロイ（real-estate/auto-body）の今後。推奨：旧リポはアーカイブ扱い、新 `Bract` を唯一の真実とし、本番は準備が整い次第 新リポへ寄せる（時期は別途）。
