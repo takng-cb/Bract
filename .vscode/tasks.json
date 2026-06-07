@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev (next dev)",
+      "type": "npm",
+      "script": "dev",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "detail": "開発サーバ起動。.env.local の NEXT_PUBLIC_INDUSTRY / DATABASE_URL を使用"
+    },
+    {
+      "label": "build (base)",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "env": { "NEXT_PUBLIC_INDUSTRY": "base" } },
+      "problemMatcher": [],
+      "detail": "base 業種でビルド"
+    },
+    {
+      "label": "build (real-estate)",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "env": { "NEXT_PUBLIC_INDUSTRY": "real-estate" } },
+      "problemMatcher": []
+    },
+    {
+      "label": "build (auto-body)",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "env": { "NEXT_PUBLIC_INDUSTRY": "auto-body" } },
+      "problemMatcher": []
+    },
+    {
+      "label": "check:schema",
+      "type": "npm",
+      "script": "check:schema",
+      "problemMatcher": [],
+      "detail": ".env.local の DATABASE_URL が指す DB と schema.ts の整合を確認"
+    },
+    {
+      "label": "lint",
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "test (vitest)",
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": []
+    }
+  ]
+}
