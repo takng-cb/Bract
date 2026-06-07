@@ -34,6 +34,9 @@ export type LicenseFeatures = {
   custom_documents?:  boolean
   max_users?:         number | null              // null = 無制限
   max_storage_mb?:    number | null
+  // ── モジュール合成（#10 / ADR-0005/0016）。上限と表示を分離 ──
+  entitled_modules?:  string[]                  // 契約で持てる上限（提供側のみ設定）
+  enabled_modules?:   string[]                  // 上限内で今 ON にするもの（ランタイム合成の真実）
 }
 
 /** licenses テーブルの行を扱いやすくした型 */
