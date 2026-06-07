@@ -129,6 +129,8 @@
 | #17 | [ops] dev環境 残作業 | REQ-0009, ADR-0014, OPEN-D3 |
 | #18 | [ops] 旧Bract-CRMの扱い・本番移行 | OPEN-D1, ADR-0006 |
 | #19 | [chore] 複製残骸クリーンアップ | — |
+| #21 | [platform] 「オブジェクト」呼称の全面リネーム | REQ-0010, ADR-0017 |
+| #22 | [platform] ダッシュボードのユーザー別カスタマイズ強化 | REQ-0012 |
 
 > 設計PR: #20（feature/erp-modular-design → develop）。Git運用は Gitflow（ADR-0015）。
 
