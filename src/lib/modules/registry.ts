@@ -35,6 +35,12 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { apiName: 'activities', label: '活動履歴' },
       { apiName: 'tasks',      label: 'ToDo' },
     ],
+    quickActions: [
+      { label: '取引先を新規', icon: '🏢', kind: 'create', href: '/accounts/new',   book: 'accounts' },
+      { label: '人物を新規',   icon: '👤', kind: 'create', href: '/contacts/new',   book: 'contacts' },
+      { label: '活動を記録',   icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
+      { label: 'ToDo を追加',  icon: '✅', kind: 'create', href: '/tasks/new',      book: 'tasks' },
+    ],
   },
   'sales': {
     id: 'sales', name: '営業', category: 'crm', dependsOn: ['crm-core'],
@@ -43,17 +49,26 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { href: '/forecast',      label: '売上予測', icon: '📊' },
     ],
     books: [{ apiName: 'opportunities', label: '商談' }],
+    quickActions: [
+      { label: '商談を新規', icon: '💼', kind: 'create', href: '/opportunities/new', book: 'opportunities' },
+    ],
   },
   'expenses': {
     id: 'expenses', name: '経費', category: 'crm', dependsOn: ['crm-core'],
     navItems: [{ href: '/expenses', label: '経費管理', icon: '💰' }],
     books: [{ apiName: 'expenses', label: '経費' }],
+    quickActions: [
+      { label: '経費を新規', icon: '💰', kind: 'create', href: '/expenses/new', book: 'expenses' },
+    ],
   },
   'real-estate': {
     id: 'real-estate', name: '不動産', category: 'industry',
     dependsOn: ['crm-core', 'sales'], industry: 'real-estate',
     navItems: [{ href: '/properties', label: '物件', icon: '🏠' }],
     books: [{ apiName: 'properties', label: '物件' }],
+    quickActions: [
+      { label: '物件を新規', icon: '🏠', kind: 'create', href: '/properties/new', book: 'properties' },
+    ],
   },
   'auto-body': {
     id: 'auto-body', name: '板金・自動車整備', category: 'industry',
@@ -66,6 +81,11 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { apiName: 'vehicles', label: '車両' },
       { apiName: 'parts',    label: '部品' },
     ],
+    quickActions: [
+      { label: '車両を新規', icon: '🚗', kind: 'create', href: '/vehicles/new',    book: 'vehicles' },
+      { label: '整備を新規', icon: '🔧', kind: 'create', href: '/maintenance/new', book: 'maintenance_records' },
+      { label: '部品を新規', icon: '🪛', kind: 'create', href: '/parts/new',       book: 'parts' },
+    ],
   },
   'staffing': {
     id: 'staffing', name: '人材手配', category: 'industry',
@@ -77,6 +97,13 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     books: [
       { apiName: 'assignments', label: '案件' },
       { apiName: 'staff',       label: 'スタッフ' },
+    ],
+    quickActions: [
+      { label: 'クイック登録（AI起票）', icon: '✨', kind: 'wizard', book: 'assignments',
+        description: 'LINE等の文面を貼り付けてAIで案件・活動・予定を起票' },
+      { label: '案件を新規',   icon: '📦', kind: 'create', href: '/assignments/new', book: 'assignments' },
+      { label: 'スタッフを新規', icon: '🧑‍💼', kind: 'create', href: '/staff/new',      book: 'staff' },
+      { label: '活動を記録',   icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
     ],
   },
 }

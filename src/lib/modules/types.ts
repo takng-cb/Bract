@@ -21,6 +21,23 @@ export type BookRef = {
   label: string
 }
 
+/**
+ * クイックアクション（REQ-0016）：モジュールの「業務フロー起点」操作。
+ * - create: レコード新規作成（href へ遷移）
+ * - log:    やりとり/活動の記録（href へ遷移）
+ * - wizard: AI クイック登録（貼付→AI構造化→確認→反映。draft-then-apply）
+ */
+export type QuickAction = {
+  label: string
+  icon: string
+  kind: 'create' | 'log' | 'wizard'
+  /** create/log の遷移先。wizard は省略可（ランチャー内でウィザードを開く） */
+  href?: string
+  /** 対象ブック（任意・将来のAIコントラクト紐付け用） */
+  book?: string
+  description?: string
+}
+
 export interface ModuleManifest {
   id: string
   name: string
@@ -31,6 +48,8 @@ export interface ModuleManifest {
   navItems?: NavItemDef[]
   /** このモジュールが所有するブック */
   books?: BookRef[]
+  /** クイックアクセス（業務フロー起点・REQ-0016） */
+  quickActions?: QuickAction[]
   /** 旧 activeIndustry 互換：このモジュールが対応する業種（フォールバック導出用） */
   industry?: Industry
 }
