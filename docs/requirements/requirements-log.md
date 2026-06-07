@@ -76,7 +76,7 @@
 ### REQ-0010  「オブジェクト」呼称の変更（脱・Salesforce感）
 - 2026-06-08 / 会話
 - 内容：`object_definitions` 等で「オブジェクト」と呼ぶ概念の呼称を、Salesforce 感を避けて変更したい。
-- 状態：検討中（表示名のみ変更か、コード/DB含む全面リネームか／新名称を決定予定。ADR化予定）
+- 状態：**方針決定＝全面リネーム**（コード/DB/ルート/データ移行込み・ADR-0017）。**新名称は確定待ち**。高コストのため専用Issue＋段階移行。
 
 ### REQ-0011  オブジェクト間参照のデータモデル方針
 - 2026-06-08 / 会話
@@ -86,7 +86,8 @@
 ### REQ-0012  リリース後の画面カスタマイズ性向上
 - 2026-06-08 / 会話
 - 内容：ユーザーによるダッシュボード変更など、リリース後の画面カスタマイズを強化したい。
-- 状態：検討中（対象画面・ユーザー単位/テナント単位を決定予定）。既存基盤: `user_dashboard_widgets`/`saved_views`/`list_view_settings`/`user_preferences`/`field_definitions`
+- 状態：**決定＝まず「ユーザーごとダッシュボード」を強化**（`user_dashboard_widgets` 拡張）。他画面(一覧/詳細/ナビ)は後続。
+- 既存基盤: `user_dashboard_widgets`/`saved_views`/`list_view_settings`/`user_preferences`/`field_definitions`
 
 ### REQ-0013  ERP モジュールの作成
 - 2026-06-08 / 会話
