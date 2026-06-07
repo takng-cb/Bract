@@ -131,6 +131,17 @@
 - 影響：REQ-0009 / docs/deployment-runbook.md。本番への寄せ替え（OPEN-D1）は別途・準備完了後。
 - 代替案：いきなり本番投入 → リスク高で不採用。
 
+### ADR-0015  Git/Issue 運用は Gitflow ＋ OriginalCRM の型を踏襲
+- 2026-06-07 / **採用**（ユーザー指示）
+- 文脈：新リポ `takng-cb/Bract` の運用を、旧 OriginalCRM(Bract-CRM) で固まっていた形に揃えたい。
+- 決定：
+  - **ブランチ＝Gitflow**：`main`(本番) / `develop`(統合) を恒常、`feature/* | fix/* | chore/*` は **develop から切って develop へ PR**。`develop → main` は `--no-ff`。
+  - **Issue 運用**：タイトルは `[scope] 説明`（scope 例：platform / staffing / ops / chore / base / auto-body / enterprise）。`priority:blocker/high/medium/low` ラベルを付与。umbrella Issue で束ねる。本文は不具合=症状/原因/修正/検証/副次、機能=要件記述。`REQ-/ADR-/#Issue` で相互参照。
+  - 新リポに旧と同じカスタムラベル（priority:*, dependencies）を整備。
+- 理由：既存の運用知見を継承し、新メンバーの学習コストを下げる。
+- 影響：CLAUDE.md §3 / AGENTS.md「ブランチ運用」「Issue 運用」。
+
+
 
 
 
