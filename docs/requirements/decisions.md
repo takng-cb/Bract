@@ -78,3 +78,12 @@
 - 理由：既存資産（schema.ts 一本・全業種コード・マイグレ・`check:schema`・SQL pushdown）を再利用。型安全。サーバー中心モデルに適合。単一テナントでは RLS の主目的（行分離）が不要。
 - 影響：REQ-0005, REQ-0008。Drizzle ≠ Supabase 排他（Drizzle は任意の Postgres で動く）。
 - 代替案：supabase-js + RLS → 完全独立プロダクト化する場合に再考。
+
+### ADR-0009  人材手配を先に作り込み、基盤のレジストリ化は後追い
+- 2026-06-07 / **採用**（本セッションでユーザー合意。OPEN-A4 の B 案）
+- 文脈：モジュール配電盤（レジストリ：`MODULE_REGISTRY`/`isModuleEnabled`/`/admin/modules`、`activeIndustry`→ランタイム判定 = erp-architecture Phase1-2）を先に作るか、人材手配機能を先に作るか。
+- 決定：既存の業種オーバーレイ（`activeIndustry`）の上で **人材手配(staffing) を先に完成**させ、レジストリ化（Phase1-2）は後追いで実施する。
+- 理由：最優先は「動く人材手配」。当面 staffing 1本のためレジストリの真価（複数モジュール組合せ）は急がない。ストラングラー方式どおり実物→土台の順が手戻り少。レジストリ化は設計上いつでも安全に追加可能。
+- 影響：REQ-0005。開発順はブリーフ Phase1→6（spec:staffing §10）。レジストリ化は別途 migration-roadmap Phase1-2 として保留。
+- 代替案：レジストリ化を先（A案）→ 顧客価値が遅れるため不採用。
+
