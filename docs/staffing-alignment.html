@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人材手配システム × Bract — イメージすり合わせ</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a22; --panel2:#1d212b; --line:#2a2f3a;
+    --text:#e6e8ee; --muted:#9aa3b2; --accent:#4f8cff; --accent2:#6ee7b7;
+    --green:#34d399; --blue:#60a5fa; --amber:#fbbf24; --red:#f87171; --purple:#c084fc;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+    line-height:1.7;font-size:15px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{display:grid;grid-template-columns:260px 1fr;max-width:1400px;margin:0 auto}
+  /* sidebar */
+  nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;padding:24px 16px;border-right:1px solid var(--line);background:var(--panel)}
+  nav.side h1{font-size:15px;margin:0 0 4px;color:var(--text)}
+  nav.side .sub{color:var(--muted);font-size:12px;margin-bottom:18px}
+  nav.side ol{list-style:none;margin:0;padding:0;counter-reset:s}
+  nav.side ol li{counter-increment:s;margin:2px 0}
+  nav.side ol li a{display:block;padding:7px 10px;border-radius:8px;color:var(--muted);font-size:13.5px}
+  nav.side ol li a::before{content:counter(s) ". ";color:var(--accent);font-weight:600}
+  nav.side ol li a:hover{background:var(--panel2);color:var(--text);text-decoration:none}
+  /* main */
+  main{padding:40px 48px 120px;min-width:0}
+  header.hero{background:linear-gradient(135deg,#1b2540,#162033 60%,#101521);border:1px solid var(--line);
+    border-radius:var(--radius);padding:34px 34px 30px;margin-bottom:34px}
+  header.hero .tag{display:inline-block;font-size:12px;color:var(--accent2);border:1px solid #2e4a44;background:#10231d;padding:3px 10px;border-radius:999px;margin-bottom:14px}
+  header.hero h1{margin:0 0 8px;font-size:27px;letter-spacing:.5px}
+  header.hero p{margin:6px 0 0;color:var(--muted);max-width:80ch}
+  section{margin:0 0 46px;scroll-margin-top:20px}
+  section>h2{font-size:21px;border-left:4px solid var(--accent);padding-left:12px;margin:0 0 6px}
+  section>.lead{color:var(--muted);margin:0 0 18px}
+  h3{font-size:16px;margin:26px 0 10px;color:#cdd5e3}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin:14px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media(max-width:1000px){.grid2,.grid3{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px;background:var(--panel);border-radius:10px;overflow:hidden}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--panel2);color:#cdd5e3;font-weight:600;font-size:12.5px}
+  tr:last-child td{border-bottom:none}
+  code{background:#0c0e14;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12.5px;color:#a7e0c8;font-family:"SFMono-Regular",Consolas,monospace}
+  pre{background:#0b0d13;border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto;font-size:12.5px;line-height:1.55}
+  pre code{background:none;border:none;padding:0;color:#cfe3ff}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .b-reuse{background:#10231d;color:var(--green);border:1px solid #235244}
+  .b-new{background:#0f1d33;color:var(--blue);border:1px solid #244a7a}
+  .b-check{background:#2a2310;color:var(--amber);border:1px solid #5c4a16}
+  .b-ext{background:#241033;color:var(--purple);border:1px solid #4a2a6a}
+  .callout{border-radius:12px;padding:14px 18px;margin:14px 0;border:1px solid}
+  .callout.q{background:#241c06;border-color:#5c4a16}
+  .callout.i{background:#0c1a2e;border-color:#244a7a}
+  .callout.ok{background:#0c1f18;border-color:#235244}
+  .callout b{color:#fff}
+  ul.tight{margin:8px 0;padding-left:20px}
+  ul.tight li{margin:4px 0}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+  .flow .step{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}
+  .flow .arr{color:var(--accent)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0 0}
+  .pill{display:inline-flex;gap:6px;align-items:center}
+  .kpi{font-size:12px;color:var(--muted)}
+  hr.soft{border:none;border-top:1px solid var(--line);margin:22px 0}
+  .foot{color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:18px;margin-top:40px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="side">
+  <h1>人材手配 × Bract</h1>
+  <div class="sub">イメージすり合わせ資料 v0.1<br>2026-06-07</div>
+  <ol>
+    <li><a href="#summary">全体像（結論）</a></li>
+    <li><a href="#project">プロジェクト整理</a></li>
+    <li><a href="#env">環境（技術スタック）</a></li>
+    <li><a href="#req-org">要件整理（業務ドメイン）</a></li>
+    <li><a href="#req-def">要件定義（機能・データ）</a></li>
+    <li><a href="#design">設計</a></li>
+    <li><a href="#flow">開発フロー（GitHub/Issue）</a></li>
+    <li><a href="#release">リリース手順</a></li>
+    <li><a href="#provision">顧客追加時の運用</a></li>
+    <li><a href="#open">未確定事項（要すり合わせ）</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <span class="tag">DRAFT — 着手前のイメージ合わせ用</span>
+  <h1>人材手配業務システム を Bract プラットフォームに落とし込む</h1>
+  <p>結論：人材手配システムは独立した別物ではなく、<b>Bract の <code>staffing</code> 業種モジュール＋AI入力補助(L1)</b> として実装するのが最も自然です。単一企業向け・マルチテナント不要という要件は、Bractの「1社=1デプロイ+1DB」と完全に一致し、CRMコア・粗利計算・AI下書き反映の土台がすでに存在します。本資料はその落とし込み案と、合意が必要な論点を整理したものです。</p>
+  <div class="legend">
+    <span class="pill"><span class="badge b-reuse">既存活用</span> 既にBractにある</span>
+    <span class="pill"><span class="badge b-ext">要拡張</span> 既存を少し広げる</span>
+    <span class="pill"><span class="badge b-new">新規</span> 新しく作る</span>
+    <span class="pill"><span class="badge b-check">要確認</span> あなたと合意したい</span>
+  </div>
+</header>
+
+<!-- 1 -->
+<section id="summary">
+  <h2>1. 全体像（結論）</h2>
+  <p class="lead">2つの取り組みは競合せず、入れ子の関係になります。</p>
+  <div class="card">
+    <pre><code>Bract プラットフォーム（CRM/ERP モジュラー基盤）
+   ├─ platform（基盤・認証・AI入力補助・監査） ……… 全社共通
+   ├─ crm-core / sales / expenses ……………………… CRM 共通
+   ├─ erp: inventory / accounting / …（将来）
+   └─ industry: real-estate / auto-body /
+                └─ ★ staffing（人材手配）← 今回の依頼はここの具体化
+                       = 案件(assignments) + 打診(outreach/新規)
+                         + 候補(assignment_staff) + 活動 + 予定 + 売上
+                         + コピペ→AI解析→確認→反映（AI入力補助 L1）</code></pre>
+  </div>
+  <div class="grid3">
+    <div class="card"><h3 style="margin-top:0">なぜ噛み合うか ①</h3>単一企業向け・課金不要 = Bractの<b>単一テナント（1社=1デプロイ+1DB）</b>と一致。将来の多社展開も module/build-profile でそのまま開ける。</div>
+    <div class="card"><h3 style="margin-top:0">なぜ噛み合うか ②</h3>clients/agencies/talents/job_orders/candidates/粗利 は <b>既存 staffing スキーマでほぼ表現済み</b>（後述マッピング）。</div>
+    <div class="card"><h3 style="margin-top:0">なぜ噛み合うか ③</h3>目玉の「コピペ→AI解析→確認→反映」は、設計済みの<b>コントラクトファースト AI 入力補助(draft-then-apply)</b>そのもの。</div>
+  </div>
+  <div class="callout i">💡 <b>意思決定の核：</b>「人材手配を Bract の staffing モジュールとして作る」ことに合意できれば、以降の環境・設計・運用は Bract の標準（<code>CLAUDE.md</code> / <code>docs/erp-architecture.md</code>）に乗ります。別物として作る選択肢もありますが、二重投資になるため非推奨です。</div>
+</section>
+
+<!-- 2 -->
+<section id="project">
+  <h2>2. プロジェクト整理（2つの取り組みの関係）</h2>
+  <table>
+    <tr><th style="width:18%"></th><th>これまでの Bract 整理</th><th>今回の人材手配ブリーフ</th><th>すり合わせ後</th></tr>
+    <tr><td><b>目的</b></td><td>CRM/ERPをモジュール化し顧客ごとに組合せ提供</td><td>1社専用の手配業務効率化</td><td>Bractの1業種モジュールとして提供（=1顧客デプロイ）</td></tr>
+    <tr><td><b>テナント</b></td><td>単一テナント（1社=1デプロイ+1DB）</td><td>単一企業・課金不要</td><td><span class="badge b-reuse">一致</span> そのまま</td></tr>
+    <tr><td><b>AI</b></td><td>コントラクトファースト入力補助 draft-then-apply</td><td>コピペ→AI解析→確認→反映（自動コミット禁止）</td><td><span class="badge b-reuse">一致</span> 同じ思想。Geminiで具体化</td></tr>
+    <tr><td><b>DB</b></td><td>Neon Postgres + Drizzle + Supabase Auth</td><td>Supabase Postgres + RLS</td><td><span class="badge b-check">要確認</span> §3で論点提示</td></tr>
+    <tr><td><b>通知</b></td><td>Discord webhook（既存）</td><td>Vercel Cron + メール（Resend想定）</td><td><span class="badge b-new">新規</span> Cron+メール基盤を追加</td></tr>
+  </table>
+  <div class="callout ok">✅ 既に Bract 側で完了済み（Phase 0）：リポジトリ複製、設計ドキュメント4本、新リポ <code>takng-cb/Bract</code> へ統合、開発標準を <code>CLAUDE.md</code> に明文化、モジュールON/OFFのセキュリティ設計(§8)。人材手配はこの土台の上に乗ります。</div>
+</section>
+
+<!-- 3 -->
+<section id="env">
+  <h2>3. 環境（技術スタック）</h2>
+  <p class="lead">ブリーフの想定と Bract 既存の差分を整理。<b>太字が推奨</b>です。</p>
+  <table>
+    <tr><th>項目</th><th>ブリーフ想定</th><th>Bract 既存</th><th>推奨（すり合わせ案）</th></tr>
+    <tr><td>フレームワーク</td><td>Next.js App Router + TS</td><td>Next.js 16 + TS strict</td><td><b>Bract既存に一致</b> <span class="badge b-reuse">既存活用</span></td></tr>
+    <tr><td>UI</td><td>Tailwind(+shadcn任意)</td><td>Tailwind 4 + 自前コンポーネント</td><td><b>Bract既存</b>。shadcnは必要時のみ</td></tr>
+    <tr><td>DB</td><td>Supabase Postgres</td><td>Neon Postgres + Drizzle</td><td><b>Neon + Drizzle</b>（schema一本・マイグレ運用が確立済）<span class="badge b-check">要確認</span></td></tr>
+    <tr><td>認証</td><td>Supabase Auth</td><td>Supabase Auth(SSR cookie)</td><td><b>一致</b> <span class="badge b-reuse">既存活用</span></td></tr>
+    <tr><td>権限分離</td><td>RLS で保護</td><td>1社=1DB物理分離 + アプリ層ロール（RLS不使用）</td><td><b>アプリ層ロール</b>（Bract方針）。RLSは任意の追加防御 <span class="badge b-check">要確認</span></td></tr>
+    <tr><td>LLM</td><td>Gemini（鍵は先方用意）</td><td>マルチプロバイダ抽象（Groq/Gemini/Anthropic）</td><td><b>既存抽象でGeminiを選択</b>。鍵はサーバーenv <span class="badge b-reuse">既存活用</span></td></tr>
+    <tr><td>通知/定期実行</td><td>Vercel Cron + メール(Resend)</td><td>Discord webhook のみ</td><td><b>Vercel Cron + メール</b>を新規追加 <span class="badge b-new">新規</span></td></tr>
+    <tr><td>ホスティング</td><td>Vercel</td><td>Vercel（業種別project）</td><td><b>一致</b>。手配用に1 project</td></tr>
+  </table>
+  <div class="callout q">❓ <b>最大の論点（DB）：</b>ブリーフは「Supabase Postgres + RLS」。Bractは「Neon + Drizzle、1社1DBの物理分離でRLS無し」。<b>Bract標準（Neon+Drizzle）に寄せる</b>と、schema一本化・マイグレ自動検証(<code>check:schema</code>)・既存staffingコードがそのまま使えます。手配を完全に独立プロダクトにするなら Supabase Postgres+RLS でも可。<b>ここを最初に合意したい。</b></div>
+</section>
+
+<!-- 4 -->
+<section id="req-org">
+  <h2>4. 要件整理（業務ドメイン）</h2>
+  <h3>登場人物</h3>
+  <div class="grid2">
+    <div class="card"><b>運営会社（ユーザー）</b><br><span class="kpi">本システム利用者。手配業務を回す。</span></div>
+    <div class="card"><b>クライアント／パートナー</b><br><span class="kpi">案件の発注元。発注単価を払う側。</span></div>
+    <div class="card"><b>紹介会社（人材紹介会社）</b><br><span class="kpi">人材の主供給源。提示単価を受け取る側。</span></div>
+    <div class="card"><b>人材</b><br><span class="kpi">実際にアサインされる人。紹介会社が候補提示。</span></div>
+  </div>
+  <h3>業務フロー（4フェーズ）＝ 案件ステータスで表現</h3>
+  <div class="flow">
+    <span class="step">①受付・起票<br><span class="kpi">LINEコピペ→AI解析</span></span><span class="arr">→</span>
+    <span class="step">②調達・調整<br><span class="kpi">RFQ打診→候補/単価集約→日程調整</span></span><span class="arr">→</span>
+    <span class="step">③確定・実施<br><span class="kpi">アサイン確定→予定→リマインド</span></span><span class="arr">→</span>
+    <span class="step">④売上・請求<br><span class="kpi">粗利確定→月次集計</span></span>
+  </div>
+  <h3>管理する3本柱＋売上</h3>
+  <ul class="tight">
+    <li><b>案件管理</b>：発注1件を軸に打診→候補→確定→実施→完了。<span class="badge b-reuse">既存活用</span> <code>assignments</code></li>
+    <li><b>活動管理</b>：いつ・誰に・何を／次の一手を時系列。<span class="badge b-reuse">既存活用</span> <code>activities</code></li>
+    <li><b>スケジュール管理</b>：予定＋自動リマインド。<span class="badge b-ext">要拡張</span> <code>tasks</code>/新規 <code>events</code></li>
+    <li><b>売上管理</b>：粗利＝発注単価−提示単価、月次・請求/入金。<span class="badge b-ext">要拡張</span> 既存粗利ロジック＋請求</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section id="req-def">
+  <h2>5. 要件定義（機能・データ）</h2>
+
+  <h3>5.1 MVP 機能 / 画面</h3>
+  <table>
+    <tr><th>#</th><th>機能</th><th>状態</th><th>Bractでの実現</th></tr>
+    <tr><td>1</td><td>ログイン（運営スタッフのみ）</td><td><span class="badge b-reuse">既存活用</span></td><td>Supabase Auth + ロール</td></tr>
+    <tr><td>2</td><td>案件ボード（カンバン：受付→…→完了）</td><td><span class="badge b-ext">要拡張</span></td><td>商談カンバンUIを案件用に流用</td></tr>
+    <tr><td>3</td><td>クイック登録（コピペ→AI→確認→反映）＝目玉</td><td><span class="badge b-new">新規</span></td><td>AI入力補助L1（§6.3）</td></tr>
+    <tr><td>4</td><td>案件詳細（打診状況/候補比較/活動/予定）</td><td><span class="badge b-ext">要拡張</span></td><td>レコード詳細＋関連タブ既存</td></tr>
+    <tr><td>5</td><td>スケジュール（カレンダー＋リマインド）</td><td><span class="badge b-new">新規</span></td><td>events + Cron + メール</td></tr>
+    <tr><td>6</td><td>売上ダッシュボード（月次/粗利/入金）</td><td><span class="badge b-ext">要拡張</span></td><td>forecast/recharts流用＋請求</td></tr>
+    <tr><td>7</td><td>マスタ管理（クライアント/紹介会社/人材）</td><td><span class="badge b-reuse">既存活用</span></td><td>accounts + staff</td></tr>
+    <tr><td>8</td><td>設定（Gemini鍵/通知先/リマインド）</td><td><span class="badge b-ext">要拡張</span></td><td>/admin/ai 既存＋通知設定</td></tr>
+  </table>
+
+  <h3>5.2 データモデル（ブリーフ → Bract マッピング）</h3>
+  <table>
+    <tr><th>ブリーフのテーブル</th><th>Bract での対応</th><th>状態</th><th>メモ</th></tr>
+    <tr><td><code>clients</code></td><td><code>accounts</code>（account_role='client'）</td><td><span class="badge b-reuse">既存活用</span></td><td>line_type 等は項目追加</td></tr>
+    <tr><td><code>agencies</code></td><td><code>accounts</code>（account_role='supplier'）</td><td><span class="badge b-reuse">既存活用</span></td><td>specialties 追加</td></tr>
+    <tr><td><code>talents</code></td><td><code>staff</code>（belong_account_id=紹介会社）</td><td><span class="badge b-reuse">既存活用</span></td><td>skills/default_rate 既存</td></tr>
+    <tr><td><code>job_orders</code></td><td><code>assignments</code></td><td><span class="badge b-ext">要拡張</span></td><td>client_rate=client_total_fee、raw_message等追加</td></tr>
+    <tr><td><code>outreach</code>（打診/RFQ）</td><td>新規 <code>outreach</code></td><td><span class="badge b-new">新規</span></td><td>複数紹介会社への打診管理（既存に無い）</td></tr>
+    <tr><td><code>candidates</code></td><td><code>assignment_staff</code></td><td><span class="badge b-ext">要拡張</span></td><td>agency_id/proposed_rate/候補状態を拡張</td></tr>
+    <tr><td><code>activities</code></td><td><code>activities</code></td><td><span class="badge b-reuse">既存活用</span></td><td>related_type/next_action 既存思想に合致</td></tr>
+    <tr><td><code>events</code></td><td>新規 <code>events</code>（or tasks拡張）</td><td><span class="badge b-new">新規</span></td><td>reminder_offsets/reminded を持つ</td></tr>
+    <tr><td><code>invoices</code></td><td>新規 <code>invoices</code>（売上）</td><td><span class="badge b-ext">要拡張</span></td><td>粗利=発注−提示。receivables思想を流用</td></tr>
+  </table>
+  <div class="callout q">❓ <b>単価モデルの確認：</b>既存 staffing は「時給×時間（hourly_rate/cost_per_hour）」、ブリーフは「案件あたり固定（client_rate/proposed_rate）」。手配業務は<b>案件固定単価</b>が主と理解。固定単価を主、時給を任意とする方向で良いか？</div>
+
+  <h3>5.3 目玉：クイック登録のフロー</h3>
+  <div class="flow">
+    <span class="step">＋ 新規/情報追加</span><span class="arr">→</span>
+    <span class="step">基本情報＋LINE貼付</span><span class="arr">→</span>
+    <span class="step">[AIで解析] Gemini</span><span class="arr">→</span>
+    <span class="step">差分プレビュー<br><span class="kpi">新規=緑/追加=青、手修正可</span></span><span class="arr">→</span>
+    <span class="step">[OK] DB反映</span>
+  </div>
+  <div class="callout ok">✅ intent判定（new_job/update_job/activity_only/schedule_only）、相対日付・金額の正規化、低信頼時の <code>ambiguities</code> 提示 ＝ すべて「コントラクト＋apply層」で表現でき、<b>自動コミット禁止</b>の原則とも一致。</div>
+</section>
+
+<!-- 6 -->
+<section id="design">
+  <h2>6. 設計</h2>
+
+  <h3>6.1 モジュール配置</h3>
+  <pre><code>src/modules/staffing/
+  ├─ manifest.ts          # id:'staffing', category:'industry', deps:['crm-core','sales']
+  ├─ contracts.ts         # ★ クイック登録の入力コントラクト（intent/job_order/activities/schedules）
+  ├─ schema.ts            # outreach / events / invoices（staffing拡張）→ lib/schema.ts に統合
+  ├─ pages/               # 案件ボード, 案件詳細, スケジュール, 売上, マスタ
+  ├─ components/          # QuickRegister(貼付→差分プレビュー), CandidateCompare 等
+  ├─ actions/             # assignments/outreach/candidates/invoices の server actions(apply層)
+  └─ lib/                 # staffingService(粗利・既存), reminderRules, geminiParse</code></pre>
+
+  <h3>6.2 ゲーティング & セキュリティ（Bract §8 準拠）</h3>
+  <ul class="tight">
+    <li>このデプロイは <code>enabled_modules=['crm-core','sales','staffing']</code>。単一企業なので実質固定。</li>
+    <li>判定は<b>必ずサーバー側</b>（<code>ensureModuleEnabled</code> / ロール <code>requireEditor</code>）。</li>
+    <li>Gemini鍵はサーバーenvのみ。クライアントへ返さない。設定画面登録時は暗号化保存。</li>
+    <li>個人情報（氏名・連絡先）はLLM送信を最小化。東京リージョンDB・認証必須。</li>
+  </ul>
+
+  <h3>6.3 AI 入力補助（draft-then-apply）パイプライン</h3>
+  <pre><code>貼付テキスト＋文脈(新規/更新, 対象案件概要, 現在日時)
+  → geminiParse()  : contracts.ts のJSON schemaで構造化（厳密JSONのみ）
+  → 差分プレビューUI : 新規/更新/活動/予定を色分け表示・項目手修正
+  → ユーザー承認
+  → apply層(server action) : コントラクト検証 → 既存 createXxx/import経路 → DB
+       ★ LLMは直接DB書込みしない。権限・監査(audit_log)を通過</code></pre>
+  <div class="callout i">💡 既存の CSV インポート経路と同じ「検証付き書込み」に合流させるため、危険な新規書込み系を作りません。Vertex AI（東京）への切替も <code>lib/ai/providers</code> 抽象で吸収。</div>
+
+  <h3>6.4 スケジュール & リマインド</h3>
+  <ul class="tight">
+    <li><code>events</code>(type/start_at/reminder_offsets[ P1D, PT2H ]/reminded)。</li>
+    <li><b>Vercel Cron</b> が定期実行→対象抽出→<b>メール送信(Resend)</b>。LINE pushは将来。</li>
+  </ul>
+</section>
+
+<!-- 7 -->
+<section id="flow">
+  <h2>7. 開発フロー（GitHub運用 / Issue管理）</h2>
+  <h3>7.1 リポジトリ & ブランチ</h3>
+  <ul class="tight">
+    <li>リポ：<code>github.com/takng-cb/Bract</code>（CRM履歴統合済み）。旧 Bract-CRM へは push しない。</li>
+    <li>フロー：<code>feature/staffing-*</code> → <code>develop</code> → <code>main</code>（<code>--no-ff</code>）。default直コミット禁止、branch先行。</li>
+    <li>コミット末尾に <code>Co-Authored-By</code>。push/mergeはユーザー指示後。</li>
+  </ul>
+  <h3>7.2 Issue 運用（既存AGENTS.md準拠）</h3>
+  <ul class="tight">
+    <li>不具合/障害は<b>修正コミット前にIssue起票</b>。症状(What)/原因(Why)/修正(How)/検証(Test)/副次タスク。</li>
+    <li>フェーズや機能の塊を <b>umbrella Issue</b> で管理（例：「人材手配MVP」）。</li>
+    <li><code>Fixes #123</code> で main マージ時 auto close。close時に本番確認コメント必須。</li>
+  </ul>
+  <h3>7.3 開発フェーズ（ブリーフ → Bract Phase 対応）</h3>
+  <table>
+    <tr><th>ブリーフPhase</th><th>内容</th><th>Bract側の前提</th></tr>
+    <tr><td>P0 環境構築</td><td>—（Bractに既存）</td><td><span class="badge b-reuse">完了</span> 既存土台</td></tr>
+    <tr><td>P1 認証+スキーマ+マスタ</td><td>RLS→ロール、clients/agencies/talents</td><td>accounts/staff 既存＋項目追加</td></tr>
+    <tr><td>P2 案件管理</td><td>案件CRUD/ボード/打診/候補比較</td><td>assignments拡張＋outreach新規</td></tr>
+    <tr><td>P3 クイック登録(目玉)</td><td>貼付→Gemini→差分→反映</td><td>AI入力補助L1＋contracts</td></tr>
+    <tr><td>P4 活動+予定+リマインド</td><td>活動TL/events/Cron/メール</td><td>activities既存＋events/Cron新規</td></tr>
+    <tr><td>P5 売上・請求</td><td>invoices/月次/入金</td><td>粗利ロジック既存＋invoices</td></tr>
+    <tr><td>P6 仕上げ</td><td>UI/日本語/バリデーション/空状態</td><td>共通コンポーネント流用</td></tr>
+  </table>
+  <p class="kpi">※ Bract基盤側（モジュールレジストリ Phase1-2）と人材手配の機能開発は並行可能。最短は「人材手配を先に staffing モジュールとして作り込み、レジストリ化は後追い」でも可（要相談）。</p>
+</section>
+
+<!-- 8 -->
+<section id="release">
+  <h2>8. リリース手順</h2>
+  <ol class="tight">
+    <li><b>ビルドプロファイル</b>：人材手配顧客は <code>BRACT_BUILD_PROFILE=all</code>（or staffing含む構成）。</li>
+    <li><b>検証ゲート（main反映前・必須）</b>：
+      <ul class="tight">
+        <li><code>npm run build</code>（影響する業種env）</li>
+        <li><code>npm run check:schema</code>（schema↔DB整合・全Neon）</li>
+        <li><code>npm run test</code> / 既存スモーク・E2E・<code>test:industry-guard</code></li>
+        <li>業種/モジュール対称確認（real-estate/auto-body側に波及が無いか）</li>
+      </ul>
+    </li>
+    <li><b>マージ</b>：feature→develop→main。Vercelが該当projectを再デプロイ。</li>
+    <li><b>実機確認</b>：案件ボード/詳細/クイック登録/スケジュール/売上ダッシュを Chrome で目視。deploy緑をIssueに記録。</li>
+  </ol>
+  <div class="callout i">💡 機能のON/OFFは再ビルド不要（<code>enabled_modules</code>）。ただし「staffingコードを同梱するか」はビルドプロファイル（再ビルド時のみ）。</div>
+</section>
+
+<!-- 9 -->
+<section id="provision">
+  <h2>9. 顧客追加時の運用手順（将来の多社展開）</h2>
+  <p class="lead">今回は1社だが、「将来を閉ざさない」要件に沿って手順を定義。プロビジョニング自動化（ロードマップ Phase6）。</p>
+  <ol class="tight">
+    <li><b>Neon プロジェクト作成</b>（その顧客専用DB）。</li>
+    <li><b>全マイグレーション適用</b>（<code>scripts/apply-migration.ts</code>、冪等）。</li>
+    <li><b>マスタ/ライセンス seed</b>：<code>licenses</code> に <code>entitled_modules</code>/<code>enabled_modules=['crm-core','sales','staffing']</code>、object_definitions seed。</li>
+    <li><b>Vercel project 作成</b>：Production=main、env（DATABASE_URL/SUPABASE/GEMINI_API_KEY/BRACT_BUILD_PROFILE/RESEND等）。</li>
+    <li><b>初期ユーザー招待</b>（Supabase Auth）＋ロール付与。</li>
+    <li><b>動作確認</b> → 引き渡し。</li>
+  </ol>
+  <table>
+    <tr><th>必要な環境変数（例）</th><th>用途</th></tr>
+    <tr><td><code>DATABASE_URL</code></td><td>顧客専用 Neon</td></tr>
+    <tr><td><code>NEXT_PUBLIC_SUPABASE_URL / ANON_KEY</code></td><td>認証</td></tr>
+    <tr><td><code>GEMINI_API_KEY</code>（先方提供）</td><td>AI解析・サーバーのみ</td></tr>
+    <tr><td><code>BRACT_BUILD_PROFILE</code></td><td>同梱モジュール群</td></tr>
+    <tr><td><code>RESEND_API_KEY</code> / 通知先</td><td>リマインドメール</td></tr>
+    <tr><td><code>CRON_SECRET</code></td><td>Vercel Cron 認証</td></tr>
+  </table>
+</section>
+
+<!-- 10 -->
+<section id="open">
+  <h2>10. 未確定事項（着手前に合意したい）</h2>
+  <h3>A. アーキ方針（最優先）</h3>
+  <table>
+    <tr><th>#</th><th>論点</th><th>推奨</th></tr>
+    <tr><td>A1</td><td>人材手配を <b>Bractの staffing モジュール</b>として作るか、独立プロダクトか</td><td>モジュール化（二重投資回避）</td></tr>
+    <tr><td>A2</td><td>DB：Neon+Drizzle か Supabase Postgres+RLS か</td><td>Neon+Drizzle（Bract標準）</td></tr>
+    <tr><td>A3</td><td>権限分離：アプリ層ロール中心か、RLSも併用か</td><td>アプリ層ロール（1社1DB物理分離）。RLSは任意の追加</td></tr>
+    <tr><td>A4</td><td>進め方：基盤レジストリ化(Phase1-2)を先か、手配機能を先か</td><td>手配機能を先行、レジストリ化は後追いでも可</td></tr>
+  </table>
+  <h3>B. ブリーフ記載の未確定（13章）</h3>
+  <table>
+    <tr><th>#</th><th>論点</th><th>たたき台</th></tr>
+    <tr><td>B1</td><td>リマインド既定タイミング</td><td>前日(P1D)＋当日2時間前(PT2H) の両方を既定、変更可</td></tr>
+    <tr><td>B2</td><td>リピート人材を talents 保存するか</td><td>保存する（staff既存）。都度候補も可</td></tr>
+    <tr><td>B3</td><td>請求書PDF/会計連携をMVPに含めるか</td><td>後回し。MVPはCSVエクスポート</td></tr>
+    <tr><td>B4</td><td>Gemini鍵：env固定か設定画面登録か</td><td>MVPはenv固定（簡潔・安全）。後で設定画面</td></tr>
+    <tr><td>B5</td><td>権限区分：全員フル or 役割分け</td><td>既存ロール（admin/editor/viewer）流用</td></tr>
+  </table>
+  <h3>C. 統合に伴う追加確認</h3>
+  <ul class="tight">
+    <li>C1：単価モデル＝<b>案件固定単価</b>を主、時給は任意（§5.2）で良いか。</li>
+    <li>C2：メール送信は <b>Resend</b> でよいか（他候補：SendGrid/SES）。</li>
+    <li>C3：個人情報のLLM送信ポリシー（氏名/連絡先を送るか、マスキングするか）。</li>
+  </ul>
+  <div class="callout q">📌 <b>次アクション：</b>まず <b>A1〜A4</b> を決めれば、Phase1（スキーマ＋マスタ）の具体設計に入れます。合意後、この資料を確定版にして <code>docs/</code> にコミットします。</div>
+</section>
+
+<div class="foot">
+  Bract / 人材手配 すり合わせ資料（DRAFT v0.1）— このHTMLは <code>docs/staffing-alignment.html</code>。<br>
+  参照：<code>CLAUDE.md</code>（開発標準）, <code>docs/erp-architecture.md</code>（モジュラー設計）, <code>docs/module-catalog.md</code>, <code>docs/ai-input-assistant.md</code>, <code>docs/migration-roadmap.md</code>
+</div>
+</main>
+</div>
+</body>
+</html>
