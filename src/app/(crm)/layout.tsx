@@ -16,6 +16,7 @@ import { getCustomObjectsForNav } from '@/lib/objectMetadata'
 import { isAdmin, getSupabaseUser } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
+import { getEnabledModules } from '@/lib/modules/registry'
 
 export default async function CrmLayout({ children }: { children: React.ReactNode }) {
   // ── Round 1: 認証を先に取得してユーザー ID を確定 ───────────────────
@@ -90,6 +91,41 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   // カスタムオブジェクトを含めてユーザー設定順に並び替え
   const mainItems = applyNavOrder(order, allCustomItems)
 
+  // ── モジュール基準ナビ（#22 / REQ-0015）─────────────────────────────
+  // 有効モジュールの navItems から href→モジュール対応を作り、mainItems をグルーピング。
+  // どのモジュールにも属さない項目（カスタムオブジェクト等）は「その他」へ。
+  // グループ化できない場合は従来のフラット表示にフォールバック（安全）。
+  const enabledModules = await getEnabledModules()
+  const hrefToModule = new Map<string, { id: string; name: string; category: string }>()
+  for (const m of enabledModules) {
+    for (const n of m.navItems ?? []) {
+      hrefToModule.set(n.href, { id: m.id, name: m.name, category: m.category })
+    }
+  }
+  const CATEGORY_RANK: Record<string, number> = { platform: 0, crm: 1, erp: 2, industry: 3 }
+  let dashboardItem: NavItem | undefined
+  const byModule = new Map<string, NavItem[]>()
+  const otherItems: NavItem[] = []
+  for (const item of mainItems) {
+    if (item.href === '/dashboard') { dashboardItem = item; continue }
+    const mod = hrefToModule.get(item.href)
+    if (mod) {
+      const arr = byModule.get(mod.id) ?? []
+      arr.push(item)
+      byModule.set(mod.id, arr)
+    } else {
+      otherItems.push(item)
+    }
+  }
+  let navGroups: { id: string; name: string; items: NavItem[] }[] = enabledModules
+    .filter((m) => byModule.has(m.id))
+    .sort((a, b) => (CATEGORY_RANK[a.category] ?? 9) - (CATEGORY_RANK[b.category] ?? 9))
+    .map((m) => ({ id: m.id, name: m.name, items: byModule.get(m.id)! }))
+  if (otherItems.length) navGroups.push({ id: '__other', name: 'その他', items: otherItems })
+  if (navGroups.length === 0) {
+    navGroups = [{ id: '__all', name: 'メニュー', items: mainItems.filter((i) => i.href !== '/dashboard') }]
+  }
+
   // なりすまし中かどうか確認
   const adminSessionRaw = cookieStore.get('crm_admin_session')?.value
   const impersonation   = adminSessionRaw
@@ -114,7 +150,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <SuspenseRescuer />
       </div>
       <div className="print:hidden">
-        <Sidebar mainItems={mainItems} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
+        <Sidebar navGroups={navGroups} dashboardItem={dashboardItem} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
       </div>
       <div className="print:hidden">
         <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} aiEnabled={aiEnabled} />

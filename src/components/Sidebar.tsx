@@ -8,15 +8,19 @@ import SignOutButton from '@/components/SignOutButton'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
 
 /** 管理者のみ表示するボトムナビの href */
-const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs', '/admin/audit-log', '/admin/ai', '/admin/license', '/admin/notifications'])
+const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs', '/admin/audit-log', '/admin/ai', '/admin/license', '/admin/notifications', '/admin/modules'])
+
+/** モジュール基準ナビのグループ（#22 / REQ-0015） */
+type NavGroup = { id: string; name: string; items: NavItem[] }
 
 type Props = {
-  mainItems:   NavItem[]
-  companyName: string
-  displayName: string | null
-  isAdmin?:    boolean
+  navGroups:     NavGroup[]
+  dashboardItem?: NavItem
+  companyName:   string
+  displayName:   string | null
+  isAdmin?:      boolean
   /** AI 機能が有効か（追加料金プラン、env AI_FEATURE_ENABLED で制御） */
-  aiEnabled?:  boolean
+  aiEnabled?:    boolean
 }
 
 /** AI 機能フラグが false の時に隠す href */
@@ -34,7 +38,7 @@ const ChevronRight = () => (
   </svg>
 )
 
-export default function Sidebar({ mainItems, companyName, displayName, isAdmin = false, aiEnabled = false }: Props) {
+export default function Sidebar({ navGroups, dashboardItem, companyName, displayName, isAdmin = false, aiEnabled = false }: Props) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -55,6 +59,28 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
   // SSR/hydration ちらつき防止：mounted 前は展開状態で描画
   const isCollapsed = mounted && collapsed
 
+  const renderItem = (item: NavItem) => {
+    const isActive = pathname.startsWith(item.href)
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        prefetch={true}
+        title={isCollapsed ? item.label : undefined}
+        className={`flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium transition-colors ${
+          isCollapsed ? 'justify-center' : ''
+        } ${
+          isActive
+            ? 'bg-blue-600 text-white'
+            : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+        }`}
+      >
+        <span className="text-base leading-none shrink-0">{item.icon}</span>
+        {!isCollapsed && <span className="truncate">{item.label}</span>}
+      </Link>
+    )
+  }
+
   return (
     <aside
       className={`hidden md:flex md:flex-col shrink-0 bg-zinc-900 text-white min-h-screen transition-[width] duration-200 ease-in-out overflow-hidden ${
@@ -63,7 +89,6 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
     >
       {/* ヘッダー（ロゴ ＋ たたむボタン） */}
       <div className="flex items-center border-b border-zinc-700 h-14 px-2 gap-2">
-        {/* ロゴ */}
         <Link
           href="/dashboard"
           prefetch={true}
@@ -76,7 +101,6 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
           )}
         </Link>
 
-        {/* たたむ / 展開ボタン */}
         <button
           onClick={toggle}
           title={isCollapsed ? 'メニューを展開' : 'メニューをたたむ'}
@@ -86,29 +110,25 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
         </button>
       </div>
 
-      {/* メインナビゲーション */}
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {mainItems.map((item) => {
-          const isActive = pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={true}
-              title={isCollapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium transition-colors ${
-                isCollapsed ? 'justify-center' : ''
-              } ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-              }`}
-            >
-              <span className="text-base leading-none shrink-0">{item.icon}</span>
-              {!isCollapsed && <span className="truncate">{item.label}</span>}
-            </Link>
-          )
-        })}
+      {/* メインナビゲーション（モジュール基準・#22） */}
+      <nav className="flex-1 px-2 py-3 overflow-y-auto">
+        {dashboardItem && <div className="space-y-0.5">{renderItem(dashboardItem)}</div>}
+
+        {navGroups.map((group) => (
+          <div key={group.id} className="mt-2 first:mt-1">
+            {!isCollapsed && group.id !== '__all' && (
+              <div className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                {group.name}
+              </div>
+            )}
+            {isCollapsed && group.id !== '__all' && (
+              <div className="my-1 border-t border-zinc-800" />
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => renderItem(item))}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* ボトムナビ */}
@@ -116,27 +136,7 @@ export default function Sidebar({ mainItems, companyName, displayName, isAdmin =
         {BOTTOM_NAV_ITEMS
           .filter((item) => !ADMIN_ONLY_HREFS.has(item.href) || isAdmin)
           .filter((item) => !AI_GATED_HREFS.has(item.href) || aiEnabled)
-          .map((item) => {
-          const isActive = pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={true}
-              title={isCollapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium transition-colors ${
-                isCollapsed ? 'justify-center' : ''
-              } ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-              }`}
-            >
-              <span className="text-base leading-none shrink-0">{item.icon}</span>
-              {!isCollapsed && <span className="truncate">{item.label}</span>}
-            </Link>
-          )
-        })}
+          .map((item) => renderItem(item))}
 
         {/* ユーザー名 */}
         {displayName && (

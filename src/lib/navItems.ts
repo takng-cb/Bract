@@ -60,6 +60,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
 /** サイドバー下部（固定・順序変更不可） */
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
   { href: '/tags',           label: 'タグ管理',       icon: '🏷️' },
+  { href: '/admin/modules',        label: 'モジュール構成',   icon: '🧩' },
   { href: '/admin/objects',        label: 'オブジェクト管理', icon: '🗂️' },
   { href: '/admin/relationships',  label: '関係性管理',       icon: '🔗' },
   { href: '/admin/users',          label: 'ユーザー管理',     icon: '👥' },
