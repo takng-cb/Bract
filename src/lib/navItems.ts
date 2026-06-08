@@ -45,12 +45,12 @@ function hrefForCustomObject(apiName: string, activeIndustry: Industry): string 
 
 /** メインナビに並べられる全アイテム（マスター定義） */
 export const ALL_NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard',     label: 'ダッシュボード', icon: '🏠' },
+  { href: '/dashboard',     label: 'ダッシュボード', icon: '📊' },
   { href: '/accounts',      label: '取引先',        icon: '🏢' },
   { href: '/contacts',      label: '人物',          icon: '👤' },
   { href: '/opportunities', label: '商談',          icon: '💼' },
   { href: '/forecast',      label: '売上予測',      icon: '📊' },
-  { href: '/activities',    label: '活動履歴',      icon: '📋' },
+  { href: '/activities',    label: '活動履歴',      icon: '🗓️' },
   { href: '/tasks',         label: 'ToDo',          icon: '✅' },
   { href: '/expenses',      label: '経費管理',      icon: '💰' },
   // /properties はカスタムオブジェクト化のため削除。
