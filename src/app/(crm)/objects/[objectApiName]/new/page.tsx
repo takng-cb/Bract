@@ -3,6 +3,8 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 import { createCustomRecord } from '@/app/actions/customRecords'
+import { checkDuplicates } from '@/lib/duplicateCheck'
+import type { CreateState } from '@/lib/duplicateTypes'
 import DynamicForm from '@/components/DynamicForm'
 import { db } from '@/lib/db'
 import { accounts, contacts } from '@/lib/schema'
@@ -42,9 +44,12 @@ export default async function NewCustomRecordPage({
     getAllUsers(),
   ])
 
-  async function handleCreate(_prev: unknown, fd: FormData) {
+  async function handleCreate(_prev: unknown, fd: FormData): Promise<CreateState> {
     'use server'
-    await createCustomRecord(objectApiName, fd)
+    const dups = await checkDuplicates(`custom:${objectApiName}`, fd)
+    if (dups.length > 0) return { kind: 'duplicate', objectLabel: obj!.label, candidates: dups }
+    await createCustomRecord(objectApiName, fd)   // 成功時は内部で redirect、失敗時は throw（DynamicForm が捕捉）
+    return null
   }
 
   return (

@@ -5,6 +5,8 @@ import type { FieldDef } from '@/lib/objectMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
 import FormFillModal from '@/components/FormFillModal'
 import SearchableSelect from '@/components/SearchableSelect'
+import CreateFeedback from '@/components/CreateFeedback'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 type SelectOption = { value: string; label: string }
 
@@ -35,10 +37,16 @@ export default function DynamicForm({
   userOptions,
   defaultOwnerId,
 }: Props) {
-  const [error, dispatch, isPending] = useActionState(
-    async (_prev: unknown, fd: FormData) => {
-      try { await action(_prev, fd); setIsDirty(false); return null }
-      catch (e: unknown) { return (e as Error).message ?? '保存に失敗しました' }
+  const [state, dispatch, isPending] = useActionState<CreateState, FormData>(
+    async (_prev, fd) => {
+      try {
+        const res = await action(_prev, fd)
+        setIsDirty(false)
+        // create 経路は CreateState（重複/エラー/null）を返す。edit 経路は void → null。
+        return (res ?? null) as CreateState
+      } catch (e: unknown) {
+        return { kind: 'error', message: (e as Error).message ?? '保存に失敗しました' }
+      }
     },
     null,
   )
@@ -117,11 +125,7 @@ export default function DynamicForm({
       className="space-y-5"
       onChange={() => setIsDirty(true)}
     >
-      {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      <CreateFeedback state={state} formRef={formRef} />
 
       {/* ── 上部ボタン ── */}
       <Buttons />

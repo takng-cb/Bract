@@ -5,8 +5,9 @@ import Link from 'next/link'
 import VehicleForm from '@/industries/auto-body/components/VehicleForm'
 import { createVehicle } from '@/industries/auto-body/actions/vehicles'
 import { getAllUsers } from '@/lib/userUtils'
-import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
+import { runCreate } from '@/lib/duplicateCheck'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function NewVehiclePage() {
   await requireEditor()
@@ -16,15 +17,15 @@ export default async function NewVehiclePage() {
     getAllUsers(),
   ])
 
-  async function action(_: string | null, formData: FormData): Promise<string | null> {
+  async function action(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
-    try {
-      const id = await createVehicle(formData)
-      redirect(`/vehicles/${id}`)
-    } catch (e) {
-      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
-    }
+    return runCreate({
+      objectKey: 'vehicles',
+      objectLabel: '車両',
+      formData,
+      create: () => createVehicle(formData),
+      redirectTo: (id) => `/vehicles/${id}`,
+    })
   }
 
   return (

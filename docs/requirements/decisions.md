@@ -179,6 +179,17 @@
 - データモデルへの含意：ブック定義（旧 object_definitions）に `owning_module`、項目定義（field_definitions）に `owning_module` を持たせる。拡張項目は Phase6 の拡張テーブル分離（opportunities_*_ext）と整合。
 - 影響：#10（レジストリ）, #21（ブック）, #13（業種移設）, Phase6。`ModuleManifest.dependsOn` を前提にする。
 
+### ADR-0020  重複登録は「ブロック」でなく「確認画面」、自然キーは共通レジストリで管理
+- 2026-06-08 / **採用**（REQ-0018）
+- 文脈：取引先や担当者・案件などが重複登録される事故を防ぎたい。一方で「同名でも別物」（同名の別取引先、同日別案件）は正当に存在する。完全ブロックは誤検知で業務を止める。
+- 決定：
+  1. **検出 → 確認画面**：新規作成時に自然キーで既存を探し、見つかれば作成を保留して確認 UI を出す（`CreateState.kind='duplicate'`）。ユーザーが「既存を開く」か「それでも新規作成」を選ぶ。後者はフォーム hidden `__allow_duplicate=1` で検査をスキップ。
+  2. **自然キーは 1 箇所に集約**：`src/lib/duplicateCheck.ts` の `RULES`（組み込み）＋ `custom:<api>`（カスタムは主フィールド）で定義。create アクションは `runCreate()` ラッパーを呼ぶだけ。フォームは共通 `<CreateFeedback>` を置くだけ（`useActionState<CreateState>`）。
+  3. **案件はタイトル完全一致**：案件は自然キーが弱いので「取引先名＋日付＋内容」で生成するタイトルの完全一致で判定。`createAssignment` も同じ `buildAssignmentTitle` で title を保存し、両経路で一貫させる。
+  4. **対象外**：ToDo・活動は繰り返し登録が正当なため自然キー未定義（＝検査なし）。必要になれば RULES に追加するだけ。
+- 代替案：DB UNIQUE 制約での完全ブロック（誤検知で業務停止・同名別物を表現できないため不採用。part_number 等 既存 UNIQUE はそのまま温存）。
+- 影響：全 `*/new` フォーム（accounts/contacts/opportunities/assignments/vehicles/parts/properties/custom）。クイック登録は別 UI だが思想は同一（PR#33）。
+
 
 
 

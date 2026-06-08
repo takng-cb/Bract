@@ -6,12 +6,14 @@ import type { FieldDef } from '@/lib/objectMetadata'
 import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
+import CreateFeedback from '@/components/CreateFeedback'
+import type { CreateAction } from '@/lib/duplicateTypes'
 
 type Account    = { id: string; name: string }
 type UserOption = { id: string; name: string }
 
 type ContactFormProps = {
-  action: (prevState: string | null, formData: FormData) => Promise<string | null>
+  action: CreateAction
   cancelHref: string
   accounts: Account[]
   users?: UserOption[]
@@ -32,7 +34,7 @@ type ContactFormProps = {
 }
 
 export default function ContactForm({ action, cancelHref, accounts, users = [], defaultValues = {}, customFields = [], customValues = {} }: ContactFormProps) {
-  const [error, formAction, pending] = useActionState(action, null)
+  const [state, formAction, pending] = useActionState(action, null)
   const [contactType, setContactType] = useState<string>(defaultValues.contact_type ?? 'business')
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -41,9 +43,7 @@ export default function ContactForm({ action, cancelHref, accounts, users = [], 
 
   return (
     <form ref={formRef} action={formAction} className="space-y-5">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
-      )}
+      <CreateFeedback state={state} formRef={formRef} />
 
       <div className="flex gap-3">
         <button

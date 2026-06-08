@@ -5,8 +5,9 @@ import Link from 'next/link'
 import PartForm from '@/industries/auto-body/components/PartForm'
 import { createPart } from '@/industries/auto-body/actions/parts'
 import { getAllUsers } from '@/lib/userUtils'
-import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
+import { runCreate } from '@/lib/duplicateCheck'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function NewPartPage() {
   await requireEditor()
@@ -16,15 +17,15 @@ export default async function NewPartPage() {
     getAllUsers(),
   ])
 
-  async function action(_: string | null, formData: FormData): Promise<string | null> {
+  async function action(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
-    try {
-      const id = await createPart(formData)
-      redirect(`/parts/${id}`)
-    } catch (e) {
-      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
-    }
+    return runCreate({
+      objectKey: 'parts',
+      objectLabel: '部品',
+      formData,
+      create: () => createPart(formData),
+      redirectTo: (id) => `/parts/${id}`,
+    })
   }
 
   return (

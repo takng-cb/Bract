@@ -9,6 +9,7 @@ import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function EditContactPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -24,7 +25,7 @@ export default async function EditContactPage({ params }: { params: Promise<{ id
 
   const view = contact.contact_type === 'consumer' ? 'consumer' : 'business'
 
-  async function updateContactAction(_: string | null, formData: FormData): Promise<string | null> {
+  async function updateContactAction(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
     try {
       await saveCustomFieldValues('contacts', id, formData)
@@ -32,7 +33,7 @@ export default async function EditContactPage({ params }: { params: Promise<{ id
       return null
     } catch (e) {
       if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
+      return { kind: 'error', message: (e as Error).message }
     }
   }
 

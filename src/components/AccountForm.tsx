@@ -5,11 +5,13 @@ import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
+import CreateFeedback from '@/components/CreateFeedback'
+import type { CreateAction } from '@/lib/duplicateTypes'
 
 type UserOption = { id: string; name: string }
 
 type AccountFormProps = {
-  action: (prevState: string | null, formData: FormData) => Promise<string | null>
+  action: CreateAction
   cancelHref: string
   users?: UserOption[]
   customFields?: FieldDef[]
@@ -38,16 +40,12 @@ const INDUSTRIES = [
 const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他社', 'その他']
 
 export default function AccountForm({ action, cancelHref, users = [], defaultValues = {}, customFields = [], customValues = {} }: AccountFormProps) {
-  const [error, formAction, pending] = useActionState(action, null)
+  const [state, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
   return (
     <form ref={formRef} action={formAction} className="space-y-5">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">
-          {error}
-        </div>
-      )}
+      <CreateFeedback state={state} formRef={formRef} />
 
       <div className="flex gap-3">
         <button

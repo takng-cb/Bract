@@ -7,8 +7,9 @@ import { createContact } from '@/app/actions/contacts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
-import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
+import { runCreate } from '@/lib/duplicateCheck'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function NewContactPage({
   searchParams,
@@ -27,16 +28,16 @@ export default async function NewContactPage({
 
   const cancelHref = account_id ? `/accounts/${account_id}` : `/contacts?view=${contactType}`
 
-  async function createContactAction(_: string | null, formData: FormData): Promise<string | null> {
+  async function createContactAction(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
-    try {
-      const newId = await createContact(formData)
-      if (fields.length > 0) await saveCustomFieldValues('contacts', newId, formData)
-      redirect(`/contacts/${newId}`)
-    } catch (e) {
-      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
-    }
+    return runCreate({
+      objectKey: 'contacts',
+      objectLabel: '人物',
+      formData,
+      create: () => createContact(formData),
+      afterCreate: fields.length > 0 ? (id) => saveCustomFieldValues('contacts', id, formData) : undefined,
+      redirectTo: (id) => `/contacts/${id}`,
+    })
   }
 
   return (

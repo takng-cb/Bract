@@ -7,9 +7,10 @@ import { createOpportunity } from '@/app/actions/opportunities'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
-import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
+import { runCreate } from '@/lib/duplicateCheck'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function NewOpportunityPage({
   searchParams,
@@ -47,16 +48,16 @@ export default async function NewOpportunityPage({
 
   const cancelHref = account_id ? `/accounts/${account_id}` : '/opportunities'
 
-  async function createOpportunityAction(_: string | null, formData: FormData): Promise<string | null> {
+  async function createOpportunityAction(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
-    try {
-      const newId = await createOpportunity(formData)
-      if (fields.length > 0) await saveCustomFieldValues('opportunities', newId, formData)
-      redirect(`/opportunities/${newId}`)
-    } catch (e) {
-      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
-    }
+    return runCreate({
+      objectKey: 'opportunities',
+      objectLabel: '商談',
+      formData,
+      create: () => createOpportunity(formData),
+      afterCreate: fields.length > 0 ? (id) => saveCustomFieldValues('opportunities', id, formData) : undefined,
+      redirectTo: (id) => `/opportunities/${id}`,
+    })
   }
 
   return (
