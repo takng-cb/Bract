@@ -38,7 +38,15 @@ export const geminiProvider: AIProvider = {
             parts: [{ text: req.system }],
           },
           contents: [
-            { role: 'user', parts: [{ text: req.user }] },
+            {
+              role: 'user',
+              parts: [
+                ...(req.images ?? []).map((img) => ({
+                  inlineData: { mimeType: img.mediaType, data: img.dataBase64 },
+                })),
+                { text: req.user },
+              ],
+            },
           ],
           generationConfig: {
             maxOutputTokens: req.maxTokens ?? 1024,

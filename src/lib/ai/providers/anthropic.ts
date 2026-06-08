@@ -40,7 +40,18 @@ export const anthropicProvider: AIProvider = {
           temperature: req.temperature ?? 0.3,
           system:      req.system,
           messages: [
-            { role: 'user', content: req.user },
+            {
+              role: 'user',
+              content: (req.images && req.images.length > 0)
+                ? [
+                    ...req.images.map((img) => ({
+                      type: 'image',
+                      source: { type: 'base64', media_type: img.mediaType, data: img.dataBase64 },
+                    })),
+                    { type: 'text', text: req.user },
+                  ]
+                : req.user,
+            },
           ],
         }),
         signal: controller.signal,

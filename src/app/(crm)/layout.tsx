@@ -17,7 +17,7 @@ import { isAdmin, getSupabaseUser } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { getEnabledModules } from '@/lib/modules/registry'
-import { buildQuickActionGroups } from '@/lib/modules/quick'
+import { buildModuleBooks } from '@/lib/modules/quick'
 import QuickLauncher from '@/components/QuickLauncher'
 import Topbar from '@/components/Topbar'
 
@@ -121,8 +121,8 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     navGroups.push({ id: '__all', name: 'メニュー', items: mainItems.filter((i) => i.href !== '/dashboard') })
   }
 
-  // クイックアクセス（REQ-0016）：有効モジュールの起点アクション群
-  const quickGroups = buildQuickActionGroups(enabledModules)
+  // クイック操作ウィザード（REQ-0021）：モジュール → ブック ツリー
+  const quickModules = buildModuleBooks(enabledModules)
 
   // なりすまし中かどうか確認
   const adminSessionRaw = cookieStore.get('crm_admin_session')?.value
@@ -163,7 +163,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <BottomNav />
         <PwaInstallBanner />
       </div>
-      <QuickLauncher groups={quickGroups} />
+      <QuickLauncher modules={quickModules} />
       {impersonation && (
         <div className="print:hidden">
           <ImpersonationBanner

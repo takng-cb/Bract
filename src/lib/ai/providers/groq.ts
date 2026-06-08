@@ -25,6 +25,9 @@ type GroqResponse = {
 export const groqProvider: AIProvider = {
   kind: 'groq',
   async complete(req: AICompletionRequest): Promise<AICompletionResult> {
+    if (req.images && req.images.length > 0) {
+      throw new AIProviderError('Groq では画像解析に未対応です。画像入力を使う場合は AI プロバイダを Anthropic または Gemini に設定してください。', 'groq')
+    }
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), req.timeoutMs ?? 30000)
     try {

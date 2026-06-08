@@ -164,6 +164,13 @@
 - 状態：実装（feature/dev-multi-industry）。3業種ビルド green。本番挙動は不変。
 - 関連：ADR-0002/0005（モジュール）, REQ-0002 / 注：dev Vercel で見るには `BRACT_DISABLE_INDUSTRY_REDIRECTS=1` を設定し再デプロイ要
 
+### REQ-0022  クイック操作ウィザード（段階フロー化）＋ UI絵文字の Lucide 統一
+- 2026-06-09 / 会話（「クイック起点に絵文字が使われているのでやめたい・アイコンにしたい／他の絵文字も直して」「クイック操作を次のフローに」）
+- 内容（A: アイコン統一, REQ-0020 継続）：UI に直接描画されていた絵文字（見出し・空状態・インラインラベル・クイック起点・優先度ドット等）を `NavIcon`(Lucide) に全面置換。`navIcon.tsx` の EMOJI_TO_LUCIDE を拡張（📞✉️📅📄📍🛡️⚠️🤝🧾💴👔🗺️⚖️🖨🔀🌐🔒🚪💬✏️💳🧰📎👁🔍🧪📁🔢 等）。優先度 🔴🟡🟢 は色付きドット span に。`<option>`/入力 value・placeholder の絵文字（ユーザーデータ）と単色グリフ ✓✗✕ は対象外。
+- 内容（B: クイック操作ウィザード）：右下＋モバイル中央FABの「クイック操作」をフラット一覧→**段階ウィザード**に再設計。①レコード作成/閲覧 → ②作成なら AI作成/手動入力 → モジュール選択 → ブック選択 →（手動）新規入力画面へ遷移／（AI）自由入力欄＋画像解析→**確認画面（編集可）**→作成／（閲覧）一覧へ遷移。AI 作成はカスタムオブジェクト（field_definitions 駆動の custom_records）で汎用実装（draft-then-apply、AIはDB直接操作せず確認後 apply）。typed ブックは専用ウィザード（例:人材→/quick/staffing）か手動入力に誘導。画像解析は AI client に Vision 入力を追加（Anthropic / Gemini 対応、Groq は明示エラー）。
+- 状態：実装（feature/quick-access）。3業種ビルド green / 単体143 green / E2E（quick-wizard 2＋industry-routes 14＋mobile-nav 2）green。
+- 関連：REQ-0016（モジュール別クイックアクセス）, REQ-0020（アイコン）, ADR-0016 / 残：typed ブックの AI 作成 apply（在庫等の個別実装）・画像OCR精度調整
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
