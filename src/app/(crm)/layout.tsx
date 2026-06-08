@@ -19,6 +19,7 @@ import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { getEnabledModules } from '@/lib/modules/registry'
 import { buildQuickActionGroups } from '@/lib/modules/quick'
 import QuickLauncher from '@/components/QuickLauncher'
+import Topbar from '@/components/Topbar'
 
 export default async function CrmLayout({ children }: { children: React.ReactNode }) {
   // ── Round 1: 認証を先に取得してユーザー ID を確定 ───────────────────
@@ -152,7 +153,10 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
       <div className="print:hidden">
         <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
       </div>
-      <main className={`flex-1 overflow-auto pt-14 md:pt-0 print:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'} print:pb-0`}>
+      <main className={`flex-1 min-w-0 overflow-auto pt-14 md:pt-0 print:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'} print:pb-0`}>
+        <div className="sticky top-0 z-20">
+          <Topbar />
+        </div>
         {children}
       </main>
       <div className="print:hidden">

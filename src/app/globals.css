@@ -11,6 +11,8 @@
    ============================================================================ */
 
 @import "tailwindcss";
+/* Claude Design 移植のデザインシステム（トークン＋コンポーネントクラス＋シェル） */
+@import "./design-system.css";
 
 /* ダークは class 戦略（<html class="dark">）。 */
 @custom-variant dark (&:where(.dark, .dark *));
