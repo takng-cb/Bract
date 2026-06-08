@@ -85,7 +85,7 @@ export default function MaintenanceForm({
       </div>
 
       {/* 顧客車両 + 顧客 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">対象</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -139,7 +139,7 @@ export default function MaintenanceForm({
       </div>
 
       {/* 日時・場所 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">日時・場所</h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
@@ -202,7 +202,7 @@ export default function MaintenanceForm({
       </div>
 
       {/* 担当 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">担当</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -219,7 +219,7 @@ export default function MaintenanceForm({
       </div>
 
       {/* メモ */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">メモ</h2>
         <div className="space-y-3">
           <div>
@@ -241,7 +241,7 @@ export default function MaintenanceForm({
       </div>
 
       {/* 税・ステータス */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">税 / ステータス</h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>

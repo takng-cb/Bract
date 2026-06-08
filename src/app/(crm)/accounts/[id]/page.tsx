@@ -146,7 +146,7 @@ export default async function AccountDetailPage({
       </div>
 
       {/* 基本情報 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">基本情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
@@ -355,7 +355,7 @@ export default async function AccountDetailPage({
   // ── 活動・ToDo・経費タブの中身 ────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const interactionsContent = interactionCount === 0 ? (
-    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-8 text-center">
       <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
       <AuthGuard minRole="editor">
         <div className="flex flex-wrap justify-center gap-2">

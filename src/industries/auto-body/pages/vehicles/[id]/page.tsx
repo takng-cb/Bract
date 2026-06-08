@@ -152,7 +152,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   // ── 概要タブ ─────────────────────────────────────────────────────
   const overviewContent = (
     <>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">車両情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -183,7 +183,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         </dl>
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">仕入・販売</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -236,7 +236,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {v.description && (
-        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-2">備考</h2>
           <p className="text-sm text-zinc-800 whitespace-pre-wrap">{v.description}</p>
         </div>
@@ -244,7 +244,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
       {/* 代車利用（Issue #45） */}
       {(activeLoan || pastLoans.length > 0) && (
-        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
           <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">
             🚙 代車利用
           </h2>
@@ -378,7 +378,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const interactionsContent = interactionCount === 0 ? (
-    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-8 text-center">
       <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
       <AuthGuard minRole="editor">
         <p className="text-xs text-zinc-400 mb-3">作成画面の「関連レコード」で車両を選択してください</p>

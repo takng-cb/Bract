@@ -106,7 +106,7 @@ export default async function EditTaskPage({ params }: { params: Promise<{ id: s
         { label: '編集' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">ToDoを編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <TaskForm
           action={updateTaskAction}
           cancelHref={`/tasks/${id}`}

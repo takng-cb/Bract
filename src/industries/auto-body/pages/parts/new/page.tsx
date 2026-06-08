@@ -36,7 +36,7 @@ export default async function NewPartPage() {
         <span className="text-zinc-700">新規追加</span>
       </div>
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">部品を追加</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <PartForm action={action} cancelHref="/parts" accounts={accountsList} users={users} />
       </div>
     </div>

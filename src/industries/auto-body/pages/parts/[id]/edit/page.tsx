@@ -42,7 +42,7 @@ export default async function EditPartPage({ params }: { params: Promise<{ id: s
         <span className="text-zinc-700">編集</span>
       </div>
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">部品を編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <PartForm action={action} cancelHref={`/parts/${id}`} accounts={accountsList} users={users} defaultValues={p} />
       </div>
     </div>

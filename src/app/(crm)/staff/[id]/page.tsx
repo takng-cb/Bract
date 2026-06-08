@@ -84,7 +84,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* プロフィール */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">プロフィール</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div><dt className="text-xs text-zinc-400 mb-1">性別</dt><dd>{s.gender ?? '—'}</dd></div>
@@ -95,7 +95,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       </section>
 
       {/* スキル + エリア */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">スキル・対応エリア</h2>
         <div className="space-y-3">
           <div>
@@ -118,7 +118,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       </section>
 
       {/* 標準単価 */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">標準単価</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -133,7 +133,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       </section>
 
       {/* アサイン履歴 */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">アサイン履歴 ({history.length})</h2>
         {history.length === 0 ? (
           <p className="text-sm text-zinc-400">アサインされた案件はまだありません</p>
@@ -155,7 +155,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       </section>
 
       {s.notes && (
-        <section className="bg-white border border-zinc-200 rounded-lg p-6">
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
           <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-2">メモ</h2>
           <p className="text-sm text-zinc-800 whitespace-pre-wrap">{s.notes}</p>
         </section>

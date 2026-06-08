@@ -26,7 +26,7 @@ export default function MaintenanceTemplateForm({ action, cancelHref, defaultVal
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
 
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 space-y-4">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">
             テンプレ名 <span className="text-red-500">*</span>

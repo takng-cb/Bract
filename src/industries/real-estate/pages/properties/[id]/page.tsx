@@ -60,7 +60,7 @@ function Dl({ items }: { items: DlItem[] }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
       <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">{title}</h2>
       {children}
     </div>
@@ -234,7 +234,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
             ]} />
           </Section>
 
-          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
             <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">⚖️ 司法書士情報</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-3">
@@ -305,7 +305,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const interactionsContent = interactionCount === 0 ? (
-    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-8 text-center">
       <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
       <AuthGuard minRole="editor">
         <p className="text-xs text-zinc-400 mb-3">作成画面の「関連レコード」で物件を選択してください</p>
