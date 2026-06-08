@@ -94,38 +94,30 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   const mainItems = applyNavOrder(order, allCustomItems)
 
   // ── モジュール基準ナビ（#22 / REQ-0015）─────────────────────────────
-  // 有効モジュールの navItems から href→モジュール対応を作り、mainItems をグルーピング。
-  // どのモジュールにも属さない項目（カスタムオブジェクト等）は「その他」へ。
-  // グループ化できない場合は従来のフラット表示にフォールバック（安全）。
+  // 有効モジュールの navItems から**直接**サイドバーを構成する（モジュールを有効化すれば
+  // その項目が出る）。モジュールに属さない既存項目（カスタムオブジェクト等）は「その他」へ。
   const enabledModules = await getEnabledModules()
-  const hrefToModule = new Map<string, { id: string; name: string; category: string }>()
-  for (const m of enabledModules) {
-    for (const n of m.navItems ?? []) {
-      hrefToModule.set(n.href, { id: m.id, name: m.name, category: m.category })
-    }
-  }
   const CATEGORY_RANK: Record<string, number> = { platform: 0, crm: 1, erp: 2, industry: 3 }
-  let dashboardItem: NavItem | undefined
-  const byModule = new Map<string, NavItem[]>()
-  const otherItems: NavItem[] = []
-  for (const item of mainItems) {
-    if (item.href === '/dashboard') { dashboardItem = item; continue }
-    const mod = hrefToModule.get(item.href)
-    if (mod) {
-      const arr = byModule.get(mod.id) ?? []
-      arr.push(item)
-      byModule.set(mod.id, arr)
-    } else {
-      otherItems.push(item)
-    }
-  }
-  let navGroups: { id: string; name: string; items: NavItem[] }[] = enabledModules
-    .filter((m) => byModule.has(m.id))
+
+  const dashboardItem: NavItem | undefined = mainItems.find((i) => i.href === '/dashboard')
+
+  const moduleHrefs = new Set<string>()
+  const navGroups: { id: string; name: string; items: NavItem[] }[] = enabledModules
+    .filter((m) => (m.navItems?.length ?? 0) > 0)
     .sort((a, b) => (CATEGORY_RANK[a.category] ?? 9) - (CATEGORY_RANK[b.category] ?? 9))
-    .map((m) => ({ id: m.id, name: m.name, items: byModule.get(m.id)! }))
+    .map((m) => {
+      const items: NavItem[] = (m.navItems ?? []).map((n) => ({ href: n.href, label: n.label, icon: n.icon }))
+      items.forEach((i) => moduleHrefs.add(i.href))
+      return { id: m.id, name: m.name, items }
+    })
+
+  // その他：どのモジュールにも属さない既存nav項目（カスタムオブジェクト/未分類）。dashboard除外。
+  const otherItems: NavItem[] = mainItems.filter((i) => i.href !== '/dashboard' && !moduleHrefs.has(i.href))
   if (otherItems.length) navGroups.push({ id: '__other', name: 'その他', items: otherItems })
+
+  // フォールバック（モジュールが1つも nav を持たない異常時）
   if (navGroups.length === 0) {
-    navGroups = [{ id: '__all', name: 'メニュー', items: mainItems.filter((i) => i.href !== '/dashboard') }]
+    navGroups.push({ id: '__all', name: 'メニュー', items: mainItems.filter((i) => i.href !== '/dashboard') })
   }
 
   // クイックアクセス（REQ-0016）：有効モジュールの起点アクション群
