@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — 取引先</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<style>
+  html, body { height: 100%; }
+  body { background: var(--n-100); overflow: hidden; }
+  .app { display: flex; height: 100vh; }
+  .sidebar { width: 224px; flex: none; background: var(--side-bg); display: flex; flex-direction: column; position: relative; }
+  .sidebar .brand-row { display: flex; align-items: center; gap: 9px; padding: 16px 14px 12px; color: #fff; font-weight: 700; font-size: var(--text-lg); }
+  .sidebar .nav { flex: 1; overflow-y: auto; padding: 4px 10px 16px; }
+  .sidebar .nav::-webkit-scrollbar { width: 8px; }
+  .sidebar .nav::-webkit-scrollbar-thumb { background: var(--side-border); border-radius: 8px; }
+  .side-foot { border-top: 1px solid var(--side-border); padding: 10px; }
+  .side-user { display: flex; align-items: center; gap: 9px; padding: 6px; border-radius: var(--r-sm); cursor: pointer; }
+  .side-user:hover { background: var(--side-bg-2); }
+  .avatar { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--brand-600); color: var(--on-primary); display: grid; place-items: center; font-size: var(--text-sm); font-weight: 700; flex: none; }
+  .side-user .meta .nm { font-size: var(--text-sm); color: var(--n-50); font-weight: 600; }
+  .side-user .meta .rl { font-size: var(--text-2xs); color: var(--side-text-dim); }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar { height: 56px; flex: none; background: var(--n-0); border-bottom: 1px solid var(--n-200); display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-6); position: relative; }
+  .searchbox { display: flex; align-items: center; gap: 8px; background: var(--n-100); border: 1px solid var(--n-200); border-radius: var(--r-md); padding: 0 10px; height: 34px; width: 300px; color: var(--n-500); }
+  .searchbox input { border: none; background: none; outline: none; font: inherit; font-size: var(--text-md); color: var(--n-800); width: 100%; }
+  .topbar .ic-btn { width: 34px; height: 34px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--n-600); cursor: pointer; position: relative; }
+  .topbar .ic-btn:hover { background: var(--n-100); color: var(--n-900); }
+  .topbar .ic-btn .dot { position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+
+  /* list page uses a fixed header + scroll table */
+  .listwrap { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: var(--sp-5) var(--sp-7) 0; }
+  .page-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-4); }
+  .page-head h1 { margin: 0; font-size: var(--text-2xl); font-weight: 700; color: var(--n-900); display: flex; align-items: baseline; gap: 10px; }
+  .page-head h1 .cnt { font-size: var(--text-md); font-weight: 600; color: var(--n-400); white-space: nowrap; }
+
+  /* saved views */
+  .views { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid var(--n-200); margin-bottom: var(--sp-3); overflow-x: auto; }
+  .view { appearance: none; background: none; border: none; cursor: pointer; font: inherit; font-size: var(--text-md); font-weight: 600; color: var(--n-500); padding: 8px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+  .view:hover { color: var(--n-800); }
+  .view.active { color: var(--primary-text); border-bottom-color: var(--primary); }
+  .view .vc { font-size: var(--text-xs); color: var(--n-400); font-variant-numeric: tabular-nums; }
+  .view.active .vc { color: var(--primary-text); }
+  .view.add { color: var(--n-400); }
+
+  /* toolbar */
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: var(--sp-3); flex-wrap: wrap; }
+  .tool-search { display: flex; align-items: center; gap: 7px; background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-md); padding: 0 9px; height: 32px; width: 240px; color: var(--n-500); }
+  .tool-search input { border: none; background: none; outline: none; font: inherit; font-size: var(--text-md); color: var(--n-800); width: 100%; }
+  .tool-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; font-size: var(--text-md); font-weight: 600; color: var(--n-700); background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-md); cursor: pointer; white-space: nowrap; }
+  .tool-btn:hover { background: var(--n-50); border-color: var(--n-400); }
+  .tool-btn .ic { width: 15px; height: 15px; color: var(--n-500); }
+  .tool-btn.has-filter { border-color: var(--brand-300); background: var(--brand-50); color: var(--primary-text); }
+  .tool-btn.has-filter .ic { color: var(--primary); }
+  .tool-btn .fc { background: var(--primary); color: var(--on-primary); font-size: 10px; border-radius: var(--r-pill); padding: 0 5px; min-width: 16px; text-align: center; }
+
+  /* filter chips */
+  .chips { display: flex; align-items: center; gap: 7px; margin-bottom: var(--sp-3); flex-wrap: wrap; }
+  .chip-f { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px 0 10px; background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-pill); font-size: var(--text-sm); color: var(--n-700); white-space: nowrap; }
+  .chip-f b { color: var(--n-500); font-weight: 600; }
+  .chip-f .x { width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; color: var(--n-400); cursor: pointer; }
+  .chip-f .x:hover { background: var(--n-100); color: var(--n-800); }
+  .chips .clear { font-size: var(--text-sm); color: var(--n-500); cursor: pointer; font-weight: 600; white-space: nowrap; }
+  .chips .clear:hover { color: var(--danger-text); }
+
+  /* table area scroll */
+  .table-scroll { flex: 1; overflow: auto; border: 1px solid var(--n-200); border-top-left-radius: var(--r-lg); border-top-right-radius: var(--r-lg); background: var(--n-0); }
+  table.tbl { width: 100%; }
+  .tbl thead th { position: sticky; top: 0; z-index: 2; cursor: pointer; user-select: none; }
+  .tbl thead th .th { display: inline-flex; align-items: center; gap: 4px; }
+  .tbl thead th .sort { width: 13px; height: 13px; color: var(--n-400); }
+  .tbl thead th.sorted .sort { color: var(--primary); }
+  .tbl th.chkcol, .tbl td.chkcol { width: 40px; padding-left: var(--cell-px); }
+  .lchk { width: 16px; height: 16px; border: 1.5px solid var(--n-300); border-radius: 4px; cursor: pointer; display: grid; place-items: center; background: var(--n-0); }
+  .lchk:hover { border-color: var(--primary); }
+  .lchk.on { background: var(--primary); border-color: var(--primary); }
+  .lchk.on::after { content: ""; width: 9px; height: 9px; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/contain no-repeat; background: #fff; }
+  .acc-name { display: flex; align-items: center; gap: 10px; }
+  .acc-ico { width: 28px; height: 28px; border-radius: var(--r-sm); background: var(--n-100); color: var(--n-500); display: grid; place-items: center; flex: none; }
+  .acc-name .nm { font-weight: 600; color: var(--n-900); }
+  .acc-name .sub { font-size: var(--text-xs); color: var(--n-500); }
+  .tbl tbody tr { cursor: pointer; }
+  .tbl tbody tr.sel { background: var(--brand-50); }
+  .row-act { opacity: 0; }
+  .tbl tbody tr:hover .row-act { opacity: 1; }
+  .tag-s { display: inline-flex; align-items: center; height: 19px; padding: 0 7px; font-size: var(--text-xs); border-radius: var(--r-sm); background: var(--n-100); color: var(--n-600); font-weight: 500; }
+
+  /* pagination footer */
+  .pager { display: flex; align-items: center; justify-content: space-between; padding: 10px var(--sp-2); border: 1px solid var(--n-200); border-top: none; border-bottom-left-radius: var(--r-lg); border-bottom-right-radius: var(--r-lg); background: var(--n-0); font-size: var(--text-sm); color: var(--n-600); }
+  .pager .pages { display: flex; gap: 3px; align-items: center; }
+  .pg { min-width: 28px; height: 28px; padding: 0 6px; display: grid; place-items: center; border: 1px solid var(--n-200); border-radius: var(--r-sm); background: var(--n-0); cursor: pointer; font-size: var(--text-sm); font-weight: 600; color: var(--n-600); }
+  .pg:hover { background: var(--n-50); }
+  .pg.active { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .pg.nav { color: var(--n-500); }
+
+  /* bulk action bar */
+  .bulkbar { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; display: flex; align-items: center; gap: 12px; background: var(--n-900); color: var(--n-50); padding: 8px 10px 8px 16px; border-radius: var(--r-pill); box-shadow: var(--shadow-lg); z-index: 70; }
+  .bulkbar.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .bulkbar .cnt { font-size: var(--text-md); font-weight: 600; white-space: nowrap; }
+  .bulkbar .vline { width: 1px; height: 18px; background: oklch(1 0 0 / 0.18); }
+  .bulkbar .bbtn { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: 600; color: var(--n-100); padding: 6px 10px; border-radius: var(--r-sm); cursor: pointer; white-space: nowrap; }
+  .bulkbar .bbtn:hover { background: oklch(1 0 0 / 0.12); }
+  .bulkbar .bbtn.danger { color: oklch(0.78 0.13 27); }
+  .bulkbar .close { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; cursor: pointer; color: var(--n-400); }
+  .bulkbar .close:hover { background: oklch(1 0 0 / 0.12); }
+
+  /* filter builder popover */
+  .fb-pop { position: absolute; z-index: 40; width: 460px; background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); box-shadow: var(--shadow-lg); display: none; }
+  .fb-pop.open { display: block; }
+  .fb-head { padding: 12px 16px; border-bottom: 1px solid var(--n-150); font-size: var(--text-md); font-weight: 700; color: var(--n-800); }
+  .fb-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .fb-cond { display: flex; align-items: center; gap: 6px; }
+  .fb-cond .conj { font-size: var(--text-xs); color: var(--n-400); width: 34px; flex: none; text-align: right; }
+  .fb-cond .select, .fb-cond .input { height: 32px; font-size: var(--text-sm); }
+  .fb-cond .f-field { width: 110px; flex: none; }
+  .fb-cond .f-op { width: 92px; flex: none; }
+  .fb-cond .rm { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--n-400); cursor: pointer; }
+  .fb-cond .rm:hover { background: var(--n-100); color: var(--danger-text); }
+  .fb-foot { padding: 10px 16px; border-top: 1px solid var(--n-150); display: flex; justify-content: space-between; align-items: center; }
+
+  .design-fab { position: fixed; bottom: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-pill); padding: 5px 8px 5px 12px; box-shadow: var(--shadow-md); font-size: var(--text-sm); }
+  .design-fab .lab { color: var(--n-500); font-weight: 600; font-size: var(--text-xs); }
+  .design-fab .seg { display: inline-flex; gap: 2px; background: var(--n-100); border-radius: var(--r-pill); padding: 2px; }
+  .design-fab .seg button { appearance: none; border: none; background: none; cursor: pointer; padding: 4px; border-radius: 50%; display: grid; place-items: center; }
+  .design-fab .seg button .sw { width: 15px; height: 15px; border-radius: 50%; display: block; border: 2px solid transparent; }
+  .design-fab .seg button[aria-pressed="true"] .sw { border-color: var(--n-0); box-shadow: 0 0 0 2px var(--n-800); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="bract-sidebar" data-active="accounts"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="navprog" style="width:0;"></div>
+      <div class="searchbox"><i data-lucide="search" class="ic" style="width:16px;height:16px;"></i><input placeholder="取引先・車両・商談を検索…" /><span class="mono" style="font-size:11px;color:var(--n-400);border:1px solid var(--n-300);border-radius:4px;padding:0 5px;">⌘K</span></div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ai btn-sm"><i data-lucide="sparkles" class="ic"></i>AIで取り込み</button>
+      <div class="ic-btn"><i data-lucide="bell" class="ic" style="width:18px;height:18px;"></i><span class="dot"></span></div>
+      <div class="ic-btn"><i data-lucide="circle-help" class="ic" style="width:18px;height:18px;"></i></div>
+    </header>
+
+    <div class="listwrap">
+      <div class="page-head">
+        <h1>取引先 <span class="cnt">128件</span></h1>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary"><i data-lucide="upload" class="ic"></i>CSV取込</button>
+          <button class="btn btn-secondary"><i data-lucide="download" class="ic"></i>CSV出力</button>
+          <button class="btn btn-primary"><i data-lucide="plus" class="ic"></i>取引先を作成</button>
+        </div>
+      </div>
+
+      <!-- saved views -->
+      <div class="views">
+        <button class="view active">すべて <span class="vc">128</span></button>
+        <button class="view">顧客 <span class="vc">96</span></button>
+        <button class="view">仕入先 <span class="vc">24</span></button>
+        <button class="view">今月の新規 <span class="vc">8</span></button>
+        <button class="view">売掛金あり <span class="vc">14</span></button>
+        <button class="view add"><i data-lucide="bookmark-plus" class="ic" style="width:15px;height:15px;"></i>ビューを保存</button>
+      </div>
+
+      <!-- toolbar -->
+      <div class="toolbar">
+        <div class="tool-search"><i data-lucide="search" class="ic" style="width:15px;height:15px;"></i><input placeholder="この一覧を絞り込み…" /></div>
+        <button class="tool-btn has-filter" id="filterBtn"><i data-lucide="sliders-horizontal" class="ic"></i>フィルタ<span class="fc">2</span></button>
+        <button class="tool-btn"><i data-lucide="group" class="ic"></i>グループ化</button>
+        <button class="tool-btn"><i data-lucide="columns-3" class="ic"></i>列</button>
+        <div style="flex:1"></div>
+        <button class="tool-btn"><i data-lucide="arrow-down-up" class="ic"></i>更新が新しい順</button>
+      </div>
+
+      <!-- active filter chips -->
+      <div class="chips">
+        <span class="chip-f"><b>種別</b> 顧客 <span class="x"><i data-lucide="x" class="ic" style="width:12px;height:12px;"></i></span></span>
+        <span class="chip-f"><b>担当</b> 田中 一郎 <span class="x"><i data-lucide="x" class="ic" style="width:12px;height:12px;"></i></span></span>
+        <span class="clear">すべてクリア</span>
+      </div>
+
+      <!-- table -->
+      <div class="table-scroll">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th class="chkcol"><span class="lchk" id="selAll"></span></th>
+              <th class="sorted"><span class="th">取引先名 <i data-lucide="chevron-down" class="sort"></i></span></th>
+              <th>種別</th>
+              <th>業種</th>
+              <th>担当</th>
+              <th class="col-num"><span class="th">進行中商談</span></th>
+              <th class="col-num"><span class="th">売掛金 <i data-lucide="chevrons-up-down" class="sort"></i></span></th>
+              <th>最終活動</th>
+              <th>更新</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <div>1–12 / 128件</div>
+        <div class="pages">
+          <span class="pg nav"><i data-lucide="chevron-left" class="ic" style="width:15px;height:15px;"></i></span>
+          <span class="pg active">1</span>
+          <span class="pg">2</span>
+          <span class="pg">3</span>
+          <span class="pg">…</span>
+          <span class="pg">11</span>
+          <span class="pg nav"><i data-lucide="chevron-right" class="ic" style="width:15px;height:15px;"></i></span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">表示件数 <select class="select" style="height:28px; width:auto; font-size:var(--text-sm);"><option>12</option><option>25</option><option>50</option></select></div>
+      </div>
+
+      <!-- filter builder popover -->
+      <div class="fb-pop" id="fbPop" style="top:160px; left:280px;">
+        <div class="fb-head">フィルタ条件</div>
+        <div class="fb-body">
+          <div class="fb-cond"><span class="conj">条件</span>
+            <select class="select f-field"><option>種別</option><option>業種</option><option>担当</option><option>売掛金</option><option>タグ</option></select>
+            <select class="select f-op"><option>と一致</option><option>を含む</option><option>以上</option></select>
+            <input class="input" value="顧客" />
+            <span class="rm"><i data-lucide="trash-2" class="ic" style="width:15px;height:15px;"></i></span>
+          </div>
+          <div class="fb-cond"><span class="conj">かつ</span>
+            <select class="select f-field"><option selected>担当</option><option>種別</option><option>業種</option></select>
+            <select class="select f-op"><option>と一致</option><option>を含む</option></select>
+            <input class="input" value="田中 一郎" />
+            <span class="rm"><i data-lucide="trash-2" class="ic" style="width:15px;height:15px;"></i></span>
+          </div>
+          <button class="tool-btn" style="align-self:flex-start; margin-top:4px;"><i data-lucide="plus" class="ic"></i>条件を追加</button>
+        </div>
+        <div class="fb-foot">
+          <span class="clear" style="font-size:var(--text-sm); color:var(--n-500); cursor:pointer; font-weight:600;">リセット</span>
+          <div style="display:flex; gap:8px;"><button class="btn btn-ghost btn-sm" id="fbCancel">閉じる</button><button class="btn btn-primary btn-sm">適用</button></div>
+        </div>
+      </div>
+
+      <!-- bulk bar -->
+      <div class="bulkbar" id="bulkbar">
+        <span class="cnt"><b id="bulkCount">0</b> 件を選択</span>
+        <span class="vline"></span>
+        <span class="bbtn"><i data-lucide="user-round" class="ic" style="width:15px;height:15px;"></i>担当を変更</span>
+        <span class="bbtn"><i data-lucide="tag" class="ic" style="width:15px;height:15px;"></i>タグ付け</span>
+        <span class="bbtn"><i data-lucide="download" class="ic" style="width:15px;height:15px;"></i>CSV出力</span>
+        <span class="bbtn danger"><i data-lucide="trash-2" class="ic" style="width:15px;height:15px;"></i>削除</span>
+        <span class="close" id="bulkClose"><i data-lucide="x" class="ic" style="width:16px;height:16px;"></i></span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="design-fab">
+  <span class="lab">見た目</span>
+  <div class="seg" role="group" aria-label="ブランド方向">
+    <button data-ctl="brand" data-val="foliage" title="Foliage"><span class="sw" style="background:oklch(0.515 0.112 158)"></span></button>
+    <button data-ctl="brand" data-val="vermillion" title="Vermillion"><span class="sw" style="background:oklch(0.565 0.185 33)"></span></button>
+    <button data-ctl="brand" data-val="indigo" title="Indigo"><span class="sw" style="background:oklch(0.500 0.175 267)"></span></button>
+  </div>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium" title="中密度"><span class="sw" style="background:var(--n-400)"></span></button>
+    <button data-ctl="density" data-val="high" title="高密度"><span class="sw" style="background:var(--n-700)"></span></button>
+  </div>
+</div>
+
+<script>
+  const ROWS = [
+    { n:'株式会社ブラクト製作所', sub:'BR-00427 · 東京都品川区', type:'顧客', ind:'製造業', own:'田中 一郎', opp:4, ar:3200000, act:'1時間前 架電', upd:'1時間前', tags:['重要','板金'] },
+    { n:'山田オートサービス', sub:'BR-00391 · 神奈川県横浜市', type:'顧客', ind:'自動車整備', own:'佐藤 花子', opp:2, ar:850000, act:'3時間前 メール', upd:'3時間前', tags:['整備'] },
+    { n:'近藤ボディ工房', sub:'BR-00355 · 東京都大田区', type:'顧客', ind:'板金塗装', own:'田中 一郎', opp:1, ar:0, act:'3時間前 受注', upd:'3時間前', tags:[] },
+    { n:'佐々木自動車', sub:'BR-00342 · 埼玉県川口市', type:'顧客', ind:'自動車販売', own:'佐藤 花子', opp:3, ar:1280000, act:'昨日 訪問', upd:'昨日', tags:['見込'] },
+    { n:'中央モータース', sub:'BR-00318 · 東京都世田谷区', type:'顧客', ind:'自動車整備', own:'田中 一郎', opp:1, ar:0, act:'昨日 架電', upd:'昨日', tags:[] },
+    { n:'関東パーツ商会', sub:'BR-00290 · 東京都足立区', type:'仕入先', ind:'部品卸', own:'鈴木 健', opp:0, ar:0, act:'2日前 発注', upd:'2日前', tags:['仕入先'] },
+    { n:'東日本塗料', sub:'BR-00284 · 千葉県市川市', type:'仕入先', ind:'塗料卸', own:'鈴木 健', opp:0, ar:0, act:'2日前 発注', upd:'2日前', tags:['仕入先'] },
+    { n:'みなと運送', sub:'BR-00271 · 東京都港区', type:'顧客', ind:'運送業', own:'佐藤 花子', opp:2, ar:640000, act:'3日前 見積', upd:'3日前', tags:['法人'] },
+    { n:'多摩自動車工業', sub:'BR-00255 · 東京都立川市', type:'顧客', ind:'自動車整備', own:'田中 一郎', opp:1, ar:210000, act:'4日前 架電', upd:'4日前', tags:[] },
+    { n:'丸和カーケア', sub:'BR-00240 · 神奈川県川崎市', type:'顧客', ind:'板金塗装', own:'佐藤 花子', opp:0, ar:0, act:'5日前 来店', upd:'5日前', tags:['整備'] },
+    { n:'城南タイヤサービス', sub:'BR-00228 · 東京都目黒区', type:'顧客', ind:'タイヤ販売', own:'鈴木 健', opp:1, ar:96000, act:'6日前 メール', upd:'6日前', tags:[] },
+    { n:'埼玉重機リース', sub:'BR-00210 · 埼玉県さいたま市', type:'顧客', ind:'建設機械', own:'田中 一郎', opp:2, ar:1740000, act:'1週間前 訪問', upd:'1週間前', tags:['法人','重要'] },
+  ];
+  const yen = (v) => v === 0 ? '<span class="muted">—</span>' : '¥' + v.toLocaleString('ja-JP');
+  const typeBadge = (t) => t === '顧客' ? '<span class="badge badge-brand">顧客</span>' : '<span class="badge badge-neutral">仕入先</span>';
+
+  function rowHTML(r, i) {
+    const tags = r.tags.map(t => `<span class="tag-s">${t}</span>`).join(' ');
+    const overdue = r.ar > 1000000 ? ' style="color:var(--danger-text);font-weight:600;"' : '';
+    return `<tr data-i="${i}">
+      <td class="chkcol"><span class="lchk rowchk"></span></td>
+      <td><div class="acc-name"><span class="acc-ico"><i data-lucide="building-2" class="ic" style="width:15px;height:15px;"></i></span><div><div class="nm">${r.n}</div><div class="sub mono">${r.sub}</div></div></div></td>
+      <td>${typeBadge(r.type)}</td>
+      <td class="muted">${r.ind}</td>
+      <td>${r.own}</td>
+      <td class="col-num tnum">${r.opp > 0 ? r.opp : '<span class="muted">0</span>'}</td>
+      <td class="col-num tnum"${overdue}>${yen(r.ar)}</td>
+      <td class="muted">${r.act}</td>
+      <td class="muted tnum">${r.upd}</td>
+      <td><span class="row-act"><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="ellipsis" class="ic"></i></button></span></td>
+    </tr>`;
+  }
+
+  document.getElementById('tbody').innerHTML = ROWS.map(rowHTML).join('');
+
+  // selection
+  const bulkbar = document.getElementById('bulkbar');
+  const bulkCount = document.getElementById('bulkCount');
+  function updateBulk() {
+    const n = document.querySelectorAll('.rowchk.on').length;
+    bulkCount.textContent = n;
+    bulkbar.classList.toggle('show', n > 0);
+    const total = document.querySelectorAll('.rowchk').length;
+    document.getElementById('selAll').classList.toggle('on', n === total && n > 0);
+  }
+  document.addEventListener('click', (e) => {
+    const rowchk = e.target.closest('.rowchk');
+    if (rowchk) { e.stopPropagation(); rowchk.classList.toggle('on'); rowchk.closest('tr').classList.toggle('sel', rowchk.classList.contains('on')); updateBulk(); return; }
+    const sa = e.target.closest('#selAll');
+    if (sa) { const on = !sa.classList.contains('on'); document.querySelectorAll('.rowchk').forEach(c => { c.classList.toggle('on', on); c.closest('tr').classList.toggle('sel', on); }); updateBulk(); return; }
+    const tr = e.target.closest('tbody tr');
+    if (tr && !e.target.closest('.row-act')) { window.location.href = 'Bract Account Detail.html'; return; }
+    const v = e.target.closest('.view');
+    if (v && !v.classList.contains('add')) { document.querySelectorAll('.view').forEach(x => x.classList.remove('active')); v.classList.add('active'); }
+    const fb = e.target.closest('#filterBtn');
+    if (fb) { document.getElementById('fbPop').classList.toggle('open'); return; }
+    if (e.target.closest('#fbCancel')) { document.getElementById('fbPop').classList.remove('open'); }
+    if (e.target.closest('#bulkClose')) { document.querySelectorAll('.rowchk.on').forEach(c => { c.classList.remove('on'); c.closest('tr').classList.remove('sel'); }); updateBulk(); }
+    if (!e.target.closest('#fbPop') && !e.target.closest('#filterBtn')) document.getElementById('fbPop').classList.remove('open');
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/chrome.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>

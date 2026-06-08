@@ -1,18 +1,20 @@
 /* ============================================================================
-   Bract — globals.css  (デザイン刷新 / Tailwind v4 / REQ-0020・ADR-0021)
+   Bract — globals.css  (実装ハンドオフ / Tailwind v4)
    ----------------------------------------------------------------------------
-   Claude Design ハンドオフ（design_handoff/export/globals.css）を適用。
-   ブランドは Foliage（グリーン）× ウォームニュートラル。Geist + Noto Sans JP。
+   現状の Next 既定スキャフォルド（body の Arial 落ち）を脱し、Geist + Noto Sans JP
+   を正しく適用。デザイントークンを @theme で一元化し、ユーティリティで参照可能に。
+   ブランドは Foliage（グリーン）に確定。ライト主・ダーク対応。
 
-   段階移行のため、既存コードが多用する Tailwind 既定の zinc 系・blue 系を
-   新パレット（warm neutral / brand green）へ**リマップ**している。これにより
-   各コンポーネントを書き換えなくても全画面が新パレットを採用する。
-   （以降のスライドで zinc/blue クラスを意味トークンへ順次置換していく）
+   置き場所：src/app/globals.css
+   フォント：next/font の Geist / Geist Mono は layout.tsx で読込済みの前提
+            （--font-geist-sans / --font-geist-mono）。和文 Noto Sans JP は
+            next/font(Google) で読み込み、--font-noto-jp として渡す。
    ============================================================================ */
 
 @import "tailwindcss";
 
-/* ダークは class 戦略（<html class="dark">）。 */
+/* ダークは class 戦略（<html class="dark">）。OS 連動にするなら custom-variant を
+   prefers-color-scheme に差し替える。 */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -90,35 +92,6 @@
 }
 
 /* ============================================================================
-   既存ユーティリティのリマップ（段階移行用）
-   zinc 系 → warm neutral、blue 系 → brand green。
-   値は CSS 変数の間接参照にしているのでダーク時も n 系・brand 系に追随する。
-   ============================================================================ */
-@theme {
-  --color-zinc-50:  var(--color-n-50);
-  --color-zinc-100: var(--color-n-100);
-  --color-zinc-200: var(--color-n-200);
-  --color-zinc-300: var(--color-n-300);
-  --color-zinc-400: var(--color-n-400);
-  --color-zinc-500: var(--color-n-500);
-  --color-zinc-600: var(--color-n-600);
-  --color-zinc-700: var(--color-n-700);
-  --color-zinc-800: var(--color-n-800);
-  --color-zinc-900: var(--color-n-900);
-  --color-zinc-950: var(--color-n-950);
-
-  --color-blue-50:  var(--color-brand-50);
-  --color-blue-100: var(--color-brand-100);
-  --color-blue-200: var(--color-brand-200);
-  --color-blue-300: var(--color-brand-300);
-  --color-blue-400: var(--color-brand-500);
-  --color-blue-500: var(--color-brand-500);
-  --color-blue-600: var(--color-brand-600);
-  --color-blue-700: var(--color-brand-700);
-  --color-blue-800: var(--color-brand-800);
-}
-
-/* ============================================================================
    DARK MODE — neutrals/surfaces/semantic を上書き（<html class="dark">）
    ============================================================================ */
 .dark {
@@ -167,6 +140,7 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     font-feature-settings: "palt" 1;     /* 和文の詰め */
+    line-height: 1.7;                    /* 和文向けに行間ゆとり */
   }
 
   /* 数字は等幅で桁揃え（金額・件数） */
@@ -177,3 +151,20 @@
     outline-offset: 1px;
   }
 }
+
+/* ============================================================================
+   STATUS TOKENS — 画面ごとのハードコードを廃し、共通 map に集約する指針
+
+   商談ステージ:  prospecting=neutral / qualification=info / proposal=ai /
+                  negotiation=warning / closed-won=positive / closed-lost=neutral
+   ToDo 優先度:    high=danger / medium=warning / low=neutral
+   整備ステータス: 受付=neutral / 入庫=info / 部品待ち=warning / 作業中=brand / 納車=positive
+
+   実装例（TS）:
+     export const STAGE_TONE = {
+       prospecting: 'neutral', qualification: 'info', proposal: 'ai',
+       negotiation: 'warning', won: 'positive', lost: 'neutral',
+     } as const;
+   バッジは tone を受け取り bg-{tone}-bg / text-{tone} / border を当てる単一
+   コンポーネント <Badge tone> に集約する（色のハードコードをやめる）。
+   ============================================================================ */

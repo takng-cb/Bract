@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — 予実・予測</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<link rel="stylesheet" href="styles/shell.css" />
+<style>
+  .period { display: inline-flex; background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-md); overflow: hidden; }
+  .period button { appearance: none; border: none; background: none; font: inherit; font-size: var(--text-md); font-weight: 600; color: var(--n-600); padding: 7px 14px; cursor: pointer; border-left: 1px solid var(--n-200); white-space: nowrap; }
+  .period button:first-child { border-left: none; }
+  .period button.active { background: var(--primary); color: var(--on-primary); }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-4); margin-bottom: var(--sp-4); }
+  .kpi-card { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); padding: var(--sp-4) var(--sp-5); box-shadow: var(--shadow-xs); }
+  .kpi-card .lab { font-size: var(--text-sm); color: var(--n-600); font-weight: 600; margin-bottom: 8px; }
+  .kpi-card .val { font-size: var(--text-3xl); font-weight: 700; color: var(--n-900); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .kpi-card .meta { font-size: var(--text-sm); margin-top: 4px; color: var(--n-500); }
+  .progress { height: 7px; border-radius: var(--r-pill); background: var(--n-150); overflow: hidden; margin-top: 12px; }
+  .progress .fill { height: 100%; border-radius: var(--r-pill); background: var(--primary); }
+
+  .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: var(--sp-4); margin-bottom: var(--sp-4); }
+  .card-pad2 { padding: var(--sp-5); }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-5); }
+  .chart-head .t { font-size: var(--text-md); font-weight: 700; color: var(--n-800); }
+  .legend { display: flex; gap: 16px; font-size: var(--text-sm); color: var(--n-600); }
+  .legend .k { display: flex; align-items: center; gap: 6px; }
+  .legend .k i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+  .legend .k.line i { height: 0; border-top: 2px dashed var(--n-500); border-radius: 0; width: 14px; }
+
+  .combo { position: relative; height: 240px; display: flex; align-items: flex-end; gap: 14px; padding-top: 10px; border-bottom: 1px solid var(--n-200); }
+  .combo .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; justify-content: flex-end; height: 100%; }
+  .combo .stack { width: 100%; max-width: 38px; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+  .combo .bar { width: 100%; border-radius: 2px 2px 0 0; }
+  .combo .b-actual { background: var(--primary); }
+  .combo .b-fore { background: var(--brand-200); border: 1px dashed var(--brand-300); border-bottom: none; }
+  .combo .x { font-size: var(--text-xs); color: var(--n-500); font-variant-numeric: tabular-nums; }
+  .combo .target { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--n-500); }
+  .combo .target .tl { position: absolute; right: 0; top: -19px; font-size: var(--text-xs); color: var(--n-600); background: var(--n-0); padding: 0 6px; font-weight: 600; }
+
+  .stage-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+  .stage-row .nm { width: 84px; flex: none; font-size: var(--text-sm); color: var(--n-700); font-weight: 600; }
+  .stage-row .track { flex: 1; height: 22px; background: var(--n-100); border-radius: var(--r-sm); overflow: hidden; position: relative; }
+  .stage-row .seg { height: 100%; border-radius: var(--r-sm); display: flex; align-items: center; padding-left: 8px; font-size: var(--text-xs); color: #fff; font-weight: 600; }
+  .stage-row .amt { width: 88px; flex: none; text-align: right; font-size: var(--text-md); font-weight: 600; color: var(--n-900); font-variant-numeric: tabular-nums; }
+
+  .owner-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--n-150); }
+  .owner-row:last-child { border-bottom: none; }
+  .owner-row .av { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--brand-600); color: var(--on-primary); display: grid; place-items: center; font-weight: 700; font-size: var(--text-sm); flex: none; }
+  .owner-row .oi { flex: 1; min-width: 0; }
+  .owner-row .oi .on { font-size: var(--text-md); font-weight: 600; color: var(--n-900); }
+  .owner-row .oi .ob { height: 6px; border-radius: var(--r-pill); background: var(--n-150); margin-top: 5px; overflow: hidden; }
+  .owner-row .oi .ob span { display: block; height: 100%; background: var(--primary); border-radius: var(--r-pill); }
+  .owner-row .pct { width: 52px; text-align: right; font-size: var(--text-md); font-weight: 700; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="bract-sidebar" data-active="opportunities"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="navprog" style="width:0;"></div>
+      <div class="searchbox"><i data-lucide="search" class="ic" style="width:16px;height:16px;"></i><input placeholder="取引先・車両・商談を検索…" /><span class="mono" style="font-size:11px;color:var(--n-400);border:1px solid var(--n-300);border-radius:4px;padding:0 5px;">⌘K</span></div>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary btn-sm"><i data-lucide="arrow-down-to-line" class="ic"></i>エクスポート</button>
+      <div class="ic-btn"><i data-lucide="bell" class="ic" style="width:18px;height:18px;"></i><span class="dot"></span></div>
+    </header>
+
+    <div class="content">
+      <div class="content-inner">
+        <div class="page-head">
+          <div><h1>予実・予測</h1><div class="sub">近藤板金工業 — 2026年度 第2四半期</div></div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <div class="period"><button>Q1</button><button class="active">Q2</button><button>Q3</button><button>Q4</button><button>通期</button></div>
+            <select class="select" style="width:auto;"><option>全社</option><option>田中 一郎</option><option>佐藤 花子</option></select>
+          </div>
+        </div>
+
+        <!-- KPI -->
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="lab">今期実績</div><div class="val">¥18.2M</div><div class="meta">前年同期 +14%</div></div>
+          <div class="kpi-card"><div class="lab">着地見込み（予測）</div><div class="val">¥24.8M</div><div class="meta"><span style="color:var(--positive-text);font-weight:600;">確度加重</span> ¥9.6M を含む</div></div>
+          <div class="kpi-card"><div class="lab">目標</div><div class="val">¥26.0M</div><div class="meta">残り ¥7.8M（実績比）</div></div>
+          <div class="kpi-card"><div class="lab">達成率（見込）</div><div class="val">95<span style="font-size:var(--text-xl);color:var(--n-400);">%</span></div><div class="progress"><div class="fill" style="width:95%"></div></div></div>
+        </div>
+
+        <div class="grid-2">
+          <!-- combo chart -->
+          <div class="card">
+            <div class="card-pad2">
+              <div class="chart-head">
+                <span class="t">月次 実績 / 予測 と 目標</span>
+                <div class="legend"><span class="k"><i style="background:var(--primary)"></i>実績</span><span class="k"><i style="background:var(--brand-200)"></i>予測</span><span class="k line"><i></i>目標</span></div>
+              </div>
+              <div class="combo">
+                <div class="target" style="bottom:calc(10px + 76%);"><span class="tl">目標 ¥8.7M/月</span></div>
+                <div class="col"><div class="stack" style="height:62%"><div class="bar b-actual" style="flex:1"></div></div><span class="x">4月</span></div>
+                <div class="col"><div class="stack" style="height:70%"><div class="bar b-actual" style="flex:1"></div></div><span class="x">5月</span></div>
+                <div class="col"><div class="stack" style="height:84%"><div class="bar b-actual" style="height:58%"></div><div class="bar b-fore" style="flex:1"></div></div><span class="x">6月</span></div>
+                <div class="col"><div class="stack" style="height:80%"><div class="bar b-fore" style="flex:1"></div></div><span class="x">7月<span class="muted">予</span></span></div>
+                <div class="col"><div class="stack" style="height:88%"><div class="bar b-fore" style="flex:1"></div></div><span class="x">8月<span class="muted">予</span></span></div>
+                <div class="col"><div class="stack" style="height:92%"><div class="bar b-fore" style="flex:1"></div></div><span class="x">9月<span class="muted">予</span></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- weighted pipeline -->
+          <div class="card">
+            <div class="card-pad2">
+              <div class="chart-head"><span class="t">ステージ別 加重予測</span></div>
+              <div class="stage-row"><span class="nm">見込み</span><div class="track"><div class="seg" style="width:28%; background:var(--n-500);">20%</div></div><span class="amt">¥0.6M</span></div>
+              <div class="stage-row"><span class="nm">選別</span><div class="track"><div class="seg" style="width:42%; background:var(--info);">40%</div></div><span class="amt">¥1.4M</span></div>
+              <div class="stage-row"><span class="nm">提案</span><div class="track"><div class="seg" style="width:55%; background:var(--ai);">50%</div></div><span class="amt">¥2.1M</span></div>
+              <div class="stage-row"><span class="nm">交渉</span><div class="track"><div class="seg" style="width:72%; background:var(--warning);">70%</div></div><span class="amt">¥3.2M</span></div>
+              <div class="stage-row"><span class="nm">受注確実</span><div class="track"><div class="seg" style="width:95%; background:var(--primary);">90%</div></div><span class="amt">¥2.3M</span></div>
+              <div style="display:flex; justify-content:space-between; margin-top:14px; padding-top:12px; border-top:1px solid var(--n-200); font-weight:700;"><span class="muted" style="font-weight:600;">加重合計</span><span class="tnum">¥9.6M</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="grid-template-columns: 1fr 1fr;">
+          <!-- quarterly 予実 table -->
+          <div class="card">
+            <div class="card-head"><div class="card-title">四半期 予実</div></div>
+            <div style="overflow-x:auto;">
+            <table class="tbl">
+              <thead><tr><th>四半期</th><th class="col-num">目標</th><th class="col-num">実績/見込</th><th class="col-num">達成率</th><th></th></tr></thead>
+              <tbody>
+                <tr><td class="strong">Q1</td><td class="col-num tnum">¥24.0M</td><td class="col-num tnum">¥25.1M</td><td class="col-num tnum">105%</td><td><span class="badge badge-positive">達成</span></td></tr>
+                <tr><td class="strong">Q2（進行中）</td><td class="col-num tnum">¥26.0M</td><td class="col-num tnum">¥24.8M</td><td class="col-num tnum">95%</td><td><span class="badge badge-warning">見込</span></td></tr>
+                <tr><td class="strong">Q3</td><td class="col-num tnum">¥27.0M</td><td class="col-num muted">—</td><td class="col-num muted">—</td><td><span class="badge badge-neutral">未開始</span></td></tr>
+                <tr><td class="strong">Q4</td><td class="col-num tnum">¥28.0M</td><td class="col-num muted">—</td><td class="col-num muted">—</td><td><span class="badge badge-neutral">未開始</span></td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+
+          <!-- 担当者別 達成率 -->
+          <div class="card">
+            <div class="card-head"><div class="card-title">担当者別 達成率（Q2）</div></div>
+            <div style="padding: 6px var(--sp-5) var(--sp-4);">
+              <div class="owner-row"><div class="av">田</div><div class="oi"><div class="on">田中 一郎 <span class="muted" style="font-weight:400;">¥11.4M / ¥11.0M</span></div><div class="ob"><span style="width:100%"></span></div></div><span class="pct" style="color:var(--positive-text)">104%</span></div>
+              <div class="owner-row"><div class="av">佐</div><div class="oi"><div class="on">佐藤 花子 <span class="muted" style="font-weight:400;">¥9.8M / ¥11.0M</span></div><div class="ob"><span style="width:89%"></span></div></div><span class="pct">89%</span></div>
+              <div class="owner-row"><div class="av">鈴</div><div class="oi"><div class="on">鈴木 健 <span class="muted" style="font-weight:400;">¥3.6M / ¥4.0M</span></div><div class="ob"><span style="width:90%"></span></div></div><span class="pct">90%</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="design-fab">
+  <span class="lab">見た目</span>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium" title="中密度"><span class="sw" style="background:var(--n-400)"></span></button>
+    <button data-ctl="density" data-val="high" title="高密度"><span class="sw" style="background:var(--n-700)"></span></button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('click', (e) => {
+    const p = e.target.closest('.period button');
+    if (p) { p.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active')); p.classList.add('active'); }
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/chrome.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>

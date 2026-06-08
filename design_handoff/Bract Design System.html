@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<style>
+  /* ---- page chrome (doc-only) ---- */
+  .doc-top {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: var(--sp-4);
+    height: 56px; padding: 0 var(--sp-5);
+    background: color-mix(in oklch, var(--n-0) 86%, transparent);
+    backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--n-200);
+  }
+  .wordmark { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: var(--text-lg); color: var(--n-900); letter-spacing: -0.01em; }
+  .bmark {
+    width: 22px; height: 22px; flex: none;
+    background: var(--primary);
+    border-radius: 2px 80% 2px 80% / 80% 2px 80% 2px;
+    transform: rotate(-8deg);
+  }
+  .doc-top .sub { font-size: var(--text-sm); color: var(--n-500); font-weight: 500; border-left: 1px solid var(--n-300); padding-left: var(--sp-4); }
+  .doc-top .spacer { flex: 1; }
+
+  .seg { display: inline-flex; background: var(--n-100); border: 1px solid var(--n-200); border-radius: var(--r-md); padding: 2px; gap: 2px; }
+  .seg button {
+    appearance: none; border: none; background: none; cursor: pointer; font: inherit;
+    font-size: var(--text-sm); font-weight: 600; color: var(--n-600);
+    padding: 4px 10px; border-radius: var(--r-xs); display: inline-flex; align-items: center; gap: 6px;
+    transition: background .1s, color .1s; white-space: nowrap;
+  }
+  .seg button:hover { color: var(--n-900); }
+  .seg button[aria-pressed="true"] { background: var(--n-0); color: var(--n-900); box-shadow: var(--shadow-xs); }
+  .seg .sw { width: 11px; height: 11px; border-radius: 3px; }
+  .ctl-label { font-size: var(--text-2xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--n-400); margin-right: 2px; }
+
+  .doc-wrap { max-width: 1120px; margin: 0 auto; padding: var(--sp-8) var(--sp-6) var(--sp-10); }
+  .doc-hero { margin-bottom: var(--sp-9); }
+  .doc-hero h1 { margin: 0 0 var(--sp-3); font-size: var(--text-display); font-weight: 700; letter-spacing: -0.02em; color: var(--n-900); line-height: 1.2; }
+  .doc-hero p { margin: 0; max-width: 64ch; font-size: var(--text-lg); color: var(--n-600); }
+  .principles { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-3); margin-top: var(--sp-6); }
+  .principles .p { padding: var(--sp-4); background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); }
+  .principles .p .ic { color: var(--primary); margin-bottom: var(--sp-2); }
+  .principles .p h4 { margin: 0 0 4px; font-size: var(--text-md); color: var(--n-900); }
+  .principles .p p { font-size: var(--text-sm); color: var(--n-500); margin: 0; line-height: 1.6; }
+
+  section.block { margin-top: var(--sp-9); scroll-margin-top: 72px; }
+  .block-head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-5); padding-bottom: var(--sp-3); border-bottom: 1px solid var(--n-200); }
+  .block-head .no { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--primary); font-weight: 500; }
+  .block-head h2 { margin: 0; font-size: var(--text-2xl); font-weight: 700; color: var(--n-900); letter-spacing: -0.01em; }
+  .block-head .en { font-size: var(--text-sm); color: var(--n-400); font-weight: 500; white-space: nowrap; }
+
+  .sub-label { font-size: var(--text-sm); font-weight: 700; color: var(--n-700); margin: var(--sp-6) 0 var(--sp-3); }
+  .sub-label:first-child { margin-top: 0; }
+
+  .grid-cards { display: grid; gap: var(--sp-4); }
+  .demo { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); padding: var(--sp-5); }
+  .demo + .demo { margin-top: var(--sp-3); }
+  .demo-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+  .spec { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--n-500); }
+
+  /* color swatches */
+  .scale { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; border-radius: var(--r-md); overflow: hidden; }
+  .scale .sw { height: 48px; display: flex; align-items: flex-end; padding: 4px; }
+  .scale .sw span { font-family: var(--font-mono); font-size: 9px; opacity: .8; }
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); }
+  .swatch { border: 1px solid var(--n-200); border-radius: var(--r-md); overflow: hidden; background: var(--n-0); }
+  .swatch .chip { height: 52px; }
+  .swatch .meta { padding: 8px 10px; }
+  .swatch .meta .nm { font-size: var(--text-sm); font-weight: 600; color: var(--n-800); }
+  .swatch .meta .vr { font-family: var(--font-mono); font-size: 10px; color: var(--n-500); }
+
+  .brand-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-4); }
+  .brand-card { border: 1px solid var(--n-200); border-radius: var(--r-lg); overflow: hidden; background: var(--n-0); }
+  .brand-card .top { height: 84px; position: relative; display: flex; align-items: flex-end; padding: 12px; }
+  .brand-card .top .tag { font-size: var(--text-xs); font-weight: 700; color: #fff; background: rgba(0,0,0,.18); padding: 2px 8px; border-radius: var(--r-pill); white-space: nowrap; }
+  .brand-card .bd { padding: var(--sp-4); }
+  .brand-card .bd h4 { margin: 0 0 4px; font-size: var(--text-md); color: var(--n-900); }
+  .brand-card .bd p { margin: 0 0 12px; font-size: var(--text-sm); color: var(--n-500); line-height: 1.55; }
+
+  /* type scale */
+  .type-row { display: flex; align-items: baseline; gap: var(--sp-5); padding: var(--sp-3) 0; border-bottom: 1px solid var(--n-150); }
+  .type-row .meta { width: 130px; flex: none; }
+  .type-row .meta .nm { font-size: var(--text-sm); font-weight: 600; color: var(--n-700); }
+  .type-row .meta .px { font-family: var(--font-mono); font-size: 10px; color: var(--n-400); }
+  .type-row .sample { color: var(--n-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* spacing / radius / shadow demos */
+  .token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--sp-3); }
+  .token { text-align: center; }
+  .token .box { background: var(--brand-100); border: 1px solid var(--brand-200); margin: 0 auto 6px; }
+  .token .nm { font-size: var(--text-xs); font-weight: 600; color: var(--n-700); }
+  .token .vr { font-family: var(--font-mono); font-size: 10px; color: var(--n-500); }
+
+  /* icon map table */
+  table.imap { width: 100%; border-collapse: collapse; font-size: var(--text-md); }
+  table.imap th { text-align: left; font-size: var(--text-sm); color: var(--n-500); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--n-200); }
+  table.imap td { padding: 9px 12px; border-bottom: 1px solid var(--n-150); color: var(--n-800); vertical-align: middle; }
+  table.imap td.icn { width: 44px; }
+  table.imap td.icn .ic { color: var(--n-700); }
+  table.imap td.emo { width: 56px; font-size: 18px; color: var(--n-400); }
+  table.imap .mono { font-size: var(--text-sm); color: var(--primary-text); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+  .field-list { display: flex; flex-direction: column; gap: var(--sp-4); max-width: 420px; }
+
+  @media (max-width: 760px) {
+    .principles, .brand-cards { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .doc-top .sub { display: none; }
+    .ctl-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="doc-top">
+  <div class="wordmark"><span class="bmark"></span>Bract</div>
+  <span class="sub">Design System v1.0</span>
+  <div class="spacer"></div>
+  <span class="ctl-label">Brand</span>
+  <div class="seg" role="group" aria-label="ブランド方向">
+    <button data-ctl="brand" data-val="foliage"><span class="sw" style="background:oklch(0.515 0.112 158)"></span>Foliage</button>
+    <button data-ctl="brand" data-val="vermillion"><span class="sw" style="background:oklch(0.565 0.185 33)"></span>Vermillion</button>
+    <button data-ctl="brand" data-val="indigo"><span class="sw" style="background:oklch(0.500 0.175 267)"></span>Indigo</button>
+  </div>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium">中密度</button>
+    <button data-ctl="density" data-val="high">高密度</button>
+  </div>
+  <div class="seg" role="group" aria-label="角丸">
+    <button data-ctl="radius" data-val="sharp">Sharp</button>
+    <button data-ctl="radius" data-val="standard">Std</button>
+    <button data-ctl="radius" data-val="soft">Soft</button>
+  </div>
+</header>
+
+<div class="doc-wrap">
+
+  <!-- ============ HERO ============ -->
+  <div class="doc-hero">
+    <h1>「無料テンプレ」から、<br />信頼される業務SaaSへ。</h1>
+    <p>Bract のためのデザインシステム。ウォームニュートラルと植物的なブランドカラー、和文最適化したタイポグラフィ、統一アイコンで、情報密度の高い業務画面を「読みやすく・スキャンしやすく」整えます。すべて Tailwind v4 ユーティリティで再現可能なトークンとして定義しています。</p>
+    <div class="principles">
+      <div class="p"><i data-lucide="scan-eye"></i><h4>可読性 最優先</h4><p>和文の字面・行間・記号で破綻しない設計。密度は保ちつつ階層を立てる。</p></div>
+      <div class="p"><i data-lucide="layers"></i><h4>トークン駆動</h4><p>色・余白・角丸・影・タイプを一元化。バッジ色のハードコードを廃す。</p></div>
+      <div class="p"><i data-lucide="sprout"></i><h4>ブランドの芽</h4><p>Bract=色づいた苞。植物的なグリーンを核に、信頼と成長を表現。</p></div>
+      <div class="p"><i data-lucide="gauge"></i><h4>体感速度</h4><p>進捗バーとスケルトンを踏襲。クリック直後の手応えを設計に組み込む。</p></div>
+    </div>
+  </div>
+
+  <!-- ============ 01 BRAND ============ -->
+  <section class="block" id="brand">
+    <div class="block-head"><span class="no">01</span><h2>ブランド</h2><span class="en">Brand &amp; Mark</span></div>
+    <div class="demo">
+      <div style="display:flex; align-items:center; gap:var(--sp-8); flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span class="bmark" style="width:46px; height:46px;"></span>
+          <div>
+            <div style="font-size:var(--text-3xl); font-weight:700; letter-spacing:-0.02em; color:var(--n-900); line-height:1;">Bract</div>
+            <div class="spec" style="margin-top:4px;">苞（bract）= 花を抱く色づいた葉。1枚の葉から伸びる左右非対称のマーク。</div>
+          </div>
+        </div>
+        <div style="flex:1; min-width:260px; border-left:1px solid var(--n-200); padding-left:var(--sp-6); color:var(--n-600); font-size:var(--text-md);">
+          マークはブランドカラーに連動して切り替わります。上部の <strong class="strong">Brand</strong> スイッチで Foliage / Vermillion / Indigo を比較してください。アプリ内ではサイドバー頭・ログイン・ファビコンに使用します。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 COLOR ============ -->
+  <section class="block" id="color">
+    <div class="block-head"><span class="no">02</span><h2>カラー</h2><span class="en">Color Tokens</span></div>
+
+    <div class="sub-label">ブランド方向（3案・上部スイッチで全体切替）</div>
+    <div class="brand-cards">
+      <div class="brand-card">
+        <div class="top" style="background:linear-gradient(135deg, oklch(0.585 0.112 158), oklch(0.450 0.106 158));"><span class="tag">推奨</span></div>
+        <div class="bd"><h4>Foliage グリーン</h4><p>苞の葉。深いグリーンで信頼・成長・実直さ。ウォームニュートラルと最も調和。</p>
+          <div class="demo-row"><button class="btn btn-primary" data-ctl="brand" data-val="foliage">この方向に切替</button></div>
+        </div>
+      </div>
+      <div class="brand-card">
+        <div class="top" style="background:linear-gradient(135deg, oklch(0.625 0.180 34), oklch(0.500 0.170 31));"><span class="tag">朱・コーラル</span></div>
+        <div class="bd"><h4>Vermillion</h4><p>色づいた苞そのもの。視認性が高く意思を感じる暖色。差別化を最優先する場合に。</p>
+          <div class="demo-row"><button class="btn btn-secondary" data-ctl="brand" data-val="vermillion">この方向に切替</button></div>
+        </div>
+      </div>
+      <div class="brand-card">
+        <div class="top" style="background:linear-gradient(135deg, oklch(0.560 0.165 267), oklch(0.435 0.165 266));"><span class="tag">進化系</span></div>
+        <div class="bd"><h4>Indigo</h4><p>現状blueの正統進化。最も安全でStripe的な信頼感。冒険を避けたい場合の堅実解。</p>
+          <div class="demo-row"><button class="btn btn-secondary" data-ctl="brand" data-val="indigo">この方向に切替</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-label">プライマリ・スケール（選択中ブランドに連動）</div>
+    <div class="scale">
+      <div class="sw" style="background:var(--brand-50)"><span style="color:var(--n-700)">50</span></div>
+      <div class="sw" style="background:var(--brand-100)"><span style="color:var(--n-700)">100</span></div>
+      <div class="sw" style="background:var(--brand-200)"><span style="color:var(--n-800)">200</span></div>
+      <div class="sw" style="background:var(--brand-300)"><span style="color:var(--n-900)">300</span></div>
+      <div class="sw" style="background:var(--brand-500)"><span style="color:#fff">500</span></div>
+      <div class="sw" style="background:var(--brand-600)"><span style="color:#fff">600</span></div>
+      <div class="sw" style="background:var(--brand-700)"><span style="color:#fff">700</span></div>
+      <div class="sw" style="background:var(--brand-800)"><span style="color:#fff">800</span></div>
+      <div class="sw" style="grid-column: span 4; background:var(--primary); align-items:center; justify-content:center;"><span style="color:var(--on-primary); font-size:11px;">--primary（ボタン基準色）</span></div>
+    </div>
+
+    <div class="sub-label">ウォームニュートラル（背景・境界・文字）</div>
+    <div class="scale">
+      <div class="sw" style="background:var(--n-0); border:1px solid var(--n-200)"><span style="color:var(--n-600)">0</span></div>
+      <div class="sw" style="background:var(--n-50)"><span style="color:var(--n-600)">50</span></div>
+      <div class="sw" style="background:var(--n-100)"><span style="color:var(--n-600)">100</span></div>
+      <div class="sw" style="background:var(--n-200)"><span style="color:var(--n-700)">200</span></div>
+      <div class="sw" style="background:var(--n-300)"><span style="color:var(--n-800)">300</span></div>
+      <div class="sw" style="background:var(--n-400)"><span style="color:#fff">400</span></div>
+      <div class="sw" style="background:var(--n-500)"><span style="color:#fff">500</span></div>
+      <div class="sw" style="background:var(--n-600)"><span style="color:#fff">600</span></div>
+      <div class="sw" style="background:var(--n-700)"><span style="color:#fff">700</span></div>
+      <div class="sw" style="background:var(--n-800)"><span style="color:#fff">800</span></div>
+      <div class="sw" style="background:var(--n-900)"><span style="color:#fff">900</span></div>
+      <div class="sw" style="background:var(--n-950)"><span style="color:#fff">950</span></div>
+    </div>
+    <p class="spec" style="margin-top:8px;">hue ≈ 80（黄寄り）/ chroma ≤ 0.009。純グレーより温かく、和文の黒が硬くなりすぎない。</p>
+
+    <div class="sub-label">セマンティック（テーマ非依存・共通トークン）</div>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="chip" style="background:var(--danger)"></div><div class="meta"><div class="nm">danger</div><div class="vr">必須 / 削除 / エラー</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--warning)"></div><div class="meta"><div class="nm">warning</div><div class="vr">注意 / 重複確認</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--positive)"></div><div class="meta"><div class="nm">positive</div><div class="vr">成功 / 入金 / 受注</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--info)"></div><div class="meta"><div class="nm">info</div><div class="vr">情報 / 進行中</div></div></div>
+      <div class="swatch"><div class="chip" style="background:var(--ai)"></div><div class="meta"><div class="nm">ai</div><div class="vr">AI / クイック登録</div></div></div>
+    </div>
+
+    <div class="sub-label">ステータスピル（画面ごとのハードコードを廃止 → 共通トークンへ）</div>
+    <div class="demo">
+      <div class="spec" style="margin-bottom:10px;">商談ステージ</div>
+      <div class="demo-row" style="margin-bottom:18px;">
+        <span class="badge badge-neutral"><span class="dot"></span>見込み</span>
+        <span class="badge badge-info"><span class="dot"></span>選別</span>
+        <span class="badge badge-ai"><span class="dot"></span>提案</span>
+        <span class="badge badge-warning"><span class="dot"></span>交渉</span>
+        <span class="badge badge-positive"><span class="dot"></span>受注</span>
+        <span class="badge badge-neutral"><span class="dot"></span>失注</span>
+      </div>
+      <div class="spec" style="margin-bottom:10px;">ToDo 優先度</div>
+      <div class="demo-row" style="margin-bottom:18px;">
+        <span class="badge badge-danger">高</span>
+        <span class="badge badge-warning">中</span>
+        <span class="badge badge-neutral">低</span>
+      </div>
+      <div class="spec" style="margin-bottom:10px;">整備ステータス（auto-body）</div>
+      <div class="demo-row">
+        <span class="badge badge-neutral">受付</span>
+        <span class="badge badge-info">入庫中</span>
+        <span class="badge badge-warning">部品待ち</span>
+        <span class="badge badge-brand">作業中</span>
+        <span class="badge badge-positive">納車済</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 TYPOGRAPHY ============ -->
+  <section class="block" id="type">
+    <div class="block-head"><span class="no">03</span><h2>タイポグラフィ</h2><span class="en">Typography</span></div>
+    <div class="two-col">
+      <div class="demo">
+        <div class="spec" style="margin-bottom:6px;">和文 — 本文・UI</div>
+        <div style="font-size:var(--text-xl); color:var(--n-900); margin-bottom:6px;">Noto Sans JP</div>
+        <p style="margin:0; color:var(--n-700);">取引先・商談・案件・活動を一つに集約し、入力の手間を最小化する。漢字とカナが混在しても字面が揃い、長い業務テキストでも読み疲れしない。</p>
+      </div>
+      <div class="demo">
+        <div class="spec" style="margin-bottom:6px;">欧文・数字 — Geist（資料の方針を適用）</div>
+        <div style="font-family:var(--font-sans); font-size:var(--text-xl); color:var(--n-900); margin-bottom:6px;">Geist · Account 0123456789</div>
+        <p class="tnum mono" style="margin:0; color:var(--n-700);">¥12,480,000 / +18.4% / 2026-06-08 / ID-00427</p>
+        <p class="spec" style="margin-top:8px;">数字は tabular-nums（等幅）で桁が揃い、テーブルの金額・件数が読みやすい。</p>
+      </div>
+    </div>
+
+    <div class="sub-label">タイプスケール</div>
+    <div class="demo">
+      <div class="type-row"><div class="meta"><div class="nm">display</div><div class="px">36 / 700</div></div><div class="sample" style="font-size:var(--text-display); font-weight:700; letter-spacing:-0.02em;">ダッシュボード</div></div>
+      <div class="type-row"><div class="meta"><div class="nm">3xl</div><div class="px">28 / 700</div></div><div class="sample" style="font-size:var(--text-3xl); font-weight:700;">取引先 一覧</div></div>
+      <div class="type-row"><div class="meta"><div class="nm">2xl</div><div class="px">22 / 700</div></div><div class="sample" style="font-size:var(--text-2xl); font-weight:700;">株式会社ブラクト製作所</div></div>
+      <div class="type-row"><div class="meta"><div class="nm">xl</div><div class="px">18 / 600</div></div><div class="sample" style="font-size:var(--text-xl); font-weight:600;">関連する商談と活動</div></div>
+      <div class="type-row"><div class="meta"><div class="nm">lg</div><div class="px">16 / 600</div></div><div class="sample" style="font-size:var(--text-lg); font-weight:600;">基本情報セクション見出し</div></div>
+      <div class="type-row"><div class="meta"><div class="nm">md（基準）</div><div class="px">14 / 400</div></div><div class="sample" style="font-size:var(--text-md);">本文・テーブルセル・入力値の標準サイズ。</div></div>
+      <div class="type-row"><div class="meta"><div class="nm">sm</div><div class="px">12.5 / 500</div></div><div class="sample" style="font-size:var(--text-sm); color:var(--n-600);">ラベル・補助・テーブルヘッダ</div></div>
+      <div class="type-row"><div class="meta"><div class="nm">xs</div><div class="px">11.5 / 600</div></div><div class="sample" style="font-size:var(--text-xs); color:var(--n-500);">バッジ・メタ情報・キャプション</div></div>
+    </div>
+  </section>
+
+  <!-- ============ 04 SPACE / RADIUS / ELEVATION ============ -->
+  <section class="block" id="foundation">
+    <div class="block-head"><span class="no">04</span><h2>余白・角丸・影・フォーカス</h2><span class="en">Spacing · Radius · Elevation</span></div>
+
+    <div class="sub-label">スペーシング（4px グリッド）</div>
+    <div class="demo token-grid">
+      <div class="token"><div class="box" style="width:4px; height:24px;"></div><div class="nm">sp-1</div><div class="vr">4px</div></div>
+      <div class="token"><div class="box" style="width:8px; height:24px;"></div><div class="nm">sp-2</div><div class="vr">8px</div></div>
+      <div class="token"><div class="box" style="width:12px; height:24px;"></div><div class="nm">sp-3</div><div class="vr">12px</div></div>
+      <div class="token"><div class="box" style="width:16px; height:24px;"></div><div class="nm">sp-4</div><div class="vr">16px</div></div>
+      <div class="token"><div class="box" style="width:24px; height:24px;"></div><div class="nm">sp-6</div><div class="vr">24px</div></div>
+      <div class="token"><div class="box" style="width:32px; height:24px;"></div><div class="nm">sp-7</div><div class="vr">32px</div></div>
+      <div class="token"><div class="box" style="width:48px; height:24px;"></div><div class="nm">sp-9</div><div class="vr">48px</div></div>
+    </div>
+
+    <div class="two-col" style="margin-top:var(--sp-3);">
+      <div>
+        <div class="sub-label">角丸（Sharp 基準）</div>
+        <div class="demo token-grid">
+          <div class="token"><div class="box" style="width:44px; height:44px; border-radius:var(--r-xs);"></div><div class="nm">r-xs</div></div>
+          <div class="token"><div class="box" style="width:44px; height:44px; border-radius:var(--r-sm);"></div><div class="nm">r-sm</div></div>
+          <div class="token"><div class="box" style="width:44px; height:44px; border-radius:var(--r-md);"></div><div class="nm">r-md</div></div>
+          <div class="token"><div class="box" style="width:44px; height:44px; border-radius:var(--r-lg);"></div><div class="nm">r-lg</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="sub-label">エレベーション（最小・暖色）</div>
+        <div class="demo" style="display:flex; gap:var(--sp-5); flex-wrap:wrap; background:var(--n-100);">
+          <div style="width:80px; height:56px; background:var(--n-0); border-radius:var(--r-md); box-shadow:var(--shadow-xs); display:grid; place-items:center;" class="spec">xs</div>
+          <div style="width:80px; height:56px; background:var(--n-0); border-radius:var(--r-md); box-shadow:var(--shadow-sm); display:grid; place-items:center;" class="spec">sm</div>
+          <div style="width:80px; height:56px; background:var(--n-0); border-radius:var(--r-md); box-shadow:var(--shadow-md); display:grid; place-items:center;" class="spec">md</div>
+          <div style="width:80px; height:56px; background:var(--n-0); border-radius:var(--r-md); box-shadow:var(--shadow-lg); display:grid; place-items:center;" class="spec">lg</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-label">フォーカスリング</div>
+    <div class="demo demo-row">
+      <button class="btn btn-primary" style="box-shadow:0 0 0 1px var(--n-0), 0 0 0 3px var(--ring);">フォーカス例</button>
+      <input class="input" style="max-width:220px; border-color:var(--ring); box-shadow:0 0 0 2px color-mix(in oklch, var(--ring) 28%, transparent);" value="入力フォーカス時" readonly />
+      <span class="spec">ring 2px + offset 1px。キーボード操作（:focus-visible）でのみ表示。</span>
+    </div>
+  </section>
+
+  <!-- ============ 05 ICONS ============ -->
+  <section class="block" id="icons">
+    <div class="block-head"><span class="no">05</span><h2>アイコン方針</h2><span class="en">Iconography</span></div>
+    <div class="demo" style="margin-bottom:var(--sp-3);">
+      <div class="band band-warning" style="margin-bottom:0;"><i data-lucide="alert-triangle" class="ic"></i><div><strong>絵文字を全廃。</strong> <span class="band-body">OSで字面が変わり一貫性・信頼感を最も損なう要因でした。統一アイコンセット <strong>Lucide</strong>（stroke 2.25 / やや太め）へ置換します。</span></div></div>
+    </div>
+    <div class="two-col">
+      <div class="demo" style="padding:0; overflow:hidden;">
+        <table class="imap">
+          <thead><tr><th colspan="2">ナビ / ブック</th><th>Lucide</th></tr></thead>
+          <tbody>
+            <tr><td class="emo">📊</td><td>ダッシュボード</td><td class="icn"><i data-lucide="layout-dashboard"></i></td></tr>
+            <tr><td class="emo">🏠</td><td>取引先 accounts</td><td class="icn"><i data-lucide="building-2"></i></td></tr>
+            <tr><td class="emo">👥</td><td>人物 contacts</td><td class="icn"><i data-lucide="users"></i></td></tr>
+            <tr><td class="emo">📈</td><td>商談 opportunities</td><td class="icn"><i data-lucide="trending-up"></i></td></tr>
+            <tr><td class="emo">🗓️</td><td>活動 activities</td><td class="icn"><i data-lucide="calendar-clock"></i></td></tr>
+            <tr><td class="emo">✅</td><td>ToDo tasks</td><td class="icn"><i data-lucide="square-check-big"></i></td></tr>
+            <tr><td class="emo">💴</td><td>経費 expenses</td><td class="icn"><i data-lucide="receipt"></i></td></tr>
+            <tr><td class="emo">🚗</td><td>車両 vehicles</td><td class="icn"><i data-lucide="car"></i></td></tr>
+            <tr><td class="emo">🪛</td><td>部品 parts</td><td class="icn"><i data-lucide="cog"></i></td></tr>
+            <tr><td class="emo">🔧</td><td>整備 maintenance</td><td class="icn"><i data-lucide="wrench"></i></td></tr>
+            <tr><td class="emo">💰</td><td>売掛金 receivable</td><td class="icn"><i data-lucide="banknote"></i></td></tr>
+            <tr><td class="emo">🧑‍💼</td><td>スタッフ staff</td><td class="icn"><i data-lucide="user-round"></i></td></tr>
+            <tr><td class="emo">📋</td><td>案件 assignments</td><td class="icn"><i data-lucide="clipboard-list"></i></td></tr>
+            <tr><td class="emo">🏢</td><td>物件 properties</td><td class="icn"><i data-lucide="house"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="demo" style="padding:0; overflow:hidden;">
+        <table class="imap">
+          <thead><tr><th colspan="2">アクション</th><th>Lucide</th></tr></thead>
+          <tbody>
+            <tr><td class="emo">＋</td><td>新規 / 追加</td><td class="icn"><i data-lucide="plus"></i></td></tr>
+            <tr><td class="emo">✏️</td><td>編集</td><td class="icn"><i data-lucide="square-pen"></i></td></tr>
+            <tr><td class="emo">🗑️</td><td>削除</td><td class="icn"><i data-lucide="trash-2"></i></td></tr>
+            <tr><td class="emo">🔍</td><td>検索</td><td class="icn"><i data-lucide="search"></i></td></tr>
+            <tr><td class="emo">⚙️</td><td>フィルタ</td><td class="icn"><i data-lucide="sliders-horizontal"></i></td></tr>
+            <tr><td class="emo">🔖</td><td>保存ビュー</td><td class="icn"><i data-lucide="bookmark"></i></td></tr>
+            <tr><td class="emo">⬇️</td><td>CSV入出力</td><td class="icn"><i data-lucide="arrow-down-to-line"></i></td></tr>
+            <tr><td class="emo">✨</td><td>AI / クイック登録</td><td class="icn"><i data-lucide="sparkles"></i></td></tr>
+            <tr><td class="emo">📎</td><td>添付</td><td class="icn"><i data-lucide="paperclip"></i></td></tr>
+            <tr><td class="emo">🏷️</td><td>タグ</td><td class="icn"><i data-lucide="tag"></i></td></tr>
+            <tr><td class="emo">🕘</td><td>変更履歴</td><td class="icn"><i data-lucide="history"></i></td></tr>
+            <tr><td class="emo">◀</td><td>戻る</td><td class="icn"><i data-lucide="arrow-left"></i></td></tr>
+            <tr><td class="emo">⚙</td><td>管理</td><td class="icn"><i data-lucide="settings"></i></td></tr>
+            <tr><td class="emo">⋯</td><td>その他メニュー</td><td class="icn"><i data-lucide="ellipsis"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 06 COMPONENTS ============ -->
+  <section class="block" id="components">
+    <div class="block-head"><span class="no">06</span><h2>コアコンポーネント</h2><span class="en">Components</span></div>
+
+    <div class="sub-label">ボタン</div>
+    <div class="demo">
+      <div class="demo-row" style="margin-bottom:14px;">
+        <button class="btn btn-primary"><i data-lucide="plus" class="ic"></i>新規作成</button>
+        <button class="btn btn-secondary"><i data-lucide="arrow-down-to-line" class="ic"></i>CSV出力</button>
+        <button class="btn btn-ghost">キャンセル</button>
+        <button class="btn btn-danger"><i data-lucide="trash-2" class="ic"></i>削除</button>
+        <button class="btn btn-ai"><i data-lucide="sparkles" class="ic"></i>AIで取り込み</button>
+      </div>
+      <div class="demo-row">
+        <button class="btn btn-primary btn-sm">Small</button>
+        <button class="btn btn-primary">Medium</button>
+        <button class="btn btn-primary btn-lg">Large</button>
+        <button class="btn btn-secondary btn-icon"><i data-lucide="ellipsis" class="ic"></i></button>
+        <button class="btn btn-primary" disabled>Disabled</button>
+      </div>
+    </div>
+
+    <div class="sub-label">フォーム要素</div>
+    <div class="demo">
+      <div class="field-list">
+        <div class="field"><label class="label">取引先名<span class="req">*</span></label><input class="input" placeholder="株式会社○○" value="株式会社ブラクト製作所" /></div>
+        <div class="field"><label class="label">業種</label><select class="select"><option>製造業</option><option>建設業</option><option>サービス業</option></select></div>
+        <div class="field"><label class="label">メモ</label><textarea class="textarea" placeholder="補足を入力">板金塗装の定期取引先。請求は月末締め翌月末払い。</textarea><span class="hint">社内向けの補足。顧客には表示されません。</span></div>
+        <div class="field"><label class="label">電話番号<span class="req">*</span></label><input class="input is-error" value="03-xxxx" /><span class="hint" style="color:var(--danger-text)">正しい電話番号を入力してください。</span></div>
+      </div>
+    </div>
+
+    <div class="sub-label">カード / セクション見出し</div>
+    <div class="demo" style="background:var(--n-50);">
+      <div class="card" style="max-width:520px;">
+        <div class="card-pad">
+          <div class="section-head"><span class="bar"></span><h3>基本情報</h3><span class="rule"></span></div>
+          <div style="display:grid; grid-template-columns:auto 1fr; gap:8px 20px; font-size:var(--text-md);">
+            <span class="muted">担当者</span><span class="strong">田中 一郎</span>
+            <span class="muted">電話</span><span class="tnum">03-1234-5678</span>
+            <span class="muted">年間取引額</span><span class="tnum strong">¥12,480,000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-label">バッジ / ステータスピル</div>
+    <div class="demo demo-row">
+      <span class="badge badge-neutral">neutral</span>
+      <span class="badge badge-brand">brand</span>
+      <span class="badge badge-info"><span class="dot"></span>info</span>
+      <span class="badge badge-positive"><span class="dot"></span>positive</span>
+      <span class="badge badge-warning"><span class="dot"></span>warning</span>
+      <span class="badge badge-danger"><span class="dot"></span>danger</span>
+      <span class="badge badge-ai"><i data-lucide="sparkles" class="ic" style="width:11px;height:11px;"></i>ai</span>
+    </div>
+
+    <div class="sub-label">テーブル行（業務一覧・中密度）</div>
+    <div class="demo" style="padding:0; border:none; background:none;">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>取引先</th><th>担当</th><th>ステージ</th><th class="col-num">想定金額</th><th>次回活動</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="strong">株式会社ブラクト製作所</td><td>田中 一郎</td><td><span class="badge badge-warning"><span class="dot"></span>交渉</span></td><td class="col-num tnum">¥3,200,000</td><td class="muted">6/12 見積提出</td><td><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="ellipsis" class="ic"></i></button></td></tr>
+            <tr><td class="strong">山田オートサービス</td><td>佐藤 花子</td><td><span class="badge badge-info"><span class="dot"></span>選別</span></td><td class="col-num tnum">¥850,000</td><td class="muted">6/09 架電</td><td><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="ellipsis" class="ic"></i></button></td></tr>
+            <tr class="grp-row"><td colspan="6">受注済 — 3件</td></tr>
+            <tr><td class="strong">近藤ボディ工房</td><td>田中 一郎</td><td><span class="badge badge-positive"><span class="dot"></span>受注</span></td><td class="col-num tnum">¥5,400,000</td><td class="muted">—</td><td><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="ellipsis" class="ic"></i></button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="sub-label">タブ / パンくず</div>
+    <div class="demo">
+      <div class="crumb" style="margin-bottom:16px;"><i data-lucide="arrow-left" class="ic" style="width:15px;height:15px;"></i><a href="#">取引先</a><span class="sep">/</span><span class="here">株式会社ブラクト製作所</span></div>
+      <div class="tabs">
+        <button class="tab" aria-selected="true"><i data-lucide="info" class="ic" style="width:15px;height:15px;"></i>概要</button>
+        <button class="tab"><i data-lucide="trending-up" class="ic" style="width:15px;height:15px;"></i>商談 <span class="count">4</span></button>
+        <button class="tab"><i data-lucide="calendar-clock" class="ic" style="width:15px;height:15px;"></i>活動 <span class="count">12</span></button>
+        <button class="tab"><i data-lucide="paperclip" class="ic" style="width:15px;height:15px;"></i>添付 <span class="count">3</span></button>
+        <button class="tab"><i data-lucide="history" class="ic" style="width:15px;height:15px;"></i>変更履歴</button>
+      </div>
+    </div>
+
+    <div class="sub-label">インライン通知（エラー帯・重複確認帯・AI）</div>
+    <div class="demo" style="display:flex; flex-direction:column; gap:12px;">
+      <div class="band band-error"><i data-lucide="circle-alert" class="ic"></i><div><strong>保存できませんでした。</strong> <span class="band-body">電話番号の形式が正しくありません。必須項目をご確認ください。</span></div></div>
+      <div class="band band-warning"><i data-lucide="copy" class="ic"></i><div><strong>重複の可能性があります。</strong> <span class="band-body">「株式会社ブラクト製作所」は既に登録されています。続行 / 統合 を選択してください。</span></div></div>
+      <div class="band band-ai"><i data-lucide="sparkles" class="ic"></i><div><strong>AIが3件を抽出しました。</strong> <span class="band-body">内容を確認して承認すると反映されます（AIはDBを直接更新しません）。</span></div></div>
+    </div>
+
+    <div class="sub-label">トースト / 空状態 / スケルトン</div>
+    <div class="two-col">
+      <div class="demo" style="display:flex; flex-direction:column; gap:14px; background:var(--n-100);">
+        <div class="toast toast-success"><i data-lucide="check-circle-2" class="ic"></i>取引先を保存しました</div>
+        <div class="toast toast-error"><i data-lucide="circle-alert" class="ic"></i>通信に失敗しました</div>
+      </div>
+      <div class="demo">
+        <div class="empty">
+          <div class="ic-wrap"><i data-lucide="inbox" class="ic"></i></div>
+          <h4>商談がまだありません</h4>
+          <p>最初の商談を登録して、案件の進捗を追跡しましょう。</p>
+          <button class="btn btn-primary btn-sm"><i data-lucide="plus" class="ic"></i>商談を作成</button>
+        </div>
+      </div>
+    </div>
+    <div class="demo" style="margin-top:var(--sp-3);">
+      <div class="spec" style="margin-bottom:10px;">スケルトン（一覧の体感速度）</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; gap:12px; align-items:center;"><div class="sk" style="width:38%; height:14px;"></div><div class="sk" style="width:16%; height:14px;"></div><div class="sk" style="width:14%; height:20px; border-radius:var(--r-pill);"></div><div class="sk" style="width:18%; height:14px; margin-left:auto;"></div></div>
+        <div style="display:flex; gap:12px; align-items:center;"><div class="sk" style="width:32%; height:14px;"></div><div class="sk" style="width:18%; height:14px;"></div><div class="sk" style="width:12%; height:20px; border-radius:var(--r-pill);"></div><div class="sk" style="width:20%; height:14px; margin-left:auto;"></div></div>
+        <div style="display:flex; gap:12px; align-items:center;"><div class="sk" style="width:42%; height:14px;"></div><div class="sk" style="width:14%; height:14px;"></div><div class="sk" style="width:16%; height:20px; border-radius:var(--r-pill);"></div><div class="sk" style="width:15%; height:14px; margin-left:auto;"></div></div>
+      </div>
+    </div>
+
+    <div class="sub-label">モーダル（CSV / テキスト取り込み）</div>
+    <div class="demo" style="position:relative; min-height:300px; background:var(--n-100); overflow:hidden; border-radius:var(--r-lg);">
+      <div class="modal-scrim" style="position:absolute;">
+        <div class="modal">
+          <div class="modal-head"><h3>テキストから取り込み</h3><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="x" class="ic"></i></button></div>
+          <div class="modal-body">
+            <div class="band band-ai" style="margin-bottom:14px;"><i data-lucide="sparkles" class="ic"></i><div class="band-body">名刺やメールを貼り付けると、AIが項目を構造化します。<strong style="color:var(--ai-text)">確認画面で承認後に反映</strong>されます。</div></div>
+            <textarea class="textarea" placeholder="ここに貼り付け…" style="min-height:96px;"></textarea>
+          </div>
+          <div class="modal-foot"><button class="btn btn-ghost">キャンセル</button><button class="btn btn-ai"><i data-lucide="sparkles" class="ic"></i>解析する</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 07 CHROME ============ -->
+  <section class="block" id="chrome">
+    <div class="block-head"><span class="no">07</span><h2>共通クローム</h2><span class="en">App Chrome</span></div>
+    <div class="demo" style="background:var(--n-100);">
+      <div style="display:flex; max-width:640px; border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-md); border:1px solid var(--n-200);">
+        <!-- sidebar -->
+        <nav style="width:208px; flex:none; background:var(--side-bg); padding:12px 10px; position:relative;">
+          <div class="navprog" style="width:42%;"></div>
+          <div style="display:flex; align-items:center; gap:8px; padding:4px 8px 14px; color:#fff; font-weight:700;"><span class="bmark" style="width:18px;height:18px;"></span>Bract</div>
+          <a class="nav-item is-active"><i data-lucide="layout-dashboard"></i>ダッシュボード</a>
+          <div class="nav-group-label">営業</div>
+          <a class="nav-item"><i data-lucide="building-2"></i>取引先<span class="badge-count">128</span></a>
+          <a class="nav-item"><i data-lucide="trending-up"></i>商談<span class="badge-count">24</span></a>
+          <a class="nav-item"><i data-lucide="calendar-clock"></i>活動</a>
+          <div class="nav-group-label">板金・整備</div>
+          <a class="nav-item"><i data-lucide="car"></i>車両</a>
+          <a class="nav-item"><i data-lucide="wrench"></i>整備</a>
+          <a class="nav-item"><i data-lucide="cog"></i>部品</a>
+          <a class="nav-item"><i data-lucide="banknote"></i>売掛金</a>
+        </nav>
+        <!-- content peek -->
+        <div style="flex:1; background:var(--n-50); padding:16px;">
+          <div class="crumb" style="margin-bottom:12px;"><span class="here">ダッシュボード</span></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="card card-pad"><div class="kpi"><span class="kpi-label">今月の受注</span><span class="kpi-value">¥8.4M</span><span class="kpi-delta up"><i data-lucide="arrow-up" class="ic" style="width:13px;height:13px;"></i>18.4%</span></div></div>
+            <div class="card card-pad"><div class="kpi"><span class="kpi-label">進行中の商談</span><span class="kpi-value">24</span><span class="kpi-delta down"><i data-lucide="arrow-down" class="ic" style="width:13px;height:13px;"></i>3件</span></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="spec" style="margin-top:12px;">サイドバー: 暖色ダーク（--side-bg）。モジュール単位のグループ見出し（10px トラッキング）＋アクティブ項目はブランド色。折りたたみ（w-56 / w-14）は localStorage 永続。上部の青い <strong>NavigationProgress</strong> バーは踏襲。</p>
+    </div>
+  </section>
+
+  <footer style="margin-top:var(--sp-9); padding-top:var(--sp-5); border-top:1px solid var(--n-200); color:var(--n-500); font-size:var(--text-sm);">
+    Bract Design System v1.0 — Foundation &amp; Components. 次は主要画面（ダッシュボード / 一覧 / 詳細 / フォーム / クイック登録ウィザード）へ。
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>
