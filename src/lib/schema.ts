@@ -829,6 +829,7 @@ export const staff = pgTable('staff', {
 export const assignments = pgTable('assignments', {
   id:                   uuid('id').primaryKey().defaultRandom(),
   assignment_no:        text('assignment_no').notNull().unique(),  // 'YYYYMMDD-NNN'
+  title:                text('title'),         // 表示名（取引先名＋日付＋内容 等。REQ-0017）
   client_account_id:    uuid('client_account_id').references(() => accounts.id, { onDelete: 'restrict' }),
   client_contact_id:    uuid('client_contact_id').references(() => contacts.id, { onDelete: 'set null' }),
   service_date:         date('service_date'),

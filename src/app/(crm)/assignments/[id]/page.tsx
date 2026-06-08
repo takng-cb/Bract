@@ -72,9 +72,10 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
       <div className="flex items-start justify-between gap-3 mt-2 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-zinc-900 font-mono">{a.assignment_no}</h1>
+            <h1 className="text-2xl font-bold text-zinc-900">{a.title ?? a.assignment_no}</h1>
             <span className={`inline-block px-2 py-0.5 text-xs rounded ${assignmentStatusColor(a.status)}`}>{a.status}</span>
           </div>
+          {a.title && <p className="text-xs text-zinc-400 font-mono mb-1">{a.assignment_no}</p>}
           {row.client?.id && (
             <p className="text-sm text-zinc-600 mt-1">
               派遣先: <Link href={`/accounts/${row.client.id}`} className="text-blue-600 hover:underline">{row.client.name}</Link>
