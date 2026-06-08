@@ -51,6 +51,10 @@ const nextConfig: NextConfig = {
    * 読んでリダイレクト配列を生成する。
    */
   async redirects() {
+    // dev で複数業種を1デプロイで確認する場合は業種リダイレクトを無効化（REQ-0021）。
+    // 本番は未設定＝従来どおり（挙動不変）。ページ側は isModuleEnabled で実行時ゲート。
+    if (process.env.BRACT_DISABLE_INDUSTRY_REDIRECTS === '1') return []
+
     const industry = process.env.NEXT_PUBLIC_INDUSTRY
     const rules: { source: string; destination: string; permanent: boolean }[] = []
 
