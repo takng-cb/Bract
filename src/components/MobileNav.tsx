@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { signOut } from '@/app/actions/auth'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
+import { NavIcon } from '@/lib/navIcon'
 
 const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/modules', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs', '/admin/audit-log', '/admin/ai', '/admin/license', '/admin/notifications'])
 /** AI 機能フラグが false の時に隠す href */
@@ -83,7 +84,7 @@ export default function MobileNav({ mainItems, companyName, isAdmin = false, aiE
                     : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
                 }`}
               >
-                <span>{item.icon}</span>
+                <NavIcon icon={item.icon} className="w-5 h-5 shrink-0" />
                 <span>{item.label}</span>
               </Link>
             )
