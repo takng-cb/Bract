@@ -109,7 +109,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
   // ── 概要タブ ─────────────────────────────────────────────────────
   const overviewContent = (
     <>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">部品情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -148,7 +148,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <AuthGuard minRole="editor">
-        <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
           <h2 className="text-sm font-semibold text-zinc-700 mb-4">入出庫を記録</h2>
           <form action={addMovement} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <select name="movement_type" required defaultValue="入庫"
@@ -236,7 +236,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const interactionsContent = interactionCount === 0 ? (
-    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-8 text-center">
       <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
       <AuthGuard minRole="editor">
         <p className="text-xs text-zinc-400 mb-3">作成画面の「関連レコード」で部品を選択してください</p>

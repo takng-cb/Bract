@@ -81,7 +81,7 @@ export default async function EditAssignmentPage({ params }: { params: Promise<{
       <h1 className="text-2xl font-bold text-zinc-900 mb-6 font-mono">{row.assignment_no} を編集</h1>
 
       {/* 案件本体編集 */}
-      <form action={updateAction} className="bg-white border border-zinc-200 rounded-lg p-6 space-y-4 mb-6">
+      <form action={updateAction} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-4 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">案件情報</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
@@ -145,7 +145,7 @@ export default async function EditAssignmentPage({ params }: { params: Promise<{
       </form>
 
       {/* スタッフのアサイン管理 */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">スタッフのアサイン</h2>
 
         {existingAssignedStaff.length > 0 && (

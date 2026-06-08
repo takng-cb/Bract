@@ -615,7 +615,7 @@ export default async function DashboardPage({
                 </h2>
                 <Link href="/maintenance" className="text-xs text-blue-600 hover:text-blue-800">整備一覧 →</Link>
               </div>
-              <div className="bg-white border border-zinc-200 rounded-lg p-4">
+              <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                   {(['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了'] as const).map((status) => {
                     const palette = STATUS_PALETTE[status]

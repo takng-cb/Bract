@@ -72,7 +72,7 @@ export default function NavOrderEditor({ userOrder, systemOrder, customItems = [
   }
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-6">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
       <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-1">
         ナビゲーション順序
       </h2>

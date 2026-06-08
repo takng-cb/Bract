@@ -165,7 +165,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         <StageBar stages={OPPORTUNITY_STAGES} currentStage={opportunity.stage} updateAction={changeStage} />
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">商談情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -280,7 +280,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         const effRate = !isRent ? effectiveCommissionRatePct(price, fee) : null
         const effMonths = isRent ? effectiveCommissionMonths(price, fee) : null
         return (
-          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
             <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">不動産情報</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -334,7 +334,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         const hasAny = st || vehicleInfo || pc > 0
         if (!hasAny) return null
         return (
-          <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
             <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">自動車整備情報</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -437,7 +437,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const interactionsContent = interactionCount === 0 ? (
-    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-8 text-center">
       <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
       <AuthGuard minRole="editor">
         <div className="flex flex-wrap justify-center gap-2">

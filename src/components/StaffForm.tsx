@@ -75,7 +75,7 @@ export default function StaffForm({ action, cancelHref, initial, accounts }: Pro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-zinc-200 rounded-lg p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-4">
       {error && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm px-3 py-2 rounded-md">{error}</div>
       )}

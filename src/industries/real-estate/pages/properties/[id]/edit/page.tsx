@@ -59,7 +59,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
         ]}
       />
       <h1 className="text-2xl font-bold text-zinc-900 break-words mb-6">{property.name}</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <PropertyForm
           action={updatePropertyAction}
           cancelHref={`/properties/${id}`}

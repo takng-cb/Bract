@@ -235,7 +235,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   return (
     <div className="space-y-4">
       {/* ステータス遷移バー（全幅・矢羽） */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-3">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-3">
         <StageBar stages={STATUS_STAGES} currentStage={m.status} updateAction={changeStatus} />
       </div>
 
@@ -480,7 +480,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         {/* ============================================================
             【整備】基本情報 + メモ
            ============================================================ */}
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide flex items-center gap-1.5">
               <span>{AB_ICONS.maintenance}</span><span>整備</span>
@@ -545,7 +545,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         {/* ============================================================
             【損傷】SVG 5 ビュー + ピン一覧
            ============================================================ */}
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
               📍 損傷箇所（{damagePins.length} 件）
@@ -588,7 +588,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         </section>
 
         {/* 作業項目 */}
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.lineItem} 作業項目</h2>
             <SectionEditModal triggerLabel="✏️ 編集" title="作業項目を編集">
@@ -665,7 +665,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         {/* 諸費用 + 入金 2 カラム */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* 諸費用 */}
-          <section className="bg-white border border-zinc-200 rounded-lg p-4">
+          <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.fee} 諸費用</h2>
               <SectionEditModal triggerLabel="✏️ 編集" title="諸費用を編集">
@@ -720,7 +720,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           </section>
 
           {/* 請求・支払（Issue #48 Phase 2） */}
-          <section className="bg-white border border-zinc-200 rounded-lg p-4">
+          <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">💳 請求・支払</h2>
               <SectionEditModal triggerLabel="✏️ 編集" title="請求・支払情報を編集">
@@ -748,7 +748,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           </section>
 
           {/* 入金 */}
-          <section className="bg-white border border-zinc-200 rounded-lg p-4">
+          <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.payment} 入金・預かり金</h2>
               <SectionEditModal triggerLabel="✏️ 編集" title="入金を編集">

@@ -82,7 +82,7 @@ export default function CustomerVehicleForm({
       </div>
 
       {/* 顧客（取引先 / 担当者）— maintenance と同じパターン */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-1">顧客</h2>
         <p className="text-xs text-zinc-400 mb-4">
           BtoB は取引先（会社）を選択。BtoC（個人のお客様）は取引先を空のままにして、下の「顧客」欄で人物を選択してください。
@@ -157,7 +157,7 @@ export default function CustomerVehicleForm({
       </div>
 
       {/* ナンバープレート */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">ナンバープレート</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div>
@@ -190,7 +190,7 @@ export default function CustomerVehicleForm({
       </div>
 
       {/* 車両基本情報 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">車両情報</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>

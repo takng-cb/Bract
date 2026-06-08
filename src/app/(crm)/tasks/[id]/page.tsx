@@ -110,7 +110,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         )}
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">詳細情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

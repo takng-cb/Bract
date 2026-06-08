@@ -62,7 +62,7 @@ export default function DashboardWidgetSettings({ availableWidgets, currentPrefs
   const enabledCount = Object.values(enabledMap).filter(Boolean).length
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-6">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">📊 ダッシュボード表示設定</h2>

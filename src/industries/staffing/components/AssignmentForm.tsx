@@ -21,7 +21,7 @@ export default function AssignmentForm({
   const formRef = useRef<HTMLFormElement>(null)
 
   return (
-    <form ref={formRef} action={formAction} className="bg-white border border-zinc-200 rounded-lg p-6 space-y-4">
+    <form ref={formRef} action={formAction} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-4">
       <CreateFeedback state={state} formRef={formRef} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

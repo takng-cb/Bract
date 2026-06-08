@@ -177,7 +177,7 @@ function ZoomModal({
             </div>
 
             {/* このビューのピン詳細 */}
-            <div className="bg-white border border-zinc-200 rounded-lg p-3 self-start">
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-3 self-start">
               <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
                 このビューの損傷一覧
               </h3>

@@ -293,7 +293,7 @@ export default async function ForecastPage({
           { label: '経費合計', value: `¥${totalExpenses.toLocaleString()}`, sub: `${exps.length} 件`, color: 'text-orange-600' },
           { label: '想定粗利', value: `¥${Math.round(grossProfit).toLocaleString()}`, sub: '想定売上 − 経費', color: grossProfit >= 0 ? 'text-green-700' : 'text-red-600' },
         ].map((k) => (
-          <div key={k.label} className="bg-white border border-zinc-200 rounded-lg p-4">
+          <div key={k.label} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
             <p className="text-xs text-zinc-400 mb-1">{k.label}</p>
             <p className={`text-xl font-bold ${k.color}`}>{k.value}</p>
             <p className="text-xs text-zinc-400 mt-0.5">{k.sub}</p>
@@ -303,18 +303,18 @@ export default async function ForecastPage({
 
       {/* チャート: 時系列 + ステージ別積み上げ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <div className="bg-white border border-zinc-200 rounded-lg p-4">
+        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <h2 className="text-sm font-semibold text-zinc-700 mb-3">想定売上・受注済 推移</h2>
           <ForecastTimeSeriesChart data={timeSeriesData} />
         </div>
-        <div className="bg-white border border-zinc-200 rounded-lg p-4">
+        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <h2 className="text-sm font-semibold text-zinc-700 mb-3">ステージ別 積み上げ（想定売上）</h2>
           <ForecastStageStackedChart data={stageData} />
         </div>
       </div>
 
       {/* 担当者別 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-4 mb-8">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4 mb-8">
         <h2 className="text-sm font-semibold text-zinc-700 mb-3">担当者別サマリー</h2>
         {ownerRows.length === 0 ? (
           <p className="text-sm text-zinc-400 text-center py-8">期間内のデータがありません</p>

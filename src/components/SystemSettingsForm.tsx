@@ -20,7 +20,7 @@ export default function SystemSettingsForm({ current }: Props) {
   const errorMsg  = state?.startsWith('error:') ? state.slice(6) : null
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-6">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
       <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-1">
         システム設定
       </h2>

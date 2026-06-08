@@ -162,7 +162,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       </div>
 
       {/* 顧客（所有者） */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">顧客（所有者）</h2>
         {(account && !accountIsPersonal) ? (
           /* BtoB: 法人取引先 */
@@ -234,7 +234,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       </div>
 
       {/* ナンバープレート */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">ナンバープレート</h2>
         <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><dt className="text-xs text-zinc-400 mb-1">運輸支局</dt><dd className="text-sm text-zinc-800">{v.transport_branch ?? '—'}</dd></div>
@@ -245,7 +245,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       </div>
 
       {/* 車両情報 */}
-      <div className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">車両情報</h2>
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div><dt className="text-xs text-zinc-400 mb-1">車名</dt><dd className="text-sm text-zinc-800">{v.car_name ?? '—'}</dd></div>
@@ -293,7 +293,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
           🧰 消耗品の前回交換 <span className="text-zinc-400 font-normal text-sm">({consumables.length})</span>
         </h2>
         {consumables.length > 0 ? (
-          <div className="bg-white border border-zinc-200 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
             {consumables.map((c) => (
               <Link
                 key={c.categoryId}
