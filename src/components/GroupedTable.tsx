@@ -249,7 +249,7 @@ export default function GroupedTable({ records, columns, groupBy, fields, curren
   }, [colWidths])
 
   return (
-    <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
+    <div className="bg-white rounded-lg border border-zinc-200 shadow-xs overflow-x-auto">
       <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: `${columns.length * 120 + 16}px` }}>
         <colgroup>
           {columns.map((col) => (
@@ -265,7 +265,7 @@ export default function GroupedTable({ records, columns, groupBy, fields, curren
               return (
                 <th
                   key={col.key}
-                  className={`relative px-4 py-3 font-medium text-zinc-600 select-none group ${
+                  className={`relative px-4 py-2.5 font-semibold text-zinc-500 select-none group ${
                     col.align === 'right' ? 'text-right' : 'text-left'
                   }`}
                   style={colWidths[col.key] ? { width: colWidths[col.key] } : undefined}
