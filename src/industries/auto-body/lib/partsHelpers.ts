@@ -24,7 +24,7 @@ export function calcStock(
 
 /** 在庫数の表示用バッジ色（reorder_level との比較） */
 export function stockBadgeColor(stock: number, reorderLevel: number): string {
-  if (stock <= 0) return 'bg-red-50 text-red-700'
-  if (stock <= reorderLevel) return 'bg-orange-50 text-orange-700'
-  return 'bg-green-50 text-green-700'
+  if (stock <= 0) return 'bg-danger-bg text-danger'
+  if (stock <= reorderLevel) return 'bg-warning-bg text-warning'
+  return 'bg-positive-bg text-positive'
 }
