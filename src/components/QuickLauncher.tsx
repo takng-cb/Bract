@@ -67,20 +67,20 @@ export default function QuickLauncher({ groups }: { groups: QuickActionGroup[] }
                             {a.description && <span className="block truncate text-xs text-zinc-400">{a.description}</span>}
                           </span>
                           {isWizard && (
-                            <span className="ml-auto shrink-0 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">AI 近日</span>
+                            <span className="ml-auto shrink-0 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">AI</span>
                           )}
                         </>
                       )
                       const cls = 'flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-left hover:bg-zinc-50 transition-colors'
-                      // v1: wizard は準備中（次段で有効化）。create/log は遷移。
-                      return isWizard ? (
-                        <button key={i} type="button" title="AI クイック登録は次のアップデートで有効化されます" className={`${cls} opacity-60 cursor-not-allowed`} disabled>
-                          {content}
-                        </button>
-                      ) : (
-                        <Link key={i} href={a.href ?? '#'} onClick={() => setOpen(false)} className={cls}>
+                      // href があれば遷移（wizard も /quick/staffing 等へ）。href が無い場合のみ無効表示。
+                      return a.href ? (
+                        <Link key={i} href={a.href} onClick={() => setOpen(false)} className={cls}>
                           {content}
                         </Link>
+                      ) : (
+                        <button key={i} type="button" title="準備中" className={`${cls} opacity-60 cursor-not-allowed`} disabled>
+                          {content}
+                        </button>
                       )
                     })}
                   </div>

@@ -364,23 +364,23 @@ export default async function DashboardPage({
                 <p className="text-[11px] text-zinc-400 mb-1.5">{g.moduleName}</p>
                 <div className="flex flex-wrap gap-2">
                   {g.actions.map((a, i) =>
-                    a.kind === 'wizard' ? (
-                      <span
-                        key={i}
-                        title="AI クイック登録は次のアップデートで有効化されます"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-400"
-                      >
-                        <span>{a.icon}</span>{a.label}
-                        <span className="rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-700">AI 近日</span>
-                      </span>
-                    ) : (
+                    a.href ? (
                       <Link
                         key={i}
-                        href={a.href ?? '#'}
+                        href={a.href}
                         className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                       >
                         <span>{a.icon}</span>{a.label}
+                        {a.kind === 'wizard' && <span className="rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-700">AI</span>}
                       </Link>
+                    ) : (
+                      <span
+                        key={i}
+                        title="準備中"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-400"
+                      >
+                        <span>{a.icon}</span>{a.label}
+                      </span>
                     ),
                   )}
                 </div>

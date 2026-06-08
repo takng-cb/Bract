@@ -3,7 +3,7 @@
  */
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
 import { assignments, assignment_staff, accounts } from '@/lib/schema'
 import { eq, desc, sql } from 'drizzle-orm'
@@ -13,7 +13,7 @@ import { assignmentStatusColor } from '@/industries/staffing/lib/staffingService
 export const dynamic = 'force-dynamic'
 
 export default async function AssignmentsListPage() {
-  if (activeIndustry !== 'staffing') notFound()
+  if (!(await isModuleEnabled('staffing'))) notFound()
 
   const [rows, edit] = await Promise.all([
     db.select({
