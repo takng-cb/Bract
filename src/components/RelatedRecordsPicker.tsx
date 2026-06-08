@@ -210,7 +210,7 @@ export default function RelatedRecordsPicker({
                   type="text"
                   value={row.search}
                   onChange={(e) => setSearch(row.uid, e.target.value)}
-                  placeholder="🔍 レコードを名前で絞り込み..."
+                  placeholder="レコードを名前で絞り込み..."
                   className="w-full border border-zinc-300 rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {filteredRecords.length === 0 ? (
