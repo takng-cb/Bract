@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — 商談</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<link rel="stylesheet" href="styles/shell.css" />
+<style>
+  .content { padding: var(--sp-5) 0 0; display: flex; flex-direction: column; min-height: 0; }
+  .lwrap { padding: 0 var(--sp-7); flex: none; }
+  .view-toggle { display: inline-flex; background: var(--n-100); border: 1px solid var(--n-200); border-radius: var(--r-md); padding: 2px; gap: 2px; }
+  .view-toggle button { appearance: none; border: none; background: none; cursor: pointer; font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--n-600); padding: 5px 12px; border-radius: var(--r-xs); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .view-toggle button.on { background: var(--n-0); color: var(--n-900); box-shadow: var(--shadow-xs); }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+  .tool-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; font-size: var(--text-md); font-weight: 600; color: var(--n-700); background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-md); cursor: pointer; white-space: nowrap; }
+  .tool-btn:hover { background: var(--n-50); }
+  .tool-btn .ic { width: 15px; height: 15px; color: var(--n-500); }
+
+  .board { flex: 1; overflow-x: auto; overflow-y: hidden; display: flex; gap: 14px; padding: 4px var(--sp-7) var(--sp-6); }
+  .col { width: 288px; flex: none; display: flex; flex-direction: column; min-height: 0; }
+  .col-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 12px; flex: none; }
+  .col-head .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .col-head .cn { font-size: var(--text-md); font-weight: 700; color: var(--n-800); }
+  .col-head .cc { font-size: var(--text-xs); color: var(--n-500); background: var(--n-100); padding: 1px 7px; border-radius: var(--r-pill); font-variant-numeric: tabular-nums; }
+  .col-head .cs { margin-left: auto; font-size: var(--text-sm); font-weight: 700; color: var(--n-700); font-variant-numeric: tabular-nums; }
+  .col-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px 2px 20px; }
+  .col-body::-webkit-scrollbar { width: 6px; }
+  .col-body::-webkit-scrollbar-thumb { background: var(--n-200); border-radius: 6px; }
+
+  .deal { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); padding: 12px 13px; box-shadow: var(--shadow-xs); cursor: grab; }
+  .deal:hover { border-color: var(--n-300); box-shadow: var(--shadow-sm); }
+  .deal .dn { font-size: var(--text-md); font-weight: 700; color: var(--n-900); line-height: 1.4; }
+  .deal .da { font-size: var(--text-xs); color: var(--n-500); margin-top: 2px; display: flex; align-items: center; gap: 5px; }
+  .deal .da .ic { width: 12px; height: 12px; }
+  .deal .drow { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .deal .amt { font-size: var(--text-md); font-weight: 700; color: var(--n-900); font-variant-numeric: tabular-nums; }
+  .deal .av { width: 24px; height: 24px; border-radius: 50%; background: var(--brand-600); color: var(--on-primary); display: grid; place-items: center; font-size: 10px; font-weight: 700; }
+  .deal .meta { display: flex; align-items: center; gap: 7px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--n-150); font-size: var(--text-xs); color: var(--n-500); }
+  .deal .conf { display: inline-flex; align-items: center; gap: 4px; }
+  .deal .conf .bar { width: 34px; height: 4px; border-radius: 2px; background: var(--n-150); overflow: hidden; }
+  .deal .conf .bar span { display: block; height: 100%; background: var(--primary); }
+  .add-card { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px; border: 1px dashed var(--n-300); border-radius: var(--r-md); color: var(--n-500); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+  .add-card:hover { background: var(--n-50); color: var(--n-700); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="bract-sidebar" data-active="opportunities"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="navprog" style="width:0;"></div>
+      <div class="searchbox"><i data-lucide="search" class="ic" style="width:16px;height:16px;"></i><input placeholder="取引先・車両・商談を検索…" /><span class="mono" style="font-size:11px;color:var(--n-400);border:1px solid var(--n-300);border-radius:4px;padding:0 5px;">⌘K</span></div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ai btn-sm"><i data-lucide="sparkles" class="ic"></i>AIで取り込み</button>
+      <div class="ic-btn"><i data-lucide="bell" class="ic" style="width:18px;height:18px;"></i><span class="dot"></span></div>
+    </header>
+
+    <div class="content">
+      <div class="lwrap">
+        <div class="page-head" style="margin-bottom:0;">
+          <div><h1>商談 <span class="muted" style="font-size:var(--text-md);font-weight:600;">24件 · 加重 ¥9.6M</span></h1></div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <a class="view-toggle" href="Bract Forecast.html" style="text-decoration:none;"><button><i data-lucide="chart-no-axes-column" class="ic" style="width:15px;height:15px;"></i>予実</button></a>
+            <div class="view-toggle"><button class="on"><i data-lucide="kanban" class="ic" style="width:15px;height:15px;"></i>パイプライン</button><button><i data-lucide="list" class="ic" style="width:15px;height:15px;"></i>リスト</button></div>
+            <button class="btn btn-primary"><i data-lucide="plus" class="ic"></i>商談を作成</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="tool-btn"><i data-lucide="sliders-horizontal" class="ic"></i>フィルタ</button>
+          <button class="tool-btn"><i data-lucide="user-round" class="ic"></i>担当: 全員</button>
+          <button class="tool-btn"><i data-lucide="calendar" class="ic"></i>今四半期</button>
+          <div style="flex:1"></div>
+          <button class="tool-btn"><i data-lucide="arrow-down-up" class="ic"></i>金額順</button>
+        </div>
+      </div>
+
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+</div>
+
+<div class="design-fab">
+  <span class="lab">見た目</span>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium" title="中密度"><span class="sw" style="background:var(--n-400)"></span></button>
+    <button data-ctl="density" data-val="high" title="高密度"><span class="sw" style="background:var(--n-700)"></span></button>
+  </div>
+</div>
+
+<script>
+  const COLS = [
+    { id:'prospect', name:'見込み', dot:'var(--n-400)', sum:'¥2.9M', deals:[
+      { n:'中古設備の下取り', a:'株式会社ブラクト製作所', amt:'¥220K', own:'田', conf:20, next:'6/25 架電' },
+      { n:'定期点検パック', a:'みなと運送', amt:'¥640K', own:'佐', conf:25, next:'6/20 訪問' },
+      { n:'タイヤ交換 まとめ', a:'城南タイヤ', amt:'¥96K', own:'鈴', conf:20, next:'—' },
+    ]},
+    { id:'qualify', name:'選別', dot:'var(--info)', sum:'¥2.1M', deals:[
+      { n:'整備工場の設備更新', a:'山田オートサービス', amt:'¥850K', own:'佐', conf:40, next:'6/09 架電', tag:'info' },
+      { n:'板金ライン部分更新', a:'多摩自動車工業', amt:'¥210K', own:'田', conf:35, next:'6/14 見積' },
+    ]},
+    { id:'propose', name:'提案', dot:'var(--ai)', sum:'¥2.8M', deals:[
+      { n:'塗装ブース増設', a:'株式会社ブラクト製作所', amt:'¥1.48M', own:'田', conf:50, next:'6/18 訪問', tag:'ai' },
+      { n:'車両管理システム', a:'佐々木自動車', amt:'¥1.28M', own:'佐', conf:50, next:'6/10 訪問' },
+    ]},
+    { id:'negotiate', name:'交渉', dot:'var(--warning)', sum:'¥3.2M', deals:[
+      { n:'板金ライン更新 2026', a:'株式会社ブラクト製作所', amt:'¥3.2M', own:'田', conf:70, next:'6/12 見積', tag:'warning' },
+    ]},
+    { id:'won', name:'受注', dot:'var(--positive)', sum:'¥6.36M', deals:[
+      { n:'定期メンテ契約（年間）', a:'株式会社ブラクト製作所', amt:'¥960K', own:'田', conf:100, next:'—', tag:'positive' },
+      { n:'事故修理 一式', a:'近藤ボディ工房', amt:'¥5.4M', own:'田', conf:100, next:'—', tag:'positive' },
+    ]},
+    { id:'lost', name:'失注', dot:'var(--n-400)', sum:'¥0.4M', deals:[
+      { n:'代車サービス契約', a:'中央モータース', amt:'¥420K', own:'佐', conf:0, next:'他社決定' },
+    ]},
+  ];
+  function dealHTML(d) {
+    const tag = d.tag ? `<span class="badge badge-${d.tag}" style="margin-left:auto;"><span class="dot"></span></span>` : '';
+    return `<div class="deal">
+      <div class="dn">${d.n}</div>
+      <div class="da"><i data-lucide="building-2" class="ic"></i>${d.a}</div>
+      <div class="drow"><span class="amt">${d.amt}</span><span class="av">${d.own}</span></div>
+      <div class="meta"><span class="conf"><span class="bar"><span style="width:${d.conf}%"></span></span>${d.conf}%</span><span style="margin-left:auto;">${d.next}</span></div>
+    </div>`;
+  }
+  document.getElementById('board').innerHTML = COLS.map(c => `
+    <div class="col">
+      <div class="col-head"><span class="dot" style="background:${c.dot}"></span><span class="cn">${c.name}</span><span class="cc">${c.deals.length}</span><span class="cs">${c.sum}</span></div>
+      <div class="col-body">${c.deals.map(dealHTML).join('')}<div class="add-card"><i data-lucide="plus" class="ic" style="width:14px;height:14px;"></i>追加</div></div>
+    </div>`).join('');
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/chrome.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>

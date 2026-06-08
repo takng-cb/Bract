@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — デザイン刷新</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<style>
+  body { background: var(--n-100); overflow-y: auto; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 64px 40px 100px; }
+  .head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+  .bmark { width: 38px; height: 38px; flex: none; background: var(--primary); border-radius: 2px 80% 2px 80% / 80% 2px 80% 2px; transform: rotate(-8deg); }
+  .head h1 { margin: 0; font-size: var(--text-display); font-weight: 700; letter-spacing: -0.02em; color: var(--n-900); }
+  .lede { font-size: var(--text-lg); color: var(--n-600); max-width: 64ch; margin: 0 0 40px; }
+  .group { margin-bottom: 40px; }
+  .group-t { font-size: var(--text-sm); font-weight: 700; color: var(--n-500); letter-spacing: .06em; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .group-t::after { content: ""; flex: 1; height: 1px; background: var(--n-200); }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 820px) { .cards { grid-template-columns: 1fr 1fr; } }
+  .nav-card { display: flex; flex-direction: column; gap: 10px; padding: 18px; background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); box-shadow: var(--shadow-xs); text-decoration: none; transition: border-color .12s, box-shadow .12s, transform .12s; }
+  .nav-card:hover { border-color: var(--brand-300); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .nav-card .ico { width: 38px; height: 38px; border-radius: var(--r-md); display: grid; place-items: center; background: var(--brand-50); color: var(--primary-text); }
+  .nav-card .nt { font-size: var(--text-md); font-weight: 700; color: var(--n-900); }
+  .nav-card .nd { font-size: var(--text-sm); color: var(--n-500); line-height: 1.5; }
+  .nav-card .badge { align-self: flex-start; }
+  .file-card .ico { background: var(--n-100); color: var(--n-600); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head"><span class="bmark"></span><h1>Bract</h1></div>
+    <p class="lede">デザイン刷新の成果物一覧。ウォームニュートラル × 植物的なグリーン（Foliage）で「信頼できる業務SaaS」へ。各画面右下の「見た目」でライト/ダーク・密度を切替できます。</p>
+
+    <div class="group">
+      <div class="group-t">基盤</div>
+      <div class="cards">
+        <a class="nav-card" href="Bract Design System.html"><span class="ico"><i data-lucide="swatch-book"></i></span><span class="nt">デザインシステム</span><span class="nd">トークン・タイポ・アイコン方針・コアコンポーネント</span></a>
+        <a class="nav-card file-card" href="export/globals.css"><span class="ico"><i data-lucide="file-code-2"></i></span><span class="nt">globals.css（書き出し）</span><span class="nd">Tailwind v4 @theme・緑確定・ダーク対応の実装用</span></a>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-t">主要画面（デスクトップ）</div>
+      <div class="cards">
+        <a class="nav-card" href="Bract Dashboard.html"><span class="ico"><i data-lucide="layout-dashboard"></i></span><span class="nt">ダッシュボード</span><span class="nd">KPI・売上推移・整備ステータス・入庫予定</span></a>
+        <a class="nav-card" href="Bract Accounts List.html"><span class="ico"><i data-lucide="building-2"></i></span><span class="nt">取引先一覧</span><span class="nd">テーブル・FilterBuilder・保存ビュー・一括操作</span></a>
+        <a class="nav-card" href="Bract Account Detail.html"><span class="ico"><i data-lucide="file-text"></i></span><span class="nt">取引先 詳細</span><span class="nd">ヘッダ・基本情報・関連タブ・右レール</span></a>
+        <a class="nav-card" href="Bract Account Form.html"><span class="ico"><i data-lucide="square-pen"></i></span><span class="nt">入力フォーム</span><span class="nd">セクション・AI/CSV取り込み（承認後反映）</span></a>
+        <a class="nav-card" href="Bract Quick Entry.html"><span class="ico"><i data-lucide="sparkles"></i></span><span class="nt">クイック登録</span><span class="nd">貼付→AI解析→確認→一括起票</span></a>
+        <a class="nav-card" href="Bract Opportunities.html"><span class="ico"><i data-lucide="kanban"></i></span><span class="nt">商談パイプライン</span><span class="nd">ステージ別カンバン・加重予測</span></a>
+        <a class="nav-card" href="Bract Maintenance.html"><span class="ico"><i data-lucide="wrench"></i></span><span class="nt">整備ボード</span><span class="nd">工程カンバン（受付→納車）・ベイ/担当</span></a>
+        <a class="nav-card" href="Bract Forecast.html"><span class="ico"><i data-lucide="chart-no-axes-column"></i></span><span class="nt">予実・予測</span><span class="nd">実績/予測/目標・ステージ加重・達成率</span></a>
+        <a class="nav-card" href="Bract Admin.html"><span class="ico"><i data-lucide="settings"></i></span><span class="nt">管理</span><span class="nd">モジュール・ライセンス・ユーザー</span></a>
+        <a class="nav-card" href="Bract States.html"><span class="ico"><i data-lucide="loader"></i></span><span class="nt">状態デザイン</span><span class="nd">スケルトン・空・エラー・通常</span></a>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-t">モバイル</div>
+      <div class="cards">
+        <a class="nav-card" href="Bract Mobile.html"><span class="ico"><i data-lucide="smartphone"></i></span><span class="nt">モバイル一式</span><span class="nd">上部バー・下部タブ・カード表示・各レコードカード</span></a>
+      </div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>

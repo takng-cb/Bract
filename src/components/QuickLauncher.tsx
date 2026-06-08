@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Plus, X } from 'lucide-react'
+import { NavIcon } from '@/lib/navIcon'
 import type { QuickActionGroup } from '@/lib/modules/quick'
 
 /**
@@ -31,7 +33,7 @@ export default function QuickLauncher({ groups }: { groups: QuickActionGroup[] }
         title="クイック操作"
         className="print:hidden fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-lg hover:bg-blue-700 transition-colors"
       >
-        <span className="text-lg leading-none">＋</span>
+        <Plus className="w-5 h-5 shrink-0" strokeWidth={2.25} aria-hidden />
         <span className="text-sm font-medium hidden sm:inline">クイック</span>
       </button>
 
@@ -47,7 +49,7 @@ export default function QuickLauncher({ groups }: { groups: QuickActionGroup[] }
           >
             <div className="sticky top-0 flex items-center justify-between border-b bg-white px-5 py-3">
               <h2 className="text-base font-bold text-zinc-900">クイック操作</h2>
-              <button onClick={() => setOpen(false)} className="text-zinc-400 hover:text-zinc-700 text-xl leading-none">×</button>
+              <button onClick={() => setOpen(false)} className="text-zinc-400 hover:text-zinc-700" aria-label="閉じる"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="px-3 py-2">
@@ -61,7 +63,7 @@ export default function QuickLauncher({ groups }: { groups: QuickActionGroup[] }
                       const isWizard = a.kind === 'wizard'
                       const content = (
                         <>
-                          <span className="text-lg leading-none shrink-0">{a.icon}</span>
+                          <NavIcon icon={a.icon} className="w-5 h-5 shrink-0" />
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-medium text-zinc-800">{a.label}</span>
                             {a.description && <span className="block truncate text-xs text-zinc-400">{a.description}</span>}

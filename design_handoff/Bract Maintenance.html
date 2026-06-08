@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — 整備</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<link rel="stylesheet" href="styles/shell.css" />
+<style>
+  .content { padding: var(--sp-5) 0 0; display: flex; flex-direction: column; min-height: 0; }
+  .lwrap { padding: 0 var(--sp-7); flex: none; }
+  .stats { display: flex; gap: 10px; margin: 14px 0 4px; flex-wrap: wrap; }
+  .stat { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); box-shadow: var(--shadow-xs); }
+  .stat .si { width: 32px; height: 32px; border-radius: var(--r-sm); display: grid; place-items: center; flex: none; }
+  .stat .sv { font-size: var(--text-xl); font-weight: 700; color: var(--n-900); font-variant-numeric: tabular-nums; line-height: 1; }
+  .stat .sl { font-size: var(--text-xs); color: var(--n-500); margin-top: 2px; white-space: nowrap; }
+
+  .board { flex: 1; overflow-x: auto; overflow-y: hidden; display: flex; gap: 14px; padding: 12px var(--sp-7) var(--sp-6); }
+  .col { width: 270px; flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--n-100); border-radius: var(--r-lg); padding: 4px; }
+  .col-head { display: flex; align-items: center; gap: 8px; padding: 10px 10px 8px; flex: none; }
+  .col-head .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .col-head .cn { font-size: var(--text-md); font-weight: 700; color: var(--n-800); }
+  .col-head .cc { font-size: var(--text-xs); color: var(--n-500); background: var(--n-0); padding: 1px 7px; border-radius: var(--r-pill); font-variant-numeric: tabular-nums; }
+  .col-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 6px 16px; }
+  .col-body::-webkit-scrollbar { width: 6px; }
+  .col-body::-webkit-scrollbar-thumb { background: var(--n-250); border-radius: 6px; }
+
+  .job { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-md); padding: 0; box-shadow: var(--shadow-xs); cursor: grab; overflow: hidden; display: flex; }
+  .job:hover { box-shadow: var(--shadow-sm); }
+  .job .accent { width: 4px; flex: none; }
+  .job .jb { flex: 1; padding: 11px 12px; min-width: 0; }
+  .job .plate { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--n-500); }
+  .job .vn { font-size: var(--text-md); font-weight: 700; color: var(--n-900); margin: 1px 0 2px; }
+  .job .cust { font-size: var(--text-xs); color: var(--n-500); }
+  .job .wrow { display: flex; align-items: center; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+  .job .foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--n-150); font-size: var(--text-xs); color: var(--n-500); }
+  .job .foot .bay { font-weight: 700; color: var(--n-700); }
+  .job .mav { width: 22px; height: 22px; border-radius: 50%; background: var(--n-200); color: var(--n-700); display: grid; place-items: center; font-size: 10px; font-weight: 700; margin-left: auto; }
+  .job .eta { display: inline-flex; align-items: center; gap: 3px; }
+  .job .eta.over { color: var(--danger-text); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="bract-sidebar" data-active="maintenance"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="navprog" style="width:0;"></div>
+      <div class="searchbox"><i data-lucide="search" class="ic" style="width:16px;height:16px;"></i><input placeholder="車両・ナンバー・顧客で検索…" /></div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ai btn-sm"><i data-lucide="sparkles" class="ic"></i>受付を取り込み</button>
+      <div class="ic-btn"><i data-lucide="bell" class="ic" style="width:18px;height:18px;"></i><span class="dot"></span></div>
+    </header>
+
+    <div class="content">
+      <div class="lwrap">
+        <div class="page-head" style="margin-bottom:0;">
+          <div><h1>整備</h1></div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary"><i data-lucide="calendar" class="ic"></i>入庫カレンダー</button>
+            <button class="btn btn-primary"><i data-lucide="plus" class="ic"></i>受付を作成</button>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="si" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="wrench" class="ic" style="width:17px;height:17px;"></i></div><div><div class="sv">9</div><div class="sl">整備中の車両</div></div></div>
+          <div class="stat"><div class="si" style="background:var(--warning-bg);color:var(--warning-text);"><i data-lucide="package" class="ic" style="width:17px;height:17px;"></i></div><div><div class="sv">2</div><div class="sl">部品待ち</div></div></div>
+          <div class="stat"><div class="si" style="background:var(--positive-bg);color:var(--positive-text);"><i data-lucide="check-check" class="ic" style="width:17px;height:17px;"></i></div><div><div class="sv">3</div><div class="sl">本日納車予定</div></div></div>
+          <div class="stat"><div class="si" style="background:var(--info-bg);color:var(--info-text);"><i data-lucide="warehouse" class="ic" style="width:17px;height:17px;"></i></div><div><div class="sv">4<span style="font-size:var(--text-sm);color:var(--n-400);">/5</span></div><div class="sl">稼働ベイ</div></div></div>
+        </div>
+      </div>
+
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+</div>
+
+<div class="design-fab">
+  <span class="lab">見た目</span>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium" title="中密度"><span class="sw" style="background:var(--n-400)"></span></button>
+    <button data-ctl="density" data-val="high" title="高密度"><span class="sw" style="background:var(--n-700)"></span></button>
+  </div>
+</div>
+
+<script>
+  const C = (tone) => ({
+    neutral:['var(--n-400)','var(--n-100)','var(--n-500)'],
+    info:['var(--info)','var(--info-bg)','var(--info-text)'],
+    warning:['var(--warning)','var(--warning-bg)','var(--warning-text)'],
+    brand:['var(--primary)','var(--brand-50)','var(--primary-text)'],
+    positive:['var(--positive)','var(--positive-bg)','var(--positive-text)'],
+  }[tone]);
+  const COLS = [
+    { name:'受付', tone:'neutral', jobs:[
+      { plate:'横浜 500 さ 90-12', v:'ホンダ N-BOX', cust:'近藤様', work:'車検', wtone:'neutral', bay:'—', mech:'—', eta:'13:00 入庫' },
+    ]},
+    { name:'入庫', tone:'info', jobs:[
+      { plate:'品川 300 あ 12-34', v:'トヨタ プリウス', cust:'田中様', work:'板金塗装', wtone:'info', bay:'BAY 1', mech:'山', eta:'本日中' },
+      { plate:'練馬 800 か 56-78', v:'トヨタ ハイエース', cust:'山田運送', work:'定期点検', wtone:'neutral', bay:'BAY 2', mech:'鈴', eta:'明日' },
+    ]},
+    { name:'部品待ち', tone:'warning', jobs:[
+      { plate:'品川 100 さ 44-21', v:'いすゞ エルフ', cust:'みなと運送', work:'事故修理', wtone:'warning', bay:'BAY 3', mech:'山', eta:'部品 6/11', over:true },
+      { plate:'品川 800 か 56-78', v:'トヨタ ハイエース', cust:'ブラクト製作所', work:'バンパー交換', wtone:'warning', bay:'外', mech:'山', eta:'部品 6/12' },
+    ]},
+    { name:'作業中', tone:'brand', jobs:[
+      { plate:'品川 330 な 34-56', v:'トヨタ アルファード', cust:'佐々木様', work:'事故修理', wtone:'brand', bay:'BAY 4', mech:'山', eta:'納車 6/14' },
+      { plate:'横浜 580 め 22-09', v:'スズキ ジムニー', cust:'丸和カーケア', work:'下回り塗装', wtone:'brand', bay:'BAY 5', mech:'鈴', eta:'納車 6/13' },
+    ]},
+    { name:'完成・検品', tone:'positive', jobs:[
+      { plate:'品川 480 す 09-87', v:'ホンダ N-VAN', cust:'近藤様', work:'板金塗装', wtone:'positive', bay:'検品', mech:'山', eta:'検品中' },
+    ]},
+    { name:'納車待ち', tone:'positive', jobs:[
+      { plate:'川崎 300 ほ 71-40', v:'日産 セレナ', cust:'中央モータース', work:'車検', wtone:'positive', bay:'—', mech:'佐', eta:'本日 16:00', over:false },
+    ]},
+  ];
+  function jobHTML(j, colTone) {
+    const c = C(colTone);
+    const wt = C(j.wtone);
+    return `<div class="job">
+      <div class="accent" style="background:${c[0]}"></div>
+      <div class="jb">
+        <div class="plate">${j.plate}</div>
+        <div class="vn">${j.v}</div>
+        <div class="cust">${j.cust}</div>
+        <div class="wrow"><span class="badge" style="background:${wt[1]};color:${wt[2]};border:1px solid ${wt[0]};">${j.work}</span></div>
+        <div class="foot"><span class="bay">${j.bay}</span><span class="eta ${j.over?'over':''}">${j.over?'<i data-lucide=\"triangle-alert\" class=\"ic\" style=\"width:12px;height:12px;\"></i>':''}${j.eta}</span><span class="mav">${j.mech}</span></div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('board').innerHTML = COLS.map(col => {
+    const c = C(col.tone);
+    return `<div class="col">
+      <div class="col-head"><span class="dot" style="background:${c[0]}"></span><span class="cn">${col.name}</span><span class="cc">${col.jobs.length}</span></div>
+      <div class="col-body">${col.jobs.map(j => jobHTML(j, col.tone)).join('')}</div>
+    </div>`;
+  }).join('');
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/chrome.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>

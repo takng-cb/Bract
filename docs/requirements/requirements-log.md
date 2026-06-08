@@ -152,6 +152,12 @@
 - 状態：実装（feature/staffing-procurement）。3業種ビルド green。マイグレ不要（既存テーブル使用）。
 - 関連：REQ-0005/0007, ADR-0010 / spec: staffing §3-4 / 次：請求(invoices)＋売上ダッシュボード
 
+### REQ-0020  UI 全面刷新（デザインシステム導入）
+- 2026-06-08 / 会話（現状UIが「ダサい」→ Claude Design でデザイン作成、反映依頼）
+- 内容：見た目を全面刷新。ブランドを **Foliage（緑）× ウォームニュートラル**に、絵文字→**Lucide**、Geist 未適用の不具合解消＋**Noto Sans JP**、色/余白/角丸/影/タイプスケールを**デザイントークン**へ集約（バッジ色等のハードコード廃止）。機能・URL・サーバーアクションは不変（見た目のみ）。原本は `design_handoff/`。
+- 状態：**スライス1=基盤実装**（feature/design-foundation：globals.css トークン＋zinc/blue リマップ＋Noto）。3業種ビルド green。続き＝lucide アイコン／Badge・Button 等プリミティブ／画面個別。
+- 関連：ADR-0021 / design_handoff/README.md
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

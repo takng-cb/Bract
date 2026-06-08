@@ -20,19 +20,20 @@ import { getCurrentUserId } from '@/lib/auth'
 import { getEnabledModules } from '@/lib/modules/registry'
 import { buildQuickActionGroups } from '@/lib/modules/quick'
 
+// 色は semantic tone トークンで統一（ADR-0021）
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  high:   { label: '高', color: 'bg-red-50 text-red-600' },
-  medium: { label: '中', color: 'bg-yellow-50 text-yellow-700' },
-  low:    { label: '低', color: 'bg-green-50 text-green-700' },
+  high:   { label: '高', color: 'bg-danger-bg text-danger' },
+  medium: { label: '中', color: 'bg-warning-bg text-warning' },
+  low:    { label: '低', color: 'bg-n-100 text-n-600' },
 }
 
 const STAGE_CONFIG: Record<string, { label: string; color: string }> = {
-  prospecting:   { label: '見込み',   color: 'bg-zinc-100 text-zinc-600' },
-  qualification: { label: '要件確認', color: 'bg-blue-100 text-blue-700' },
-  proposal:      { label: '提案',     color: 'bg-yellow-100 text-yellow-700' },
-  negotiation:   { label: '交渉',     color: 'bg-orange-100 text-orange-700' },
-  closed_won:    { label: '受注',     color: 'bg-green-100 text-green-700' },
-  closed_lost:   { label: '失注',     color: 'bg-red-100 text-red-600' },
+  prospecting:   { label: '見込み',   color: 'bg-n-100 text-n-600' },
+  qualification: { label: '要件確認', color: 'bg-info-bg text-info' },
+  proposal:      { label: '提案',     color: 'bg-ai-bg text-ai' },
+  negotiation:   { label: '交渉',     color: 'bg-warning-bg text-warning' },
+  closed_won:    { label: '受注',     color: 'bg-positive-bg text-positive' },
+  closed_lost:   { label: '失注',     color: 'bg-n-100 text-n-600' },
 }
 
 export default async function DashboardPage({

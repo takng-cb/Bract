@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — 株式会社ブラクト製作所</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<style>
+  html, body { height: 100%; }
+  body { background: var(--n-100); overflow: hidden; }
+  .app { display: flex; height: 100vh; }
+  .sidebar { width: 224px; flex: none; background: var(--side-bg); display: flex; flex-direction: column; position: relative; }
+  .sidebar .brand-row { display: flex; align-items: center; gap: 9px; padding: 16px 14px 12px; color: #fff; font-weight: 700; font-size: var(--text-lg); }
+  .sidebar .nav { flex: 1; overflow-y: auto; padding: 4px 10px 16px; }
+  .sidebar .nav::-webkit-scrollbar { width: 8px; }
+  .sidebar .nav::-webkit-scrollbar-thumb { background: var(--side-border); border-radius: 8px; }
+  .side-foot { border-top: 1px solid var(--side-border); padding: 10px; }
+  .side-user { display: flex; align-items: center; gap: 9px; padding: 6px; border-radius: var(--r-sm); cursor: pointer; }
+  .side-user:hover { background: var(--side-bg-2); }
+  .avatar { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--brand-600); color: var(--on-primary); display: grid; place-items: center; font-size: var(--text-sm); font-weight: 700; flex: none; }
+  .side-user .meta .nm { font-size: var(--text-sm); color: var(--n-50); font-weight: 600; }
+  .side-user .meta .rl { font-size: var(--text-2xs); color: var(--side-text-dim); }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar { height: 56px; flex: none; background: var(--n-0); border-bottom: 1px solid var(--n-200); display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-6); position: relative; }
+  .searchbox { display: flex; align-items: center; gap: 8px; background: var(--n-100); border: 1px solid var(--n-200); border-radius: var(--r-md); padding: 0 10px; height: 34px; width: 300px; color: var(--n-500); }
+  .searchbox input { border: none; background: none; outline: none; font: inherit; font-size: var(--text-md); color: var(--n-800); width: 100%; }
+  .topbar .ic-btn { width: 34px; height: 34px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--n-600); cursor: pointer; position: relative; }
+  .topbar .ic-btn:hover { background: var(--n-100); color: var(--n-900); }
+  .topbar .ic-btn .dot { position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+
+  .content { flex: 1; overflow-y: auto; }
+  .rec-header { background: var(--n-0); border-bottom: 1px solid var(--n-200); padding: var(--sp-4) var(--sp-7) var(--sp-4); }
+  .rec-header .crumb { margin-bottom: 12px; }
+  .rec-top { display: flex; align-items: flex-start; gap: var(--sp-4); }
+  .rec-avatar { width: 52px; height: 52px; border-radius: var(--r-md); background: var(--brand-50); color: var(--primary-text); display: grid; place-items: center; flex: none; }
+  .rec-id { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+  .rec-id .nmrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .rec-id h1 { margin: 0; font-size: var(--text-2xl); font-weight: 700; color: var(--n-900); letter-spacing: -0.01em; }
+  .rec-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--text-sm); color: var(--n-500); }
+  .rec-meta .m { display: inline-flex; align-items: center; gap: 5px; }
+  .rec-meta .m .ic { width: 14px; height: 14px; color: var(--n-400); }
+  .rec-meta .m b { color: var(--n-700); font-weight: 600; }
+  .rec-actions { display: flex; gap: 8px; flex: none; }
+
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: var(--sp-5); padding: var(--sp-5) var(--sp-7) var(--sp-9); max-width: 1320px; }
+  @media (max-width: 1180px) { .layout { grid-template-columns: 1fr; } }
+
+  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 11px 16px; font-size: var(--text-md); }
+  .kv dt { color: var(--n-500); }
+  .kv dd { margin: 0; color: var(--n-900); }
+
+  /* detail tabs */
+  .dtabs { display: flex; gap: 2px; border-bottom: 1px solid var(--n-200); margin-bottom: var(--sp-4); overflow-x: auto; }
+  .dtab { appearance: none; background: none; border: none; cursor: pointer; font: inherit; font-size: var(--text-md); font-weight: 600; color: var(--n-500); padding: 9px 13px; border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .dtab:hover { color: var(--n-800); }
+  .dtab[aria-selected="true"] { color: var(--primary-text); border-bottom-color: var(--primary); }
+  .dtab .ic { width: 15px; height: 15px; }
+  .dtab .count { font-size: var(--text-xs); color: var(--n-400); font-variant-numeric: tabular-nums; background: var(--n-100); padding: 0 6px; border-radius: var(--r-pill); }
+  .dtab[aria-selected="true"] .count { background: var(--brand-100); color: var(--primary-text); }
+  .tabpanel { display: none; }
+  .tabpanel.active { display: block; }
+
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-3); }
+  .panel-head h3 { margin: 0; font-size: var(--text-lg); font-weight: 700; color: var(--n-800); }
+
+  /* timeline */
+  .timeline { position: relative; padding-left: 26px; }
+  .timeline::before { content: ""; position: absolute; left: 11px; top: 6px; bottom: 6px; width: 1.5px; background: var(--n-200); }
+  .tl-item { position: relative; padding: 0 0 var(--sp-4); }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-dot { position: absolute; left: -26px; top: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--n-0); border: 1px solid var(--n-200); }
+  .tl-dot .ic { width: 13px; height: 13px; }
+  .tl-card { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-md); padding: 10px 14px; }
+  .tl-card .t1 { font-size: var(--text-md); color: var(--n-900); font-weight: 600; }
+  .tl-card .t2 { font-size: var(--text-sm); color: var(--n-600); margin-top: 3px; }
+  .tl-card .meta { font-size: var(--text-xs); color: var(--n-400); margin-top: 6px; }
+
+  /* vehicle cards */
+  .veh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+  @media (max-width: 720px) { .veh-grid { grid-template-columns: 1fr; } }
+  .veh { display: flex; gap: 12px; padding: 14px; border: 1px solid var(--n-200); border-radius: var(--r-md); background: var(--n-0); align-items: center; }
+  .veh .vico { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--n-100); color: var(--n-600); display: grid; place-items: center; flex: none; }
+  .veh .vinfo { flex: 1; min-width: 0; }
+  .veh .vinfo .vn { font-weight: 600; color: var(--n-900); }
+  .veh .vinfo .vp { font-size: var(--text-xs); color: var(--n-500); font-family: var(--font-mono); }
+
+  /* rail cards */
+  .rail { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .rail .card-pad { padding: 16px; }
+  .rail h4 { margin: 0 0 12px; font-size: var(--text-sm); font-weight: 700; color: var(--n-600); display: flex; align-items: center; gap: 7px; }
+  .rail h4 .ic { width: 15px; height: 15px; color: var(--n-400); }
+  .owner { display: flex; align-items: center; gap: 11px; }
+  .owner .av { width: 38px; height: 38px; border-radius: var(--r-md); background: var(--brand-600); color: var(--on-primary); display: grid; place-items: center; font-weight: 700; flex: none; }
+  .owner .on { font-weight: 600; color: var(--n-900); }
+  .owner .or { font-size: var(--text-xs); color: var(--n-500); }
+  .ar-big { font-size: var(--text-2xl); font-weight: 700; color: var(--n-900); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .contact-line { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid var(--n-150); font-size: var(--text-md); color: var(--n-800); }
+  .contact-line:last-child { border-bottom: none; }
+  .contact-line .ic { width: 15px; height: 15px; color: var(--n-400); flex: none; }
+  .tagwrap { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-s { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; font-size: var(--text-sm); border-radius: var(--r-sm); background: var(--n-100); color: var(--n-700); font-weight: 500; }
+  .tag-add { border: 1px dashed var(--n-300); background: none; color: var(--n-500); cursor: pointer; }
+
+  .design-fab { position: fixed; bottom: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-pill); padding: 5px 8px 5px 12px; box-shadow: var(--shadow-md); font-size: var(--text-sm); }
+  .design-fab .lab { color: var(--n-500); font-weight: 600; font-size: var(--text-xs); }
+  .design-fab .seg { display: inline-flex; gap: 2px; background: var(--n-100); border-radius: var(--r-pill); padding: 2px; }
+  .design-fab .seg button { appearance: none; border: none; background: none; cursor: pointer; padding: 4px; border-radius: 50%; display: grid; place-items: center; }
+  .design-fab .seg button .sw { width: 15px; height: 15px; border-radius: 50%; display: block; border: 2px solid transparent; }
+  .design-fab .seg button[aria-pressed="true"] .sw { border-color: var(--n-0); box-shadow: 0 0 0 2px var(--n-800); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="bract-sidebar" data-active="accounts"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="navprog" style="width:0;"></div>
+      <div class="searchbox"><i data-lucide="search" class="ic" style="width:16px;height:16px;"></i><input placeholder="取引先・車両・商談を検索…" /><span class="mono" style="font-size:11px;color:var(--n-400);border:1px solid var(--n-300);border-radius:4px;padding:0 5px;">⌘K</span></div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ai btn-sm"><i data-lucide="sparkles" class="ic"></i>AIで取り込み</button>
+      <div class="ic-btn"><i data-lucide="bell" class="ic" style="width:18px;height:18px;"></i><span class="dot"></span></div>
+      <div class="ic-btn"><i data-lucide="circle-help" class="ic" style="width:18px;height:18px;"></i></div>
+    </header>
+
+    <div class="content">
+      <!-- Record header -->
+      <div class="rec-header">
+        <div class="crumb"><a href="Bract Accounts List.html"><i data-lucide="arrow-left" class="ic" style="width:14px;height:14px;vertical-align:-2px;"></i> 取引先</a><span class="sep">/</span><span class="here">株式会社ブラクト製作所</span></div>
+        <div class="rec-top">
+          <div class="rec-avatar"><i data-lucide="building-2" class="ic" style="width:26px;height:26px;"></i></div>
+          <div class="rec-id">
+            <div class="nmrow">
+              <h1>株式会社ブラクト製作所</h1>
+              <span class="badge badge-brand">顧客</span>
+              <span class="badge badge-neutral">重要</span>
+            </div>
+            <div class="rec-meta">
+              <span class="m"><i data-lucide="factory" class="ic"></i>業種 <b>製造業 / 板金</b></span>
+              <span class="m"><i data-lucide="user-round" class="ic"></i>担当 <b>田中 一郎</b></span>
+              <span class="m mono"><i data-lucide="hash" class="ic"></i>BR-00427</span>
+              <span class="m"><i data-lucide="calendar" class="ic"></i>登録 <b>2024-03-12</b></span>
+            </div>
+          </div>
+          <div class="rec-actions">
+            <button class="btn btn-secondary"><i data-lucide="square-pen" class="ic"></i>編集</button>
+            <button class="btn btn-primary"><i data-lucide="plus" class="ic"></i>活動を記録</button>
+            <button class="btn btn-secondary btn-icon"><i data-lucide="ellipsis" class="ic"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="layout">
+        <!-- MAIN -->
+        <div>
+          <!-- 基本情報 -->
+          <div class="card card-pad" style="margin-bottom:var(--sp-5);">
+            <div class="section-head"><span class="bar"></span><h3>基本情報</h3><span class="rule"></span><button class="btn btn-ghost btn-sm"><i data-lucide="square-pen" class="ic"></i>編集</button></div>
+            <dl class="kv">
+              <dt>正式名称</dt><dd>株式会社ブラクト製作所</dd>
+              <dt>フリガナ</dt><dd>カブシキガイシャブラクトセイサクショ</dd>
+              <dt>代表者</dt><dd>近藤 誠一</dd>
+              <dt>所在地</dt><dd>〒141-0032 東京都品川区大崎 3-5-2 ブラクトビル4F</dd>
+              <dt>電話 / FAX</dt><dd class="tnum">03-3492-1234 / 03-3492-1235</dd>
+              <dt>取引条件</dt><dd>月末締め・翌月末払い（銀行振込）</dd>
+              <dt>与信限度額</dt><dd class="tnum">¥5,000,000</dd>
+            </dl>
+          </div>
+
+          <!-- Related records tabs -->
+          <div class="dtabs">
+            <button class="dtab" aria-selected="true" data-tab="opp"><i data-lucide="trending-up" class="ic"></i>商談 <span class="count">4</span></button>
+            <button class="dtab" data-tab="act"><i data-lucide="calendar-clock" class="ic"></i>活動 <span class="count">12</span></button>
+            <button class="dtab" data-tab="task"><i data-lucide="square-check-big" class="ic"></i>ToDo <span class="count">3</span></button>
+            <button class="dtab" data-tab="veh"><i data-lucide="car" class="ic"></i>車両 <span class="count">5</span></button>
+            <button class="dtab" data-tab="file"><i data-lucide="paperclip" class="ic"></i>添付 <span class="count">3</span></button>
+            <button class="dtab" data-tab="hist"><i data-lucide="history" class="ic"></i>変更履歴</button>
+          </div>
+
+          <!-- 商談 -->
+          <div class="tabpanel active" data-panel="opp">
+            <div class="panel-head"><h3>商談</h3><button class="btn btn-secondary btn-sm"><i data-lucide="plus" class="ic"></i>商談を追加</button></div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>商談名</th><th>ステージ</th><th class="col-num">金額</th><th class="col-num">確度</th><th>次回</th></tr></thead>
+                <tbody>
+                  <tr><td class="strong">板金ライン更新 2026</td><td><span class="badge badge-warning"><span class="dot"></span>交渉</span></td><td class="col-num tnum">¥3,200,000</td><td class="col-num tnum">70%</td><td class="muted">6/12 見積</td></tr>
+                  <tr><td class="strong">塗装ブース増設</td><td><span class="badge badge-ai"><span class="dot"></span>提案</span></td><td class="col-num tnum">¥1,480,000</td><td class="col-num tnum">50%</td><td class="muted">6/18 訪問</td></tr>
+                  <tr><td class="strong">定期メンテ契約（年間）</td><td><span class="badge badge-positive"><span class="dot"></span>受注</span></td><td class="col-num tnum">¥960,000</td><td class="col-num tnum">100%</td><td class="muted">—</td></tr>
+                  <tr><td class="strong">中古設備の下取り</td><td><span class="badge badge-neutral"><span class="dot"></span>見込み</span></td><td class="col-num tnum">¥220,000</td><td class="col-num tnum">20%</td><td class="muted">6/25 架電</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 活動 -->
+          <div class="tabpanel" data-panel="act">
+            <div class="panel-head"><h3>活動履歴</h3><button class="btn btn-secondary btn-sm"><i data-lucide="plus" class="ic"></i>活動を記録</button></div>
+            <div class="timeline">
+              <div class="tl-item"><div class="tl-dot" style="background:var(--info-bg);border-color:var(--info-border);color:var(--info-text);"><i data-lucide="phone" class="ic"></i></div><div class="tl-card"><div class="t1">電話：見積条件のすり合わせ</div><div class="t2">先方経理と支払いサイトについて確認。月末締め翌月末で合意。</div><div class="meta">田中 一郎 · 1時間前</div></div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--positive-bg);border-color:var(--positive-border);color:var(--positive-text);"><i data-lucide="check" class="ic"></i></div><div class="tl-card"><div class="t1">定期メンテ契約を受注</div><div class="t2">年間契約 ¥960,000 で成約。次年度更新は来年3月。</div><div class="meta">田中 一郎 · 3時間前</div></div></div>
+              <div class="tl-item"><div class="tl-dot" style="background:var(--ai-bg);border-color:var(--ai-border);color:var(--ai-text);"><i data-lucide="sparkles" class="ic"></i></div><div class="tl-card"><div class="t1">名刺をAIで取り込み（2件）</div><div class="t2">購買部 佐藤様・技術部 山口様を人物に登録。</div><div class="meta">田中 一郎 · 昨日</div></div></div>
+              <div class="tl-item"><div class="tl-dot"><i data-lucide="mail" class="ic"></i></div><div class="tl-card"><div class="t1">見積書を送付</div><div class="t2">板金ライン更新の初回見積（¥3,200,000）をメール送付。</div><div class="meta">佐藤 花子 · 2日前</div></div></div>
+            </div>
+          </div>
+
+          <!-- ToDo -->
+          <div class="tabpanel" data-panel="task">
+            <div class="panel-head"><h3>ToDo</h3><button class="btn btn-secondary btn-sm"><i data-lucide="plus" class="ic"></i>ToDoを追加</button></div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th style="width:36px;"></th><th>内容</th><th>担当</th><th>期限</th><th>優先度</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="lchk" style="display:inline-grid;width:16px;height:16px;border:1.5px solid var(--n-300);border-radius:4px;"></span></td><td class="strong">見積書を再送付</td><td>田中 一郎</td><td class="muted">今日 17:00</td><td><span class="badge badge-danger">高</span></td></tr>
+                  <tr><td><span class="lchk" style="display:inline-grid;width:16px;height:16px;border:1.5px solid var(--n-300);border-radius:4px;"></span></td><td class="strong">契約書の押印確認</td><td>佐藤 花子</td><td class="muted">6/12</td><td><span class="badge badge-warning">中</span></td></tr>
+                  <tr><td><span class="lchk" style="display:inline-grid;width:16px;height:16px;border:1.5px solid var(--n-300);border-radius:4px;"></span></td><td class="strong">次回訪問の日程調整</td><td>田中 一郎</td><td class="muted">6/15</td><td><span class="badge badge-neutral">低</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 車両 -->
+          <div class="tabpanel" data-panel="veh">
+            <div class="panel-head"><h3>登録車両</h3><button class="btn btn-secondary btn-sm"><i data-lucide="plus" class="ic"></i>車両を追加</button></div>
+            <div class="veh-grid">
+              <div class="veh"><div class="vico"><i data-lucide="car" class="ic" style="width:20px;height:20px;"></i></div><div class="vinfo"><div class="vn">トヨタ ハイエース</div><div class="vp">品川 800 か 56-78</div></div><span class="badge badge-info"><span class="dot"></span>入庫中</span></div>
+              <div class="veh"><div class="vico"><i data-lucide="car" class="ic" style="width:20px;height:20px;"></i></div><div class="vinfo"><div class="vn">トヨタ プリウス</div><div class="vp">品川 300 あ 12-34</div></div><span class="badge badge-positive"><span class="dot"></span>納車済</span></div>
+              <div class="veh"><div class="vico"><i data-lucide="truck" class="ic" style="width:20px;height:20px;"></i></div><div class="vinfo"><div class="vn">いすゞ エルフ</div><div class="vp">品川 100 さ 44-21</div></div><span class="badge badge-warning"><span class="dot"></span>部品待ち</span></div>
+              <div class="veh"><div class="vico"><i data-lucide="car" class="ic" style="width:20px;height:20px;"></i></div><div class="vinfo"><div class="vn">ホンダ N-VAN</div><div class="vp">品川 480 す 09-87</div></div><span class="badge badge-neutral">予約</span></div>
+            </div>
+          </div>
+
+          <!-- 添付 -->
+          <div class="tabpanel" data-panel="file">
+            <div class="panel-head"><h3>添付ファイル</h3><button class="btn btn-secondary btn-sm"><i data-lucide="upload" class="ic"></i>アップロード</button></div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>ファイル名</th><th>サイズ</th><th>追加者</th><th>追加日</th></tr></thead>
+                <tbody>
+                  <tr><td class="strong"><i data-lucide="file-text" class="ic" style="width:15px;height:15px;color:var(--danger-text);vertical-align:-3px;margin-right:6px;"></i>見積書_板金ライン更新.pdf</td><td class="muted tnum">248 KB</td><td>田中 一郎</td><td class="muted">2日前</td></tr>
+                  <tr><td class="strong"><i data-lucide="file-spreadsheet" class="ic" style="width:15px;height:15px;color:var(--positive-text);vertical-align:-3px;margin-right:6px;"></i>取引条件_2026.xlsx</td><td class="muted tnum">36 KB</td><td>佐藤 花子</td><td class="muted">1週間前</td></tr>
+                  <tr><td class="strong"><i data-lucide="image" class="ic" style="width:15px;height:15px;color:var(--info-text);vertical-align:-3px;margin-right:6px;"></i>現場写真_塗装ブース.jpg</td><td class="muted tnum">1.2 MB</td><td>田中 一郎</td><td class="muted">2週間前</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 変更履歴 -->
+          <div class="tabpanel" data-panel="hist">
+            <div class="panel-head"><h3>変更履歴</h3></div>
+            <div class="timeline">
+              <div class="tl-item"><div class="tl-dot"><i data-lucide="square-pen" class="ic"></i></div><div class="tl-card"><div class="t1">担当者を変更：佐藤 花子 → 田中 一郎</div><div class="meta">田中 一郎 · 3時間前</div></div></div>
+              <div class="tl-item"><div class="tl-dot"><i data-lucide="plus" class="ic"></i></div><div class="tl-card"><div class="t1">タグ「重要」を追加</div><div class="meta">田中 一郎 · 3時間前</div></div></div>
+              <div class="tl-item"><div class="tl-dot"><i data-lucide="square-pen" class="ic"></i></div><div class="tl-card"><div class="t1">与信限度額を更新：¥3,000,000 → ¥5,000,000</div><div class="meta">鈴木 健 · 1週間前</div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RAIL -->
+        <div class="rail">
+          <div class="card card-pad">
+            <h4><i data-lucide="user-round" class="ic"></i>担当者</h4>
+            <div class="owner"><div class="av">田</div><div><div class="on">田中 一郎</div><div class="or">営業部 · 近藤板金工業</div></div></div>
+          </div>
+
+          <div class="card card-pad">
+            <h4><i data-lucide="banknote" class="ic"></i>売掛金</h4>
+            <div class="ar-big">¥3,200,000</div>
+            <div class="band band-warning" style="margin-top:12px; padding:10px 12px; font-size:var(--text-sm);"><i data-lucide="triangle-alert" class="ic" style="width:16px;height:16px;"></i><div><strong>¥420,000 が期限超過</strong><div class="band-body" style="margin-top:2px;">5/31 期限・15日経過</div></div></div>
+            <div style="display:flex; justify-content:space-between; margin-top:12px; font-size:var(--text-sm); color:var(--n-600);"><span>次回入金予定</span><span class="tnum strong">6/30 ¥1,800,000</span></div>
+          </div>
+
+          <div class="card card-pad">
+            <h4><i data-lucide="contact" class="ic"></i>連絡先</h4>
+            <div class="contact-line"><i data-lucide="phone" class="ic"></i><span class="tnum">03-3492-1234</span></div>
+            <div class="contact-line"><i data-lucide="mail" class="ic"></i>info@bract-mfg.co.jp</div>
+            <div class="contact-line"><i data-lucide="map-pin" class="ic"></i>東京都品川区大崎 3-5-2</div>
+            <div class="contact-line"><i data-lucide="globe" class="ic"></i>bract-mfg.co.jp</div>
+          </div>
+
+          <div class="card card-pad">
+            <h4><i data-lucide="tag" class="ic"></i>タグ</h4>
+            <div class="tagwrap">
+              <span class="tag-s">重要</span>
+              <span class="tag-s">板金</span>
+              <span class="tag-s">法人</span>
+              <span class="tag-s">月末締め</span>
+              <span class="tag-s tag-add"><i data-lucide="plus" class="ic" style="width:13px;height:13px;"></i>追加</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="design-fab">
+  <span class="lab">見た目</span>
+  <div class="seg" role="group" aria-label="ブランド方向">
+    <button data-ctl="brand" data-val="foliage" title="Foliage"><span class="sw" style="background:oklch(0.515 0.112 158)"></span></button>
+    <button data-ctl="brand" data-val="vermillion" title="Vermillion"><span class="sw" style="background:oklch(0.565 0.185 33)"></span></button>
+    <button data-ctl="brand" data-val="indigo" title="Indigo"><span class="sw" style="background:oklch(0.500 0.175 267)"></span></button>
+  </div>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium" title="中密度"><span class="sw" style="background:var(--n-400)"></span></button>
+    <button data-ctl="density" data-val="high" title="高密度"><span class="sw" style="background:var(--n-700)"></span></button>
+  </div>
+</div>
+
+<script>
+  document.querySelector('.dtabs').addEventListener('click', (e) => {
+    const t = e.target.closest('.dtab'); if (!t) return;
+    document.querySelectorAll('.dtab').forEach(x => x.setAttribute('aria-selected', 'false'));
+    t.setAttribute('aria-selected', 'true');
+    const id = t.dataset.tab;
+    document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.dataset.panel === id));
+  });
+  document.addEventListener('click', (e) => {
+    const c = e.target.closest('.lchk');
+    if (c) { const on = c.dataset.on === '1'; c.dataset.on = on ? '0' : '1'; c.style.background = on ? '' : 'var(--primary)'; c.style.borderColor = on ? 'var(--n-300)' : 'var(--primary)'; }
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/chrome.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>
