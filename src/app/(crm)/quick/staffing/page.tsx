@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import StaffingQuickWizard from '@/industries/staffing/components/StaffingQuickWizard'
+import { listClientAccounts } from '@/industries/staffing/actions/quickRegister'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic'
 export default async function StaffingQuickPage() {
   if (!(await isModuleEnabled('staffing'))) notFound()
   const aiOn = await isAIFeatureEnabled()
+  const clientAccounts = aiOn ? await listClientAccounts() : []
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -23,7 +25,7 @@ export default async function StaffingQuickPage() {
       </header>
 
       {aiOn ? (
-        <StaffingQuickWizard />
+        <StaffingQuickWizard clientAccounts={clientAccounts} />
       ) : (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           AI 機能が無効です。管理者が <Link href="/admin/ai" className="underline">AI 設定</Link> でプロバイダ（Groq 等）と API キーを設定し、
