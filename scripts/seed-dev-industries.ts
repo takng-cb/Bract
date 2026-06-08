@@ -107,10 +107,17 @@ async function ensurePropertiesTable() {
 
 // 再実行用：既存 DEV-SEED 行を FK 安全な順で削除
 async function cleanPrevious() {
+  await db.delete(schema.maintenance_records).where(like(schema.maintenance_records.general_note, `${MARKER}%`))
+  await db.delete(schema.assignments).where(like(schema.assignments.internal_memo, `${MARKER}%`))
+  await db.delete(schema.opportunities).where(like(schema.opportunities.description, `${MARKER}%`))
+  await db.delete(schema.customer_vehicles).where(like(schema.customer_vehicles.memo, `${MARKER}%`))
   await db.delete(properties).where(like(properties.description, `${MARKER}%`))
   await db.delete(schema.parts).where(like(schema.parts.description, `${MARKER}%`))
   await db.delete(schema.staff).where(like(schema.staff.notes, `${MARKER}%`))
   await db.delete(schema.vehicles).where(like(schema.vehicles.description, `${MARKER}%`))
+  await db.delete(schema.activities).where(like(schema.activities.body, `${MARKER}%`))
+  await db.delete(schema.tasks).where(like(schema.tasks.description, `${MARKER}%`))
+  await db.delete(schema.expenses).where(like(schema.expenses.notes, `${MARKER}%`))
   await db.delete(schema.contacts).where(like(schema.contacts.description, `${MARKER}%`))
   await db.delete(schema.accounts).where(like(schema.accounts.description, `${MARKER}%`))
   console.log('  🧹 既存 DEV-SEED 行を削除（再実行のため）')
@@ -216,6 +223,89 @@ async function main() {
   }))
   await db.insert(schema.staff).values(staffVals)
   console.log(`  ✅ スタッフ ${staffVals.length}`)
+
+  // 商談 20（不動産/板金/汎用）
+  const STAGES = ['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost']
+  const oppVals = Array.from({ length: 20 }, (_, i) => ({
+    account_id:  clientIds[i % clientIds.length],
+    name:        `${['CRM導入', '物件売買', '車両整備', '部品供給', '保守契約', '改装工事', 'リース', '一括見積'][i % 8]} 案件 #${i + 1}`,
+    stage:       STAGES[i % STAGES.length],
+    amount:      String(rand(20, 800) * 10000),
+    probability: [10, 30, 50, 70, 90, 100][i % 6],
+    close_date:  `2026-${String(rand(6, 12)).padStart(2, '0')}-${String(rand(1, 28)).padStart(2, '0')}`,
+    description: `${MARKER} 確認用商談 #${i + 1}`,
+  }))
+  await db.insert(schema.opportunities).values(oppVals)
+  console.log(`  ✅ 商談 ${oppVals.length}`)
+
+  // 顧客車両 20（板金）
+  const MK = ['トヨタ', 'ホンダ', '日産', 'マツダ', 'スバル', 'スズキ', 'ダイハツ']
+  const MD = ['プリウス', 'フィット', 'ノート', 'デミオ', 'インプレッサ', 'ワゴンR', 'タント', 'アクア']
+  const cvVals = Array.from({ length: 20 }, (_, i) => ({
+    account_id:    clientIds[i % clientIds.length],
+    plate_number:  `${rand(10, 99)}-${rand(10, 99)}`,
+    kana:          ['あ', 'か', 'さ', 'た', 'な'][i % 5],
+    car_name:      MK[i % MK.length],
+    car_model:     MD[i % MD.length],
+    vehicle_kind:  i % 4 === 0 ? '軽自動車' : '普通乗用',
+    vin:           `DEV-CV-${String(i + 1).padStart(3, '0')}`,
+    memo:          `${MARKER} 確認用顧客車両 #${i + 1}`,
+  }))
+  const cvRows = await db.insert(schema.customer_vehicles).values(cvVals).returning({ id: schema.customer_vehicles.id })
+  const cvIds = cvRows.map((r) => r.id)
+  console.log(`  ✅ 顧客車両 ${cvIds.length}`)
+
+  // 整備 12（板金）
+  const MSTAT = ['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了']
+  const mntVals = Array.from({ length: 12 }, (_, i) => ({
+    maintenance_no:     `DEVM-${String(i + 1).padStart(4, '0')}`,
+    customer_vehicle_id: cvIds[i % cvIds.length],
+    account_id:         clientIds[i % clientIds.length],
+    intake_date:        `2026-06-${String(rand(1, 9)).padStart(2, '0')}`,
+    status:             MSTAT[i % MSTAT.length],
+    general_note:       `${MARKER} 確認用整備 #${i + 1}`,
+  }))
+  await db.insert(schema.maintenance_records).values(mntVals)
+  console.log(`  ✅ 整備 ${mntVals.length}`)
+
+  // 案件 15（人材）
+  const asgVals = Array.from({ length: 15 }, (_, i) => ({
+    assignment_no:        `DEVA-${String(i + 1).padStart(4, '0')}`,
+    title:                `${['接客', '介護補助', 'イベント', '軽作業', '受付'][i % 5]}スタッフ手配 #${i + 1}`,
+    client_account_id:    clientIds[i % clientIds.length],
+    service_date:         `2026-06-${String(rand(10, 28)).padStart(2, '0')}`,
+    service_type:         ['接客', '介護補助', 'イベント運営', '軽作業', '受付'][i % 5],
+    staff_count_required: rand(1, 5),
+    client_total_fee:     String(rand(2, 8) * 10000),
+    status:               ['受付', '打診中', '候補集約', '確定', '実施', '完了'][i % 6],
+    internal_memo:        `${MARKER} 確認用案件 #${i + 1}`,
+  }))
+  await db.insert(schema.assignments).values(asgVals)
+  console.log(`  ✅ 案件 ${asgVals.length}`)
+
+  // 活動 25・ToDo 20・経費 20（一覧確認用。直接FKは持たず junction 連携だが一覧表示には単体で十分）
+  const ACT = ['call', 'email', 'meeting', 'note']
+  const actVals = Array.from({ length: 25 }, (_, i) => {
+    const d = new Date(Date.now() - rand(1, 60) * 86400000)
+    return { type: ACT[i % ACT.length], subject: `${['初回訪問', '見積提出', '電話フォロー', '打合せ', '納品確認'][i % 5]} #${i + 1}`, body: `${MARKER} 確認用活動 #${i + 1}`, occurred_at: d }
+  })
+  await db.insert(schema.activities).values(actVals)
+  console.log(`  ✅ 活動 ${actVals.length}`)
+
+  const taskVals = Array.from({ length: 20 }, (_, i) => {
+    const d = new Date(Date.now() + rand(-3, 21) * 86400000)
+    return { title: `${['見積作成', '部品発注', '車検案内', '請求書送付', 'フォロー連絡'][i % 5]} #${i + 1}`, description: `${MARKER} 確認用ToDo #${i + 1}`, priority: ['high', 'medium', 'low'][i % 3], due_date: d.toISOString().slice(0, 10), done: i % 5 === 0 }
+  })
+  await db.insert(schema.tasks).values(taskVals)
+  console.log(`  ✅ ToDo ${taskVals.length}`)
+
+  const CAT = ['交通費', '部品仕入', '工具', '消耗品', '外注費', '通信費']
+  const expVals = Array.from({ length: 20 }, (_, i) => {
+    const d = new Date(Date.now() - rand(1, 50) * 86400000)
+    return { title: `${CAT[i % CAT.length]} #${i + 1}`, amount: String(rand(1, 100) * 1000), category: CAT[i % CAT.length], expense_date: d.toISOString().slice(0, 10), notes: `${MARKER} 確認用経費 #${i + 1}` }
+  })
+  await db.insert(schema.expenses).values(expVals)
+  console.log(`  ✅ 経費 ${expVals.length}`)
 
   // ── モジュール有効化（dev license。getLicense は tenant_key='default' を読む）──
   const ALL_MODULES = ['crm-core', 'sales', 'expenses', 'real-estate', 'auto-body', 'staffing']

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import NewMaintenancePage from '@/industries/auto-body/pages/maintenance/new/page'
 import type { ComponentProps } from 'react'
 
 export default async function Page(props: ComponentProps<typeof NewMaintenancePage>) {
-  if (activeIndustry !== 'auto-body') notFound()
+  if (!(await isModuleEnabled('auto-body'))) notFound()
   return <NewMaintenancePage {...props} />
 }

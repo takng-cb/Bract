@@ -3,7 +3,7 @@ import { maintenance_records, customer_vehicles, accounts, contacts } from '@/li
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { DOCUMENT_TYPES } from '@/industries/auto-body/lib/documents'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import Breadcrumbs from '@/components/Breadcrumbs'
@@ -13,7 +13,7 @@ export default async function DocumentsIndexPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  if (activeIndustry !== 'auto-body') notFound()
+  if (!(await isModuleEnabled('auto-body'))) notFound()
   const { id } = await params
 
   const mRow = await db.select({

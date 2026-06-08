@@ -30,12 +30,12 @@ for (const role of ROLES) {
       setup.skip()
     }
 
-    // /login へ移動 → email/password 入力 → submit → /dashboard 等への遷移
+    // /login へ移動 → email/password 入力 → 「メールでログイン」submit → /dashboard 等への遷移
     await page.goto('/login')
-    // フォームの実装に合わせて input[name=email] / input[name=password] が想定
     await page.locator('input[type="email"], input[name="email"]').first().fill(role.email)
     await page.locator('input[type="password"], input[name="password"]').first().fill(PASSWORD!)
-    await page.locator('button[type="submit"], button:has-text("ログイン")').first().click()
+    // 注意: 「Google でログイン」ボタンも "ログイン" を含むため、メール送信ボタンを厳密に指定する。
+    await page.getByRole('button', { name: 'メールでログイン' }).click()
 
     // ログイン後の遷移を待つ（dashboard か任意の認証ページ）
     await page.waitForURL(/\/dashboard|\/$/, { timeout: 15_000 })
