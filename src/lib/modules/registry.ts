@@ -36,10 +36,12 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { apiName: 'tasks',      label: 'ToDo' },
     ],
     quickActions: [
-      { label: '取引先を新規', icon: '🏢', kind: 'create', href: '/accounts/new',   book: 'accounts' },
-      { label: '人物を新規',   icon: '👤', kind: 'create', href: '/contacts/new',   book: 'contacts' },
-      { label: '活動を記録',   icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
-      { label: 'ToDo を追加',  icon: '✅', kind: 'create', href: '/tasks/new',      book: 'tasks' },
+      { label: '取引先の新規作成', icon: '🏢', kind: 'create', href: '/accounts/new', book: 'accounts' },
+      { label: '取引先の一覧',     icon: '🏢', kind: 'list',   href: '/accounts',     book: 'accounts' },
+      { label: '人物の新規作成',   icon: '👤', kind: 'create', href: '/contacts/new', book: 'contacts' },
+      { label: '人物の一覧',       icon: '👤', kind: 'list',   href: '/contacts',     book: 'contacts' },
+      { label: '活動の記録',       icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
+      { label: 'ToDoの新規作成',   icon: '✅', kind: 'create', href: '/tasks/new',    book: 'tasks' },
     ],
   },
   'sales': {
@@ -50,7 +52,8 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     ],
     books: [{ apiName: 'opportunities', label: '商談' }],
     quickActions: [
-      { label: '商談を新規', icon: '💼', kind: 'create', href: '/opportunities/new', book: 'opportunities' },
+      { label: '商談の新規作成', icon: '💼', kind: 'create', href: '/opportunities/new', book: 'opportunities' },
+      { label: '商談の一覧',     icon: '💼', kind: 'list',   href: '/opportunities',     book: 'opportunities' },
     ],
   },
   'expenses': {
@@ -58,7 +61,8 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     navItems: [{ href: '/expenses', label: '経費管理', icon: '💰' }],
     books: [{ apiName: 'expenses', label: '経費' }],
     quickActions: [
-      { label: '経費を新規', icon: '💰', kind: 'create', href: '/expenses/new', book: 'expenses' },
+      { label: '経費の新規作成', icon: '💰', kind: 'create', href: '/expenses/new', book: 'expenses' },
+      { label: '経費の一覧',     icon: '💰', kind: 'list',   href: '/expenses',     book: 'expenses' },
     ],
   },
   'real-estate': {
@@ -67,7 +71,8 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     navItems: [{ href: '/properties', label: '物件', icon: '🏠' }],
     books: [{ apiName: 'properties', label: '物件' }],
     quickActions: [
-      { label: '物件を新規', icon: '🏠', kind: 'create', href: '/properties/new', book: 'properties' },
+      { label: '物件の新規作成', icon: '🏠', kind: 'create', href: '/properties/new', book: 'properties' },
+      { label: '物件の一覧',     icon: '🏠', kind: 'list',   href: '/properties',     book: 'properties' },
     ],
   },
   'auto-body': {
@@ -82,9 +87,12 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { apiName: 'parts',    label: '部品' },
     ],
     quickActions: [
-      { label: '車両を新規', icon: '🚗', kind: 'create', href: '/vehicles/new',    book: 'vehicles' },
-      { label: '整備を新規', icon: '🔧', kind: 'create', href: '/maintenance/new', book: 'maintenance_records' },
-      { label: '部品を新規', icon: '🪛', kind: 'create', href: '/parts/new',       book: 'parts' },
+      { label: '車両の新規作成', icon: '🚗', kind: 'create', href: '/vehicles/new',    book: 'vehicles' },
+      { label: '車両の一覧',     icon: '🚗', kind: 'list',   href: '/vehicles',        book: 'vehicles' },
+      { label: '整備の新規作成', icon: '🔧', kind: 'create', href: '/maintenance/new', book: 'maintenance_records' },
+      { label: '整備の一覧',     icon: '🔧', kind: 'list',   href: '/maintenance',     book: 'maintenance_records' },
+      { label: '部品の新規作成', icon: '🪛', kind: 'create', href: '/parts/new',       book: 'parts' },
+      { label: '部品の一覧',     icon: '🪛', kind: 'list',   href: '/parts',           book: 'parts' },
     ],
   },
   'staffing': {
@@ -101,9 +109,11 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     quickActions: [
       { label: 'クイック登録（AI起票）', icon: '✨', kind: 'wizard', book: 'assignments',
         description: 'LINE等の文面を貼り付けてAIで案件・活動・予定を起票' },
-      { label: '案件を新規',   icon: '📦', kind: 'create', href: '/assignments/new', book: 'assignments' },
-      { label: 'スタッフを新規', icon: '🧑‍💼', kind: 'create', href: '/staff/new',      book: 'staff' },
-      { label: '活動を記録',   icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
+      { label: '案件の新規作成',   icon: '📦', kind: 'create', href: '/assignments/new', book: 'assignments' },
+      { label: '案件の一覧',       icon: '📦', kind: 'list',   href: '/assignments',     book: 'assignments' },
+      { label: 'スタッフの新規作成', icon: '🧑‍💼', kind: 'create', href: '/staff/new',      book: 'staff' },
+      { label: 'スタッフの一覧',     icon: '🧑‍💼', kind: 'list',   href: '/staff',          book: 'staff' },
+      { label: '活動の記録',       icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
     ],
   },
 }
