@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { LayoutDashboard, Building2, Users, SquareCheckBig, CalendarClock } from 'lucide-react'
 
 const tabs = [
-  { href: '/dashboard',     label: 'ホーム',  icon: '🏠' },
-  { href: '/accounts',      label: '取引先',  icon: '🏢' },
-  { href: '/contacts',      label: '人物',    icon: '👤' },
-  { href: '/tasks',         label: 'ToDo',    icon: '✅' },
-  { href: '/activities',    label: '活動',    icon: '📋' },
+  { href: '/dashboard',  label: 'ホーム', Icon: LayoutDashboard },
+  { href: '/accounts',   label: '取引先', Icon: Building2 },
+  { href: '/contacts',   label: '人物',   Icon: Users },
+  { href: '/tasks',      label: 'ToDo',   Icon: SquareCheckBig },
+  { href: '/activities', label: '活動',   Icon: CalendarClock },
 ]
 
 export default function BottomNav() {
@@ -27,7 +28,7 @@ export default function BottomNav() {
               isActive ? 'text-blue-600' : 'text-zinc-500'
             }`}
           >
-            <span className="text-xl leading-none">{item.icon}</span>
+            <item.Icon className="w-6 h-6" strokeWidth={2.25} aria-hidden />
             <span className="text-[10px] font-medium">{item.label}</span>
           </Link>
         )

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import SignOutButton from '@/components/SignOutButton'
 import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
+import { NavIcon } from '@/lib/navIcon'
 
 /** 管理者のみ表示するボトムナビの href */
 const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs', '/admin/audit-log', '/admin/ai', '/admin/license', '/admin/notifications', '/admin/modules'])
@@ -87,7 +88,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
             : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
         }`}
       >
-        <span className="text-base leading-none shrink-0">{item.icon}</span>
+        <NavIcon icon={item.icon} className="w-4.5 h-4.5 shrink-0" />
         {!isCollapsed && <span className="truncate">{item.label}</span>}
       </Link>
     )
@@ -188,7 +189,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
             title={isCollapsed ? displayName : undefined}
             className={`flex items-center gap-3 px-2 py-2 ${isCollapsed ? 'justify-center' : ''}`}
           >
-            <span className="text-base leading-none shrink-0">👤</span>
+            <NavIcon icon="👤" className="w-4.5 h-4.5 shrink-0" />
             {!isCollapsed && (
               <p className="text-xs text-zinc-500 truncate">{displayName}</p>
             )}
