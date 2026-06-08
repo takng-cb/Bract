@@ -1,6 +1,7 @@
 'use server'
 
 import { requireEditor } from '@/lib/auth'
+import { recordHref } from '@/lib/relatedRecords'
 
 import { db } from '@/lib/db'
 import { tasks, task_related_records } from '@/lib/schema'
@@ -80,7 +81,7 @@ export async function createTask(formData: FormData) {
   const firstOpportunity = selections.find((s) => s.object_api === 'opportunity')
   if (firstOpportunity) redirect(`/opportunities/${firstOpportunity.record_id}`)
   const firstCustom = selections.find((s) => !['account', 'contact', 'opportunity'].includes(s.object_api))
-  if (firstCustom) redirect(`/objects/${firstCustom.object_api}/${firstCustom.record_id}`)
+  if (firstCustom) redirect(recordHref(firstCustom.object_api, firstCustom.record_id))
   redirect(`/tasks/${row.id}`)
 }
 

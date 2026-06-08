@@ -13,26 +13,24 @@ import {
   ACCOUNT_ROLE_LABELS,
 } from './staffingService'
 
-describe('staffStatusColor', () => {
-  it('全ステータスでフォールバックでない色が返る', () => {
+describe('staffStatusColor（semantic tone / ADR-0021）', () => {
+  it('全ステータスで bg/text クラスが返る', () => {
     for (const s of STAFF_STATUSES) {
-      const c = staffStatusColor(s)
-      expect(c, `status: ${s}`).not.toBe('bg-zinc-50 text-zinc-700')
+      expect(staffStatusColor(s), `status: ${s}`).toMatch(/bg-\S+\s+text-\S+/)
     }
   })
 
-  it('未知の値はフォールバック', () => {
-    expect(staffStatusColor('unknown')).toBe('bg-zinc-50 text-zinc-700')
-    expect(staffStatusColor(null)).toBe('bg-zinc-50 text-zinc-700')
-    expect(staffStatusColor(undefined)).toBe('bg-zinc-50 text-zinc-700')
+  it('未知の値は neutral フォールバック', () => {
+    expect(staffStatusColor('unknown')).toBe('bg-n-100 text-n-600')
+    expect(staffStatusColor(null)).toBe('bg-n-100 text-n-600')
+    expect(staffStatusColor(undefined)).toBe('bg-n-100 text-n-600')
   })
 })
 
-describe('assignmentStatusColor', () => {
-  it('全ステータスでフォールバックでない色が返る', () => {
+describe('assignmentStatusColor（semantic tone）', () => {
+  it('全ステータスで bg/text クラスが返る', () => {
     for (const s of ASSIGNMENT_STATUSES) {
-      const c = assignmentStatusColor(s)
-      expect(c, `status: ${s}`).not.toBe('bg-zinc-50 text-zinc-700')
+      expect(assignmentStatusColor(s), `status: ${s}`).toMatch(/bg-\S+\s+text-\S+/)
     }
   })
 })

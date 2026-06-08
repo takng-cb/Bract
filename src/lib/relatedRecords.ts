@@ -174,6 +174,16 @@ const STANDARD_META: Record<string, { icon: string; hrefPrefix: string }> = {
   'customer-vehicle': { icon: '🚙', hrefPrefix: '/customer-vehicles/' },
 }
 
+/**
+ * object_api + record_id を遷移先 href に解決する。
+ * 標準/業種専用ルート（maintenance 等）を優先し、無ければ汎用 /objects/<api>/<id>。
+ * 例: maintenance は /objects/maintenance/<id>（=404）ではなく /maintenance/<id> に向ける。
+ */
+export function recordHref(objectApi: string, recordId: string): string {
+  const std = STANDARD_META[objectApi]
+  return std ? `${std.hrefPrefix}${recordId}` : `/objects/${objectApi}/${recordId}`
+}
+
 /** custom_records.data から表示名を導出（既存ロジック踏襲） */
 function customRecordLabel(
   data: unknown,
