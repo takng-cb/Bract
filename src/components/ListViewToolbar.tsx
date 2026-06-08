@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { SlidersHorizontal } from 'lucide-react'
 import FilterBuilder, { type FieldDef } from '@/components/FilterBuilder'
 
 type GroupField = { key: string; label: string }
@@ -72,7 +73,7 @@ export default function ListViewToolbar({
               : 'bg-white border-zinc-300 text-zinc-600 hover:bg-zinc-50'
           }`}
         >
-          🔍 フィルター
+          <SlidersHorizontal className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> フィルター
           {activeFilterCount > 0 && (
             <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center leading-none">
               {activeFilterCount}

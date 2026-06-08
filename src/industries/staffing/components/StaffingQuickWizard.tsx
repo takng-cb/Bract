@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { Sparkles } from 'lucide-react'
 import {
   parseQuickText,
   applyQuickDraft,
@@ -281,7 +282,7 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
             className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
             title={!canProceed ? '先に取引先・担当者を指定してください' : undefined}
           >
-            {parsing ? '解析中…' : '✨ AIで解析'}
+            {parsing ? '解析中…' : <><Sparkles className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> AIで解析</>}
           </button>
           <span className="text-xs text-zinc-400">※ 解析結果は確認・編集してから起票します（自動反映しません）</span>
         </div>

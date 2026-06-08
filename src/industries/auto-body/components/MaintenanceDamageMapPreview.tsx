@@ -12,6 +12,7 @@
  * 本コンポーネントには編集機能を含めない。
  */
 import { useEffect, useState } from 'react'
+import { Search } from 'lucide-react'
 import { CarSvg, SEVERITY_COLOR, DAMAGE_VIEW_KEYS, DAMAGE_VIEW_LABELS, type DamageViewKey } from './damageSvg'
 
 type Pin = {
@@ -64,7 +65,7 @@ export default function MaintenanceDamageMapPreview({ pins, bodyShape }: Props) 
                   {viewPins.length > 0 && (
                     <span className="text-blue-600 font-semibold">{viewPins.length}</span>
                   )}
-                  <span className="text-zinc-400 group-hover:text-blue-700">🔍</span>
+                  <span className="text-zinc-400 group-hover:text-blue-700"><Search className="w-3.5 h-3.5 inline" /></span>
                 </span>
               </p>
               <svg
