@@ -6,7 +6,7 @@ import {
 import { eq, asc } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { notFound } from 'next/navigation'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { getAllUsers } from '@/lib/userUtils'
 import { isDocumentType, DOCUMENT_META } from '@/industries/auto-body/lib/documents'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
@@ -23,7 +23,7 @@ export default async function DocumentPage({
 }: {
   params: Promise<{ id: string; type: string }>
 }) {
-  if (activeIndustry !== 'auto-body') notFound()
+  if (!(await isModuleEnabled('auto-body'))) notFound()
   const { id, type } = await params
   if (!isDocumentType(type)) notFound()
 
