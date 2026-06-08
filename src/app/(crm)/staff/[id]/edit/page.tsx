@@ -2,7 +2,7 @@
  * /staff/[id]/edit — スタッフ編集 (Issue #69)
  */
 import { notFound } from 'next/navigation'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { requireEditor } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { staff, accounts } from '@/lib/schema'
@@ -12,7 +12,7 @@ import StaffForm from '@/components/StaffForm'
 import { updateStaff } from '@/industries/staffing/actions/staff'
 
 export default async function EditStaffPage({ params }: { params: Promise<{ id: string }> }) {
-  if (activeIndustry !== 'staffing') notFound()
+  if (!(await isModuleEnabled('staffing'))) notFound()
   const { id } = await params
   await requireEditor()
 
