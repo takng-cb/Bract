@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { SquarePen } from 'lucide-react'
 import { contacts, accounts, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
@@ -373,7 +374,7 @@ export default async function ContactDetailPage({
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/contacts/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
+              <Link href={`/contacts/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この人物を削除しますか？" />
             </div>
           </AuthGuard>

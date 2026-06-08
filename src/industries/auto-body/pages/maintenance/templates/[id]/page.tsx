@@ -2,6 +2,7 @@
  * 整備パッケージ（テンプレート）詳細 — 行・諸費用のインライン編集。
  */
 import { db } from '@/lib/db'
+import { SquarePen } from 'lucide-react'
 import {
   maintenance_templates, maintenance_template_lines, maintenance_template_fees,
 } from '@/lib/schema'
@@ -83,7 +84,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/maintenance/templates/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 shadow-sm">✏️ 編集</Link>
+              <Link href={`/maintenance/templates/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 shadow-sm"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="このテンプレを削除しますか？" />
             </div>
           </AuthGuard>

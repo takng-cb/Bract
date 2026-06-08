@@ -6,6 +6,7 @@ import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, inArray, desc, asc, count } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { SquarePen } from 'lucide-react'
 import { canEdit } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
 import { deleteCustomRecord } from '@/app/actions/customRecords'
@@ -407,7 +408,7 @@ export default async function CustomRecordDetailPage({
                 href={`/objects/${objectApiName}/${recordId}/edit`}
                 className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
               >
-                ✏️ 編集
+                <SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集
               </Link>
               <DeleteButton
                 action={handleDelete}
