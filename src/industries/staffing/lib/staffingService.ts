@@ -12,11 +12,21 @@
 export const STAFF_STATUSES = ['稼働中', '一時休止', '引退'] as const
 export type StaffStatus = typeof STAFF_STATUSES[number]
 
-export const ASSIGNMENT_STATUSES = ['予約', '確定', '実施中', '完了', 'キャンセル'] as const
+// 案件ステータス（業務フロー：受付 → 打診中 → 候補集約 → 確定 → 実施 → 完了。spec §3）
+// 旧データ（予約/実施中）も色判定で吸収する。
+export const ASSIGNMENT_STATUSES = ['受付', '打診中', '候補集約', '確定', '実施', '完了', 'キャンセル'] as const
 export type AssignmentStatus = typeof ASSIGNMENT_STATUSES[number]
 
 export const ASSIGNMENT_STAFF_STATUSES = ['予約', '確定', '実施', '完了', 'キャンセル'] as const
 export type AssignmentStaffStatus = typeof ASSIGNMENT_STAFF_STATUSES[number]
+
+// 打診(RFQ)ステータス（spec §4 outreach）
+export const OUTREACH_STATUSES = ['打診済', '返信待ち', '候補あり', '該当なし'] as const
+export type OutreachStatus = typeof OUTREACH_STATUSES[number]
+
+// 候補(assignment_staff.candidate_status)
+export const CANDIDATE_STATUSES = ['候補', '確定', '辞退'] as const
+export type CandidateStatus = typeof CANDIDATE_STATUSES[number]
 
 // account の役割
 export const ACCOUNT_ROLES = ['supplier', 'client', 'both'] as const
@@ -40,12 +50,35 @@ export function staffStatusColor(status: string | null | undefined): string {
 
 export function assignmentStatusColor(status: string | null | undefined): string {
   switch (status) {
+    case '受付':
     case '予約':       return 'bg-blue-50 text-blue-700'
+    case '打診中':     return 'bg-violet-50 text-violet-700'
+    case '候補集約':   return 'bg-amber-50 text-amber-700'
     case '確定':       return 'bg-cyan-50 text-cyan-700'
+    case '実施':
     case '実施中':     return 'bg-orange-50 text-orange-700'
     case '完了':       return 'bg-green-50 text-green-700'
     case 'キャンセル': return 'bg-zinc-100 text-zinc-500'
     default:           return 'bg-zinc-50 text-zinc-700'
+  }
+}
+
+export function outreachStatusColor(status: string | null | undefined): string {
+  switch (status) {
+    case '打診済':   return 'bg-blue-50 text-blue-700'
+    case '返信待ち': return 'bg-amber-50 text-amber-700'
+    case '候補あり': return 'bg-green-50 text-green-700'
+    case '該当なし': return 'bg-zinc-100 text-zinc-500'
+    default:         return 'bg-zinc-50 text-zinc-700'
+  }
+}
+
+export function candidateStatusColor(status: string | null | undefined): string {
+  switch (status) {
+    case '確定': return 'bg-cyan-50 text-cyan-700'
+    case '辞退': return 'bg-zinc-100 text-zinc-500'
+    case '候補': return 'bg-amber-50 text-amber-700'
+    default:     return 'bg-zinc-50 text-zinc-700'
   }
 }
 
@@ -79,6 +112,27 @@ export function calcAssignmentProfit(
     ? Number(clientTotalFee)
     : fallbackRevenue
   return { revenue, cost, profit: revenue - cost }
+}
+
+/**
+ * 固定単価モデルの粗利（ADR-0010）。
+ * 売上＝発注単価(client_total_fee)、仕入＝確定候補の提示単価(proposed_rate)合計、粗利＝売上−仕入。
+ * 「確定」候補のみを仕入に算入する。
+ */
+export function calcMarginFixed(
+  clientTotalFee: number | string | null | undefined,
+  candidates: { proposed_rate?: number | string | null; candidate_status?: string | null }[],
+): { revenue: number; cost: number; margin: number; confirmedCount: number } {
+  const revenue = clientTotalFee != null && Number(clientTotalFee) > 0 ? Number(clientTotalFee) : 0
+  let cost = 0
+  let confirmedCount = 0
+  for (const c of candidates) {
+    if (c.candidate_status !== '確定') continue
+    confirmedCount += 1
+    const p = Number(c.proposed_rate ?? 0)
+    if (Number.isFinite(p)) cost += p
+  }
+  return { revenue, cost, margin: revenue - cost, confirmedCount }
 }
 
 // assignment_no 発番は assignmentNo.ts に分離 (DB 依存のため)
