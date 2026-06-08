@@ -30,8 +30,8 @@ export type BookRef = {
 export type QuickAction = {
   label: string
   icon: string
-  kind: 'create' | 'log' | 'wizard'
-  /** create/log の遷移先。wizard は省略可（ランチャー内でウィザードを開く） */
+  kind: 'create' | 'log' | 'list' | 'wizard'
+  /** create/log/list の遷移先。wizard は省略可（ランチャー内でウィザードを開く） */
   href?: string
   /** 対象ブック（任意・将来のAIコントラクト紐付け用） */
   book?: string

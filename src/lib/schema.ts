@@ -30,6 +30,9 @@ export const accounts = pgTable('accounts', {
   // staffing 業種オーバーレイ用 (Issue #69):
   //   'supplier' (人材会社) / 'client' (派遣先) / 'both' / NULL
   account_role:   text('account_role'),
+  line_type:      text('line_type'),       // staffing: 'individual'|'official'（LINE種別）
+  specialties:    jsonb('specialties'),    // staffing: 紹介会社の得意領域
+  contact_person: text('contact_person'),  // 主担当者名（簡易）
   annual_revenue: numeric('annual_revenue'),
   employee_count: integer('employee_count'),
   description:    text('description'),
@@ -808,6 +811,8 @@ export const staff = pgTable('staff', {
   available_areas:        jsonb('available_areas'),
   default_hourly_rate:    numeric('default_hourly_rate'),
   default_cost_per_hour:  numeric('default_cost_per_hour'),
+  default_fixed_rate:     numeric('default_fixed_rate'),    // 案件固定単価の既定値（ADR-0010）
+  is_repeat:              boolean('is_repeat').default(false), // リピート人材（REQ-0005 B2）
   photo_url:              text('photo_url'),
   status:                 text('status').notNull().default('稼働中'),
   notes:                  text('notes'),
@@ -832,6 +837,8 @@ export const assignments = pgTable('assignments', {
   service_location:     text('service_location'),
   service_type:         text('service_type'),
   service_description:  text('service_description'),
+  role:                 text('role'),          // 募集職種・役割（REQ-0005）
+  raw_message:          text('raw_message'),    // 貼付したLINE原文（クイック登録の出所保持）
   staff_count_required: integer('staff_count_required'),
   status:               text('status').notNull().default('予約'),
   client_total_fee:     numeric('client_total_fee'),
@@ -848,12 +855,61 @@ export const assignment_staff = pgTable('assignment_staff', {
   id:             uuid('id').primaryKey().defaultRandom(),
   assignment_id:  uuid('assignment_id').notNull().references(() => assignments.id, { onDelete: 'cascade' }),
   staff_id:       uuid('staff_id').notNull().references(() => staff.id, { onDelete: 'restrict' }),
+  agency_account_id: uuid('agency_account_id').references(() => accounts.id, { onDelete: 'set null' }), // どの紹介会社からの候補か
   service_hours:  numeric('service_hours'),
   hourly_rate:    numeric('hourly_rate'),
   cost_per_hour:  numeric('cost_per_hour'),
+  proposed_rate:  numeric('proposed_rate'),    // 提示単価（案件固定。ADR-0010）
+  talent_name:    text('talent_name'),         // staff 未登録時の候補名
+  candidate_status: text('candidate_status').default('候補'), // 候補/確定/辞退
   status:         text('status').notNull().default('予約'),
   notes:          text('notes'),
   created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// outreach（打診 / RFQ）— staffing。複数紹介会社への打診管理（REQ-0005）
+// ----------------------------------------------------------------
+export const outreach = pgTable('outreach', {
+  id:                uuid('id').primaryKey().defaultRandom(),
+  assignment_id:     uuid('assignment_id').notNull().references(() => assignments.id, { onDelete: 'cascade' }),
+  agency_account_id: uuid('agency_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  status:            text('status').notNull().default('打診済'), // 打診済/返信待ち/候補あり/該当なし
+  sent_at:           timestamp('sent_at', { withTimezone: true }),
+  notes:             text('notes'),
+  created_at:        timestamp('created_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// invoices（売上・請求）— staffing。粗利=発注単価−提示単価（REQ-0007/ADR-0010）
+// ----------------------------------------------------------------
+export const invoices = pgTable('invoices', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  assignment_id:  uuid('assignment_id').references(() => assignments.id, { onDelete: 'set null' }),
+  candidate_id:   uuid('candidate_id').references(() => assignment_staff.id, { onDelete: 'set null' }),
+  billing_amount: numeric('billing_amount'),   // 請求額＝発注単価
+  payment_amount: numeric('payment_amount'),   // 支払額＝提示単価
+  margin:         numeric('margin'),           // 粗利
+  billing_status: text('billing_status').notNull().default('未請求'),
+  payment_status: text('payment_status').notNull().default('未払'),
+  billed_at:      timestamp('billed_at', { withTimezone: true }),
+  paid_at:        timestamp('paid_at', { withTimezone: true }),
+  created_at:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
+// events（予定）— staffing。予定の記録/表示用。自動リマインドは MVP 外（ADR-0011）
+// ----------------------------------------------------------------
+export const events = pgTable('events', {
+  id:               uuid('id').primaryKey().defaultRandom(),
+  assignment_id:    uuid('assignment_id').references(() => assignments.id, { onDelete: 'set null' }),
+  type:             text('type'),    // 打合せ/案件実施/返信期限/その他
+  title:            text('title'),
+  start_at:         timestamp('start_at', { withTimezone: true }),
+  end_at:           timestamp('end_at', { withTimezone: true }),
+  reminder_offsets: jsonb('reminder_offsets'), // 将来用（['P1D','PT2H']）
+  reminded:         boolean('reminded').default(false),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 
 // ----------------------------------------------------------------
