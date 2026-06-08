@@ -151,7 +151,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <Sidebar navGroups={navGroups} dashboardItem={dashboardItem} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
       </div>
       <div className="print:hidden">
-        <MobileNav mainItems={mainItems} companyName={companyName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
+        <MobileNav navGroups={navGroups} dashboardItem={dashboardItem} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
       </div>
       <main className={`flex-1 min-w-0 overflow-auto pt-14 md:pt-0 print:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'} print:pb-0`}>
         <div className="sticky top-0 z-20">

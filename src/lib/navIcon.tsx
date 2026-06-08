@@ -10,6 +10,7 @@ import {
   Settings, SquareCheckBig, Ticket, Building2, House, Tag, User, Users, Lightbulb,
   Banknote, Briefcase, LayoutDashboard, ClipboardList, NotebookPen, Inbox, Bell,
   Link2, Library, Bot, Puzzle, Sparkles, Package, Wrench, Car, UserRound, Cog,
+  CalendarClock,
 } from 'lucide-react'
 
 /** 絵文字 → Lucide コンポーネント（design_handoff/README.md「Icon Map」準拠） */
@@ -17,8 +18,8 @@ export const EMOJI_TO_LUCIDE: Record<string, LucideIcon> = {
   '⚙️': Settings,        // 設定
   '✅': SquareCheckBig,  // ToDo
   '🎫': Ticket,          // チケット/タグ
-  '🏠': Building2,       // 取引先 accounts
-  '🏢': House,           // 物件 properties
+  '🏠': House,           // 物件 properties（家）
+  '🏢': Building2,       // 取引先 accounts（ビル）
   '🏷️': Tag,             // タグ
   '👤': User,            // ユーザー/担当
   '👥': Users,           // 人物 contacts
@@ -26,8 +27,9 @@ export const EMOJI_TO_LUCIDE: Record<string, LucideIcon> = {
   '💰': Banknote,        // 売掛金/金額
   '💼': Briefcase,       // 経費/営業
   '📊': LayoutDashboard, // ダッシュボード
-  '📋': ClipboardList,   // 案件 assignments
-  '📝': NotebookPen,     // 活動/メモ
+  '📋': ClipboardList,   // 整備パッケージ・案件など
+  '🗓️': CalendarClock,   // 活動履歴 activities
+  '📝': NotebookPen,     // メモ
   '📥': Inbox,           // 取り込み
   '🔔': Bell,            // 通知
   '🔗': Link2,           // 関係/リンク
