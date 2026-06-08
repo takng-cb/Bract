@@ -4,7 +4,7 @@
  * 簡易版: 案件本体 + スタッフ追加フォーム
  */
 import { notFound } from 'next/navigation'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { requireEditor } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { assignments, assignment_staff, accounts, contacts, staff } from '@/lib/schema'
@@ -16,7 +16,7 @@ import { updateAssignment, assignStaffToAssignment, unassignStaff } from '@/indu
 const FIELD_CLS = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export default async function EditAssignmentPage({ params }: { params: Promise<{ id: string }> }) {
-  if (activeIndustry !== 'staffing') notFound()
+  if (!(await isModuleEnabled('staffing'))) notFound()
   const { id } = await params
   await requireEditor()
 

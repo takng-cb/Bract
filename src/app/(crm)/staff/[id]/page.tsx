@@ -3,7 +3,7 @@
  */
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
 import { staff, accounts, assignment_staff, assignments } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
@@ -14,7 +14,7 @@ import { deleteStaff } from '@/industries/staffing/actions/staff'
 import { staffStatusColor, assignmentStatusColor } from '@/industries/staffing/lib/staffingService'
 
 export default async function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  if (activeIndustry !== 'staffing') notFound()
+  if (!(await isModuleEnabled('staffing'))) notFound()
   const { id } = await params
 
   const [row, history] = await Promise.all([

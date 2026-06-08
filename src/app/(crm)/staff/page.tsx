@@ -3,7 +3,7 @@
  */
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
 import { staff, accounts } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
@@ -13,7 +13,7 @@ import { staffStatusColor, STAFF_STATUSES } from '@/industries/staffing/lib/staf
 export const dynamic = 'force-dynamic'
 
 export default async function StaffListPage() {
-  if (activeIndustry !== 'staffing') notFound()
+  if (!(await isModuleEnabled('staffing'))) notFound()
 
   const [staffList, edit] = await Promise.all([
     db.select({

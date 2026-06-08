@@ -4,7 +4,7 @@
  * 簡易フォーム。詳細編集は /assignments/[id]/edit で行う。
  */
 import { notFound, redirect } from 'next/navigation'
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { requireEditor } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { accounts } from '@/lib/schema'
@@ -13,7 +13,7 @@ import Breadcrumbs from '@/components/Breadcrumbs'
 import { createAssignment } from '@/industries/staffing/actions/assignments'
 
 export default async function NewAssignmentPage() {
-  if (activeIndustry !== 'staffing') notFound()
+  if (!(await isModuleEnabled('staffing'))) notFound()
   await requireEditor()
 
   const clientAccounts = await db.select({ id: accounts.id, name: accounts.name })
