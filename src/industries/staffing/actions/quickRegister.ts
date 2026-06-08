@@ -7,8 +7,8 @@
  * AI は DB を直接触らず、apply 層（本ファイル）が requireEditor + ensureModuleEnabled を通して反映。
  */
 import { db } from '@/lib/db'
-import { assignments, accounts, contacts } from '@/lib/schema'
-import { requireEditor } from '@/lib/auth'
+import { assignments, accounts, contacts, activities, activity_related_records } from '@/lib/schema'
+import { requireEditor, getCurrentUserId } from '@/lib/auth'
 import { ensureModuleEnabled } from '@/lib/modules/registry'
 import { callAI } from '@/lib/ai/client'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
@@ -126,6 +126,7 @@ function buildAssignmentTitle(clientName: string, draft: StaffingDraft): string 
 export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft, rawText: string): Promise<string> {
   await requireEditor()
   await ensureModuleEnabled('staffing')
+  const ownerId = await getCurrentUserId()
 
   // 取引先を解決（既存=ID / 新規=作成）。タイトル用に名前も得る。
   let clientAccountId: string
@@ -190,8 +191,32 @@ export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft
         internal_memo:        memoParts.join('\n') || null,
         raw_message:          rawText ?? null,
       }).returning({ id: assignments.id })
+      const assignmentId = row.id
+
+      // 原文を「活動(メモ)」として記録し、取引先・担当者・案件に紐付ける（REQ-0017）
+      const text = (rawText ?? '').trim()
+      if (text) {
+        try {
+          const [act] = await db.insert(activities).values({
+            type:        'note',
+            subject:     `クイック登録: ${title}`,
+            body:        text,
+            owner_id:    ownerId,
+          }).returning({ id: activities.id })
+          const links: { activity_id: string; related_object_api: string; related_record_id: string }[] = [
+            { activity_id: act.id, related_object_api: 'account',    related_record_id: clientAccountId },
+            { activity_id: act.id, related_object_api: 'assignment', related_record_id: assignmentId },
+          ]
+          if (clientContactId) links.push({ activity_id: act.id, related_object_api: 'contact', related_record_id: clientContactId })
+          await db.insert(activity_related_records).values(links).onConflictDoNothing()
+        } catch {
+          // 活動記録の失敗は起票自体を妨げない（best-effort）
+        }
+      }
+
       revalidatePath('/assignments')
-      return row.id
+      revalidatePath('/activities')
+      return assignmentId
     } catch (e) {
       lastErr = e
       const msg = e instanceof Error ? e.message : String(e)
