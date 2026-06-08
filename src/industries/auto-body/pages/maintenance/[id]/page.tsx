@@ -22,6 +22,8 @@ import { toggleTaskDone } from '@/app/actions/tasks'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { getAllUsers } from '@/lib/userUtils'
 import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFullView'
+import CaliInsuranceButton from '@/industries/auto-body/components/CaliInsuranceButton'
+import { inferCaliClass } from '@/industries/auto-body/lib/caliInsurance'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -210,7 +212,12 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
 
   // ── 全体ビュー（メインの編集 UI）─────────────────────────────
   const fullViewContent = (
-    <MaintenanceFullView maintenanceId={id} users={allUsers} />
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <CaliInsuranceButton maintenanceId={id} defaultClass={inferCaliClass(mRow.vehicle?.vehicle_kind)} />
+      </div>
+      <MaintenanceFullView maintenanceId={id} users={allUsers} />
+    </div>
   )
 
   // ── 添付ファイルタブ ───────────────────────────────────────────
