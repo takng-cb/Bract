@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — モバイル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<style>
+  body { background: var(--n-100); padding: 40px 0 80px; }
+  .page-title { max-width: 1200px; margin: 0 auto 6px; padding: 0 40px; font-size: var(--text-2xl); font-weight: 700; color: var(--n-900); letter-spacing: -0.01em; }
+  .page-sub { max-width: 1200px; margin: 0 auto 36px; padding: 0 40px; color: var(--n-500); font-size: var(--text-md); }
+  .sec-label { max-width: 1280px; margin: 48px auto 18px; padding: 0 40px; font-size: var(--text-sm); font-weight: 700; color: var(--n-600); letter-spacing: .04em; display: flex; align-items: center; gap: 10px; }
+  .sec-label::after { content: ""; flex: 1; height: 1px; background: var(--n-200); }
+
+  .frames { display: flex; flex-wrap: wrap; gap: 44px 36px; justify-content: center; padding: 0 40px; }
+  .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .frame-label { font-size: var(--text-sm); font-weight: 600; color: var(--n-600); white-space: nowrap; }
+
+  /* phone */
+  .phone { width: 372px; height: 760px; background: var(--n-950); border-radius: 46px; padding: 10px; box-shadow: 0 30px 60px oklch(0.3 0.02 70 / 0.16), 0 8px 20px oklch(0.3 0.02 70 / 0.10); position: relative; flex: none; }
+  .screen { width: 100%; height: 100%; background: var(--n-50); border-radius: 37px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 116px; height: 26px; background: var(--n-950); border-radius: 0 0 16px 16px; z-index: 20; }
+  .statusbar { height: 44px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 22px 0 26px; font-size: 13px; font-weight: 600; color: var(--n-900); }
+  .statusbar .ic { width: 15px; height: 15px; }
+  .statusbar .right { display: flex; align-items: center; gap: 5px; }
+
+  .mtop { flex: none; display: flex; align-items: center; gap: 12px; padding: 4px 16px 12px; }
+  .mtop .ico { width: 38px; height: 38px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--n-700); cursor: pointer; }
+  .mtop .ico:active { background: var(--n-150); }
+  .mtop .ttl { font-size: var(--text-xl); font-weight: 700; color: var(--n-900); flex: 1; }
+  .mtop .av { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-600); color: var(--on-primary); display: grid; place-items: center; font-weight: 700; font-size: var(--text-sm); }
+
+  .mscroll { flex: 1; overflow-y: auto; padding: 0 16px 90px; }
+  .mscroll::-webkit-scrollbar { width: 0; }
+  .mscroll .searchbox span { white-space: nowrap; }
+
+  /* bottom nav */
+  .bnav { position: absolute; left: 0; right: 0; bottom: 0; height: 76px; background: color-mix(in oklch, var(--n-0) 92%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--n-200); display: flex; align-items: flex-start; padding: 8px 6px 0; z-index: 15; }
+  .bnav .bn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--n-400); font-size: 10px; font-weight: 600; cursor: pointer; padding-top: 4px; }
+  .bnav .bn .ic { width: 22px; height: 22px; }
+  .bnav .bn.on { color: var(--primary); }
+  .bnav .fab { flex: none; width: 54px; margin: -18px 6px 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bnav .fab .btn-fab { width: 52px; height: 52px; border-radius: 50%; background: var(--ai); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 16px color-mix(in oklch, var(--ai) 40%, transparent); }
+  .bnav .fab .btn-fab .ic { width: 24px; height: 24px; }
+  .bnav .fab .l { font-size: 10px; color: var(--n-400); font-weight: 600; }
+
+  .home-ind { position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); width: 128px; height: 5px; border-radius: 3px; background: var(--n-900); opacity: .28; z-index: 16; }
+
+  /* mobile content bits */
+  .greet { padding: 2px 2px 14px; }
+  .greet .h { font-size: var(--text-md); color: var(--n-500); }
+  .greet .b { font-size: var(--text-lg); font-weight: 700; color: var(--n-900); }
+  .mchips { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 12px; }
+  .mchips::-webkit-scrollbar { height: 0; }
+  .mchip { flex: none; padding: 6px 13px; border-radius: var(--r-pill); border: 1px solid var(--n-300); background: var(--n-0); font-size: var(--text-sm); font-weight: 600; color: var(--n-600); white-space: nowrap; }
+  .mchip.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+
+  .kpi2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .mkpi { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); padding: 13px 14px; }
+  .mkpi .top { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+  .mkpi .ib { width: 26px; height: 26px; border-radius: var(--r-sm); display: grid; place-items: center; flex: none; }
+  .mkpi .lab { font-size: var(--text-xs); color: var(--n-500); font-weight: 600; }
+  .mkpi .val { font-size: var(--text-xl); font-weight: 700; color: var(--n-900); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .mkpi .dl { font-size: 11px; font-weight: 600; margin-top: 2px; }
+  .mkpi .dl.up { color: var(--positive-text); }
+  .mkpi .dl.down { color: var(--danger-text); }
+
+  .mcard { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); padding: 14px; margin-bottom: 12px; }
+  .mcard-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .mcard-h .t { font-size: var(--text-md); font-weight: 700; color: var(--n-800); }
+  .mcard-h .lnk { font-size: var(--text-xs); color: var(--primary-text); font-weight: 600; }
+
+  .mbar { display: flex; align-items: flex-end; gap: 7px; height: 90px; }
+  .mbar .c { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; justify-content: flex-end; height: 100%; }
+  .mbar .bk { width: 100%; max-width: 22px; border-radius: 2px 2px 0 0; background: var(--primary); }
+  .mbar .x { font-size: 9px; color: var(--n-400); }
+
+  .mli { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid var(--n-150); }
+  .mli:last-child { border-bottom: none; }
+  .mli .ci { width: 30px; height: 30px; border-radius: var(--r-sm); display: grid; place-items: center; flex: none; }
+  .mli .x1 { font-size: var(--text-md); color: var(--n-900); font-weight: 500; }
+  .mli .x2 { font-size: var(--text-xs); color: var(--n-500); }
+  .mchk { width: 19px; height: 19px; border: 1.5px solid var(--n-300); border-radius: 5px; flex: none; }
+
+  /* record card (mobile list) */
+  .rec-card { display: flex; align-items: center; gap: 12px; background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); padding: 13px 14px; margin-bottom: 10px; }
+  .rec-card .rci { width: 40px; height: 40px; border-radius: var(--r-md); display: grid; place-items: center; flex: none; }
+  .rec-card .rcm { flex: 1; min-width: 0; }
+  .rec-card .rcm .r1 { font-size: var(--text-md); font-weight: 700; color: var(--n-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rec-card .rcm .r2 { font-size: var(--text-xs); color: var(--n-500); margin-top: 1px; }
+  .rec-card .rcm .r3 { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+  .rec-card .rcr { text-align: right; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .rec-card .rcr .amt { font-size: var(--text-md); font-weight: 700; color: var(--n-900); font-variant-numeric: tabular-nums; }
+  .rec-card .chev { color: var(--n-300); flex: none; }
+  .rec-card .rcr > span, .rec-card .rcr .amt, .rec-card .r3 > span { white-space: nowrap; }
+
+  /* detail mobile */
+  .mrec-head { padding: 6px 2px 14px; }
+  .mrec-head .av { width: 50px; height: 50px; border-radius: var(--r-md); background: var(--brand-50); color: var(--primary-text); display: grid; place-items: center; margin-bottom: 10px; }
+  .mrec-head h2 { margin: 0 0 7px; font-size: var(--text-xl); font-weight: 700; color: var(--n-900); }
+  .quick-acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .qa { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 0; border: 1px solid var(--n-200); border-radius: var(--r-md); background: var(--n-0); font-size: 11px; font-weight: 600; color: var(--n-700); }
+  .qa .ic { width: 18px; height: 18px; color: var(--primary); }
+  .mtabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--n-200); margin-bottom: 12px; }
+  .mtab { flex: none; padding: 8px 11px; font-size: var(--text-sm); font-weight: 600; color: var(--n-500); border-bottom: 2px solid transparent; white-space: nowrap; }
+  .mtab.on { color: var(--primary-text); border-bottom-color: var(--primary); }
+  .mkv { display: grid; grid-template-columns: 92px 1fr; gap: 9px 12px; font-size: var(--text-md); }
+  .mkv dt { color: var(--n-500); }
+  .mkv dd { margin: 0; color: var(--n-900); }
+
+  /* form mobile */
+  .mform-top { flex: none; display: flex; align-items: center; gap: 12px; padding: 4px 14px 12px; }
+  .mform-top .x { font-size: var(--text-md); color: var(--n-600); font-weight: 600; }
+  .mform-top .t { flex: 1; text-align: center; font-size: var(--text-md); font-weight: 700; color: var(--n-900); }
+  .mform-top .save { color: var(--primary-text); font-weight: 700; font-size: var(--text-md); }
+  .mfield { margin-bottom: 14px; }
+  .mfield label { display: block; font-size: var(--text-sm); font-weight: 600; color: var(--n-700); margin-bottom: 6px; }
+  .msave-bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + 8px); background: var(--n-0); border-top: 1px solid var(--n-200); z-index: 15; }
+
+  .design-fab { position: fixed; bottom: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-pill); padding: 5px 8px 5px 12px; box-shadow: var(--shadow-md); font-size: var(--text-sm); }
+  .design-fab .lab { color: var(--n-500); font-weight: 600; font-size: var(--text-xs); }
+  .design-fab .seg { display: inline-flex; gap: 2px; background: var(--n-100); border-radius: var(--r-pill); padding: 2px; }
+  .design-fab .seg button { appearance: none; border: none; background: none; cursor: pointer; padding: 4px; border-radius: 50%; display: grid; place-items: center; }
+  .design-fab .seg button .sw { width: 15px; height: 15px; border-radius: 50%; display: block; border: 2px solid transparent; }
+  .design-fab .seg button[aria-pressed="true"] .sw { border-color: var(--n-0); box-shadow: 0 0 0 2px var(--n-800); }
+</style>
+</head>
+<body>
+  <div class="page-title">Bract — モバイル</div>
+  <div class="page-sub">PC主体ですが現場ではモバイルも使用。上部バー＋下部タブ（BottomNav）、一覧はカード表示、ヒット領域は44px以上。中央のタブはAIクイック登録。</div>
+
+  <div class="frames">
+    <!-- ============ DASHBOARD ============ -->
+    <div class="frame-wrap">
+      <div class="frame-label">ダッシュボード</div>
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><i data-lucide="signal" class="ic"></i><i data-lucide="wifi" class="ic"></i><i data-lucide="battery-full" class="ic"></i></span></div>
+        <div class="mtop"><div class="ico"><i data-lucide="menu" class="ic" style="width:22px;height:22px;"></i></div><div class="ttl">ダッシュボード</div><div class="av">田</div></div>
+        <div class="mscroll">
+          <div class="greet"><div class="h">おはようございます、田中さん</div><div class="b">近藤板金工業 — 6月の状況</div></div>
+          <div class="mchips"><span class="mchip on">今月</span><span class="mchip">四半期</span><span class="mchip">今年</span></div>
+          <div class="kpi2">
+            <div class="mkpi"><div class="top"><div class="ib" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="banknote" class="ic" style="width:15px;height:15px;"></i></div><span class="lab">受注金額</span></div><div class="val">¥24.8M</div><div class="dl up">↑ 18.4%</div></div>
+            <div class="mkpi"><div class="top"><div class="ib" style="background:var(--warning-bg);color:var(--warning-text);"><i data-lucide="wrench" class="ic" style="width:15px;height:15px;"></i></div><span class="lab">整備中</span></div><div class="val">9<span style="font-size:13px;color:var(--n-400);">台</span></div><div class="dl down">2台 部品待ち</div></div>
+            <div class="mkpi"><div class="top"><div class="ib" style="background:var(--info-bg);color:var(--info-text);"><i data-lucide="trending-up" class="ic" style="width:15px;height:15px;"></i></div><span class="lab">進行中商談</span></div><div class="val">24<span style="font-size:13px;color:var(--n-400);">件</span></div><div class="dl up">↑ 5件</div></div>
+            <div class="mkpi"><div class="top"><div class="ib" style="background:var(--danger-bg);color:var(--danger-text);"><i data-lucide="circle-alert" class="ic" style="width:15px;height:15px;"></i></div><span class="lab">売掛金</span></div><div class="val">¥3.2M</div><div class="dl down">¥420K 超過</div></div>
+          </div>
+          <div class="mcard">
+            <div class="mcard-h"><span class="t">本日の入庫予定</span><span class="lnk">すべて</span></div>
+            <div class="mli"><div class="ci" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="car" class="ic" style="width:15px;height:15px;"></i></div><div style="flex:1;"><div class="x1">プリウス · 品川 300 あ 12-34</div><div class="x2">9:00 · 田中様 · 板金塗装</div></div></div>
+            <div class="mli"><div class="ci" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="car" class="ic" style="width:15px;height:15px;"></i></div><div style="flex:1;"><div class="x1">ハイエース · 練馬 800 か 56-78</div><div class="x2">10:30 · 山田運送 · 定期点検</div></div></div>
+          </div>
+          <div class="mcard">
+            <div class="mcard-h"><span class="t">期間内のToDo</span><span class="badge badge-danger">3 期限</span></div>
+            <div class="mli"><span class="mchk"></span><div style="flex:1;"><div class="x1">見積書を送付 — 山田オート</div><div class="x2">今日 17:00</div></div><span class="badge badge-danger">高</span></div>
+            <div class="mli"><span class="mchk"></span><div style="flex:1;"><div class="x1">部品入荷の確認（バンパー）</div><div class="x2">明日</div></div><span class="badge badge-warning">中</span></div>
+          </div>
+        </div>
+        <div class="bnav">
+          <div class="bn on"><i data-lucide="layout-dashboard" class="ic"></i>ホーム</div>
+          <div class="bn"><i data-lucide="building-2" class="ic"></i>取引先</div>
+          <div class="fab"><div class="btn-fab"><i data-lucide="sparkles" class="ic"></i></div><span class="l">登録</span></div>
+          <div class="bn"><i data-lucide="wrench" class="ic"></i>整備</div>
+          <div class="bn"><i data-lucide="menu" class="ic"></i>メニュー</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+    </div>
+
+    <!-- ============ LIST (cards) ============ -->
+    <div class="frame-wrap">
+      <div class="frame-label">取引先一覧（カード表示）</div>
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><i data-lucide="signal" class="ic"></i><i data-lucide="wifi" class="ic"></i><i data-lucide="battery-full" class="ic"></i></span></div>
+        <div class="mtop"><div class="ico"><i data-lucide="menu" class="ic" style="width:22px;height:22px;"></i></div><div class="ttl">取引先</div><div class="ico"><i data-lucide="search" class="ic" style="width:20px;height:20px;"></i></div></div>
+        <div class="mscroll">
+          <div class="searchbox" style="display:flex;align-items:center;gap:8px;background:var(--n-100);border:1px solid var(--n-200);border-radius:var(--r-md);padding:0 12px;height:40px;margin-bottom:12px;color:var(--n-500);"><i data-lucide="search" class="ic" style="width:16px;height:16px;"></i><span style="font-size:var(--text-md);">取引先を検索…</span></div>
+          <div class="mchips"><span class="mchip on">すべて 128</span><span class="mchip">顧客 96</span><span class="mchip">仕入先 24</span><span class="mchip">売掛金あり</span></div>
+          <div class="rec-card"><div class="rci" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="building-2" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">株式会社ブラクト製作所</div><div class="r2">製造業 · 田中 一郎</div><div class="r3"><span class="badge badge-brand">顧客</span><span class="badge badge-warning"><span class="dot"></span>交渉中</span></div></div><div class="rcr"><span class="amt" style="color:var(--danger-text);">¥3.2M</span><i data-lucide="chevron-right" class="ic chev" style="width:18px;height:18px;"></i></div></div>
+          <div class="rec-card"><div class="rci" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="building-2" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">山田オートサービス</div><div class="r2">自動車整備 · 佐藤 花子</div><div class="r3"><span class="badge badge-brand">顧客</span><span class="badge badge-info"><span class="dot"></span>選別</span></div></div><div class="rcr"><span class="amt">¥850K</span><i data-lucide="chevron-right" class="ic chev" style="width:18px;height:18px;"></i></div></div>
+          <div class="rec-card"><div class="rci" style="background:var(--n-100);color:var(--n-500);"><i data-lucide="building-2" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">関東パーツ商会</div><div class="r2">部品卸 · 鈴木 健</div><div class="r3"><span class="badge badge-neutral">仕入先</span></div></div><div class="rcr"><span class="amt muted">—</span><i data-lucide="chevron-right" class="ic chev" style="width:18px;height:18px;"></i></div></div>
+          <div class="rec-card"><div class="rci" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="building-2" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">近藤ボディ工房</div><div class="r2">板金塗装 · 田中 一郎</div><div class="r3"><span class="badge badge-brand">顧客</span><span class="badge badge-positive"><span class="dot"></span>受注</span></div></div><div class="rcr"><span class="amt muted">—</span><i data-lucide="chevron-right" class="ic chev" style="width:18px;height:18px;"></i></div></div>
+          <div class="rec-card"><div class="rci" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="building-2" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">佐々木自動車</div><div class="r2">自動車販売 · 佐藤 花子</div><div class="r3"><span class="badge badge-brand">顧客</span><span class="badge badge-ai"><span class="dot"></span>提案</span></div></div><div class="rcr"><span class="amt">¥1.3M</span><i data-lucide="chevron-right" class="ic chev" style="width:18px;height:18px;"></i></div></div>
+        </div>
+        <div class="bnav">
+          <div class="bn"><i data-lucide="layout-dashboard" class="ic"></i>ホーム</div>
+          <div class="bn on"><i data-lucide="building-2" class="ic"></i>取引先</div>
+          <div class="fab"><div class="btn-fab"><i data-lucide="sparkles" class="ic"></i></div><span class="l">登録</span></div>
+          <div class="bn"><i data-lucide="wrench" class="ic"></i>整備</div>
+          <div class="bn"><i data-lucide="menu" class="ic"></i>メニュー</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+    </div>
+
+    <!-- ============ DETAIL ============ -->
+    <div class="frame-wrap">
+      <div class="frame-label">取引先 詳細</div>
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><i data-lucide="signal" class="ic"></i><i data-lucide="wifi" class="ic"></i><i data-lucide="battery-full" class="ic"></i></span></div>
+        <div class="mtop"><div class="ico"><i data-lucide="arrow-left" class="ic" style="width:22px;height:22px;"></i></div><div class="ttl" style="font-size:var(--text-md);">取引先</div><div class="ico"><i data-lucide="ellipsis" class="ic" style="width:22px;height:22px;"></i></div></div>
+        <div class="mscroll">
+          <div class="mrec-head">
+            <div class="av"><i data-lucide="building-2" class="ic" style="width:24px;height:24px;"></i></div>
+            <h2>株式会社ブラクト製作所</h2>
+            <div style="display:flex;gap:6px;"><span class="badge badge-brand">顧客</span><span class="badge badge-neutral">重要</span></div>
+          </div>
+          <div class="quick-acts">
+            <div class="qa"><i data-lucide="phone" class="ic"></i>電話</div>
+            <div class="qa"><i data-lucide="mail" class="ic"></i>メール</div>
+            <div class="qa"><i data-lucide="plus" class="ic"></i>活動</div>
+            <div class="qa"><i data-lucide="square-pen" class="ic"></i>編集</div>
+          </div>
+          <div class="band band-warning" style="padding:10px 12px;margin-bottom:14px;font-size:var(--text-sm);"><i data-lucide="triangle-alert" class="ic" style="width:16px;height:16px;"></i><div><strong>¥420,000 が期限超過</strong><div class="band-body" style="margin-top:1px;">売掛金 ¥3,200,000</div></div></div>
+          <div class="mtabs"><span class="mtab on">概要</span><span class="mtab">商談 4</span><span class="mtab">活動 12</span><span class="mtab">車両 5</span><span class="mtab">添付</span></div>
+          <dl class="mkv">
+            <dt>代表者</dt><dd>近藤 誠一</dd>
+            <dt>担当</dt><dd>田中 一郎</dd>
+            <dt>電話</dt><dd class="tnum">03-3492-1234</dd>
+            <dt>所在地</dt><dd>東京都品川区大崎 3-5-2</dd>
+            <dt>取引条件</dt><dd>月末締め・翌月末払い</dd>
+          </dl>
+          <div class="mcard" style="margin-top:14px;">
+            <div class="mcard-h"><span class="t">登録車両</span><span class="lnk">5台</span></div>
+            <div class="mli"><div class="ci" style="background:var(--info-bg);color:var(--info-text);"><i data-lucide="car" class="ic" style="width:15px;height:15px;"></i></div><div style="flex:1;"><div class="x1">トヨタ ハイエース</div><div class="x2 mono">品川 800 か 56-78</div></div><span class="badge badge-info"><span class="dot"></span>入庫中</span></div>
+          </div>
+        </div>
+        <div class="bnav">
+          <div class="bn"><i data-lucide="layout-dashboard" class="ic"></i>ホーム</div>
+          <div class="bn on"><i data-lucide="building-2" class="ic"></i>取引先</div>
+          <div class="fab"><div class="btn-fab"><i data-lucide="sparkles" class="ic"></i></div><span class="l">登録</span></div>
+          <div class="bn"><i data-lucide="wrench" class="ic"></i>整備</div>
+          <div class="bn"><i data-lucide="menu" class="ic"></i>メニュー</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+    </div>
+
+    <!-- ============ FORM ============ -->
+    <div class="frame-wrap">
+      <div class="frame-label">入力フォーム</div>
+      <div class="phone"><div class="notch"></div><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><i data-lucide="signal" class="ic"></i><i data-lucide="wifi" class="ic"></i><i data-lucide="battery-full" class="ic"></i></span></div>
+        <div class="mform-top"><span class="x">キャンセル</span><span class="t">取引先を編集</span><span class="save">保存</span></div>
+        <div class="mscroll" style="padding-bottom:84px;">
+          <button class="btn btn-ai" style="width:100%;margin-bottom:16px;"><i data-lucide="sparkles" class="ic"></i>テキスト / CSVから取り込み</button>
+          <div class="section-head" style="margin-bottom:14px;"><span class="bar"></span><h3>基本情報</h3><span class="rule"></span></div>
+          <div class="mfield"><label>取引先名 <span style="color:var(--danger);">*</span></label><input class="input" value="株式会社ブラクト製作所" /></div>
+          <div class="mfield"><label>フリガナ</label><input class="input" value="カブシキガイシャブラクトセイサクショ" /></div>
+          <div class="mfield"><label>種別 <span style="color:var(--danger);">*</span></label>
+            <div class="seg-radio" style="width:100%;"><button class="on" style="flex:1;">顧客</button><button style="flex:1;">仕入先</button><button style="flex:1;">両方</button></div>
+          </div>
+          <div class="mfield"><label>業種</label><select class="select"><option>製造業</option><option>自動車整備</option><option>板金塗装</option></select></div>
+          <div class="section-head" style="margin:20px 0 14px;"><span class="bar"></span><h3>連絡先</h3><span class="rule"></span></div>
+          <div class="mfield"><label>電話</label><input class="input tnum" value="03-3492-1234" /></div>
+          <div class="mfield"><label>メール</label><input class="input" value="info@bract-mfg.co.jp" /></div>
+        </div>
+        <div class="msave-bar"><button class="btn btn-primary" style="width:100%;"><i data-lucide="check" class="ic"></i>保存する</button></div>
+        <div class="home-ind"></div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ============ RECORD CARDS ============ -->
+  <div class="sec-label">各レコードのカード設計（モバイル一覧）</div>
+  <div class="frames" style="align-items:flex-start;">
+    <div style="width:372px; display:flex; flex-direction:column; gap:0;">
+      <div class="frame-label" style="margin-bottom:10px;">取引先 · 商談</div>
+      <div class="rec-card"><div class="rci" style="background:var(--brand-50);color:var(--primary-text);"><i data-lucide="building-2" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">株式会社ブラクト製作所</div><div class="r2">製造業 · 田中 一郎</div><div class="r3"><span class="badge badge-brand">顧客</span><span class="badge badge-neutral">重要</span></div></div><div class="rcr"><span class="amt" style="color:var(--danger-text);">¥3.2M</span><span class="muted" style="font-size:10px;">売掛金</span></div></div>
+      <div class="rec-card"><div class="rci" style="background:var(--info-bg);color:var(--info-text);"><i data-lucide="trending-up" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">板金ライン更新 2026</div><div class="r2">株式会社ブラクト製作所</div><div class="r3"><span class="badge badge-warning"><span class="dot"></span>交渉</span><span class="muted" style="font-size:11px;">確度 70%</span></div></div><div class="rcr"><span class="amt">¥3.2M</span><span class="muted" style="font-size:10px;">6/12 見積</span></div></div>
+    </div>
+    <div style="width:372px; display:flex; flex-direction:column; gap:0;">
+      <div class="frame-label" style="margin-bottom:10px;">車両 · 整備</div>
+      <div class="rec-card"><div class="rci" style="background:var(--info-bg);color:var(--info-text);"><i data-lucide="car" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">トヨタ ハイエース</div><div class="r2 mono">品川 800 か 56-78</div><div class="r3"><span class="badge badge-info"><span class="dot"></span>入庫中</span><span class="muted" style="font-size:11px;">前回 5/02</span></div></div><i data-lucide="chevron-right" class="ic chev" style="width:18px;height:18px;"></i></div>
+      <div class="rec-card"><div class="rci" style="background:var(--warning-bg);color:var(--warning-text);"><i data-lucide="wrench" class="ic" style="width:19px;height:19px;"></i></div><div class="rcm"><div class="r1">事故修理 — ハイエース</div><div class="r2">リアバンパー・バックドア</div><div class="r3"><span class="badge badge-warning"><span class="dot"></span>部品待ち</span><span class="muted" style="font-size:11px;">代車あり</span></div></div><div class="rcr"><span class="amt">¥186K</span><span class="muted" style="font-size:10px;">見積</span></div></div>
+    </div>
+    <div style="width:372px; display:flex; flex-direction:column; gap:0;">
+      <div class="frame-label" style="margin-bottom:10px;">ToDo · 活動</div>
+      <div class="rec-card"><span class="mchk" style="margin:0 2px;"></span><div class="rcm"><div class="r1">見積書を送付 — 山田オート</div><div class="r2">田中 一郎 · 今日 17:00</div></div><div class="rcr"><span class="badge badge-danger">高</span></div></div>
+      <div class="rec-card"><div class="rci" style="background:var(--positive-bg);color:var(--positive-text);"><i data-lucide="check" class="ic" style="width:18px;height:18px;"></i></div><div class="rcm"><div class="r1">近藤ボディ工房 受注</div><div class="r2">田中 一郎 · 3時間前</div><div class="r3"><span class="badge badge-positive">活動</span></div></div></div>
+    </div>
+  </div>
+
+<div class="design-fab">
+  <span class="lab">見た目</span>
+  <div class="seg" role="group" aria-label="ブランド方向">
+    <button data-ctl="brand" data-val="foliage" title="Foliage"><span class="sw" style="background:oklch(0.515 0.112 158)"></span></button>
+    <button data-ctl="brand" data-val="vermillion" title="Vermillion"><span class="sw" style="background:oklch(0.565 0.185 33)"></span></button>
+    <button data-ctl="brand" data-val="indigo" title="Indigo"><span class="sw" style="background:oklch(0.500 0.175 267)"></span></button>
+  </div>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium" title="中密度"><span class="sw" style="background:var(--n-400)"></span></button>
+    <button data-ctl="density" data-val="high" title="高密度"><span class="sw" style="background:var(--n-700)"></span></button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>

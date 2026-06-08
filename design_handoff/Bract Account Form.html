@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — 取引先を編集</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<style>
+  html, body { height: 100%; }
+  body { background: var(--n-100); overflow: hidden; }
+  .app { display: flex; height: 100vh; }
+  .sidebar { width: 224px; flex: none; background: var(--side-bg); display: flex; flex-direction: column; position: relative; }
+  .sidebar .brand-row { display: flex; align-items: center; gap: 9px; padding: 16px 14px 12px; color: #fff; font-weight: 700; font-size: var(--text-lg); }
+  .sidebar .nav { flex: 1; overflow-y: auto; padding: 4px 10px 16px; }
+  .sidebar .nav::-webkit-scrollbar { width: 8px; }
+  .sidebar .nav::-webkit-scrollbar-thumb { background: var(--side-border); border-radius: 8px; }
+  .side-foot { border-top: 1px solid var(--side-border); padding: 10px; }
+  .side-user { display: flex; align-items: center; gap: 9px; padding: 6px; border-radius: var(--r-sm); cursor: pointer; }
+  .side-user:hover { background: var(--side-bg-2); }
+  .avatar { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--brand-600); color: var(--on-primary); display: grid; place-items: center; font-size: var(--text-sm); font-weight: 700; flex: none; }
+  .side-user .meta .nm { font-size: var(--text-sm); color: var(--n-50); font-weight: 600; }
+  .side-user .meta .rl { font-size: var(--text-2xs); color: var(--side-text-dim); }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar { height: 56px; flex: none; background: var(--n-0); border-bottom: 1px solid var(--n-200); display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-6); position: relative; }
+  .searchbox { display: flex; align-items: center; gap: 8px; background: var(--n-100); border: 1px solid var(--n-200); border-radius: var(--r-md); padding: 0 10px; height: 34px; width: 300px; color: var(--n-500); }
+  .searchbox input { border: none; background: none; outline: none; font: inherit; font-size: var(--text-md); color: var(--n-800); width: 100%; }
+  .topbar .ic-btn { width: 34px; height: 34px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--n-600); cursor: pointer; position: relative; }
+  .topbar .ic-btn:hover { background: var(--n-100); color: var(--n-900); }
+  .topbar .ic-btn .dot { position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+
+  .form-head { background: var(--n-0); border-bottom: 1px solid var(--n-200); padding: var(--sp-4) var(--sp-7); display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); }
+  .form-head h1 { margin: 4px 0 0; font-size: var(--text-2xl); font-weight: 700; color: var(--n-900); }
+
+  .content { flex: 1; overflow-y: auto; padding: var(--sp-6) var(--sp-7) 120px; }
+  .form-col { max-width: 760px; margin: 0 auto; }
+
+  .form-card { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); padding: var(--sp-5) var(--sp-6); margin-bottom: var(--sp-4); box-shadow: var(--shadow-xs); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sp-4); }
+  .span2 { grid-column: span 2; }
+  @media (max-width: 680px) { .grid2, .grid3 { grid-template-columns: 1fr; } .span2 { grid-column: auto; } }
+  .field + .field, .grid2 + .field, .field + .grid2, .grid2 + .grid2, .field + .grid3 { margin-top: var(--sp-4); }
+
+  /* toggle */
+  .toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+  .toggle .tk { width: 38px; height: 22px; border-radius: var(--r-pill); background: var(--n-300); position: relative; transition: background .15s; flex: none; }
+  .toggle .tk::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform .15s; }
+  .toggle.on .tk { background: var(--primary); }
+  .toggle.on .tk::after { transform: translateX(16px); }
+  .toggle .tlab { font-size: var(--text-md); color: var(--n-800); }
+
+  .seg-radio { display: inline-flex; border: 1px solid var(--n-300); border-radius: var(--r-md); overflow: hidden; }
+  .seg-radio button { appearance: none; background: var(--n-0); border: none; border-left: 1px solid var(--n-200); font: inherit; font-size: var(--text-md); font-weight: 600; color: var(--n-600); padding: 7px 16px; cursor: pointer; white-space: nowrap; }
+  .seg-radio button:first-child { border-left: none; }
+  .seg-radio button.on { background: var(--primary); color: var(--on-primary); }
+
+  .tagwrap { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-s { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; font-size: var(--text-sm); border-radius: var(--r-sm); background: var(--n-100); color: var(--n-700); font-weight: 500; }
+  .tag-s .x { cursor: pointer; color: var(--n-400); display: grid; place-items: center; }
+  .tag-add { border: 1px dashed var(--n-300); background: none; color: var(--n-500); cursor: pointer; }
+
+  /* sticky footer */
+  .form-foot { position: absolute; left: 224px; right: 0; bottom: 0; background: var(--n-0); border-top: 1px solid var(--n-200); padding: 12px var(--sp-7); display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -2px 8px oklch(0.3 0.02 70 / 0.04); }
+  .form-foot .left { font-size: var(--text-sm); color: var(--n-500); display: flex; align-items: center; gap: 6px; }
+
+  .modal-scrim { position: fixed; inset: 0; background: oklch(0.20 0.01 70 / 0.42); display: none; place-items: center; z-index: 80; }
+  .modal-scrim.open { display: grid; }
+  .modal { width: min(560px, 92%); }
+
+  .design-fab { position: fixed; bottom: 72px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-pill); padding: 5px 8px 5px 12px; box-shadow: var(--shadow-md); font-size: var(--text-sm); }
+  .design-fab .lab { color: var(--n-500); font-weight: 600; font-size: var(--text-xs); }
+  .design-fab .seg { display: inline-flex; gap: 2px; background: var(--n-100); border-radius: var(--r-pill); padding: 2px; }
+  .design-fab .seg button { appearance: none; border: none; background: none; cursor: pointer; padding: 4px; border-radius: 50%; display: grid; place-items: center; }
+  .design-fab .seg button .sw { width: 15px; height: 15px; border-radius: 50%; display: block; border: 2px solid transparent; }
+  .design-fab .seg button[aria-pressed="true"] .sw { border-color: var(--n-0); box-shadow: 0 0 0 2px var(--n-800); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="bract-sidebar" data-active="accounts"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="navprog" style="width:0;"></div>
+      <div class="searchbox"><i data-lucide="search" class="ic" style="width:16px;height:16px;"></i><input placeholder="取引先・車両・商談を検索…" /><span class="mono" style="font-size:11px;color:var(--n-400);border:1px solid var(--n-300);border-radius:4px;padding:0 5px;">⌘K</span></div>
+      <div style="flex:1"></div>
+      <div class="ic-btn"><i data-lucide="bell" class="ic" style="width:18px;height:18px;"></i><span class="dot"></span></div>
+      <div class="ic-btn"><i data-lucide="circle-help" class="ic" style="width:18px;height:18px;"></i></div>
+    </header>
+
+    <div class="form-head">
+      <div>
+        <div class="crumb"><a href="Bract Accounts List.html"><i data-lucide="arrow-left" class="ic" style="width:14px;height:14px;vertical-align:-2px;"></i> 取引先</a><span class="sep">/</span><span class="here">株式会社ブラクト製作所</span><span class="sep">/</span><span class="here">編集</span></div>
+        <h1>取引先を編集</h1>
+      </div>
+      <button class="btn btn-ai" id="importBtn"><i data-lucide="sparkles" class="ic"></i>テキスト / CSVから取り込み</button>
+    </div>
+
+    <div class="content">
+      <div class="form-col">
+
+        <!-- duplicate confirm band -->
+        <div class="band band-warning" style="margin-bottom:var(--sp-4);">
+          <i data-lucide="copy" class="ic"></i>
+          <div style="flex:1;"><strong>重複の可能性があります。</strong> <span class="band-body">「ブラクト製作所」と似た取引先が1件あります。</span>
+            <div style="margin-top:8px; display:flex; gap:8px;"><button class="btn btn-secondary btn-sm">重複を確認</button><button class="btn btn-ghost btn-sm">無視して続行</button></div>
+          </div>
+          <span style="cursor:pointer; color:var(--n-400);"><i data-lucide="x" class="ic" style="width:16px;height:16px;"></i></span>
+        </div>
+
+        <!-- 基本情報 -->
+        <div class="form-card">
+          <div class="section-head"><span class="bar"></span><h3>基本情報</h3><span class="rule"></span></div>
+          <div class="field"><label class="label">取引先名<span class="req">*</span></label><input class="input" value="株式会社ブラクト製作所" /></div>
+          <div class="grid2">
+            <div class="field"><label class="label">フリガナ</label><input class="input" value="カブシキガイシャブラクトセイサクショ" /></div>
+            <div class="field"><label class="label">代表者</label><input class="input" value="近藤 誠一" /></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label class="label">種別<span class="req">*</span></label>
+              <div class="seg-radio"><button class="on">顧客</button><button>仕入先</button><button>両方</button></div>
+            </div>
+            <div class="field"><label class="label">業種</label><select class="select"><option>製造業</option><option>自動車整備</option><option>板金塗装</option><option>建設業</option><option>運送業</option></select></div>
+          </div>
+        </div>
+
+        <!-- 連絡先 -->
+        <div class="form-card">
+          <div class="section-head"><span class="bar"></span><h3>連絡先</h3><span class="rule"></span></div>
+          <div class="grid2">
+            <div class="field"><label class="label">電話</label><input class="input tnum" value="03-3492-1234" /></div>
+            <div class="field"><label class="label">FAX</label><input class="input tnum" value="03-3492-1235" /></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label class="label">メール</label><input class="input" value="info@bract-mfg.co.jp" /></div>
+            <div class="field"><label class="label">Webサイト</label><input class="input" value="https://bract-mfg.co.jp" /></div>
+          </div>
+          <div class="grid3">
+            <div class="field"><label class="label">郵便番号</label><input class="input tnum" value="141-0032" /></div>
+            <div class="field span2"><label class="label">住所</label><input class="input" value="東京都品川区大崎 3-5-2 ブラクトビル4F" /></div>
+          </div>
+        </div>
+
+        <!-- 取引条件 -->
+        <div class="form-card">
+          <div class="section-head"><span class="bar"></span><h3>取引条件</h3><span class="rule"></span></div>
+          <div class="grid3">
+            <div class="field"><label class="label">締め日</label><select class="select"><option>月末</option><option>20日</option><option>15日</option><option>10日</option></select></div>
+            <div class="field"><label class="label">支払いサイト</label><select class="select"><option>翌月末</option><option>翌々月末</option><option>当月末</option></select></div>
+            <div class="field"><label class="label">与信限度額</label><input class="input tnum" value="5,000,000" /></div>
+          </div>
+          <div class="field"><label class="label">担当者<span class="req">*</span></label><select class="select"><option>田中 一郎</option><option>佐藤 花子</option><option>鈴木 健</option></select></div>
+        </div>
+
+        <!-- カスタム項目（業種オーバーレイ） -->
+        <div class="form-card">
+          <div class="section-head"><span class="bar"></span><h3>カスタム項目</h3><span class="badge badge-brand" style="margin-left:4px;">板金・整備</span><span class="rule"></span></div>
+          <div class="grid2">
+            <div class="field"><label class="label">主要取扱車種</label><input class="input" value="商用バン・トラック" /></div>
+            <div class="field"><label class="label">提携工場コード</label><input class="input mono" value="KB-014" /></div>
+          </div>
+          <div class="field" style="margin-top:var(--sp-4);">
+            <label class="label">レッカー手配</label>
+            <div class="toggle on" data-toggle><span class="tk"></span><span class="tlab">自社レッカーで対応可能</span></div>
+          </div>
+          <div class="field"><label class="label">社内メモ</label><textarea class="textarea" rows="3">板金塗装の定期取引先。請求は月末締め翌月末払い。担当窓口は購買部 佐藤様。</textarea><span class="hint">社内向けの補足。顧客には表示されません。</span></div>
+        </div>
+
+        <!-- タグ -->
+        <div class="form-card">
+          <div class="section-head"><span class="bar"></span><h3>タグ</h3><span class="rule"></span></div>
+          <div class="tagwrap">
+            <span class="tag-s">重要 <span class="x"><i data-lucide="x" class="ic" style="width:12px;height:12px;"></i></span></span>
+            <span class="tag-s">板金 <span class="x"><i data-lucide="x" class="ic" style="width:12px;height:12px;"></i></span></span>
+            <span class="tag-s">法人 <span class="x"><i data-lucide="x" class="ic" style="width:12px;height:12px;"></i></span></span>
+            <span class="tag-s tag-add"><i data-lucide="plus" class="ic" style="width:13px;height:13px;"></i>タグを追加</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- sticky footer -->
+    <div class="form-foot">
+      <div class="left"><i data-lucide="info" class="ic" style="width:15px;height:15px;"></i><span class="req" style="color:var(--danger);">*</span> は必須項目です。最終保存 3時間前</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-ghost">キャンセル</button>
+        <button class="btn btn-secondary">下書き保存</button>
+        <button class="btn btn-primary"><i data-lucide="check" class="ic"></i>保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- text/CSV import modal -->
+<div class="modal-scrim" id="importModal">
+  <div class="modal">
+    <div class="modal-head"><h3>テキスト / CSVから取り込み</h3><button class="btn btn-ghost btn-icon btn-sm" data-close><i data-lucide="x" class="ic"></i></button></div>
+    <div class="modal-body" id="importBody">
+      <div class="band band-ai" style="margin-bottom:14px;"><i data-lucide="sparkles" class="ic"></i><div class="band-body">名刺・メール・CSV を貼り付けると、AIが項目を構造化します。<strong style="color:var(--ai-text)">確認画面で承認後に反映</strong>され、AIがデータベースを直接更新することはありません。</div></div>
+      <div class="field"><label class="label">貼り付け</label><textarea class="textarea" id="importText" placeholder="例）株式会社ブラクト製作所&#10;〒141-0032 東京都品川区大崎3-5-2&#10;TEL 03-3492-1234 / 担当 近藤様" style="min-height:120px;"></textarea></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" data-close>キャンセル</button><button class="btn btn-ai" id="parseBtn"><i data-lucide="sparkles" class="ic"></i>AIで解析する</button></div>
+  </div>
+</div>
+
+<div class="design-fab">
+  <span class="lab">見た目</span>
+  <div class="seg" role="group" aria-label="ブランド方向">
+    <button data-ctl="brand" data-val="foliage" title="Foliage"><span class="sw" style="background:oklch(0.515 0.112 158)"></span></button>
+    <button data-ctl="brand" data-val="vermillion" title="Vermillion"><span class="sw" style="background:oklch(0.565 0.185 33)"></span></button>
+    <button data-ctl="brand" data-val="indigo" title="Indigo"><span class="sw" style="background:oklch(0.500 0.175 267)"></span></button>
+  </div>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium" title="中密度"><span class="sw" style="background:var(--n-400)"></span></button>
+    <button data-ctl="density" data-val="high" title="高密度"><span class="sw" style="background:var(--n-700)"></span></button>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById('importModal');
+  document.getElementById('importBtn').addEventListener('click', () => modal.classList.add('open'));
+  modal.addEventListener('click', (e) => { if (e.target === modal || e.target.closest('[data-close]')) modal.classList.remove('open'); });
+
+  // draft-then-apply: parse fills the confirm view
+  document.getElementById('parseBtn').addEventListener('click', () => {
+    const body = document.getElementById('importBody');
+    body.innerHTML = `
+      <div class="band band-ai" style="margin-bottom:14px;"><i data-lucide="circle-check" class="ic"></i><div class="band-body"><strong style="color:var(--ai-text)">AIが4項目を抽出しました。</strong> 内容を確認し、承認すると反映されます。</div></div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        ${confirmRow('取引先名', '株式会社ブラクト製作所')}
+        ${confirmRow('郵便番号', '141-0032')}
+        ${confirmRow('住所', '東京都品川区大崎 3-5-2')}
+        ${confirmRow('電話', '03-3492-1234')}
+      </div>`;
+    document.querySelector('.modal-foot').innerHTML = `<button class="btn btn-ghost" data-close>キャンセル</button><button class="btn btn-primary" data-close><i data-lucide="check" class="ic"></i>承認して反映</button>`;
+    if (window.initBractIcons) window.initBractIcons();
+  });
+  function confirmRow(label, value) {
+    return `<div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--n-200); border-radius:var(--r-md); background:var(--n-50);">
+      <span class="lchk on" style="display:inline-grid; place-items:center; width:16px; height:16px; border-radius:4px; background:var(--primary);"><i data-lucide="check" class="ic" style="width:11px;height:11px;color:#fff;"></i></span>
+      <span style="width:90px; color:var(--n-500); font-size:var(--text-sm);">${label}</span>
+      <span style="flex:1; color:var(--n-900); font-weight:600;">${value}</span>
+      <span class="badge badge-ai" style="font-size:10px;">AI抽出</span></div>`;
+  }
+
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-toggle]'); if (t) t.classList.toggle('on');
+    const seg = e.target.closest('.seg-radio button'); if (seg) { seg.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('on')); seg.classList.add('on'); }
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/chrome.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>

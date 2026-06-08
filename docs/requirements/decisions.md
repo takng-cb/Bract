@@ -190,6 +190,17 @@
 - 代替案：DB UNIQUE 制約での完全ブロック（誤検知で業務停止・同名別物を表現できないため不採用。part_number 等 既存 UNIQUE はそのまま温存）。
 - 影響：全 `*/new` フォーム（accounts/contacts/opportunities/assignments/vehicles/parts/properties/custom）。クイック登録は別 UI だが思想は同一（PR#33）。
 
+### ADR-0021  デザイン刷新は「トークン集約＋段階移行（zinc/blue リマップ）」で進める
+- 2026-06-08 / **採用**（REQ-0020）
+- 文脈：Claude Design が Tailwind v4 `@theme` のトークン（warm neutral `n-*`／brand `brand-*`／semantic）を作成。だが既存コードは `zinc-*`/`blue-*` を数百箇所で直書きしており、全置換は一度には不可能。すぐに全画面へブランドを反映したい。
+- 決定：
+  1. **真実は globals.css の @theme**：`design_handoff/export/globals.css` を `src/app/globals.css` に適用（トークン・ダーク・base reset・focus ring）。原本一式は `design_handoff/` に保存。
+  2. **段階移行のため zinc/blue をリマップ**：`--color-zinc-*: var(--color-n-*)` / `--color-blue-*: var(--color-brand-*)` を @theme で上書き。既存ユーティリティが書き換え無しで新パレットを採用（全画面が一括でブランド化）。以降のスライドで意味トークン（semantic/Badge tone）へ順次置換。
+  3. **フォント不具合解消**：body の Arial 上書きを撤廃し `--font-sans = Geist → Noto Sans JP → system-ui`。`layout.tsx` で Noto Sans JP を next/font 追加。`lang` を ja に。
+  4. **段階の順序**：①基盤（本PR）→ ②lucide アイコン → ③共通プリミティブ（Badge/Button/Input/Card）→ ④画面個別。各スライドは独立リリース可能。
+  5. **据え置き**：和文 `line-height:1.7` の全体適用は密度の高い業務テーブルへの回帰リスクがあるため基盤では入れず、画面個別で調整。ダークは class 戦略で土台のみ用意（既定はライト）。
+- 影響：`src/app/globals.css`・`layout.tsx`。見た目のみ（機能・URL・サーバーアクション不変）。
+
 
 
 

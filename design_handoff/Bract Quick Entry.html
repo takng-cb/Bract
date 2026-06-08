@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-density="medium" data-radius="sharp">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — クイック登録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<style>
+  html, body { height: 100%; }
+  body { background: var(--n-100); overflow: hidden; }
+  .app { display: flex; height: 100vh; }
+  .sidebar { width: 224px; flex: none; background: var(--side-bg); display: flex; flex-direction: column; position: relative; }
+  .sidebar .brand-row { display: flex; align-items: center; gap: 9px; padding: 16px 14px 12px; color: #fff; font-weight: 700; font-size: var(--text-lg); }
+  .sidebar .nav { flex: 1; overflow-y: auto; padding: 4px 10px 16px; }
+  .sidebar .nav::-webkit-scrollbar { width: 8px; }
+  .sidebar .nav::-webkit-scrollbar-thumb { background: var(--side-border); border-radius: 8px; }
+  .side-foot { border-top: 1px solid var(--side-border); padding: 10px; }
+  .side-user { display: flex; align-items: center; gap: 9px; padding: 6px; border-radius: var(--r-sm); cursor: pointer; }
+  .side-user:hover { background: var(--side-bg-2); }
+  .avatar { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--brand-600); color: var(--on-primary); display: grid; place-items: center; font-size: var(--text-sm); font-weight: 700; flex: none; }
+  .side-user .meta .nm { font-size: var(--text-sm); color: var(--n-50); font-weight: 600; }
+  .side-user .meta .rl { font-size: var(--text-2xs); color: var(--side-text-dim); }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar { height: 56px; flex: none; background: var(--n-0); border-bottom: 1px solid var(--n-200); display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-6); position: relative; }
+  .searchbox { display: flex; align-items: center; gap: 8px; background: var(--n-100); border: 1px solid var(--n-200); border-radius: var(--r-md); padding: 0 10px; height: 34px; width: 300px; color: var(--n-500); }
+  .searchbox input { border: none; background: none; outline: none; font: inherit; font-size: var(--text-md); color: var(--n-800); width: 100%; }
+  .topbar .ic-btn { width: 34px; height: 34px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--n-600); cursor: pointer; position: relative; }
+  .topbar .ic-btn:hover { background: var(--n-100); color: var(--n-900); }
+  .topbar .ic-btn .dot { position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+
+  .content { flex: 1; overflow-y: auto; padding: var(--sp-6) var(--sp-7) var(--sp-9); }
+  .wiz { max-width: 820px; margin: 0 auto; }
+  .wiz-title { text-align: center; margin-bottom: 4px; }
+  .wiz-title h1 { margin: 0; font-size: var(--text-2xl); font-weight: 700; color: var(--n-900); display: inline-flex; align-items: center; gap: 9px; }
+  .wiz-title .ai-mark { width: 28px; height: 28px; border-radius: var(--r-sm); background: var(--ai-bg); color: var(--ai-text); display: grid; place-items: center; }
+  .wiz-sub { text-align: center; color: var(--n-500); font-size: var(--text-md); margin: 0 0 var(--sp-6); }
+
+  /* stepper */
+  .stepper { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: var(--sp-6); }
+  .stepper .st { display: flex; align-items: center; gap: 9px; }
+  .stepper .st .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: var(--text-sm); font-weight: 700; background: var(--n-150); color: var(--n-500); flex: none; transition: all .15s; }
+  .stepper .st .lab { font-size: var(--text-sm); font-weight: 600; color: var(--n-500); white-space: nowrap; }
+  .stepper .st.active .num { background: var(--primary); color: var(--on-primary); }
+  .stepper .st.active .lab { color: var(--n-900); }
+  .stepper .st.done .num { background: var(--brand-100); color: var(--primary-text); }
+  .stepper .st.done .lab { color: var(--n-700); }
+  .stepper .line { width: 48px; height: 1.5px; background: var(--n-200); margin: 0 12px; }
+  .stepper .line.done { background: var(--brand-300); }
+
+  .step-panel { display: none; }
+  .step-panel.active { display: block; }
+
+  .src-chips { display: flex; gap: 8px; justify-content: center; margin-bottom: var(--sp-4); }
+  .src-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 1px solid var(--n-300); border-radius: var(--r-pill); background: var(--n-0); font-size: var(--text-md); font-weight: 600; color: var(--n-600); cursor: pointer; white-space: nowrap; }
+  .src-chip .ic { width: 15px; height: 15px; color: var(--n-400); }
+  .src-chip.on { border-color: var(--brand-300); background: var(--brand-50); color: var(--primary-text); }
+  .src-chip.on .ic { color: var(--primary); }
+
+  .paste-area { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); padding: var(--sp-5); box-shadow: var(--shadow-xs); }
+  .paste-area textarea { width: 100%; border: none; outline: none; resize: vertical; font: inherit; font-size: var(--text-md); line-height: var(--lh-body); color: var(--n-900); background: none; min-height: 180px; }
+  .paste-foot { display: flex; align-items: center; justify-content: space-between; margin-top: var(--sp-4); }
+
+  /* analysing */
+  .analysing { text-align: center; padding: var(--sp-9) 0; }
+  .spinner { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--ai-bg); border-top-color: var(--ai); margin: 0 auto var(--sp-4); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .analysing h3 { margin: 0 0 6px; font-size: var(--text-lg); color: var(--n-900); }
+  .analysing p { margin: 0; color: var(--n-500); }
+
+  /* draft record cards */
+  .draft { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-lg); margin-bottom: var(--sp-3); overflow: hidden; }
+  .draft-head { display: flex; align-items: center; gap: 11px; padding: 12px 16px; border-bottom: 1px solid var(--n-150); }
+  .draft-head .dico { width: 32px; height: 32px; border-radius: var(--r-sm); display: grid; place-items: center; flex: none; }
+  .draft-head .dt { flex: 1; }
+  .draft-head .dt .d1 { font-size: var(--text-md); font-weight: 700; color: var(--n-900); }
+  .draft-head .dt .d2 { font-size: var(--text-xs); color: var(--n-500); }
+  .draft-body { padding: 12px 16px; display: grid; grid-template-columns: 110px 1fr; gap: 9px 14px; font-size: var(--text-md); }
+  .draft-body dt { color: var(--n-500); }
+  .draft-body dd { margin: 0; color: var(--n-900); display: flex; align-items: center; gap: 8px; }
+  .draft-body .ai-pill { font-size: 9px; font-weight: 700; color: var(--ai-text); background: var(--ai-bg); border: 1px solid var(--ai-border); padding: 0 5px; border-radius: var(--r-pill); }
+  .draft-toggle { display: inline-flex; align-items: center; }
+
+  .wiz-actions { display: flex; justify-content: space-between; margin-top: var(--sp-5); }
+
+  /* done */
+  .done-box { text-align: center; padding: var(--sp-7) 0 var(--sp-5); }
+  .done-check { width: 64px; height: 64px; border-radius: 50%; background: var(--positive-bg); color: var(--positive-text); display: grid; place-items: center; margin: 0 auto var(--sp-4); }
+  .done-box h2 { margin: 0 0 6px; font-size: var(--text-2xl); font-weight: 700; color: var(--n-900); }
+  .done-box p { margin: 0 0 var(--sp-5); color: var(--n-500); }
+  .created-list { max-width: 480px; margin: 0 auto; text-align: left; }
+  .created-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--n-200); border-radius: var(--r-md); background: var(--n-0); margin-bottom: 8px; text-decoration: none; }
+  .created-item:hover { border-color: var(--brand-300); background: var(--brand-50); }
+  .created-item .cico { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--brand-50); color: var(--primary-text); display: grid; place-items: center; flex: none; }
+  .created-item .ct { flex: 1; }
+  .created-item .ct .c1 { font-size: var(--text-md); font-weight: 600; color: var(--n-900); }
+  .created-item .ct .c2 { font-size: var(--text-xs); color: var(--n-500); }
+  .created-item .arrow { color: var(--n-400); }
+
+  .design-fab { position: fixed; bottom: 16px; right: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; background: var(--n-0); border: 1px solid var(--n-300); border-radius: var(--r-pill); padding: 5px 8px 5px 12px; box-shadow: var(--shadow-md); font-size: var(--text-sm); }
+  .design-fab .lab { color: var(--n-500); font-weight: 600; font-size: var(--text-xs); }
+  .design-fab .seg { display: inline-flex; gap: 2px; background: var(--n-100); border-radius: var(--r-pill); padding: 2px; }
+  .design-fab .seg button { appearance: none; border: none; background: none; cursor: pointer; padding: 4px; border-radius: 50%; display: grid; place-items: center; }
+  .design-fab .seg button .sw { width: 15px; height: 15px; border-radius: 50%; display: block; border: 2px solid transparent; }
+  .design-fab .seg button[aria-pressed="true"] .sw { border-color: var(--n-0); box-shadow: 0 0 0 2px var(--n-800); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="bract-sidebar" data-active="quick"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="navprog" style="width:0;"></div>
+      <div class="searchbox"><i data-lucide="search" class="ic" style="width:16px;height:16px;"></i><input placeholder="取引先・車両・商談を検索…" /><span class="mono" style="font-size:11px;color:var(--n-400);border:1px solid var(--n-300);border-radius:4px;padding:0 5px;">⌘K</span></div>
+      <div style="flex:1"></div>
+      <div class="ic-btn"><i data-lucide="bell" class="ic" style="width:18px;height:18px;"></i><span class="dot"></span></div>
+      <div class="ic-btn"><i data-lucide="circle-help" class="ic" style="width:18px;height:18px;"></i></div>
+    </header>
+
+    <div class="content">
+      <div class="wiz">
+        <div class="wiz-title"><h1><span class="ai-mark"><i data-lucide="sparkles" class="ic" style="width:17px;height:17px;"></i></span>クイック登録</h1></div>
+        <p class="wiz-sub">受付メール・名刺・FAXを貼り付けるだけ。AIが取引先・車両・整備案件・ToDoをまとめて下書きします。</p>
+
+        <!-- stepper -->
+        <div class="stepper">
+          <div class="st active" data-st="1"><span class="num">1</span><span class="lab">貼り付け</span></div>
+          <div class="line"></div>
+          <div class="st" data-st="2"><span class="num">2</span><span class="lab">AI解析</span></div>
+          <div class="line"></div>
+          <div class="st" data-st="3"><span class="num">3</span><span class="lab">確認・編集</span></div>
+          <div class="line"></div>
+          <div class="st" data-st="4"><span class="num">4</span><span class="lab">起票</span></div>
+        </div>
+
+        <!-- STEP 1: paste -->
+        <div class="step-panel active" data-panel="1">
+          <div class="src-chips">
+            <span class="src-chip on"><i data-lucide="car" class="ic"></i>事故・整備受付</span>
+            <span class="src-chip"><i data-lucide="contact" class="ic"></i>名刺</span>
+            <span class="src-chip"><i data-lucide="file-text" class="ic"></i>見積依頼</span>
+          </div>
+          <div class="paste-area">
+            <textarea id="rawText">お世話になっております。近藤板金工業 御中
+
+先日の追突事故の件で、入庫をお願いしたくご連絡しました。
+
+■車両：トヨタ ハイエース（品川 800 か 56-78）
+■お客様：株式会社ブラクト製作所 近藤様（TEL 03-3492-1234）
+■症状：リアバンパー破損、バックドアに凹み
+■ご希望：代車を希望。今週中の入庫を希望します。
+
+お見積りいただけますと幸いです。よろしくお願いいたします。</textarea>
+          </div>
+          <div class="paste-foot">
+            <span class="muted" style="font-size:var(--text-sm);"><i data-lucide="clipboard-paste" class="ic" style="width:14px;height:14px;vertical-align:-2px;"></i> 貼り付け済み · 198文字</span>
+            <button class="btn btn-ai" id="toAnalyse"><i data-lucide="sparkles" class="ic"></i>AIで解析する</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: analysing -->
+        <div class="step-panel" data-panel="2">
+          <div class="analysing">
+            <div class="spinner"></div>
+            <h3>AIが内容を構造化しています…</h3>
+            <p>取引先・車両・整備案件・ToDo を抽出中</p>
+          </div>
+        </div>
+
+        <!-- STEP 3: confirm -->
+        <div class="step-panel" data-panel="3">
+          <div class="band band-ai" style="margin-bottom:var(--sp-4);">
+            <i data-lucide="sparkles" class="ic"></i>
+            <div class="band-body"><strong style="color:var(--ai-text);">4件のレコードを下書きしました。</strong> 内容を確認・編集し、起票するとまとめて作成されます。<strong style="color:var(--ai-text);">承認するまでデータベースには反映されません。</strong></div>
+          </div>
+
+          <!-- 取引先 -->
+          <div class="draft">
+            <div class="draft-head">
+              <div class="dico" style="background:var(--brand-50); color:var(--primary-text);"><i data-lucide="building-2" class="ic" style="width:17px;height:17px;"></i></div>
+              <div class="dt"><div class="d1">取引先</div><div class="d2">既存レコードに一致</div></div>
+              <span class="badge badge-positive"><i data-lucide="link" class="ic" style="width:11px;height:11px;"></i>既存に紐付け</span>
+            </div>
+            <dl class="draft-body">
+              <dt>取引先名</dt><dd>株式会社ブラクト製作所 <span class="ai-pill">AI</span></dd>
+              <dt>担当窓口</dt><dd>近藤様 <span class="ai-pill">AI</span></dd>
+              <dt>電話</dt><dd class="tnum">03-3492-1234 <span class="ai-pill">AI</span></dd>
+            </dl>
+          </div>
+
+          <!-- 車両 -->
+          <div class="draft">
+            <div class="draft-head">
+              <div class="dico" style="background:var(--info-bg); color:var(--info-text);"><i data-lucide="car" class="ic" style="width:17px;height:17px;"></i></div>
+              <div class="dt"><div class="d1">車両</div><div class="d2">新規作成</div></div>
+              <span class="badge badge-info">新規</span>
+            </div>
+            <dl class="draft-body">
+              <dt>車種</dt><dd>トヨタ ハイエース <span class="ai-pill">AI</span></dd>
+              <dt>ナンバー</dt><dd class="mono">品川 800 か 56-78 <span class="ai-pill">AI</span></dd>
+            </dl>
+          </div>
+
+          <!-- 整備案件 -->
+          <div class="draft">
+            <div class="draft-head">
+              <div class="dico" style="background:var(--warning-bg); color:var(--warning-text);"><i data-lucide="wrench" class="ic" style="width:17px;height:17px;"></i></div>
+              <div class="dt"><div class="d1">整備案件</div><div class="d2">新規作成</div></div>
+              <span class="badge badge-info">新規</span>
+            </div>
+            <dl class="draft-body">
+              <dt>区分</dt><dd>事故修理（板金塗装）<span class="ai-pill">AI</span></dd>
+              <dt>症状</dt><dd>リアバンパー破損 / バックドア凹み <span class="ai-pill">AI</span></dd>
+              <dt>代車</dt><dd>希望あり <span class="ai-pill">AI</span></dd>
+              <dt>入庫希望</dt><dd>今週中 <span class="ai-pill">AI</span></dd>
+            </dl>
+          </div>
+
+          <!-- ToDo -->
+          <div class="draft">
+            <div class="draft-head">
+              <div class="dico" style="background:var(--n-100); color:var(--n-600);"><i data-lucide="square-check-big" class="ic" style="width:17px;height:17px;"></i></div>
+              <div class="dt"><div class="d1">ToDo</div><div class="d2">2件を作成</div></div>
+              <span class="badge badge-neutral">2件</span>
+            </div>
+            <dl class="draft-body">
+              <dt>① 見積作成</dt><dd>担当 田中 · 期限 明日 <span class="ai-pill">AI</span></dd>
+              <dt>② 代車手配</dt><dd>担当 佐藤 · 期限 今週 <span class="ai-pill">AI</span></dd>
+            </dl>
+          </div>
+
+          <div class="wiz-actions">
+            <button class="btn btn-ghost" data-back><i data-lucide="arrow-left" class="ic"></i>貼り付けに戻る</button>
+            <button class="btn btn-primary" id="toDone"><i data-lucide="check" class="ic"></i>4件を起票する</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: done -->
+        <div class="step-panel" data-panel="4">
+          <div class="done-box">
+            <div class="done-check"><i data-lucide="check" class="ic" style="width:32px;height:32px;"></i></div>
+            <h2>4件を起票しました</h2>
+            <p>取引先に紐づけて、車両・整備案件・ToDo を作成しました。</p>
+            <div class="created-list">
+              <a class="created-item" href="Bract Account Detail.html"><span class="cico"><i data-lucide="building-2" class="ic" style="width:16px;height:16px;"></i></span><div class="ct"><div class="c1">株式会社ブラクト製作所</div><div class="c2">取引先 · 既存に紐付け</div></div><i data-lucide="arrow-up-right" class="ic arrow" style="width:16px;height:16px;"></i></a>
+              <a class="created-item" href="#"><span class="cico"><i data-lucide="wrench" class="ic" style="width:16px;height:16px;"></i></span><div class="ct"><div class="c1">事故修理 — ハイエース</div><div class="c2">整備案件 · 入庫待ち</div></div><i data-lucide="arrow-up-right" class="ic arrow" style="width:16px;height:16px;"></i></a>
+              <a class="created-item" href="#"><span class="cico"><i data-lucide="car" class="ic" style="width:16px;height:16px;"></i></span><div class="ct"><div class="c1">トヨタ ハイエース</div><div class="c2">車両 · 品川 800 か 56-78</div></div><i data-lucide="arrow-up-right" class="ic arrow" style="width:16px;height:16px;"></i></a>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:var(--sp-5);">
+              <button class="btn btn-secondary" id="restart"><i data-lucide="rotate-ccw" class="ic"></i>続けて登録</button>
+              <button class="btn btn-primary"><i data-lucide="wrench" class="ic"></i>整備案件を開く</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="design-fab">
+  <span class="lab">見た目</span>
+  <div class="seg" role="group" aria-label="ブランド方向">
+    <button data-ctl="brand" data-val="foliage" title="Foliage"><span class="sw" style="background:oklch(0.515 0.112 158)"></span></button>
+    <button data-ctl="brand" data-val="vermillion" title="Vermillion"><span class="sw" style="background:oklch(0.565 0.185 33)"></span></button>
+    <button data-ctl="brand" data-val="indigo" title="Indigo"><span class="sw" style="background:oklch(0.500 0.175 267)"></span></button>
+  </div>
+  <div class="seg" role="group" aria-label="密度">
+    <button data-ctl="density" data-val="medium" title="中密度"><span class="sw" style="background:var(--n-400)"></span></button>
+    <button data-ctl="density" data-val="high" title="高密度"><span class="sw" style="background:var(--n-700)"></span></button>
+  </div>
+</div>
+
+<script>
+  function goStep(n) {
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.toggle('active', p.dataset.panel == n));
+    document.querySelectorAll('.stepper .st').forEach(s => {
+      const sn = +s.dataset.st;
+      s.classList.toggle('active', sn === n);
+      s.classList.toggle('done', sn < n);
+    });
+    document.querySelectorAll('.stepper .line').forEach((l, i) => l.classList.toggle('done', i < n - 1));
+  }
+  document.getElementById('toAnalyse').addEventListener('click', () => {
+    goStep(2);
+    setTimeout(() => goStep(3), 1400);
+  });
+  document.getElementById('toDone').addEventListener('click', () => goStep(4));
+  document.getElementById('restart').addEventListener('click', () => goStep(1));
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-back]')) goStep(1);
+    const sc = e.target.closest('.src-chip');
+    if (sc) { document.querySelectorAll('.src-chip').forEach(x => x.classList.remove('on')); sc.classList.add('on'); }
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+<script src="scripts/chrome.js" defer></script>
+<script src="scripts/ds.js" defer></script>
+</body>
+</html>
