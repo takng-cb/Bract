@@ -7,14 +7,16 @@
 
 ## ⚠️ あなたの操作が必要な点（最優先で確認）
 
-### 1. Google ログインの localhost リダイレクト（#44）
-- 原因：Supabase の **Site URL/Redirect URLs がデプロイ先を許可していない**（localhost にフォールバック）。
-- コード/設定側は修正済み（`supabase/config.toml` に Vercel/本番ドメインの wildcard を追加）。
-- **要操作**：Supabase Dashboard → Authentication → **URL Configuration** で
-  - Site URL を本番/dev の URL に
-  - Redirect URLs に `https://<デプロイ先>/**`（例 `https://*.vercel.app/**`）を追加
-  - もしくは `supabase config push`（要 access token）
-  - 対象 project ref: `eknwcgfcvpgehlfipdib`
+### 1. Google ログイン（#44）— 設定値の訂正
+- **重要な訂正**：Site URL に `https://eknwcgfcvpgehlfipdib.supabase.co`（＝Supabase の URL）を入れるのは**誤り**です。
+  これが原因で「requested path is invalid」になります。Site URL は**アプリ（Vercel）の URL**を入れます。
+- 正しい設定（Supabase Dashboard → Authentication → **URL Configuration**）：
+  - **Site URL** = アプリのデプロイ URL（ブラウザでアプリを開いた時のアドレス。例 `https://bract-xxxx.vercel.app`。`supabase.co` ではない）
+  - **Redirect URLs**（許可リスト）に以下を追加：
+    - `https://bract-xxxx.vercel.app/**`（あなたのアプリ URL ＋ `/**`）
+    - `http://localhost:3000/**`（ローカル用）
+- コード/`supabase/config.toml` 側は対応済み（`https://*.vercel.app/**` 等を allow-list 化）。dashboard 値が反映されれば解決します。
+- 補足：Google ログインの redirect 先は `アプリURL/auth/callback`。これが Redirect URLs に含まれていれば OK。
 
 ### 2. dev で不動産/板金/人材を Vercel で確認する場合（REQ-0021）
 - ローカル `npm run dev` なら **そのまま全業種表示・データ確認可**（`.env.local` 設定済み）。

@@ -14,7 +14,7 @@
  */
 export const dynamic = 'force-dynamic'
 
-import { activeIndustry } from '@/lib/industry'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getReceivables, sumReceivables, type ReceivableRow } from '@/industries/auto-body/lib/maintenanceReceivables'
@@ -36,7 +36,7 @@ function bucketOf(daysOverdue: number | null): typeof AGING_BUCKETS[number] | nu
 }
 
 export default async function ReceivablesPage() {
-  if (activeIndustry !== 'auto-body') notFound()
+  if (!(await isModuleEnabled('auto-body'))) notFound()
 
   const rows = await getReceivables()
   const total = sumReceivables(rows)
