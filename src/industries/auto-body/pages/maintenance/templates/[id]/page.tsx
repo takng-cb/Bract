@@ -104,7 +104,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
 
       {/* 行アイテム */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">{AB_ICONS.lineItem} 作業項目（{lines.length}）</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-3">{AB_ICONS.lineItem} 作業項目（{lines.length}）</h2>
         {lines.length === 0 ? (
           <p className="text-sm text-zinc-400 py-4 text-center">作業項目はまだありません</p>
         ) : (
@@ -130,7 +130,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
 
       {/* 諸費用 */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">{AB_ICONS.fee} 諸費用（{fees.length}）</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-3">{AB_ICONS.fee} 諸費用（{fees.length}）</h2>
         {fees.length === 0 ? (
           <p className="text-sm text-zinc-400 py-4 text-center">諸費用はまだありません</p>
         ) : (

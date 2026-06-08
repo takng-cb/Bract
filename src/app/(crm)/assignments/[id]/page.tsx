@@ -122,7 +122,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
 
       {/* 業務情報 */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">業務情報</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">業務情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div><dt className="text-xs text-zinc-400 mb-1">業務日</dt><dd>{a.service_date ?? '—'}</dd></div>
           <div><dt className="text-xs text-zinc-400 mb-1">時間</dt><dd>{a.service_start_time && a.service_end_time ? `${a.service_start_time} 〜 ${a.service_end_time}` : '—'}</dd></div>
@@ -151,14 +151,14 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
 
       {a.internal_memo && (
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-2">内部メモ</h2>
+          <h2 className="text-sm font-bold text-zinc-700 mb-2">内部メモ</h2>
           <p className="text-sm text-zinc-800 whitespace-pre-wrap">{a.internal_memo}</p>
         </section>
       )}
 
       {a.raw_message && (
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mt-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-2">依頼原文（クイック登録）</h2>
+          <h2 className="text-sm font-bold text-zinc-700 mb-2">依頼原文（クイック登録）</h2>
           <p className="text-sm text-zinc-600 whitespace-pre-wrap">{a.raw_message}</p>
         </section>
       )}
