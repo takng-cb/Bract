@@ -7,12 +7,38 @@
  * AI は DB を直接触らず、apply 層（本ファイル）が requireEditor + ensureModuleEnabled を通して反映。
  */
 import { db } from '@/lib/db'
-import { assignments } from '@/lib/schema'
+import { assignments, accounts } from '@/lib/schema'
 import { requireEditor } from '@/lib/auth'
 import { ensureModuleEnabled } from '@/lib/modules/registry'
 import { callAI } from '@/lib/ai/client'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
 import { revalidatePath } from 'next/cache'
+import { eq, or, isNull, asc } from 'drizzle-orm'
+
+/** 取引先（クライアント）選択肢を返す（既存指定用） */
+export async function listClientAccounts(): Promise<{ id: string; name: string }[]> {
+  await requireEditor()
+  await ensureModuleEnabled('staffing')
+  const rows = await db
+    .select({ id: accounts.id, name: accounts.name })
+    .from(accounts)
+    .where(or(eq(accounts.account_role, 'client'), eq(accounts.account_role, 'both'), isNull(accounts.account_role)))
+    .orderBy(asc(accounts.name))
+  return rows
+}
+
+/** 新規取引先の入力 */
+export type NewClientInput = {
+  name: string
+  contact_person?: string | null
+  phone?: string | null
+  line_type?: string | null
+}
+
+/** 取引先の指定方法 */
+export type ClientChoice =
+  | { mode: 'existing'; clientId: string }
+  | { mode: 'new'; newClient: NewClientInput }
 
 /** AI が返す下書きの型（確認画面で編集後に apply へ渡す） */
 export type StaffingDraft = {
@@ -83,14 +109,49 @@ export async function parseQuickText(rawText: string): Promise<StaffingDraft> {
   return parsed
 }
 
-/** 確認済みの下書きから案件を起票（apply層）。新規 assignment の id を返す。 */
-export async function applyQuickDraft(draft: StaffingDraft, rawText: string): Promise<string> {
+/** 取引先名＋日付＋内容 で分かりやすいタイトルを生成（REQ-0017） */
+function buildAssignmentTitle(clientName: string, draft: StaffingDraft): string {
+  const parts = [
+    clientName || '取引先未定',
+    draft.work_date || '日付未定',
+    draft.role || draft.location || '案件',
+  ]
+  return parts.filter(Boolean).join(' ')
+}
+
+/**
+ * 確認済みの下書きから案件を起票（apply層）。新規 assignment の id を返す。
+ * client: 既存(取引先ID) or 新規(取引先情報) を**先に**指定する（REQ-0017）。
+ */
+export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft, rawText: string): Promise<string> {
   await requireEditor()
   await ensureModuleEnabled('staffing')
 
-  // クライアント名は取引先IDに自動解決しない（後で画面で確定）。memo/説明に残す。
+  // 取引先を解決（既存=ID / 新規=作成）。タイトル用に名前も得る。
+  let clientAccountId: string
+  let clientName: string
+  if (client.mode === 'existing') {
+    if (!client.clientId) throw new Error('取引先を選択してください')
+    const [acc] = await db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(eq(accounts.id, client.clientId)).limit(1)
+    if (!acc) throw new Error('選択した取引先が見つかりません')
+    clientAccountId = acc.id
+    clientName = acc.name
+  } else {
+    const name = (client.newClient?.name ?? '').trim()
+    if (!name) throw new Error('新規取引先の名称は必須です')
+    const [acc] = await db.insert(accounts).values({
+      name,
+      account_role:   'client',
+      contact_person: client.newClient?.contact_person ?? null,
+      phone:          client.newClient?.phone ?? null,
+      line_type:      client.newClient?.line_type ?? null,
+    }).returning({ id: accounts.id })
+    clientAccountId = acc.id
+    clientName = name
+  }
+
+  const title = buildAssignmentTitle(clientName, draft)
   const memoParts = [
-    draft.client_name ? `クライアント: ${draft.client_name}` : null,
     draft.note ? `補足: ${draft.note}` : null,
     draft.ambiguities && draft.ambiguities.length ? `要確認: ${draft.ambiguities.join(' / ')}` : null,
   ].filter(Boolean)
@@ -101,7 +162,8 @@ export async function applyQuickDraft(draft: StaffingDraft, rawText: string): Pr
     try {
       const [row] = await db.insert(assignments).values({
         assignment_no:        no,
-        // client_account_id は後で画面で確定（AIは社名のみ）
+        title,
+        client_account_id:    clientAccountId,
         role:                 draft.role ?? null,
         service_date:         draft.work_date ?? null,
         service_start_time:   draft.start_time ?? null,

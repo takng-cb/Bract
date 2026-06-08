@@ -19,6 +19,7 @@ export default async function AssignmentsListPage() {
     db.select({
       id:                 assignments.id,
       assignment_no:      assignments.assignment_no,
+      title:              assignments.title,
       service_date:       assignments.service_date,
       service_location:   assignments.service_location,
       service_type:       assignments.service_type,
@@ -72,7 +73,8 @@ export default async function AssignmentsListPage() {
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-zinc-50">
                   <td className="px-3 py-2">
-                    <Link href={`/assignments/${r.id}`} className="text-blue-600 hover:underline font-mono text-xs">{r.assignment_no}</Link>
+                    <Link href={`/assignments/${r.id}`} className="text-blue-600 hover:underline font-medium">{r.title ?? r.assignment_no}</Link>
+                    {r.title && <span className="block text-[11px] text-zinc-400 font-mono">{r.assignment_no}</span>}
                   </td>
                   <td className="px-3 py-2 text-zinc-700 whitespace-nowrap">{r.service_date ?? '—'}</td>
                   <td className="px-3 py-2 text-zinc-700">
