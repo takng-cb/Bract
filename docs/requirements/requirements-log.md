@@ -158,6 +158,12 @@
 - 状態：**スライス1=基盤実装**（feature/design-foundation：globals.css トークン＋zinc/blue リマップ＋Noto）。3業種ビルド green。続き＝lucide アイコン／Badge・Button 等プリミティブ／画面個別。
 - 関連：ADR-0021 / design_handoff/README.md
 
+### REQ-0021  dev で複数業種を1デプロイで確認（不動産・板金・人材の同時有効化）
+- 2026-06-08 / 会話（「不動産や自動車板金も確認したい・有効化してほしい・テストデータも各20」）
+- 内容：dev 環境で全業種モジュールを有効化し確認可能に。①dev license の `enabled_modules` に全業種、②業種ページのゲートを `activeIndustry` → `isModuleEnabled`（まず properties。auto-body/staffing は既対応 or dev=auto-body のため動作）、③`next.config` の業種リダイレクトを `BRACT_DISABLE_INDUSTRY_REDIRECTS=1`（dev のみ）で無効化（本番は未設定＝挙動不変）、④確認用テストデータを各~20 投入（`scripts/seed-dev-industries.ts`、autumn-king ガード付き）。dev Neon に欠けていた `properties` テーブルも full DDL で作成。
+- 状態：実装（feature/dev-multi-industry）。3業種ビルド green。本番挙動は不変。
+- 関連：ADR-0002/0005（モジュール）, REQ-0002 / 注：dev Vercel で見るには `BRACT_DISABLE_INDUSTRY_REDIRECTS=1` を設定し再デプロイ要
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
