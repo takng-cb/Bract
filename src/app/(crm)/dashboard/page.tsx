@@ -410,9 +410,9 @@ export default async function DashboardPage({
               : isReal ? '確度 × 利益' : '確度 × 金額',
           },
         ].map((k) => (
-          <Link key={k.label} href={k.href} className="bg-white border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
-            <p className="text-xs text-zinc-400 mb-2">{k.label}</p>
-            <p className={`text-2xl font-bold ${k.color}`}>
+          <Link key={k.label} href={k.href} className="bg-white border border-zinc-200 shadow-xs rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
+            <p className="text-sm text-zinc-500 mb-2">{k.label}</p>
+            <p className={`text-3xl font-bold tabular-nums tracking-tight ${k.color}`}>
               {typeof k.value === 'number' ? k.value.toLocaleString() : k.value}
               {k.unit && <span className="text-sm font-normal text-zinc-500 ml-1">{k.unit}</span>}
             </p>
