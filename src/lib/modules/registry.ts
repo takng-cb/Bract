@@ -107,8 +107,8 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { apiName: 'staff',       label: 'スタッフ' },
     ],
     quickActions: [
-      { label: 'クイック登録（AI起票）', icon: '✨', kind: 'wizard', book: 'assignments',
-        description: 'LINE等の文面を貼り付けてAIで案件・活動・予定を起票' },
+      { label: 'クイック登録（AI起票）', icon: '✨', kind: 'wizard', href: '/quick/staffing', book: 'assignments',
+        description: 'LINE等の文面を貼り付けてAIで案件を起票' },
       { label: '案件の新規作成',   icon: '📦', kind: 'create', href: '/assignments/new', book: 'assignments' },
       { label: '案件の一覧',       icon: '📦', kind: 'list',   href: '/assignments',     book: 'assignments' },
       { label: 'スタッフの新規作成', icon: '🧑‍💼', kind: 'create', href: '/staff/new',      book: 'staff' },
