@@ -13,7 +13,7 @@ import { ensureModuleEnabled } from '@/lib/modules/registry'
 import { callAI } from '@/lib/ai/client'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
 import { revalidatePath } from 'next/cache'
-import { eq, or, isNull, asc } from 'drizzle-orm'
+import { eq, or, isNull, asc, sql } from 'drizzle-orm'
 
 /** 取引先（クライアント）選択肢を返す（既存指定用） */
 export async function listClientAccounts(): Promise<{ id: string; name: string }[]> {
@@ -39,11 +39,26 @@ export async function listContactsForAccount(accountId: string): Promise<{ id: s
     .orderBy(asc(contacts.full_name))
 }
 
+/** 同名の取引先候補を返す（新規入力時の重複確認用・大文字小文字無視） */
+export async function findClientAccountsByName(name: string): Promise<{ id: string; name: string }[]> {
+  await requireEditor()
+  await ensureModuleEnabled('staffing')
+  const q = (name ?? '').trim()
+  if (!q) return []
+  return db
+    .select({ id: accounts.id, name: accounts.name })
+    .from(accounts)
+    .where(eq(sql`lower(${accounts.name})`, q.toLowerCase()))
+    .orderBy(asc(accounts.name))
+}
+
 /** 新規取引先の入力 */
 export type NewClientInput = {
   name: string
   phone?: string | null
   line_type?: string | null
+  /** 同名取引先があっても「別の取引先として登録」をユーザーが選んだ場合のみ true */
+  allowDuplicate?: boolean
 }
 
 /** 担当者(人物)の指定方法 */
@@ -158,9 +173,11 @@ export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft
   } else {
     const name = (client.newClient?.name ?? '').trim()
     if (!name) throw new Error('新規取引先の名称は必須です')
-    // 重複防止：同名の取引先が既にあれば作成せず「既存から選ぶ」を促す
-    const [dup] = await db.select({ id: accounts.id }).from(accounts).where(eq(accounts.name, name)).limit(1)
-    if (dup) throw new Error(`「${name}」は既に取引先として存在します。「既存から選ぶ」をご利用ください。`)
+    // 重複確認：同名の取引先があれば既定では作成せず、確認画面で明示的に許可された時のみ新規作成
+    if (!client.newClient?.allowDuplicate) {
+      const [dup] = await db.select({ id: accounts.id }).from(accounts).where(eq(sql`lower(${accounts.name})`, name.toLowerCase())).limit(1)
+      if (dup) throw new Error(`「${name}」と同名の取引先が既にあります。確認画面で「既存を使う」か「別の取引先として登録」を選んでください。`)
+    }
     const newContactName = client.contact.mode === 'new' ? (client.contact.name ?? '').trim() : ''
     const [acc] = await db.insert(accounts).values({
       name,

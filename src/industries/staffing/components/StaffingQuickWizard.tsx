@@ -6,6 +6,7 @@ import {
   parseQuickText,
   applyQuickDraft,
   listContactsForAccount,
+  findClientAccountsByName,
   type StaffingDraft,
   type ClientChoice,
   type ContactChoice,
@@ -37,6 +38,8 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
   const [draft, setDraft] = useState<StaffingDraft | null>(null)
   const [parsing, setParsing] = useState(false)
   const [applying, setApplying] = useState(false)
+  const [checkingDup, setCheckingDup] = useState(false)
+  const [dupCandidates, setDupCandidates] = useState<{ id: string; name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [createdId, setCreatedId] = useState<string | null>(null)
 
@@ -62,6 +65,7 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
   const switchClientMode = (m: 'existing' | 'new') => {
     setClientMode(m)
     setContactMode('none'); setContactId(''); setNewContact({ name: '', phone: '' }); setExistingContacts([])
+    setDupCandidates([])
   }
 
   const buildContactChoice = (): ContactChoice => {
@@ -81,15 +85,15 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
     }
   }
 
-  const onApply = async () => {
+  const runApply = async (allowDuplicate: boolean) => {
     if (!draft || !canProceed) return
-    setError(null); setApplying(true)
+    setError(null); setDupCandidates([]); setApplying(true)
     try {
       const contact = buildContactChoice()
       const client: ClientChoice =
         clientMode === 'existing'
           ? { mode: 'existing', clientId, contact }
-          : { mode: 'new', newClient: { name: newClient.name.trim(), phone: newClient.phone || null, line_type: newClient.line_type || null }, contact }
+          : { mode: 'new', newClient: { name: newClient.name.trim(), phone: newClient.phone || null, line_type: newClient.line_type || null, allowDuplicate }, contact }
       const id = await applyQuickDraft(client, draft, rawText)
       setCreatedId(id)
     } catch (e) {
@@ -99,8 +103,32 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
     }
   }
 
+  const onApply = async () => {
+    if (!draft || !canProceed) return
+    // 新規取引先は起票前に同名重複を確認し、あれば確認画面を出す（即エラーにしない）
+    if (clientMode === 'new') {
+      setError(null); setCheckingDup(true)
+      try {
+        const matches = await findClientAccountsByName(newClient.name.trim())
+        if (matches.length > 0) { setDupCandidates(matches); return }
+      } catch {
+        // 確認に失敗しても apply 側で再防御するためそのまま続行
+      } finally {
+        setCheckingDup(false)
+      }
+    }
+    await runApply(false)
+  }
+
+  // 確認画面で「既存を使う」を選んだ：既存モードに切替えてその取引先の担当者を読み込む
+  const onUseExistingFromDup = async (c: { id: string; name: string }) => {
+    setDupCandidates([])
+    setClientMode('existing')
+    await onSelectClient(c.id)
+  }
+
   const resetAll = () => {
-    setCreatedId(null); setDraft(null); setRawText(''); setError(null)
+    setCreatedId(null); setDraft(null); setRawText(''); setError(null); setDupCandidates([])
     setClientId(''); setNewClient({ name: '', phone: '', line_type: '' })
     setContactMode('none'); setContactId(''); setNewContact({ name: '', phone: '' }); setExistingContacts([])
   }
@@ -277,16 +305,52 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
               className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
             />
           </label>
-          <div className="flex items-center gap-3 pt-1">
-            <button
-              onClick={onApply}
-              disabled={applying || !canProceed}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {applying ? '起票中…' : 'この内容で案件を起票'}
-            </button>
-            <span className="text-xs text-zinc-400">タイトルは「取引先名＋日付＋内容」で自動生成されます</span>
-          </div>
+          {dupCandidates.length > 0 ? (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2">
+              <p className="text-sm font-semibold text-amber-800">同名の取引先が見つかりました</p>
+              <p className="text-xs text-amber-700">
+                「{newClient.name.trim()}」と同名の取引先が既に登録されています。重複を避けるため、どちらかを選んでください。
+              </p>
+              <div className="space-y-1.5">
+                {dupCandidates.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => onUseExistingFromDup(c)}
+                    className="block w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-left text-sm font-medium text-blue-700 hover:bg-blue-50"
+                  >
+                    ✓ 既存の「{c.name}」を使う（担当者をこの後に選べます）
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  onClick={() => runApply(true)}
+                  disabled={applying}
+                  className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  {applying ? '起票中…' : '別の取引先として新規登録する'}
+                </button>
+                <button
+                  onClick={() => setDupCandidates([])}
+                  disabled={applying}
+                  className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  戻る
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={onApply}
+                disabled={applying || checkingDup || !canProceed}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {applying ? '起票中…' : checkingDup ? '確認中…' : 'この内容で案件を起票'}
+              </button>
+              <span className="text-xs text-zinc-400">タイトルは「取引先名＋日付＋内容」で自動生成されます</span>
+            </div>
+          )}
         </section>
       )}
     </div>
