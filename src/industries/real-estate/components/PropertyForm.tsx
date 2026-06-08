@@ -6,6 +6,8 @@ import type { FieldDef } from '@/lib/objectMetadata'
 import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
+import CreateFeedback from '@/components/CreateFeedback'
+import type { CreateAction } from '@/lib/duplicateTypes'
 
 const PROPERTY_TYPES  = ['土地・建物', '建物のみ', '土地のみ', 'その他']
 const STATUSES_RE     = ['募集中', '交渉中', '成約', '管理中', '終了']
@@ -70,7 +72,7 @@ interface DefaultValues {
 }
 
 interface Props {
-  action:            (_: string | null, formData: FormData) => Promise<string | null>
+  action:            CreateAction
   cancelHref:        string
   accounts:          Account[]
   contacts:          Contact[]
@@ -86,7 +88,7 @@ export default function PropertyForm({
   scrivenerAccounts, scrivenerContacts, defaultValues = {},
   customFields = [], customValues = {},
 }: Props) {
-  const [error, formAction, pending] = useActionState(action, null)
+  const [state, formAction, pending] = useActionState(action, null)
   const [category, setCategory] = useState<string>(defaultValues.product_category ?? 'real_estate')
   const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
   const filteredContacts = selectedAccountId
@@ -107,9 +109,7 @@ export default function PropertyForm({
 
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
-      )}
+      <CreateFeedback state={state} formRef={formRef} />
 
       <div className="flex gap-3">
         <button

@@ -4,8 +4,9 @@ import { ne, eq, and, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import PropertyForm from '@/industries/real-estate/components/PropertyForm'
 import { createProperty } from '@/industries/real-estate/actions/properties'
-import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
+import { runCreate } from '@/lib/duplicateCheck'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function NewPropertyPage({
   searchParams,
@@ -35,15 +36,15 @@ export default async function NewPropertyPage({
       .orderBy(asc(contacts.full_name)),
   ])
 
-  async function createPropertyAction(_: string | null, formData: FormData): Promise<string | null> {
+  async function createPropertyAction(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
-    try {
-      const newId = await createProperty(formData)
-      redirect(`/properties/${newId}`)
-    } catch (e) {
-      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
-    }
+    return runCreate({
+      objectKey: 'properties',
+      objectLabel: '物件・商品',
+      formData,
+      create: () => createProperty(formData),
+      redirectTo: (id) => `/properties/${id}`,
+    })
   }
 
   return (

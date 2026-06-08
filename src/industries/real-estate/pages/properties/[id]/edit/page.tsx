@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import PropertyForm from '@/industries/real-estate/components/PropertyForm'
 import { updateProperty } from '@/industries/real-estate/actions/properties'
 import { requireEditor } from '@/lib/auth'
+import type { CreateState } from '@/lib/duplicateTypes'
 import RecordHeader from '@/components/RecordHeader'
 
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,14 +36,14 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
 
   if (!property) notFound()
 
-  async function updatePropertyAction(_: string | null, formData: FormData): Promise<string | null> {
+  async function updatePropertyAction(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
     try {
       await updateProperty(id, formData)
       return null
     } catch (e) {
       if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
+      return { kind: 'error', message: (e as Error).message }
     }
   }
 

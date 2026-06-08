@@ -4,8 +4,9 @@ import { createAccount } from '@/app/actions/accounts'
 import { saveCustomFieldValues } from '@/app/actions/customFieldValues'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
-import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
+import { runCreate } from '@/lib/duplicateCheck'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function NewAccountPage() {
   await requireEditor()
@@ -14,16 +15,16 @@ export default async function NewAccountPage() {
     getAllUsers(),
   ])
 
-  async function createAccountAction(_: string | null, formData: FormData): Promise<string | null> {
+  async function createAccountAction(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
-    try {
-      const newId = await createAccount(formData)
-      if (fields.length > 0) await saveCustomFieldValues('accounts', newId, formData)
-      redirect(`/accounts/${newId}`)
-    } catch (e) {
-      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
-    }
+    return runCreate({
+      objectKey: 'accounts',
+      objectLabel: '取引先',
+      formData,
+      create: () => createAccount(formData),
+      afterCreate: fields.length > 0 ? (id) => saveCustomFieldValues('accounts', id, formData) : undefined,
+      redirectTo: (id) => `/accounts/${id}`,
+    })
   }
 
   return (
