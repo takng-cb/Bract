@@ -7,7 +7,7 @@
  * AI は DB を直接触らず、apply 層（本ファイル）が requireEditor + ensureModuleEnabled を通して反映。
  */
 import { db } from '@/lib/db'
-import { assignments, accounts } from '@/lib/schema'
+import { assignments, accounts, contacts } from '@/lib/schema'
 import { requireEditor } from '@/lib/auth'
 import { ensureModuleEnabled } from '@/lib/modules/registry'
 import { callAI } from '@/lib/ai/client'
@@ -130,6 +130,7 @@ export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft
   // 取引先を解決（既存=ID / 新規=作成）。タイトル用に名前も得る。
   let clientAccountId: string
   let clientName: string
+  let clientContactId: string | null = null
   if (client.mode === 'existing') {
     if (!client.clientId) throw new Error('取引先を選択してください')
     const [acc] = await db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(eq(accounts.id, client.clientId)).limit(1)
@@ -139,15 +140,27 @@ export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft
   } else {
     const name = (client.newClient?.name ?? '').trim()
     if (!name) throw new Error('新規取引先の名称は必須です')
+    const contactName = (client.newClient?.contact_person ?? '').trim()
     const [acc] = await db.insert(accounts).values({
       name,
       account_role:   'client',
-      contact_person: client.newClient?.contact_person ?? null,
+      contact_person: contactName || null,
       phone:          client.newClient?.phone ?? null,
       line_type:      client.newClient?.line_type ?? null,
     }).returning({ id: accounts.id })
     clientAccountId = acc.id
     clientName = name
+
+    // 担当者を「人物(contact)」レコードとして作成し、取引先に紐付ける（REQ-0017）
+    if (contactName) {
+      const [con] = await db.insert(contacts).values({
+        account_id:   clientAccountId,
+        full_name:    contactName,
+        phone:        client.newClient?.phone ?? null,
+        contact_type: 'business',
+      }).returning({ id: contacts.id })
+      clientContactId = con.id
+    }
   }
 
   const title = buildAssignmentTitle(clientName, draft)
@@ -164,6 +177,7 @@ export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft
         assignment_no:        no,
         title,
         client_account_id:    clientAccountId,
+        client_contact_id:    clientContactId,
         role:                 draft.role ?? null,
         service_date:         draft.work_date ?? null,
         service_start_time:   draft.start_time ?? null,
