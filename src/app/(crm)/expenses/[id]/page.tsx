@@ -99,7 +99,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">詳細情報</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">詳細情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-zinc-400 mb-1">日付</dt>

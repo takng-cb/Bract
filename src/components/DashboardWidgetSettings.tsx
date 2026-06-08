@@ -65,7 +65,7 @@ export default function DashboardWidgetSettings({ availableWidgets, currentPrefs
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">📊 ダッシュボード表示設定</h2>
+          <h2 className="text-sm font-bold text-zinc-700">📊 ダッシュボード表示設定</h2>
           <p className="text-xs text-zinc-400 mt-1">
             ダッシュボードに表示するウィジェットを選択 ({enabledCount} / {availableWidgets.length} 表示中)
           </p>

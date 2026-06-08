@@ -107,14 +107,14 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">内容</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-3">内容</h2>
         <p className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed min-h-[3rem]">
           {activityRow.body ?? <span className="text-zinc-300">—</span>}
         </p>
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">メタ情報</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">メタ情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>

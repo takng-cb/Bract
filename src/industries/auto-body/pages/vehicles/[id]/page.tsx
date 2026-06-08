@@ -153,7 +153,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   const overviewContent = (
     <>
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">車両情報</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">車両情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-zinc-400 mb-1">ナンバー</dt>
@@ -184,7 +184,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">仕入・販売</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">仕入・販売</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-zinc-400 mb-1">仕入日</dt>
@@ -237,7 +237,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
       {v.description && (
         <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-2">備考</h2>
+          <h2 className="text-sm font-bold text-zinc-700 mb-2">備考</h2>
           <p className="text-sm text-zinc-800 whitespace-pre-wrap">{v.description}</p>
         </div>
       )}
@@ -245,7 +245,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       {/* 代車利用（Issue #45） */}
       {(activeLoan || pastLoans.length > 0) && (
         <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">
+          <h2 className="text-sm font-bold text-zinc-700 mb-4">
             🚙 代車利用
           </h2>
 

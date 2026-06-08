@@ -21,7 +21,7 @@ export default function SystemSettingsForm({ current }: Props) {
 
   return (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-      <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-1">
+      <h2 className="text-sm font-bold text-zinc-700 mb-1">
         システム設定
       </h2>
       <p className="text-xs text-zinc-400 mb-5">全ユーザーに影響する設定です</p>

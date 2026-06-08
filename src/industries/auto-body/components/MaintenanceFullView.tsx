@@ -482,7 +482,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
            ============================================================ */}
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide flex items-center gap-1.5">
+            <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5">
               <span>{AB_ICONS.maintenance}</span><span>整備</span>
             </h2>
             <SectionEditModal triggerLabel="✏️ 編集" title="整備（基本情報・メモ）を編集">
@@ -547,7 +547,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
            ============================================================ */}
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
+            <h2 className="text-sm font-bold text-zinc-700">
               📍 損傷箇所（{damagePins.length} 件）
             </h2>
             <SectionEditModal triggerLabel="✏️ 図面で編集" title="損傷マップを編集">
@@ -590,7 +590,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         {/* 作業項目 */}
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.lineItem} 作業項目</h2>
+            <h2 className="text-sm font-bold text-zinc-700">{AB_ICONS.lineItem} 作業項目</h2>
             <SectionEditModal triggerLabel="✏️ 編集" title="作業項目を編集">
               <MaintenanceLineItemsEditor maintenanceId={maintenanceId} canEdit={editable} leverRate={m.lever_rate} />
             </SectionEditModal>
@@ -667,7 +667,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           {/* 諸費用 */}
           <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.fee} 諸費用</h2>
+              <h2 className="text-sm font-bold text-zinc-700">{AB_ICONS.fee} 諸費用</h2>
               <SectionEditModal triggerLabel="✏️ 編集" title="諸費用を編集">
                 <MaintenanceFeesEditor maintenanceId={maintenanceId} canEdit={editable} />
               </SectionEditModal>
@@ -722,7 +722,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           {/* 請求・支払（Issue #48 Phase 2） */}
           <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">💳 請求・支払</h2>
+              <h2 className="text-sm font-bold text-zinc-700">💳 請求・支払</h2>
               <SectionEditModal triggerLabel="✏️ 編集" title="請求・支払情報を編集">
                 <MaintenanceBillingEditForm
                   maintenanceId={maintenanceId}
@@ -750,7 +750,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           {/* 入金 */}
           <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.payment} 入金・預かり金</h2>
+              <h2 className="text-sm font-bold text-zinc-700">{AB_ICONS.payment} 入金・預かり金</h2>
               <SectionEditModal triggerLabel="✏️ 編集" title="入金を編集">
                 <MaintenancePaymentsEditor maintenanceId={maintenanceId} canEdit={editable} users={users} invoiceTotal={invoiceTotal} />
               </SectionEditModal>

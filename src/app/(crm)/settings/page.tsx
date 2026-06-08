@@ -63,7 +63,7 @@ export default async function SettingsPage() {
 
         {/* ログイン方法 */}
         <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">ログイン方法</h2>
+          <h2 className="text-sm font-bold text-zinc-700 mb-4">ログイン方法</h2>
           <ul className="space-y-3">
             {/* Google */}
             <li className="flex items-center gap-3">
@@ -123,7 +123,7 @@ export default async function SettingsPage() {
 
           {/* 管理画面へのリンク */}
           <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-            <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">管理画面</h3>
+            <h3 className="text-sm font-bold text-zinc-700 mb-4">管理画面</h3>
             <div className="space-y-2">
               <a
                 href="/admin/objects"

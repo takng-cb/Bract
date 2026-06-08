@@ -40,7 +40,7 @@ export default function OutreachSection({
 
   return (
     <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-      <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">打診状況（{items.length}社）</h2>
+      <h2 className="text-sm font-bold text-zinc-700 mb-4">打診状況（{items.length}社）</h2>
 
       {items.length === 0 ? (
         <p className="text-sm text-zinc-400 mb-4">まだ打診していません。紹介会社を選んで打診を記録できます。</p>

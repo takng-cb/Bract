@@ -35,7 +35,7 @@ export default async function AdminNotificationsPage() {
       {/* Discord 通知 */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">💬 Discord 通知</h2>
+          <h2 className="text-sm font-bold text-zinc-700">💬 Discord 通知</h2>
           <span className={`inline-block px-2 py-0.5 text-xs rounded ${
             status.discord.webhookConfigured ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-800'
           }`}>
@@ -58,7 +58,7 @@ export default async function AdminNotificationsPage() {
       {/* Vercel webhook */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">⚙️ Vercel webhook 設定</h2>
+          <h2 className="text-sm font-bold text-zinc-700">⚙️ Vercel webhook 設定</h2>
           <span className={`inline-block px-2 py-0.5 text-xs rounded ${
             status.vercel.webhookSecretConfigured ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
           }`}>
