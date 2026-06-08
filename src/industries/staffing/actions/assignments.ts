@@ -70,6 +70,14 @@ export async function createAssignment(formData: FormData): Promise<string> {
   throw new Error('案件番号の採番に失敗しました（同時実行衝突）。再度お試しください。' + (lastErr ? ` (${(lastErr as Error).message})` : ''))
 }
 
+/** 案件ステータスを直接変更（詳細画面の進行操作用） */
+export async function setAssignmentStatus(id: string, status: string) {
+  await requireEditor()
+  await db.update(assignments).set({ status, updated_at: new Date() }).where(eq(assignments.id, id))
+  revalidatePath(`/assignments/${id}`)
+  revalidatePath('/assignments')
+}
+
 export async function updateAssignment(id: string, formData: FormData) {
   await requireEditor()
   const client_account_id = pick(formData, 'client_account_id')
