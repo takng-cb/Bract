@@ -166,7 +166,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">商談情報</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">商談情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <dt className="text-xs text-zinc-400 mb-1">ステージ</dt>
@@ -281,7 +281,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         const effMonths = isRent ? effectiveCommissionMonths(price, fee) : null
         return (
           <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">不動産情報</h2>
+            <h2 className="text-sm font-bold text-zinc-700 mb-4">不動産情報</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt className="text-xs text-zinc-400 mb-1">取引区分</dt>
@@ -335,7 +335,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         if (!hasAny) return null
         return (
           <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">自動車整備情報</h2>
+            <h2 className="text-sm font-bold text-zinc-700 mb-4">自動車整備情報</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt className="text-xs text-zinc-400 mb-1">サービス区分</dt>

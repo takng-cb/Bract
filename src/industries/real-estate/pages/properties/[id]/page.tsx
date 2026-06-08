@@ -61,7 +61,7 @@ function Dl({ items }: { items: DlItem[] }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-      <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">{title}</h2>
+      <h2 className="text-sm font-bold text-zinc-700 mb-4">{title}</h2>
       {children}
     </div>
   )
@@ -235,7 +235,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           </Section>
 
           <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">⚖️ 司法書士情報</h2>
+            <h2 className="text-sm font-bold text-zinc-700 mb-4">⚖️ 司法書士情報</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">売り方</p>

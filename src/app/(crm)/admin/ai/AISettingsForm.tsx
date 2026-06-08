@@ -129,7 +129,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
 
       {/* プロバイダ選択 */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">使用プロバイダ</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">使用プロバイダ</h2>
         <div className="space-y-2">
           {PROVIDERS.map((p) => (
             <label key={p || 'none'} className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-zinc-50">
@@ -154,7 +154,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
 
       {/* API キー */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-5">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">API キー</h2>
+        <h2 className="text-sm font-bold text-zinc-700">API キー</h2>
 
         {/* Groq */}
         <ApiKeyRow
@@ -199,7 +199,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
       {/* プロンプト */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">プロンプト</h2>
+          <h2 className="text-sm font-bold text-zinc-700">プロンプト</h2>
           <p className="text-[10px] text-zinc-400">各オブジェクトの「まとめ」生成時に AI に渡すシステム指示</p>
         </div>
 
@@ -220,7 +220,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
       {/* 接続テスト */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">接続テスト</h2>
+          <h2 className="text-sm font-bold text-zinc-700">接続テスト</h2>
           <button
             type="button"
             onClick={handleTest}

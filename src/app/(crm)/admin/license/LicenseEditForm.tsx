@@ -122,7 +122,7 @@ export default function LicenseEditForm({ initial, envOverrides }: Props) {
 
       {/* 現在の env override 状態 */}
       <section className="bg-zinc-50 border border-zinc-200 rounded-lg p-4">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-2">現在の env override</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-2">現在の env override</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
           <EnvStatus name="AI_FEATURE_ENABLED" value={envOverrides.AI_FEATURE_ENABLED} />
           <EnvStatus name="LINE_FEATURE_ENABLED" value={envOverrides.LINE_FEATURE_ENABLED} />
@@ -131,7 +131,7 @@ export default function LicenseEditForm({ initial, envOverrides }: Props) {
 
       {/* プラン・ステータス */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">契約情報</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">契約情報</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-zinc-500 mb-1">プラン</label>
@@ -185,7 +185,7 @@ export default function LicenseEditForm({ initial, envOverrides }: Props) {
 
       {/* 機能フラグ */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">機能フラグ</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">機能フラグ</h2>
         <div className="space-y-4">
           {FEATURE_DEFS.map((def) => (
             <FeatureRow

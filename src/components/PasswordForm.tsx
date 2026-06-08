@@ -15,7 +15,7 @@ export default function PasswordForm({ passwordMinLength = 8 }: Props) {
 
   return (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-      <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-5">パスワード変更</h2>
+      <h2 className="text-sm font-bold text-zinc-700 mb-5">パスワード変更</h2>
 
       <form action={formAction} className="space-y-4">
         {isSuccess && (

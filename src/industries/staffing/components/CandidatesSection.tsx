@@ -88,7 +88,7 @@ export default function CandidatesSection({
   return (
     <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
+        <h2 className="text-sm font-bold text-zinc-700">
           候補・確定（確定 {margin.confirmedCount} / 募集 {requiredCount ?? '—'}）
         </h2>
       </div>

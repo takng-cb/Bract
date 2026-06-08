@@ -86,7 +86,7 @@ export default function MaintenanceForm({
 
       {/* 顧客車両 + 顧客 */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">対象</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">対象</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">
@@ -140,7 +140,7 @@ export default function MaintenanceForm({
 
       {/* 日時・場所 */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">日時・場所</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">日時・場所</h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs text-zinc-500 mb-1">入庫日</label>
@@ -203,7 +203,7 @@ export default function MaintenanceForm({
 
       {/* 担当 */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">担当</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">担当</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-zinc-500 mb-1">受付担当者</label>
@@ -220,7 +220,7 @@ export default function MaintenanceForm({
 
       {/* メモ */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">メモ</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">メモ</h2>
         <div className="space-y-3">
           <div>
             <label className="block text-xs text-zinc-500 mb-1">整備メモ <span className="text-zinc-400 font-normal">（印字なし）</span></label>
@@ -242,7 +242,7 @@ export default function MaintenanceForm({
 
       {/* 税・ステータス */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">税 / ステータス</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-4">税 / ステータス</h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs text-zinc-500 mb-1">消費税区分</label>

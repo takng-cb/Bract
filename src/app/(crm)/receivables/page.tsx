@@ -112,7 +112,7 @@ export default async function ReceivablesPage() {
 
       {/* アジング集計 */}
       <section className="mb-6">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">経過日数別</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-3">経過日数別</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {AGING_BUCKETS.map((b) => {
             const v = agingTotals.get(b.label) ?? { count: 0, total: 0 }
@@ -140,7 +140,7 @@ export default async function ReceivablesPage() {
       {/* 顧客別 */}
       {topCustomers.length > 0 && (
         <section className="mb-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">未入金額の大きい顧客 (上位 5)</h2>
+          <h2 className="text-sm font-bold text-zinc-700 mb-3">未入金額の大きい顧客 (上位 5)</h2>
           <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
             {topCustomers.map((c) => (
               <div key={c.key} className="flex items-center justify-between px-4 py-3">
@@ -163,7 +163,7 @@ export default async function ReceivablesPage() {
 
       {/* 全件リスト */}
       <section>
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">未入金整備 全件 ({rows.length})</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-3">未入金整備 全件 ({rows.length})</h2>
         {rows.length === 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg px-4 py-12 text-center text-sm text-zinc-400">
             未入金の整備はありません 🎉
