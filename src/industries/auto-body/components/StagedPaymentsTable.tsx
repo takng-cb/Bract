@@ -4,6 +4,7 @@
  * 入金のステージング型編集テーブル。
  */
 import { useMemo, useState, useTransition } from 'react'
+import { Trash2, Undo2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSectionModal } from './SectionEditModal'
 import { useResizableColumns, ColResizeHandle, type ResizableColumn } from './useResizableColumns'
@@ -226,7 +227,7 @@ export default function StagedPaymentsTable({
                           : 'w-7 h-7 inline-flex items-center justify-center rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-rose-200'}
                         title={r._status === 'deleted' ? '削除を取り消す' : 'この行を削除'}
                       >
-                        {r._status === 'deleted' ? '↩' : '🗑'}
+                        {r._status === 'deleted' ? <Undo2 className="w-3.5 h-3.5 inline" /> : <Trash2 className="w-3.5 h-3.5 inline" />}
                       </button>
                     )}
                     <div className="text-xs text-zinc-400 font-mono text-center flex-1">{r._status === 'new' ? '＋' : idx + 1}</div>
