@@ -13,7 +13,7 @@ import { ensureModuleEnabled } from '@/lib/modules/registry'
 import { callAI } from '@/lib/ai/client'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
 import { revalidatePath } from 'next/cache'
-import { eq, or, isNull, asc, sql } from 'drizzle-orm'
+import { eq, and, or, isNull, asc, sql } from 'drizzle-orm'
 
 /** 取引先（クライアント）選択肢を返す（既存指定用） */
 export async function listClientAccounts(): Promise<{ id: string; name: string }[]> {
@@ -65,7 +65,7 @@ export type NewClientInput = {
 export type ContactChoice =
   | { mode: 'none' }
   | { mode: 'existing'; contactId: string }
-  | { mode: 'new'; name: string; phone?: string | null }
+  | { mode: 'new'; name: string; phone?: string | null; allowDuplicate?: boolean }
 
 /** 取引先の指定方法（担当者の指定を内包） */
 export type ClientChoice =
@@ -197,6 +197,13 @@ export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft
   } else if (cc.mode === 'new') {
     const cname = (cc.name ?? '').trim()
     if (cname) {
+      // 担当者も重複確認：同じ取引先に同名の担当者がいれば、確認画面で許可された時のみ新規作成
+      if (!cc.allowDuplicate) {
+        const [dupc] = await db.select({ id: contacts.id }).from(contacts)
+          .where(and(eq(contacts.account_id, clientAccountId), eq(sql`lower(${contacts.full_name})`, cname.toLowerCase())))
+          .limit(1)
+        if (dupc) throw new Error(`「${cname}」と同名の担当者が既にこの取引先に登録されています。確認画面で「既存を使う」か「別の担当者として登録」を選んでください。`)
+      }
       const [con] = await db.insert(contacts).values({
         account_id:   clientAccountId,
         full_name:    cname,

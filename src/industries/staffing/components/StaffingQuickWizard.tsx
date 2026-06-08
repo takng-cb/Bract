@@ -40,6 +40,7 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
   const [applying, setApplying] = useState(false)
   const [checkingDup, setCheckingDup] = useState(false)
   const [dupCandidates, setDupCandidates] = useState<{ id: string; name: string }[]>([])
+  const [contactDupCandidates, setContactDupCandidates] = useState<{ id: string; full_name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [createdId, setCreatedId] = useState<string | null>(null)
 
@@ -65,12 +66,12 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
   const switchClientMode = (m: 'existing' | 'new') => {
     setClientMode(m)
     setContactMode('none'); setContactId(''); setNewContact({ name: '', phone: '' }); setExistingContacts([])
-    setDupCandidates([])
+    setDupCandidates([]); setContactDupCandidates([])
   }
 
-  const buildContactChoice = (): ContactChoice => {
+  const buildContactChoice = (allowDuplicate = false): ContactChoice => {
     if (contactMode === 'existing') return { mode: 'existing', contactId }
-    if (contactMode === 'new') return { mode: 'new', name: newContact.name.trim(), phone: newContact.phone || null }
+    if (contactMode === 'new') return { mode: 'new', name: newContact.name.trim(), phone: newContact.phone || null, allowDuplicate }
     return { mode: 'none' }
   }
 
@@ -85,15 +86,15 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
     }
   }
 
-  const runApply = async (allowDuplicate: boolean) => {
+  const runApply = async (opts: { allowDupClient?: boolean; allowDupContact?: boolean } = {}) => {
     if (!draft || !canProceed) return
-    setError(null); setDupCandidates([]); setApplying(true)
+    setError(null); setDupCandidates([]); setContactDupCandidates([]); setApplying(true)
     try {
-      const contact = buildContactChoice()
+      const contact = buildContactChoice(opts.allowDupContact ?? false)
       const client: ClientChoice =
         clientMode === 'existing'
           ? { mode: 'existing', clientId, contact }
-          : { mode: 'new', newClient: { name: newClient.name.trim(), phone: newClient.phone || null, line_type: newClient.line_type || null, allowDuplicate }, contact }
+          : { mode: 'new', newClient: { name: newClient.name.trim(), phone: newClient.phone || null, line_type: newClient.line_type || null, allowDuplicate: opts.allowDupClient ?? false }, contact }
       const id = await applyQuickDraft(client, draft, rawText)
       setCreatedId(id)
     } catch (e) {
@@ -117,18 +118,31 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
         setCheckingDup(false)
       }
     }
-    await runApply(false)
+    // 既存取引先＋新規担当者は、同じ取引先内の同名担当者を確認（取得済みの一覧で判定）
+    if (clientMode === 'existing' && contactMode === 'new') {
+      const q = newContact.name.trim().toLowerCase()
+      const matches = existingContacts.filter((c) => c.full_name.trim().toLowerCase() === q)
+      if (matches.length > 0) { setError(null); setContactDupCandidates(matches); return }
+    }
+    await runApply()
   }
 
-  // 確認画面で「既存を使う」を選んだ：既存モードに切替えてその取引先の担当者を読み込む
+  // 確認画面で「既存の取引先を使う」を選んだ：既存モードに切替えてその取引先の担当者を読み込む
   const onUseExistingFromDup = async (c: { id: string; name: string }) => {
     setDupCandidates([])
     setClientMode('existing')
     await onSelectClient(c.id)
   }
 
+  // 確認画面で「既存の担当者を使う」を選んだ：その担当者を選択状態にする
+  const onUseExistingContact = (c: { id: string; full_name: string }) => {
+    setContactDupCandidates([])
+    setContactMode('existing')
+    setContactId(c.id)
+  }
+
   const resetAll = () => {
-    setCreatedId(null); setDraft(null); setRawText(''); setError(null); setDupCandidates([])
+    setCreatedId(null); setDraft(null); setRawText(''); setError(null); setDupCandidates([]); setContactDupCandidates([])
     setClientId(''); setNewClient({ name: '', phone: '', line_type: '' })
     setContactMode('none'); setContactId(''); setNewContact({ name: '', phone: '' }); setExistingContacts([])
   }
@@ -324,7 +338,7 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
               </div>
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <button
-                  onClick={() => runApply(true)}
+                  onClick={() => runApply({ allowDupClient: true })}
                   disabled={applying}
                   className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
                 >
@@ -332,6 +346,40 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
                 </button>
                 <button
                   onClick={() => setDupCandidates([])}
+                  disabled={applying}
+                  className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  戻る
+                </button>
+              </div>
+            </div>
+          ) : contactDupCandidates.length > 0 ? (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2">
+              <p className="text-sm font-semibold text-amber-800">同名の担当者が見つかりました</p>
+              <p className="text-xs text-amber-700">
+                この取引先に「{newContact.name.trim()}」と同名の担当者が既に登録されています。重複を避けるため、どちらかを選んでください。
+              </p>
+              <div className="space-y-1.5">
+                {contactDupCandidates.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => onUseExistingContact(c)}
+                    className="block w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-left text-sm font-medium text-blue-700 hover:bg-blue-50"
+                  >
+                    ✓ 既存の担当者「{c.full_name}」を使う
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  onClick={() => runApply({ allowDupContact: true })}
+                  disabled={applying}
+                  className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  {applying ? '起票中…' : '別の担当者として新規登録する'}
+                </button>
+                <button
+                  onClick={() => setContactDupCandidates([])}
                   disabled={applying}
                   className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
                 >
