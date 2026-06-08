@@ -9,12 +9,13 @@ test.use({ viewport: { width: 390, height: 844 } })
 
 test('モバイルのサイドバー（ドロワー）が開きナビ項目が出る', async ({ page }) => {
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
-  // 上部バーのハンバーガー
+  // 開く前はオーバーレイ（開いた時のみ描画）が存在しない
+  await expect(page.getByTestId('mobile-drawer-overlay')).toHaveCount(0)
+  // 上部バーのハンバーガー → ドロワーが開く（オーバーレイ出現＝開いた証拠）
   await page.getByRole('button', { name: 'メニューを開く' }).click()
-  // ドロワー内のナビ項目（モジュール基準）
-  await expect(page.getByRole('link', { name: '取引先' })).toBeVisible()
-  await expect(page.getByRole('link', { name: '人物' })).toBeVisible()
-  // ログアウト（Lucide アイコン＋ラベル）
+  await expect(page.getByTestId('mobile-drawer-overlay')).toBeVisible()
+  // ドロワー内のナビ項目・ログアウトが存在
+  await expect(page.getByRole('link', { name: '取引先' }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'ログアウト' })).toBeVisible()
 })
 

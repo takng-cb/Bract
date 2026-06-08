@@ -69,7 +69,7 @@ export default function MobileNav({ navGroups, dashboardItem, companyName, displ
 
       {/* オーバーレイ */}
       {open && (
-        <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setOpen(false)} />
+        <div data-testid="mobile-drawer-overlay" className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setOpen(false)} />
       )}
 
       {/* スライドインドロワー（＝モバイルのサイドバー。デスクトップと同じモジュール基準・暗warm） */}
