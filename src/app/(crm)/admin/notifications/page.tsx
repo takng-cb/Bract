@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { isAdmin } from '@/lib/auth'
 import NotificationsTestForm from './NotificationsTestForm'
+import { NavIcon } from '@/lib/navIcon'
 
 export default async function AdminNotificationsPage() {
   const adminFlag = await isAdmin()
@@ -26,7 +27,7 @@ export default async function AdminNotificationsPage() {
   return (
     <div className="p-4 md:p-8 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">🔔 通知設定</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🔔" className="w-6 h-6" /> 通知設定</h1>
         <p className="text-sm text-zinc-500 mt-1">
           外部通知チャンネル（Discord 等）の設定状況と接続テスト。管理者のみアクセス可能。
         </p>
@@ -35,7 +36,7 @@ export default async function AdminNotificationsPage() {
       {/* Discord 通知 */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-zinc-700">💬 Discord 通知</h2>
+          <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-2"><NavIcon icon="💬" className="w-4 h-4" /> Discord 通知</h2>
           <span className={`inline-block px-2 py-0.5 text-xs rounded ${
             status.discord.webhookConfigured ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-800'
           }`}>
@@ -58,7 +59,7 @@ export default async function AdminNotificationsPage() {
       {/* Vercel webhook */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-zinc-700">⚙️ Vercel webhook 設定</h2>
+          <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-2"><NavIcon icon="⚙️" className="w-4 h-4" /> Vercel webhook 設定</h2>
           <span className={`inline-block px-2 py-0.5 text-xs rounded ${
             status.vercel.webhookSecretConfigured ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
           }`}>

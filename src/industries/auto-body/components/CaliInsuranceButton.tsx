@@ -7,6 +7,7 @@
 import { useState, useTransition } from 'react'
 import { addCaliInsuranceFee } from '@/industries/auto-body/actions/maintenanceFees'
 import { CALI_TERMS, calcCaliPremium, type CaliVehicleClass } from '@/industries/auto-body/lib/caliInsurance'
+import { NavIcon } from '@/lib/navIcon'
 
 const yen = (n: number) => `¥${n.toLocaleString('ja-JP')}`
 const FIELD = 'border border-zinc-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
@@ -39,9 +40,9 @@ export default function CaliInsuranceButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
       >
-        🛡 自賠責を自動計算して追加
+        <NavIcon icon="🛡" className="w-3.5 h-3.5 shrink-0" />自賠責を自動計算して追加
       </button>
     )
   }

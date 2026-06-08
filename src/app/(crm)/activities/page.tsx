@@ -17,6 +17,7 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -192,7 +193,7 @@ export default async function ActivitiesPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">📋</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="📋" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致する活動履歴がありません' : '活動履歴がまだありません'}
           </p>
@@ -233,7 +234,7 @@ export default async function ActivitiesPage({
                     </div>
                     <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>
                     {a.body && <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">{a.body}</p>}
-                    {account && <p className="text-xs text-zinc-500 mt-1">🏢 {account.name}</p>}
+                    {account && <p className="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</p>}
                   </Link>
                 )
               }}

@@ -13,6 +13,7 @@ import { isAdminUser } from '@/lib/userRole'
 import { listUsers } from '@/app/actions/userManagement'
 import { activeIndustry } from '@/lib/industry'
 import { widgetsForIndustry } from '@/lib/dashboard/widgets'
+import { NavIcon } from '@/lib/navIcon'
 import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
 
 export default async function SettingsPage() {
@@ -85,8 +86,8 @@ export default async function SettingsPage() {
 
             {/* メール/パスワード */}
             <li className="flex items-center gap-3">
-              <span className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-base ${hasEmail ? 'bg-green-100' : 'bg-zinc-100'}`}>
-                ✉️
+              <span className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${hasEmail ? 'bg-green-100' : 'bg-zinc-100'}`}>
+                <NavIcon icon="✉️" className="w-4 h-4" />
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-zinc-800">メール / パスワード</p>
@@ -116,7 +117,7 @@ export default async function SettingsPage() {
         <div className="space-y-6">
           <div className="border-t-2 border-dashed border-zinc-200 pt-8">
             <h2 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
-              <span>🛡️</span> 管理者設定
+              <NavIcon icon="🛡️" className="w-4 h-4" /> 管理者設定
             </h2>
             <p className="text-sm text-zinc-500 mt-1">管理者のみ表示されます</p>
           </div>
@@ -130,7 +131,7 @@ export default async function SettingsPage() {
                 className="flex items-center justify-between px-4 py-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors group"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">🗂️</span>
+                  <NavIcon icon="🗂️" className="w-5 h-5" />
                   <div>
                     <p className="text-sm font-medium text-zinc-800">オブジェクト管理</p>
                     <p className="text-xs text-zinc-400">カスタムオブジェクトとフィールドを管理</p>
@@ -143,7 +144,7 @@ export default async function SettingsPage() {
                 className="flex items-center justify-between px-4 py-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors group"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">👥</span>
+                  <NavIcon icon="👥" className="w-5 h-5" />
                   <div>
                     <p className="text-sm font-medium text-zinc-800">ユーザー管理</p>
                     <p className="text-xs text-zinc-400">ユーザーのロールと権限を管理</p>

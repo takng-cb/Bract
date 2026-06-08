@@ -23,6 +23,7 @@ import OpportunitiesTableView from '@/components/tableviews/OpportunitiesTableVi
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -253,7 +254,7 @@ export default async function OpportunitiesPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">💼</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="💼" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致する商談がありません' : '商談がまだありません'}
           </p>
@@ -292,9 +293,9 @@ export default async function OpportunitiesPage({
                       <span className="font-semibold text-zinc-900 text-sm leading-snug">{o.name}</span>
                       <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${stageConf.color}`}>{stageConf.label}</span>
                     </div>
-                    {account && <p className="text-xs text-zinc-500 mt-0.5">🏢 {account.name}</p>}
+                    {account && <p className="text-xs text-zinc-500 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</p>}
                     <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                      <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
+                      <span className="inline-flex items-center gap-1">{o.close_date ? <><NavIcon icon="📅" className="w-3 h-3 shrink-0" /> {o.close_date}</> : '期限なし'}</span>
                       <div className="text-right">
                         {o.amount && <span className="font-semibold text-zinc-800">¥{Number(o.amount).toLocaleString()}</span>}
                         {o.probability != null && <span className="ml-2 text-zinc-400">確度{o.probability}%</span>}

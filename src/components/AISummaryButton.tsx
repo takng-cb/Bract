@@ -15,6 +15,7 @@
  *   ```
  */
 import { useState, useTransition } from 'react'
+import { NavIcon } from '@/lib/navIcon'
 
 type SummaryActionResult =
   | { ok: true; result: { summary: string; activityCount: number; taskCount: number; meta: { provider: string; model: string } } }
@@ -82,7 +83,7 @@ export default function AISummaryButton({ label, action, defaultFrom, defaultTo 
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1 px-3 py-1.5 bg-violet-600 text-white text-sm font-medium rounded-md hover:bg-violet-700 transition-colors shadow-sm"
       >
-        {label}
+        <NavIcon icon="🤖" className="w-4 h-4" /> {label}
       </button>
 
       {open && (
@@ -92,7 +93,7 @@ export default function AISummaryButton({ label, action, defaultFrom, defaultTo 
         >
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
             <div className="px-5 py-4 border-b border-zinc-200 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-zinc-800">🤖 AI まとめ</h2>
+              <h2 className="text-base font-semibold text-zinc-800 flex items-center gap-2"><NavIcon icon="🤖" className="w-4 h-4" />AI まとめ</h2>
               <button
                 type="button"
                 onClick={handleClose}
@@ -142,7 +143,7 @@ export default function AISummaryButton({ label, action, defaultFrom, defaultTo 
                   disabled={pending || !from || !to || from > to}
                   className="w-full px-4 py-2.5 bg-violet-600 text-white text-sm font-medium rounded-md hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
                 >
-                  {pending ? '🤖 AI が要約中...' : '🤖 AI で要約する'}
+                  {pending ? 'AI が要約中...' : 'AI で要約する'}
                 </button>
                 {from > to && (
                   <p className="text-xs text-rose-600 mt-1">開始日は終了日より前にしてください</p>

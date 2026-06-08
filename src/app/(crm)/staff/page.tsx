@@ -9,6 +9,7 @@ import { staff, accounts } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import { canEdit } from '@/lib/auth'
 import { staffStatusColor, STAFF_STATUSES } from '@/industries/staffing/lib/staffingService'
+import { NavIcon } from '@/lib/navIcon'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,7 @@ export default async function StaffListPage() {
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">🧑‍💼 スタッフ</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🧑‍💼" className="w-6 h-6" /> スタッフ</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {staffList.length} 名 ／
             稼働中 {statusCount['稼働中']} / 一時休止 {statusCount['一時休止']} / 引退 {statusCount['引退']}
@@ -59,7 +60,7 @@ export default async function StaffListPage() {
 
       {staffList.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">🧑‍💼</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="🧑‍💼" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">スタッフがまだ登録されていません</p>
           <p className="text-sm mt-1">「新規追加」ボタンから登録してください</p>
         </div>

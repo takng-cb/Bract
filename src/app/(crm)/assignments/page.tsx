@@ -9,6 +9,7 @@ import { assignments, assignment_staff, accounts } from '@/lib/schema'
 import { eq, desc, sql } from 'drizzle-orm'
 import { canEdit } from '@/lib/auth'
 import { assignmentStatusColor } from '@/industries/staffing/lib/staffingService'
+import { NavIcon } from '@/lib/navIcon'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +40,7 @@ export default async function AssignmentsListPage() {
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">📋 案件</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="📋" className="w-6 h-6" /> 案件</h1>
           <p className="text-sm text-zinc-500 mt-1">全 {rows.length} 件</p>
         </div>
         {edit && (
@@ -51,7 +52,7 @@ export default async function AssignmentsListPage() {
 
       {rows.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">📋</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="📋" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">案件がまだ登録されていません</p>
         </div>
       ) : (

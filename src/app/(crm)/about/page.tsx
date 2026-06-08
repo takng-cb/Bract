@@ -1,3 +1,5 @@
+import { NavIcon } from '@/lib/navIcon'
+
 export default function AboutPage() {
   return (
     <div className="p-4 md:p-8 max-w-3xl">
@@ -71,7 +73,7 @@ export default function AboutPage() {
             },
           ].map((f) => (
             <div key={f.title} className="flex gap-4 p-4 bg-white border border-zinc-200 rounded-lg hover:border-zinc-300 transition-colors">
-              <span className="text-2xl shrink-0 mt-0.5">{f.icon}</span>
+              <span className="shrink-0 mt-0.5"><NavIcon icon={f.icon} className="w-6 h-6" /></span>
               <div>
                 <h3 className="text-sm font-semibold text-zinc-900 mb-1">{f.title}</h3>
                 <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>

@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
 import { CarSvg, SEVERITY_COLOR, DAMAGE_VIEW_KEYS, DAMAGE_VIEW_LABELS, type DamageViewKey } from './damageSvg'
+import { NavIcon } from '@/lib/navIcon'
 
 type Pin = {
   id:        string
@@ -133,7 +134,7 @@ function ZoomModal({
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-200">
           <h2 className="text-base font-semibold text-zinc-800 flex items-center gap-2">
-            <span>📍 損傷マップ</span>
+            <span className="inline-flex items-center gap-1"><NavIcon icon="📍" className="w-3 h-3 shrink-0" />損傷マップ</span>
             <span className="text-zinc-400">／</span>
             <span className="text-blue-600">{DAMAGE_VIEW_LABELS[view]}</span>
             <span className="text-xs text-zinc-500 font-normal">（読み取り専用 / {pins.length} 件）</span>
@@ -211,7 +212,7 @@ function ZoomModal({
                 <span className="inline-block w-2 h-2 rounded-full bg-orange-500 ml-2 mr-1"></span>中
                 <span className="inline-block w-2 h-2 rounded-full bg-red-600 ml-2 mr-1"></span>大
               </p>
-              <p className="text-[10px] text-zinc-400 mt-2">編集は親画面の「✏️ 図面で編集」から</p>
+              <p className="text-[10px] text-zinc-400 mt-2">編集は親画面の「図面で編集」から</p>
             </div>
           </div>
         </div>

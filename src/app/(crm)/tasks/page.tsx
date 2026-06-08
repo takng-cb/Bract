@@ -18,6 +18,7 @@ import TasksTableView from '@/components/tableviews/TasksTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -220,7 +221,7 @@ export default async function TasksPage({
           <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{label} ({rows.length})</span>
         </div>
         {rows.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-zinc-400 text-center">すべて完了しています 🎉</p>
+          <p className="px-4 py-6 text-sm text-zinc-400 text-center">すべて完了しています</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b border-zinc-100">
@@ -285,7 +286,7 @@ export default async function TasksPage({
           <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{label} ({rows.length})</span>
         </div>
         {rows.length === 0 ? (
-          <p className="text-sm text-zinc-400 text-center py-6 bg-white rounded-lg border border-zinc-200">すべて完了しています 🎉</p>
+          <p className="text-sm text-zinc-400 text-center py-6 bg-white rounded-lg border border-zinc-200">すべて完了しています</p>
         ) : (
           <div className="space-y-2">
             {rows.map((task) => {
@@ -314,12 +315,12 @@ export default async function TasksPage({
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-500">
                       {task.due_date && (
-                        <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
-                          📅 {new Date(task.due_date).toLocaleDateString('ja-JP')}{isOverdue ? ' (超過)' : ''}
+                        <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-red-500 font-medium' : ''}`}>
+                          <NavIcon icon="📅" className="w-3 h-3 shrink-0" /> {new Date(task.due_date).toLocaleDateString('ja-JP')}{isOverdue ? ' (超過)' : ''}
                         </span>
                       )}
-                      {account && <span>🏢 {account.name}</span>}
-                      {opportunity && <span>💼 {opportunity.name}</span>}
+                      {account && <span className="inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</span>}
+                      {opportunity && <span className="inline-flex items-center gap-1"><NavIcon icon="💼" className="w-3 h-3 shrink-0" />{opportunity.name}</span>}
                     </div>
                   </div>
                 </div>
@@ -382,7 +383,7 @@ export default async function TasksPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">✅</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="✅" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致するToDoがありません' : 'ToDoがありません'}
           </p>
@@ -436,12 +437,12 @@ export default async function TasksPage({
                       </div>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-500">
                         {task.due_date && (
-                          <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
-                            📅 {new Date(task.due_date).toLocaleDateString('ja-JP')}{isOverdue ? ' (超過)' : ''}
+                          <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-red-500 font-medium' : ''}`}>
+                            <NavIcon icon="📅" className="w-3 h-3 shrink-0" /> {new Date(task.due_date).toLocaleDateString('ja-JP')}{isOverdue ? ' (超過)' : ''}
                           </span>
                         )}
-                        {account && <span>🏢 {account.name}</span>}
-                        {opportunity && <span>💼 {opportunity.name}</span>}
+                        {account && <span className="inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</span>}
+                        {opportunity && <span className="inline-flex items-center gap-1"><NavIcon icon="💼" className="w-3 h-3 shrink-0" />{opportunity.name}</span>}
                       </div>
                     </div>
                   </div>

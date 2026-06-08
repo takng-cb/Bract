@@ -11,6 +11,7 @@ import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
 import { getAllUsers } from '@/lib/userUtils'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
+import { NavIcon } from '@/lib/navIcon'
 
 const PRIORITY_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   high:   { label: '高', bg: 'bg-red-100',    text: 'text-red-700' },
@@ -126,7 +127,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           </div>
           <div>
             <dt className="text-xs text-zinc-400 mb-1">ステータス</dt>
-            <dd className="text-sm text-zinc-800">{task.done ? '✅ 完了' : '⏳ 未完了'}</dd>
+            <dd className="text-sm text-zinc-800 inline-flex items-center gap-1">{task.done ? <><NavIcon icon="✅" className="w-4 h-4 shrink-0" /> 完了</> : '未完了'}</dd>
           </div>
           <div>
             <dt className="text-xs text-zinc-400 mb-1">登録日</dt>

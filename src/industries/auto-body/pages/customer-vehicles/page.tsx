@@ -11,6 +11,7 @@ import {
 } from '@/lib/filterUtils'
 import { AB_ICONS } from '@/industries/auto-body/lib/icons'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
+import { NavIcon } from '@/lib/navIcon'
 
 const VEHICLE_KINDS = ['軽', '小型', '普通']
 const VEHICLE_USAGES = ['乗用', '貨物']
@@ -163,7 +164,7 @@ export default async function CustomerVehiclesListPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">🚗</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="🚗" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致する車両がありません' : '顧客車両がまだ登録されていません'}
           </p>
@@ -205,8 +206,8 @@ export default async function CustomerVehiclesListPage({
                       return (
                         <tr key={v.id} className="hover:bg-zinc-50">
                           <td className="px-4 py-2 font-medium">
-                            <Link href={`/customer-vehicles/${v.id}`} className="hover:text-blue-600">
-                              🚗 {v.plate_number ?? '—'}
+                            <Link href={`/customer-vehicles/${v.id}`} className="hover:text-blue-600 inline-flex items-center gap-1">
+                              <NavIcon icon="🚗" className="w-3.5 h-3.5 shrink-0" /> {v.plate_number ?? '—'}
                             </Link>
                           </td>
                           <td className="px-4 py-2 text-zinc-700">
@@ -247,12 +248,12 @@ export default async function CustomerVehiclesListPage({
                   return (
                     <Link key={v.id} href={`/customer-vehicles/${v.id}`}
                       className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                      <p className="font-semibold text-zinc-900 text-sm">🚗 {v.plate_number ?? '—'}</p>
+                      <p className="font-semibold text-zinc-900 text-sm inline-flex items-center gap-1"><NavIcon icon="🚗" className="w-3.5 h-3.5 shrink-0" /> {v.plate_number ?? '—'}</p>
                       <p className="text-xs text-zinc-500 mt-1">{[v.car_name, v.car_model].filter(Boolean).join(' / ')}</p>
                       {acc && !isPersonalAccount(acc) ? (
-                        <p className="text-xs text-zinc-500 mt-0.5">🏢 {acc.name}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" /> {acc.name}</p>
                       ) : con ? (
-                        <p className="text-xs text-zinc-500 mt-0.5">👤 {con.full_name}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="👤" className="w-3 h-3 shrink-0" /> {con.full_name}</p>
                       ) : null}
                       <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
                         <span>車検: {v.inspection_due_date ?? '—'}</span>

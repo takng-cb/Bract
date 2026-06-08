@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { MODULE_REGISTRY, isModuleEnabled } from '@/lib/modules/registry'
+import { NavIcon } from '@/lib/navIcon'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,7 @@ export default async function ModuleDashboardPage({
                   href={a.href}
                   className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                 >
-                  <span>{a.icon}</span>{a.label}
+                  <NavIcon icon={a.icon} className="w-4 h-4 shrink-0" />{a.label}
                   {a.kind === 'wizard' && <span className="rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-700">AI</span>}
                 </Link>
               ) : (
@@ -46,7 +47,7 @@ export default async function ModuleDashboardPage({
                   title="準備中"
                   className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-400"
                 >
-                  <span>{a.icon}</span>{a.label}
+                  <NavIcon icon={a.icon} className="w-4 h-4 shrink-0" />{a.label}
                 </span>
               ),
             )}

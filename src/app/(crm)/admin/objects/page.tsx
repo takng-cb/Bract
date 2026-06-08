@@ -9,6 +9,7 @@ import { customObjectsToNavItems } from '@/lib/navItems'
 import { activeIndustry } from '@/lib/industry'
 import ActivityTypesEditor from '@/components/ActivityTypesEditor'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { NavIcon } from '@/lib/navIcon'
 
 export default async function AdminObjectsPage() {
   await requireAdmin()
@@ -31,7 +32,7 @@ export default async function AdminObjectsPage() {
     <div className="p-4 md:p-8 max-w-4xl space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">🗂️ オブジェクト管理</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🗂️" className="w-6 h-6" /> オブジェクト管理</h1>
           <p className="text-sm text-zinc-500 mt-1">
             オブジェクト（テーブル）とフィールドの追加・編集、サイドバーの並び替えができます
           </p>
@@ -85,7 +86,7 @@ export default async function AdminObjectsPage() {
       {/* 活動種別の管理（builtin object のピックリスト値） */}
       <section className="bg-white rounded-lg border border-zinc-200 p-5">
         <div className="mb-4">
-          <h2 className="text-base font-semibold text-zinc-900">📋 活動種別</h2>
+          <h2 className="text-base font-semibold text-zinc-900 flex items-center gap-2"><NavIcon icon="📋" className="w-4 h-4" /> 活動種別</h2>
           <p className="text-xs text-zinc-500 mt-1">
             活動履歴フォームで選べる種別の一覧。既存の活動レコードに影響する場合があるので、
             value の変更は慎重に。

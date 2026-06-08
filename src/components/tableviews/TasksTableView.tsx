@@ -15,10 +15,10 @@ type Task = {
   accounts: { id: string; name: string } | null
 }
 
-const PRIORITY: Record<string, { label: string; cls: string }> = {
-  high:   { label: '🔴 高', cls: 'text-red-600' },
-  medium: { label: '🟡 中', cls: 'text-yellow-600' },
-  low:    { label: '🟢 低', cls: 'text-green-600' },
+const PRIORITY: Record<string, { label: string; cls: string; dot: string }> = {
+  high:   { label: '高', cls: 'text-red-600',    dot: 'bg-red-500' },
+  medium: { label: '中', cls: 'text-yellow-600', dot: 'bg-amber-400' },
+  low:    { label: '低', cls: 'text-green-600',  dot: 'bg-green-500' },
 }
 
 const ALL_COLS: ColDef[] = [
@@ -45,8 +45,13 @@ const ALL_COLS: ColDef[] = [
   {
     key: 'priority', label: '優先度',
     render: (r) => {
-      const p = PRIORITY[(r as unknown as Task).priority] ?? { label: (r as unknown as Task).priority, cls: '' }
-      return <span className={`text-sm font-medium ${p.cls}`}>{p.label}</span>
+      const p = PRIORITY[(r as unknown as Task).priority] ?? { label: (r as unknown as Task).priority, cls: '', dot: '' }
+      return (
+        <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${p.cls}`}>
+          {p.dot && <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${p.dot}`} aria-hidden />}
+          {p.label}
+        </span>
+      )
     },
   },
   {

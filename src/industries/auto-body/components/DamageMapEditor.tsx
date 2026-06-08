@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { NavIcon } from '@/lib/navIcon'
 import { CarSvg, SEVERITY_COLOR } from './damageSvg'
 
 type Pin = {
@@ -86,8 +87,10 @@ export default function DamageMapEditor({ pins, canEdit, bodyShape, createAction
       {/* 図面 + ピン */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-          <p className="text-xs text-zinc-500 mb-2">
-            {canEdit ? '🖱️ 図面の損傷箇所をクリックしてピンを追加' : '🔍 図面上のピンが損傷箇所です'}
+          <p className="inline-flex items-center gap-1 text-xs text-zinc-500 mb-2">
+            {canEdit
+              ? <><NavIcon icon="🖱️" className="w-3.5 h-3.5 shrink-0" />図面の損傷箇所をクリックしてピンを追加</>
+              : <><NavIcon icon="🔍" className="w-3.5 h-3.5 shrink-0" />図面上のピンが損傷箇所です</>}
           </p>
           <svg
             viewBox="0 0 200 100"
@@ -247,8 +250,8 @@ function PinEditModal({
         className="w-full max-w-md bg-white rounded-lg shadow-xl p-5 space-y-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold text-zinc-800">
-          {mode === 'create' ? '📍 損傷箇所を追加' : '📍 損傷箇所を編集'}
+        <h3 className="text-base font-semibold text-zinc-800 flex items-center gap-2">
+          <NavIcon icon="📍" className="w-4 h-4" /> {mode === 'create' ? '損傷箇所を追加' : '損傷箇所を編集'}
         </h3>
 
         <div>

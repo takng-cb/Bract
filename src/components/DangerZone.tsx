@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { deleteAllData } from '@/app/actions/admin'
 import { useRouter } from 'next/navigation'
 import { activeIndustry } from '@/lib/industry'
+import { NavIcon } from '@/lib/navIcon'
 
 const CONFIRM_WORD = 'DELETE'
 
@@ -31,7 +32,7 @@ export default function DangerZone() {
   return (
     <section className="bg-white border border-red-200 rounded-xl p-6">
       <h2 className="text-base font-semibold text-red-700 mb-1 flex items-center gap-2">
-        <span>⚠️</span> 危険ゾーン
+        <NavIcon icon="⚠️" className="w-4 h-4" /> 危険ゾーン
       </h2>
       <p className="text-xs text-zinc-500 mb-4">
         以下の操作は取り消せません。管理者のみ実行できます。
