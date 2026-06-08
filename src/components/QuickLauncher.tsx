@@ -23,6 +23,13 @@ export default function QuickLauncher({ groups }: { groups: QuickActionGroup[] }
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
 
+  // モバイル下部タブ中央の FAB から開く（BottomNav が dispatch）
+  useEffect(() => {
+    const onOpen = () => setOpen(true)
+    window.addEventListener('bract:quick-open', onOpen)
+    return () => window.removeEventListener('bract:quick-open', onOpen)
+  }, [])
+
   if (groups.length === 0) return null
 
   return (
@@ -31,7 +38,7 @@ export default function QuickLauncher({ groups }: { groups: QuickActionGroup[] }
       <button
         onClick={() => setOpen(true)}
         title="クイック操作"
-        className="print:hidden fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-lg hover:bg-blue-700 transition-colors"
+        className="print:hidden hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-lg hover:bg-blue-700 transition-colors"
       >
         <Plus className="w-5 h-5 shrink-0" strokeWidth={2.25} aria-hidden />
         <span className="text-sm font-medium hidden sm:inline">クイック</span>
