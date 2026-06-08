@@ -1,15 +1,17 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import SearchableSelect from '@/components/SearchableSelect'
+import CreateFeedback from '@/components/CreateFeedback'
+import type { CreateAction } from '@/lib/duplicateTypes'
 import { VEHICLE_STATUSES } from '@/industries/auto-body/lib/autoBodyService'
 
 type Account    = { id: string; name: string }
 type UserOption = { id: string; name: string }
 
 type VehicleFormProps = {
-  action: (prevState: string | null, formData: FormData) => Promise<string | null>
+  action: CreateAction
   cancelHref: string
   accounts: Account[]
   users?: UserOption[]
@@ -51,14 +53,13 @@ function Section({ title }: { title: string }) {
 export default function VehicleForm({
   action, cancelHref, accounts, users = [], defaultValues = {},
 }: VehicleFormProps) {
-  const [error, formAction, pending] = useActionState(action, null)
+  const [state, formAction, pending] = useActionState(action, null)
+  const formRef = useRef<HTMLFormElement>(null)
   const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }))
 
   return (
-    <form action={formAction} className="space-y-5">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
-      )}
+    <form ref={formRef} action={formAction} className="space-y-5">
+      <CreateFeedback state={state} formRef={formRef} />
 
       <div className="flex gap-3">
         <button type="submit" disabled={pending}

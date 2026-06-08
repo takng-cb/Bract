@@ -4,12 +4,13 @@
  * assignments (案件) CRUD アクション (Issue #69)
  */
 import { db } from '@/lib/db'
-import { assignments, assignment_staff } from '@/lib/schema'
+import { assignments, assignment_staff, accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
+import { buildAssignmentTitle } from '@/industries/staffing/lib/assignmentTitle'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -29,6 +30,13 @@ export async function createAssignment(formData: FormData): Promise<string> {
   const client_account_id = pick(formData, 'client_account_id')
   if (!client_account_id) throw new Error('派遣先（取引先）は必須です')
 
+  // 表示名タイトルを「取引先名＋日付＋内容」で生成（REQ-0017/0018・重複検出と同じ規則）
+  const [clientAcc] = await db.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, client_account_id)).limit(1)
+  const title = buildAssignmentTitle(clientAcc?.name ?? '', {
+    work_date: pick(formData, 'service_date'),
+    content: pick(formData, 'service_description') ?? pick(formData, 'service_type') ?? pick(formData, 'service_location'),
+  })
+
   // UNIQUE 違反したら 5 回まで番号再採番
   let lastErr: unknown = null
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -36,6 +44,7 @@ export async function createAssignment(formData: FormData): Promise<string> {
     try {
       const [row] = await db.insert(assignments).values({
         assignment_no:        no,
+        title,
         client_account_id,
         client_contact_id:    pick(formData, 'client_contact_id'),
         service_date:         pick(formData, 'service_date'),

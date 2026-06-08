@@ -8,6 +8,7 @@ import VehicleForm from '@/industries/auto-body/components/VehicleForm'
 import { updateVehicle } from '@/industries/auto-body/actions/vehicles'
 import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function EditVehiclePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -20,14 +21,14 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
   ])
   if (!v) notFound()
 
-  async function action(_: string | null, formData: FormData): Promise<string | null> {
+  async function action(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
     try {
       await updateVehicle(id, formData)
       return null
     } catch (e) {
       if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
-      return (e as Error).message
+      return { kind: 'error', message: (e as Error).message }
     }
   }
 

@@ -1,14 +1,16 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import SearchableSelect from '@/components/SearchableSelect'
+import CreateFeedback from '@/components/CreateFeedback'
+import type { CreateAction } from '@/lib/duplicateTypes'
 
 type Account = { id: string; name: string }
 type UserOption = { id: string; name: string }
 
 type PartFormProps = {
-  action: (prevState: string | null, formData: FormData) => Promise<string | null>
+  action: CreateAction
   cancelHref: string
   accounts: Account[]
   users?: UserOption[]
@@ -27,13 +29,12 @@ type PartFormProps = {
 const inputClass = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export default function PartForm({ action, cancelHref, accounts, users = [], defaultValues = {} }: PartFormProps) {
-  const [error, formAction, pending] = useActionState(action, null)
+  const [state, formAction, pending] = useActionState(action, null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   return (
-    <form action={formAction} className="space-y-5">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
-      )}
+    <form ref={formRef} action={formAction} className="space-y-5">
+      <CreateFeedback state={state} formRef={formRef} />
 
       <div className="grid grid-cols-2 gap-4">
         <div>

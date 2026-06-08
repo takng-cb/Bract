@@ -6,6 +6,8 @@ import type { FieldDef } from '@/lib/objectMetadata'
 import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
+import CreateFeedback from '@/components/CreateFeedback'
+import type { CreateAction } from '@/lib/duplicateTypes'
 import {
   TRANSACTION_TYPES,
   brokerageTypesFor,
@@ -26,7 +28,7 @@ type Contact    = { id: string; full_name: string }
 type UserOption = { id: string; name: string }
 
 type OpportunityFormProps = {
-  action: (prevState: string | null, formData: FormData) => Promise<string | null>
+  action: CreateAction
   cancelHref: string
   accounts: Account[]
   contacts?: Contact[]
@@ -67,7 +69,7 @@ const STAGES = [
 const yen = (n: number) => `¥${Math.round(n).toLocaleString('ja-JP')}`
 
 export default function OpportunityForm({ action, cancelHref, accounts, contacts = [], users = [], vehicles = [], defaultValues = {}, customFields = [], customValues = {} }: OpportunityFormProps) {
-  const [error, formAction, pending] = useActionState(action, null)
+  const [state, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
   // ── 不動産用ライブ計算ステート ─────────────────────
@@ -174,9 +176,7 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
 
   return (
     <form ref={formRef} action={formAction} className="space-y-5">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
-      )}
+      <CreateFeedback state={state} formRef={formRef} />
 
       <div className="flex gap-3">
         <button
