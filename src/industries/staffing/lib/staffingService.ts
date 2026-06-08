@@ -38,47 +38,48 @@ export const ACCOUNT_ROLE_LABELS: Record<string, string> = {
   both:     '両方',
 }
 
-// ── 色 ──────────────────────────────
+// ── 色（semantic tone トークンで統一。ADR-0021） ──────────────────────
+// neutral=bg-n-100 text-n-600 / brand=bg-brand-50 text-brand-700 / 他=bg-{tone}-bg text-{tone}
 export function staffStatusColor(status: string | null | undefined): string {
   switch (status) {
-    case '稼働中':   return 'bg-green-50 text-green-700'
-    case '一時休止': return 'bg-yellow-50 text-yellow-700'
-    case '引退':     return 'bg-zinc-100 text-zinc-500'
-    default:         return 'bg-zinc-50 text-zinc-700'
+    case '稼働中':   return 'bg-positive-bg text-positive'
+    case '一時休止': return 'bg-warning-bg text-warning'
+    case '引退':     return 'bg-n-100 text-n-600'
+    default:         return 'bg-n-100 text-n-600'
   }
 }
 
 export function assignmentStatusColor(status: string | null | undefined): string {
   switch (status) {
     case '受付':
-    case '予約':       return 'bg-blue-50 text-blue-700'
-    case '打診中':     return 'bg-violet-50 text-violet-700'
-    case '候補集約':   return 'bg-amber-50 text-amber-700'
-    case '確定':       return 'bg-cyan-50 text-cyan-700'
+    case '予約':       return 'bg-n-100 text-n-600'
+    case '打診中':     return 'bg-ai-bg text-ai'
+    case '候補集約':   return 'bg-warning-bg text-warning'
+    case '確定':       return 'bg-brand-50 text-brand-700'
     case '実施':
-    case '実施中':     return 'bg-orange-50 text-orange-700'
-    case '完了':       return 'bg-green-50 text-green-700'
-    case 'キャンセル': return 'bg-zinc-100 text-zinc-500'
-    default:           return 'bg-zinc-50 text-zinc-700'
+    case '実施中':     return 'bg-info-bg text-info'
+    case '完了':       return 'bg-positive-bg text-positive'
+    case 'キャンセル': return 'bg-n-100 text-n-600'
+    default:           return 'bg-n-100 text-n-600'
   }
 }
 
 export function outreachStatusColor(status: string | null | undefined): string {
   switch (status) {
-    case '打診済':   return 'bg-blue-50 text-blue-700'
-    case '返信待ち': return 'bg-amber-50 text-amber-700'
-    case '候補あり': return 'bg-green-50 text-green-700'
-    case '該当なし': return 'bg-zinc-100 text-zinc-500'
-    default:         return 'bg-zinc-50 text-zinc-700'
+    case '打診済':   return 'bg-info-bg text-info'
+    case '返信待ち': return 'bg-warning-bg text-warning'
+    case '候補あり': return 'bg-positive-bg text-positive'
+    case '該当なし': return 'bg-n-100 text-n-600'
+    default:         return 'bg-n-100 text-n-600'
   }
 }
 
 export function candidateStatusColor(status: string | null | undefined): string {
   switch (status) {
-    case '確定': return 'bg-cyan-50 text-cyan-700'
-    case '辞退': return 'bg-zinc-100 text-zinc-500'
-    case '候補': return 'bg-amber-50 text-amber-700'
-    default:     return 'bg-zinc-50 text-zinc-700'
+    case '確定': return 'bg-brand-50 text-brand-700'
+    case '辞退': return 'bg-n-100 text-n-600'
+    case '候補': return 'bg-warning-bg text-warning'
+    default:     return 'bg-n-100 text-n-600'
   }
 }
 
