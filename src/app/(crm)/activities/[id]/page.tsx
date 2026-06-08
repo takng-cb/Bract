@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { SquarePen } from 'lucide-react'
 import { activities, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
@@ -67,7 +68,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">✏️ 編集</Link>
+              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この活動履歴を削除しますか？" />
             </div>
           </AuthGuard>

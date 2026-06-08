@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { SquarePen } from 'lucide-react'
 import { parts, part_movements, vehicles } from '@/industries/auto-body/schema'
 import { accounts, opportunities, activities, tasks, expenses, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
@@ -361,7 +362,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/parts/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">✏️ 編集</Link>
+              <Link href={`/parts/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この部品を削除しますか？関連する入出庫履歴もすべて削除されます。" />
             </div>
           </AuthGuard>

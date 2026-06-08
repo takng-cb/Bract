@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { expenses, expense_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
+import { SquarePen } from 'lucide-react'
 import { notFound, redirect } from 'next/navigation'
 import RecordId from '@/components/RecordId'
 import { revalidatePath } from 'next/cache'
@@ -63,7 +64,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <Link href={`/expenses/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
-                ✏️ 編集
+                <SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集
               </Link>
               <DeleteButton action={deleteAction} confirmMessage="この経費を削除しますか？" />
             </div>

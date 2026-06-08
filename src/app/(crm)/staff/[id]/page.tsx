@@ -2,6 +2,7 @@
  * /staff/[id] — スタッフ詳細 (Issue #69)
  */
 import { notFound } from 'next/navigation'
+import { SquarePen } from 'lucide-react'
 import Link from 'next/link'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
@@ -76,7 +77,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
         </div>
         <AuthGuard minRole="editor">
           <div className="flex items-center gap-2 shrink-0">
-            <Link href={`/staff/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">✏️ 編集</Link>
+            <Link href={`/staff/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
             <DeleteButton action={handleDelete} confirmMessage="このスタッフを削除しますか？" />
           </div>
         </AuthGuard>
