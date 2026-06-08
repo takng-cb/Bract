@@ -22,15 +22,19 @@
 - ローカル `npm run dev` なら **そのまま全業種表示・データ確認可**（`.env.local` 設定済み）。
 - dev の **Vercel** で見るなら、環境変数 `BRACT_DISABLE_INDUSTRY_REDIRECTS=1` を追加して再デプロイ。
 
-### 3. Chrome E2E（Playwright）テスト（#50）
-- 設定済みだが **未実行**。理由：テストユーザーの認証情報（`TEST_USER_PASSWORD` 等）が env に無い／Chromium 未インストール。
-- 実行するには：`npm run test:e2e:install` → 認証情報を env に → `npm run test:e2e`。結果は `docs/test-results/` に追記。
+### 3. Chrome E2E（Playwright）— ✅ 実行済み（あなたの手間は不要）
+- テストユーザー投入＋Chromium 導入のうえ **Chrome で実行 → 17 passed**。
+- `base` ビルドで /vehicles・/parts 等の業種ページが 404 にならず開けることを実証（ユーザー報告の修正検証）。
+- 実行中に auth.setup のログインボタン誤クリック（Google ボタンに当たる）バグも発見・修正。
+- 詳細：`docs/test-results/2026-06-09-overnight.md`。CI 連携は #50 で別途。
 
 ---
 
 ## ✅ 夜間に実施・本番反映済み
 
 ### バグ修正
+- **車両/部品/整備の一覧が 404（ご指摘）**：業種ページがビルド時 `activeIndustry` でゲートされ、dev の非 auto-body ビルドで 404 だった。**24ページを `isModuleEnabled` に移行**（本番は redirects が依然ゲート＝挙動不変）。**Chrome E2E（base ビルド）で 14 ルート開けることを実証**。
+- **テストデータ不足（案件4件・活動/ToDo/経費なし）**：包括投入に拡充（商談20/顧客車両20/整備12/案件15/活動25/ToDo20/経費20 を追加。dev のみ）。
 - **#44 Google ログイン localhost**：config.toml の許可リスト修正（cloud 反映は上記操作）。
 - **#46 整備画面から ToDo/活動/経費が作れない**：原因は作成後 `/objects/maintenance/<id>`（404）へ redirect していたこと。`recordHref()` で業種専用ルート（`/maintenance/<id>` 等）へ解決するよう修正（tasks/activities/expenses 共通）。
 
