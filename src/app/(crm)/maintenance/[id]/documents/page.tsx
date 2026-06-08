@@ -51,7 +51,7 @@ export default async function DocumentsIndexPage({
             key={d.type}
             href={`/maintenance/${id}/documents/${d.type}`}
             target="_blank"
-            className="block bg-white border border-zinc-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all group"
+            className="block bg-white border border-zinc-200 rounded-lg shadow-xs p-4 hover:border-blue-400 hover:shadow-sm transition-all group"
           >
             <div className="flex items-start gap-3">
               <div className="text-2xl">{d.icon ?? '📄'}</div>

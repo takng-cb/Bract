@@ -100,7 +100,7 @@ export default async function AuditLogPage({
       </p>
 
       {/* フィルタフォーム */}
-      <form action="/admin/audit-log" method="get" className="bg-white border border-zinc-200 rounded-lg p-4 mb-6">
+      <form action="/admin/audit-log" method="get" className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs text-zinc-500 mb-1">期間: 開始日</label>

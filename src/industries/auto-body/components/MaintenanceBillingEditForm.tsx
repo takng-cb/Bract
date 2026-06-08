@@ -112,7 +112,7 @@ export default function MaintenanceBillingEditForm({ maintenanceId, initial }: P
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-md">{error}</div>
         )}
 
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Cell label="請求先種別" hint="顧客 / 保険会社 / リース会社 等">
               <select value={billingTarget} onChange={(e) => setBillingTarget(e.target.value)} className={`${FIELD_CLS} bg-white`}>

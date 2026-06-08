@@ -186,7 +186,7 @@ export default function MaintenanceBasicInfoEditForm({
         )}
 
         {/* ─── 基本情報グリッド（パネルと同じ 4 列・同じ並び順）─── */}
-        <section className="bg-white border border-zinc-200 rounded-lg p-4">
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">基本情報</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-3">
             {/* Row 1: 拠点 / 入庫区分 / 入庫日 / 入庫時間 */}

@@ -29,7 +29,7 @@ export default async function EditTagPage({ params }: { params: Promise<{ id: st
         <h1 className="text-2xl font-bold text-zinc-900 mt-2">タグを編集</h1>
       </div>
 
-      <form action={handleUpdate} className="bg-white border border-zinc-200 rounded-lg p-6 space-y-5">
+      <form action={handleUpdate} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">
             タグ名 <span className="text-red-500">*</span>

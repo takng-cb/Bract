@@ -42,7 +42,7 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
         <span className="text-zinc-700">編集</span>
       </div>
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">車両を編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <VehicleForm
           action={action}
           cancelHref={`/vehicles/${id}`}

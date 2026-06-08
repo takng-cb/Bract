@@ -54,7 +54,7 @@ export default async function EditOpportunityPage({ params }: { params: Promise<
         { label: '編集' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">商談を編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <OpportunityForm
           action={updateOpportunityAction}
           cancelHref={`/opportunities/${id}`}

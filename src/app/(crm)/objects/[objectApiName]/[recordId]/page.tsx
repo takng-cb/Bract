@@ -217,7 +217,7 @@ export default async function CustomRecordDetailPage({
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const interactionsContent = interactionCount === 0 ? (
-    <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-8 text-center">
       <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
       {edit && (
         <div className="flex flex-wrap justify-center gap-2">

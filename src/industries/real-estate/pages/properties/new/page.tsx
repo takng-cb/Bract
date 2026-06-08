@@ -57,7 +57,7 @@ export default async function NewPropertyPage({
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">
         {category === 'real_estate' ? '物件を登録' : '商品を登録'}
       </h1>
-      <div className="bg-white border border-zinc-200 rounded-lg p-6">
+      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <PropertyForm
           action={createPropertyAction}
           cancelHref={`/properties?view=${category}`}

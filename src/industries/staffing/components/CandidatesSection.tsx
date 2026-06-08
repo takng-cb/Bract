@@ -86,7 +86,7 @@ export default function CandidatesSection({
   const displayName = (c: CandidateItem) => c.talent_name || c.staff_name || '（無名）'
 
   return (
-    <section className="bg-white border border-zinc-200 rounded-lg p-6 mb-6">
+    <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
           候補・確定（確定 {margin.confirmedCount} / 募集 {requiredCount ?? '—'}）

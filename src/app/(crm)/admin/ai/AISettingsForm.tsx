@@ -128,7 +128,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
       )}
 
       {/* プロバイダ選択 */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">使用プロバイダ</h2>
         <div className="space-y-2">
           {PROVIDERS.map((p) => (
@@ -153,7 +153,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
       </section>
 
       {/* API キー */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6 space-y-5">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-5">
         <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">API キー</h2>
 
         {/* Groq */}
@@ -197,7 +197,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
       </section>
 
       {/* プロンプト */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6 space-y-5">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">プロンプト</h2>
           <p className="text-[10px] text-zinc-400">各オブジェクトの「まとめ」生成時に AI に渡すシステム指示</p>
@@ -218,7 +218,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
       </section>
 
       {/* 接続テスト */}
-      <section className="bg-white border border-zinc-200 rounded-lg p-6">
+      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">接続テスト</h2>
           <button

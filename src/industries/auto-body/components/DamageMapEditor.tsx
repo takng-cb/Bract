@@ -85,7 +85,7 @@ export default function DamageMapEditor({ pins, canEdit, bodyShape, createAction
 
       {/* 図面 + ピン */}
       <div className="flex flex-col lg:flex-row gap-4">
-        <div className="flex-1 bg-white border border-zinc-200 rounded-lg p-4">
+        <div className="flex-1 bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
           <p className="text-xs text-zinc-500 mb-2">
             {canEdit ? '🖱️ 図面の損傷箇所をクリックしてピンを追加' : '🔍 図面上のピンが損傷箇所です'}
           </p>
@@ -129,7 +129,7 @@ export default function DamageMapEditor({ pins, canEdit, bodyShape, createAction
         </div>
 
         {/* ピンリスト */}
-        <div className="lg:w-72 bg-white border border-zinc-200 rounded-lg p-3 self-start">
+        <div className="lg:w-72 bg-white border border-zinc-200 rounded-lg shadow-xs p-3 self-start">
           <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">この面の損傷一覧</h3>
           {viewPins.length === 0 ? (
             <p className="text-xs text-zinc-400 py-2">記録なし</p>
