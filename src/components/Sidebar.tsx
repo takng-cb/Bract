@@ -42,12 +42,24 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebar_collapsed')
     if (saved === 'true') setCollapsed(true)
+    const g = localStorage.getItem('sidebar_collapsed_groups')
+    if (g) { try { setCollapsedGroups(new Set(JSON.parse(g) as string[])) } catch { /* ignore */ } }
     setMounted(true)
   }, [])
+
+  const toggleGroup = (id: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      localStorage.setItem('sidebar_collapsed_groups', JSON.stringify([...next]))
+      return next
+    })
+  }
 
   const toggle = () => {
     setCollapsed((prev) => {
@@ -110,25 +122,57 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
         </button>
       </div>
 
-      {/* メインナビゲーション（モジュール基準・#22） */}
+      {/* メインナビゲーション（モジュール基準・開閉＋見出しでモジュールDashへ・#22） */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto">
         {dashboardItem && <div className="space-y-0.5">{renderItem(dashboardItem)}</div>}
 
-        {navGroups.map((group) => (
-          <div key={group.id} className="mt-2 first:mt-1">
-            {!isCollapsed && group.id !== '__all' && (
-              <div className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                {group.name}
-              </div>
-            )}
-            {isCollapsed && group.id !== '__all' && (
-              <div className="my-1 border-t border-zinc-800" />
-            )}
-            <div className="space-y-0.5">
-              {group.items.map((item) => renderItem(item))}
+        {navGroups.map((group) => {
+          const isModule = group.id !== '__all' && group.id !== '__other'
+          const groupCollapsed = mounted && collapsedGroups.has(group.id)
+          const moduleHref = `/modules/${group.id}`
+          const headerActive = isModule && pathname === moduleHref
+          return (
+            <div key={group.id} className="mt-2 first:mt-1">
+              {/* 見出し（展開時のみ）：左=モジュールDashへのリンク、右=開閉トグル */}
+              {!isCollapsed && group.id !== '__all' && (
+                <div className="flex items-center gap-1 px-1 pt-2 pb-1">
+                  {isModule ? (
+                    <Link
+                      href={moduleHref}
+                      prefetch={true}
+                      className={`flex-1 truncate rounded px-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                        headerActive ? 'text-blue-400' : 'text-zinc-500 hover:text-zinc-200'
+                      }`}
+                      title={`${group.name} のダッシュボード`}
+                    >
+                      {group.name}
+                    </Link>
+                  ) : (
+                    <span className="flex-1 truncate px-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                      {group.name}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => toggleGroup(group.id)}
+                    title={groupCollapsed ? '展開' : '折りたたむ'}
+                    className="shrink-0 text-zinc-500 hover:text-white text-xs leading-none w-4 h-4 flex items-center justify-center"
+                  >
+                    {groupCollapsed ? '▸' : '▾'}
+                  </button>
+                </div>
+              )}
+              {isCollapsed && group.id !== '__all' && (
+                <div className="my-1 border-t border-zinc-800" />
+              )}
+              {/* 項目（折りたたみ時は非表示。サイドバー全体が細い時は常に表示=アイコン） */}
+              {(!groupCollapsed || isCollapsed) && (
+                <div className="space-y-0.5">
+                  {group.items.map((item) => renderItem(item))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </nav>
 
       {/* ボトムナビ */}
