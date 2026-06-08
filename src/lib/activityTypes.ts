@@ -23,10 +23,10 @@ export type ActivityType = {
 const SETTING_KEY = 'activity_types'
 
 export const DEFAULT_ACTIVITY_TYPES: ActivityType[] = [
-  { value: 'call',    label: '電話',     icon: '📞', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { value: 'email',   label: 'メール',   icon: '✉️', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-  { value: 'meeting', label: '打合せ',   icon: '🤝', color: 'bg-green-50 text-green-700 border-green-200' },
-  { value: 'note',    label: 'メモ',     icon: '📝', color: 'bg-zinc-50 text-zinc-700 border-zinc-200' },
+  { value: 'call',    label: '電話',     icon: '📞', color: 'bg-info-bg text-info' },
+  { value: 'email',   label: 'メール',   icon: '✉️', color: 'bg-ai-bg text-ai' },
+  { value: 'meeting', label: '打合せ',   icon: '🤝', color: 'bg-positive-bg text-positive' },
+  { value: 'note',    label: 'メモ',     icon: '📝', color: 'bg-n-100 text-n-600' },
 ]
 
 /** 活動種別の現在値を取得（未設定時はデフォルト） */

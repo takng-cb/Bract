@@ -41,13 +41,14 @@ export type AbIcon = typeof AB_ICONS[keyof typeof AB_ICONS]
 
 // ステータス色（auto-body の業務色 — 工場感を出すため amber 系を活用）
 export const STATUS_PALETTE: Record<string, { bg: string; text: string; border: string; activeColor: string; pastColor: string }> = {
-  '予約':     { bg: 'bg-slate-100',  text: 'text-slate-700',  border: 'border-slate-300',  activeColor: '#475569', pastColor: '#cbd5e1' },
-  '受付':     { bg: 'bg-sky-100',    text: 'text-sky-800',    border: 'border-sky-300',    activeColor: '#0369a1', pastColor: '#7dd3fc' },
-  '作業中':   { bg: 'bg-amber-100',  text: 'text-amber-800',  border: 'border-amber-300',  activeColor: '#b45309', pastColor: '#fcd34d' },
-  '部品待ち': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-400', activeColor: '#a16207', pastColor: '#fde047' },
-  '納車待ち': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', activeColor: '#c2410c', pastColor: '#fdba74' },
-  '完了':     { bg: 'bg-emerald-100',text: 'text-emerald-800',border: 'border-emerald-300',activeColor: '#047857', pastColor: '#6ee7b7' },
-  'キャンセル':{ bg: 'bg-rose-100',  text: 'text-rose-800',   border: 'border-rose-300',   activeColor: '#be123c', pastColor: '#fda4af' },
+  // バッジ色は semantic tone（ADR-0021）。activeColor/pastColor はタイムライン用の固定 hex のまま。
+  '予約':     { bg: 'bg-n-100',       text: 'text-n-600',     border: 'border-n-200', activeColor: '#475569', pastColor: '#cbd5e1' },
+  '受付':     { bg: 'bg-info-bg',     text: 'text-info',      border: 'border-n-200', activeColor: '#0369a1', pastColor: '#7dd3fc' },
+  '作業中':   { bg: 'bg-brand-50',    text: 'text-brand-700', border: 'border-n-200', activeColor: '#b45309', pastColor: '#fcd34d' },
+  '部品待ち': { bg: 'bg-warning-bg',  text: 'text-warning',   border: 'border-n-200', activeColor: '#a16207', pastColor: '#fde047' },
+  '納車待ち': { bg: 'bg-info-bg',     text: 'text-info',      border: 'border-n-200', activeColor: '#c2410c', pastColor: '#fdba74' },
+  '完了':     { bg: 'bg-positive-bg', text: 'text-positive',  border: 'border-n-200', activeColor: '#047857', pastColor: '#6ee7b7' },
+  'キャンセル':{ bg: 'bg-n-100',      text: 'text-n-600',     border: 'border-n-200', activeColor: '#be123c', pastColor: '#fda4af' },
 }
 
 /** 整備のステータス一覧 (実行順 + キャンセル) */

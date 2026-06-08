@@ -30,31 +30,28 @@ describe('calcAutoBodyProfit（利益 = 売上 − 部品仕入原価）', () =>
   })
 })
 
-describe('vehicleStatusColor（状態に応じた Tailwind バッジ色）', () => {
-  it('既知の状態は対応色を返す', () => {
-    expect(vehicleStatusColor('在庫')).toContain('blue')
-    expect(vehicleStatusColor('代車中')).toContain('teal')
-    expect(vehicleStatusColor('販売済')).toContain('green')
-    expect(vehicleStatusColor('修理中')).toContain('orange')
-    expect(vehicleStatusColor('メンテ中')).toContain('yellow')
-    expect(vehicleStatusColor('車検中')).toContain('purple')
-    expect(vehicleStatusColor('納車待ち')).toContain('cyan')
-    expect(vehicleStatusColor('廃車')).toContain('zinc')
+describe('vehicleStatusColor（状態に応じた semantic tone バッジ色 / ADR-0021）', () => {
+  it('既知の状態は対応 tone を返す', () => {
+    expect(vehicleStatusColor('在庫')).toContain('info')
+    expect(vehicleStatusColor('代車中')).toContain('info')
+    expect(vehicleStatusColor('販売済')).toContain('positive')
+    expect(vehicleStatusColor('修理中')).toContain('warning')
+    expect(vehicleStatusColor('メンテ中')).toContain('warning')
+    expect(vehicleStatusColor('車検中')).toContain('ai')
+    expect(vehicleStatusColor('納車待ち')).toContain('brand')
+    expect(vehicleStatusColor('廃車')).toContain('n-')
   })
 
-  it('VEHICLE_STATUSES に列挙された全状態でフォールバックでない色が返る', () => {
+  it('VEHICLE_STATUSES の全状態で bg/text クラスが返る', () => {
     for (const s of VEHICLE_STATUSES) {
-      const color = vehicleStatusColor(s)
-      // フォールバックは 'bg-zinc-50 text-zinc-700' なので、それと一致するのは「廃車」だけのはず…
-      // と思いきや、廃車は 'bg-zinc-100' で異なる。よって VEHICLE_STATUSES のすべてはフォールバックとは異なる
-      expect(color).not.toBe('bg-zinc-50  text-zinc-700')
+      expect(vehicleStatusColor(s)).toMatch(/bg-\S+\s+text-\S+/)
     }
   })
 
   it('未知の状態・null → デフォルト色', () => {
-    expect(vehicleStatusColor('unknown')).toBe('bg-zinc-50  text-zinc-700')
-    expect(vehicleStatusColor(null)).toBe('bg-zinc-50  text-zinc-700')
-    expect(vehicleStatusColor(undefined)).toBe('bg-zinc-50  text-zinc-700')
+    expect(vehicleStatusColor('unknown')).toBe('bg-n-100 text-n-600')
+    expect(vehicleStatusColor(null)).toBe('bg-n-100 text-n-600')
+    expect(vehicleStatusColor(undefined)).toBe('bg-n-100 text-n-600')
   })
 })
 

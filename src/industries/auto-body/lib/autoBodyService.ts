@@ -31,16 +31,17 @@ export type VehicleStatus = typeof VEHICLE_STATUSES[number]
 
 /** 車両の状態に応じたバッジ色（Tailwind） */
 export function vehicleStatusColor(status: string | null | undefined): string {
+  // semantic tone トークンで統一（ADR-0021）
   switch (status) {
-    case '在庫':     return 'bg-blue-50  text-blue-700'
-    case '代車中':   return 'bg-teal-50  text-teal-700'
-    case '販売済':   return 'bg-green-50 text-green-700'
-    case '修理中':   return 'bg-orange-50 text-orange-700'
-    case 'メンテ中': return 'bg-yellow-50 text-yellow-700'
-    case '車検中':   return 'bg-purple-50 text-purple-700'
-    case '納車待ち': return 'bg-cyan-50  text-cyan-700'
-    case '廃車':     return 'bg-zinc-100 text-zinc-500'
-    default:         return 'bg-zinc-50  text-zinc-700'
+    case '在庫':     return 'bg-info-bg text-info'
+    case '代車中':   return 'bg-info-bg text-info'
+    case '販売済':   return 'bg-positive-bg text-positive'
+    case '修理中':   return 'bg-warning-bg text-warning'
+    case 'メンテ中': return 'bg-warning-bg text-warning'
+    case '車検中':   return 'bg-ai-bg text-ai'
+    case '納車待ち': return 'bg-brand-50 text-brand-700'
+    case '廃車':     return 'bg-n-100 text-n-600'
+    default:         return 'bg-n-100 text-n-600'
   }
 }
 
