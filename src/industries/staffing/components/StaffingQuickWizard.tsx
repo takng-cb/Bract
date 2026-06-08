@@ -5,19 +5,32 @@ import Link from 'next/link'
 import {
   parseQuickText,
   applyQuickDraft,
+  listContactsForAccount,
   type StaffingDraft,
   type ClientChoice,
+  type ContactChoice,
 } from '@/industries/staffing/actions/quickRegister'
 
 /**
  * 人材手配 クイック登録ウィザード（②AI / draft-then-apply / REQ-0017）
- * ① 取引先（既存/新規）を指定 → ② 文面貼付 → [AIで解析] → ③ 確認（全項目）→ [起票] → 完了表示
+ * ① 取引先（既存/新規）+ 担当者（既存/新規/なし）を指定 → ② 文面貼付 → [AIで解析]
+ *   → ③ 確認（全項目）→ [起票] → 完了表示
+ *
+ * 取引先の重複登録を防ぐ：既存取引先は select で選び（新規作成しない）、
+ * 「既存取引先 ＋ はじめての担当者」も担当者だけ新規追加できる。
  */
 export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts: { id: string; name: string }[] }) {
   // ① 取引先
   const [clientMode, setClientMode] = useState<'existing' | 'new'>(clientAccounts.length > 0 ? 'existing' : 'new')
   const [clientId, setClientId] = useState('')
-  const [newClient, setNewClient] = useState({ name: '', contact_person: '', phone: '', line_type: '' })
+  const [newClient, setNewClient] = useState({ name: '', phone: '', line_type: '' })
+
+  // ①-b 担当者(人物)
+  const [contactMode, setContactMode] = useState<'none' | 'existing' | 'new'>('none')
+  const [contactId, setContactId] = useState('')
+  const [newContact, setNewContact] = useState({ name: '', phone: '' })
+  const [existingContacts, setExistingContacts] = useState<{ id: string; full_name: string }[]>([])
+  const [loadingContacts, setLoadingContacts] = useState(false)
 
   // ② 文面・解析
   const [rawText, setRawText] = useState('')
@@ -28,6 +41,34 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
   const [createdId, setCreatedId] = useState<string | null>(null)
 
   const clientValid = clientMode === 'existing' ? !!clientId : !!newClient.name.trim()
+  const contactValid = contactMode === 'new' ? !!newContact.name.trim() : contactMode === 'existing' ? !!contactId : true
+  const canProceed = clientValid && contactValid
+
+  // 既存取引先を選んだら、その取引先の担当者一覧を取得（既存担当者を選べるように）
+  const onSelectClient = async (id: string) => {
+    setClientId(id)
+    setContactMode('none'); setContactId(''); setExistingContacts([])
+    if (!id) return
+    setLoadingContacts(true)
+    try {
+      setExistingContacts(await listContactsForAccount(id))
+    } catch {
+      setExistingContacts([])
+    } finally {
+      setLoadingContacts(false)
+    }
+  }
+
+  const switchClientMode = (m: 'existing' | 'new') => {
+    setClientMode(m)
+    setContactMode('none'); setContactId(''); setNewContact({ name: '', phone: '' }); setExistingContacts([])
+  }
+
+  const buildContactChoice = (): ContactChoice => {
+    if (contactMode === 'existing') return { mode: 'existing', contactId }
+    if (contactMode === 'new') return { mode: 'new', name: newContact.name.trim(), phone: newContact.phone || null }
+    return { mode: 'none' }
+  }
 
   const onParse = async () => {
     setError(null); setParsing(true)
@@ -41,13 +82,14 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
   }
 
   const onApply = async () => {
-    if (!draft || !clientValid) return
+    if (!draft || !canProceed) return
     setError(null); setApplying(true)
     try {
+      const contact = buildContactChoice()
       const client: ClientChoice =
         clientMode === 'existing'
-          ? { mode: 'existing', clientId }
-          : { mode: 'new', newClient: { name: newClient.name.trim(), contact_person: newClient.contact_person || null, phone: newClient.phone || null, line_type: newClient.line_type || null } }
+          ? { mode: 'existing', clientId, contact }
+          : { mode: 'new', newClient: { name: newClient.name.trim(), phone: newClient.phone || null, line_type: newClient.line_type || null }, contact }
       const id = await applyQuickDraft(client, draft, rawText)
       setCreatedId(id)
     } catch (e) {
@@ -59,7 +101,8 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
 
   const resetAll = () => {
     setCreatedId(null); setDraft(null); setRawText(''); setError(null)
-    setClientId(''); setNewClient({ name: '', contact_person: '', phone: '', line_type: '' })
+    setClientId(''); setNewClient({ name: '', phone: '', line_type: '' })
+    setContactMode('none'); setContactId(''); setNewContact({ name: '', phone: '' }); setExistingContacts([])
   }
 
   const upd = (patch: Partial<StaffingDraft>) => setDraft((p) => (p ? { ...p, ...patch } : p))
@@ -85,10 +128,10 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
         <p className="text-sm font-semibold text-zinc-700 mb-2">① 取引先</p>
         <div className="flex gap-4 mb-3 text-sm">
           <label className="inline-flex items-center gap-1.5">
-            <input type="radio" checked={clientMode === 'existing'} onChange={() => setClientMode('existing')} /> 既存から選ぶ
+            <input type="radio" checked={clientMode === 'existing'} onChange={() => switchClientMode('existing')} /> 既存から選ぶ
           </label>
           <label className="inline-flex items-center gap-1.5">
-            <input type="radio" checked={clientMode === 'new'} onChange={() => setClientMode('new')} /> 新規で登録
+            <input type="radio" checked={clientMode === 'new'} onChange={() => switchClientMode('new')} /> 新規で登録
           </label>
         </div>
 
@@ -96,7 +139,7 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
           clientAccounts.length > 0 ? (
             <select
               value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              onChange={(e) => onSelectClient(e.target.value)}
               className="w-full rounded-md border border-zinc-300 px-2 py-2 text-sm focus:border-blue-400 focus:outline-none"
             >
               <option value="">取引先を選択…</option>
@@ -110,7 +153,6 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="取引先名（必須）" required value={newClient.name} onChange={(v) => setNewClient((p) => ({ ...p, name: v }))} />
-            <Field label="担当者" value={newClient.contact_person} onChange={(v) => setNewClient((p) => ({ ...p, contact_person: v }))} />
             <Field label="電話" value={newClient.phone} onChange={(v) => setNewClient((p) => ({ ...p, phone: v }))} />
             <label className="block">
               <span className="block text-xs text-zinc-500 mb-1">LINE種別</span>
@@ -128,6 +170,56 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
             {clientMode === 'existing' ? '取引先を選択してください。' : '取引先名（必須）を入力してください。'}
           </p>
         )}
+
+        {/* ①-b 担当者(人物) */}
+        {clientValid && (
+          <div className="mt-4 border-t border-zinc-100 pt-3">
+            <p className="text-xs font-semibold text-zinc-600 mb-2">担当者（任意・人物として記録）</p>
+            <div className="flex flex-wrap gap-4 mb-2 text-sm">
+              <label className="inline-flex items-center gap-1.5">
+                <input type="radio" checked={contactMode === 'none'} onChange={() => setContactMode('none')} /> 指定しない
+              </label>
+              {clientMode === 'existing' && existingContacts.length > 0 && (
+                <label className="inline-flex items-center gap-1.5">
+                  <input type="radio" checked={contactMode === 'existing'} onChange={() => setContactMode('existing')} /> 既存の担当者から選ぶ
+                </label>
+              )}
+              <label className="inline-flex items-center gap-1.5">
+                <input type="radio" checked={contactMode === 'new'} onChange={() => setContactMode('new')} /> 新しい担当者を登録
+              </label>
+            </div>
+
+            {loadingContacts && <p className="text-xs text-zinc-400">担当者を読み込み中…</p>}
+
+            {contactMode === 'existing' && (
+              <select
+                value={contactId}
+                onChange={(e) => setContactId(e.target.value)}
+                className="w-full rounded-md border border-zinc-300 px-2 py-2 text-sm focus:border-blue-400 focus:outline-none"
+              >
+                <option value="">担当者を選択…</option>
+                {existingContacts.map((c) => (
+                  <option key={c.id} value={c.id}>{c.full_name}</option>
+                ))}
+              </select>
+            )}
+
+            {contactMode === 'new' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="担当者名（必須）" required value={newContact.name} onChange={(v) => setNewContact((p) => ({ ...p, name: v }))} />
+                <Field label="電話" value={newContact.phone} onChange={(v) => setNewContact((p) => ({ ...p, phone: v }))} />
+              </div>
+            )}
+            {contactMode === 'existing' && existingContacts.length === 0 && !loadingContacts && (
+              <p className="text-xs text-zinc-400">この取引先にはまだ担当者がいません。「新しい担当者を登録」を選んでください。</p>
+            )}
+            {!contactValid && (
+              <p className="mt-2 text-xs text-amber-600">
+                {contactMode === 'new' ? '担当者名（必須）を入力してください。' : '担当者を選択してください。'}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ② 文面 → 解析 */}
@@ -143,9 +235,9 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
         <div className="mt-2 flex items-center gap-3">
           <button
             onClick={onParse}
-            disabled={parsing || !rawText.trim() || !clientValid}
+            disabled={parsing || !rawText.trim() || !canProceed}
             className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
-            title={!clientValid ? '先に取引先を指定してください' : undefined}
+            title={!canProceed ? '先に取引先・担当者を指定してください' : undefined}
           >
             {parsing ? '解析中…' : '✨ AIで解析'}
           </button>
@@ -188,7 +280,7 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
           <div className="flex items-center gap-3 pt-1">
             <button
               onClick={onApply}
-              disabled={applying || !clientValid}
+              disabled={applying || !canProceed}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {applying ? '起票中…' : 'この内容で案件を起票'}

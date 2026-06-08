@@ -27,18 +27,35 @@ export async function listClientAccounts(): Promise<{ id: string; name: string }
   return rows
 }
 
+/** 指定取引先の人物(担当者)一覧（既存取引先に担当者を選ぶ/追加するため） */
+export async function listContactsForAccount(accountId: string): Promise<{ id: string; full_name: string }[]> {
+  await requireEditor()
+  await ensureModuleEnabled('staffing')
+  if (!accountId) return []
+  return db
+    .select({ id: contacts.id, full_name: contacts.full_name })
+    .from(contacts)
+    .where(eq(contacts.account_id, accountId))
+    .orderBy(asc(contacts.full_name))
+}
+
 /** 新規取引先の入力 */
 export type NewClientInput = {
   name: string
-  contact_person?: string | null
   phone?: string | null
   line_type?: string | null
 }
 
-/** 取引先の指定方法 */
+/** 担当者(人物)の指定方法 */
+export type ContactChoice =
+  | { mode: 'none' }
+  | { mode: 'existing'; contactId: string }
+  | { mode: 'new'; name: string; phone?: string | null }
+
+/** 取引先の指定方法（担当者の指定を内包） */
 export type ClientChoice =
-  | { mode: 'existing'; clientId: string }
-  | { mode: 'new'; newClient: NewClientInput }
+  | { mode: 'existing'; clientId: string; contact: ContactChoice }
+  | { mode: 'new'; newClient: NewClientInput; contact: ContactChoice }
 
 /** AI が返す下書きの型（確認画面で編集後に apply へ渡す） */
 export type StaffingDraft = {
@@ -128,7 +145,7 @@ export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft
   await ensureModuleEnabled('staffing')
   const ownerId = await getCurrentUserId()
 
-  // 取引先を解決（既存=ID / 新規=作成）。タイトル用に名前も得る。
+  // ── 取引先を解決（既存=ID / 新規=作成＋重複防止）。タイトル用に名前も得る。──
   let clientAccountId: string
   let clientName: string
   let clientContactId: string | null = null
@@ -141,23 +158,32 @@ export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft
   } else {
     const name = (client.newClient?.name ?? '').trim()
     if (!name) throw new Error('新規取引先の名称は必須です')
-    const contactName = (client.newClient?.contact_person ?? '').trim()
+    // 重複防止：同名の取引先が既にあれば作成せず「既存から選ぶ」を促す
+    const [dup] = await db.select({ id: accounts.id }).from(accounts).where(eq(accounts.name, name)).limit(1)
+    if (dup) throw new Error(`「${name}」は既に取引先として存在します。「既存から選ぶ」をご利用ください。`)
+    const newContactName = client.contact.mode === 'new' ? (client.contact.name ?? '').trim() : ''
     const [acc] = await db.insert(accounts).values({
       name,
       account_role:   'client',
-      contact_person: contactName || null,
+      contact_person: newContactName || null,
       phone:          client.newClient?.phone ?? null,
       line_type:      client.newClient?.line_type ?? null,
     }).returning({ id: accounts.id })
     clientAccountId = acc.id
     clientName = name
+  }
 
-    // 担当者を「人物(contact)」レコードとして作成し、取引先に紐付ける（REQ-0017）
-    if (contactName) {
+  // ── 担当者(人物)を解決（既存選択 / 新規作成 / なし）。既存取引先＋新規担当者も重複なく対応。──
+  const cc = client.contact
+  if (cc.mode === 'existing') {
+    clientContactId = cc.contactId || null
+  } else if (cc.mode === 'new') {
+    const cname = (cc.name ?? '').trim()
+    if (cname) {
       const [con] = await db.insert(contacts).values({
         account_id:   clientAccountId,
-        full_name:    contactName,
-        phone:        client.newClient?.phone ?? null,
+        full_name:    cname,
+        phone:        cc.phone ?? null,
         contact_type: 'business',
       }).returning({ id: contacts.id })
       clientContactId = con.id
