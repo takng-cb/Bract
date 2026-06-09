@@ -3,6 +3,7 @@ import { change_logs } from '@/lib/schema'
 import { requireAdmin } from '@/lib/auth'
 import { desc, eq, and, gte, lte, count, type SQL } from 'drizzle-orm'
 import Link from 'next/link'
+import PageHeader from '@/components/ui/PageHeader'
 
 const PAGE_SIZE = 50
 
@@ -93,11 +94,12 @@ export default async function AuditLogPage({
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl">
-      <h1 className="text-2xl font-bold text-zinc-900 mb-1">監査ログ（変更履歴）</h1>
-      <p className="text-sm text-zinc-500 mb-6">
-        全 {total.toLocaleString()} 件の変更履歴。新しい順。管理者のみ閲覧可能。
-      </p>
+    <div className="mx-auto max-w-5xl p-4 md:p-8">
+      <PageHeader
+        icon="📝"
+        title="監査ログ（変更履歴）"
+        description={`全 ${total.toLocaleString()} 件の変更履歴。新しい順。管理者のみ閲覧可能。`}
+      />
 
       {/* フィルタフォーム */}
       <form action="/admin/audit-log" method="get" className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4 mb-6">

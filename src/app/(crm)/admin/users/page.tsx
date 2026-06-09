@@ -6,6 +6,8 @@ import { asc } from 'drizzle-orm'
 import RoleSelect from './RoleSelect'
 import DeleteUserButton from './DeleteUserButton'
 import ResetPasswordButton from './ResetPasswordButton'
+import PageHeader from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
 
 const ROLE_LABELS: Record<string, string> = {
   admin:  '管理者',
@@ -27,11 +29,10 @@ export default async function AdminUsersPage() {
   ])
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
-      <h1 className="text-2xl font-bold text-zinc-900 mb-1">ユーザー管理</h1>
-      <p className="text-sm text-zinc-500 mb-6">ログインユーザーの権限を設定します</p>
+    <div className="mx-auto max-w-3xl p-4 md:p-8">
+      <PageHeader icon="👥" title="ユーザー管理" description="ログインユーザーの権限を設定します" />
 
-      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+      <Card padded={false}>
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 border-b border-zinc-200">
             <tr>
@@ -79,9 +80,9 @@ export default async function AdminUsersPage() {
         {allUsers.length === 0 && (
           <p className="text-center text-zinc-400 text-sm py-8">ユーザーがいません</p>
         )}
-      </div>
+      </Card>
 
-      <div className="mt-6 bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-xs text-zinc-500 space-y-1">
+      <div className="mt-6 bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-xs text-zinc-500 space-y-1">
         <p><span className="font-semibold text-red-600">管理者</span>：全操作 ＋ ユーザー管理</p>
         <p><span className="font-semibold text-blue-600">編集者</span>：データの登録・編集・削除</p>
         <p><span className="font-semibold text-zinc-600">閲覧者</span>：データの閲覧のみ</p>

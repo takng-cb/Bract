@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation'
 import { isAdmin } from '@/lib/auth'
 import NotificationsTestForm from './NotificationsTestForm'
 import { NavIcon } from '@/lib/navIcon'
+import PageHeader from '@/components/ui/PageHeader'
 
 export default async function AdminNotificationsPage() {
   const adminFlag = await isAdmin()
@@ -25,13 +26,12 @@ export default async function AdminNotificationsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🔔" className="w-6 h-6" /> 通知設定</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          外部通知チャンネル（Discord 等）の設定状況と接続テスト。管理者のみアクセス可能。
-        </p>
-      </div>
+    <div className="mx-auto max-w-3xl p-4 md:p-8">
+      <PageHeader
+        icon="🔔"
+        title="通知設定"
+        description="外部通知チャンネル（Discord 等）の設定状況と接続テスト。管理者のみアクセス可能。"
+      />
 
       {/* Discord 通知 */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
