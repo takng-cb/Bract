@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react'
 import { stopImpersonation } from '@/app/actions/userManagement'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   adminEmail:  string
@@ -20,7 +21,7 @@ export default function ImpersonationBanner({ adminEmail, targetEmail }: Props) 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-amber-500 text-white px-4 py-2.5 flex items-center justify-between gap-4 shadow-lg text-sm">
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-base shrink-0">🔀</span>
+        <NavIcon icon="🔀" className="w-4 h-4 shrink-0" />
         <span className="truncate">
           <span className="font-semibold">{targetEmail}</span> としてログイン中
           <span className="opacity-75 ml-2 hidden sm:inline">（管理者: {adminEmail}）</span>

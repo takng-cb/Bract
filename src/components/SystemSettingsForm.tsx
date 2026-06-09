@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { saveSystemSettings } from '@/app/actions/settings'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   current: {
@@ -28,8 +29,8 @@ export default function SystemSettingsForm({ current }: Props) {
 
       <form action={formAction} className="space-y-6">
         {isSuccess && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md">
-            ✅ システム設定を保存しました
+          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md inline-flex items-center gap-1.5">
+            <NavIcon icon="✅" className="w-4 h-4 shrink-0" /> システム設定を保存しました
           </div>
         )}
         {errorMsg && (
@@ -40,7 +41,7 @@ export default function SystemSettingsForm({ current }: Props) {
 
         {/* 基本設定 */}
         <div className="space-y-4">
-          <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-2">🏢 基本情報</p>
+          <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-2 inline-flex items-center gap-1.5"><NavIcon icon="🏢" className="w-3.5 h-3.5" /> 基本情報</p>
 
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">会社名・サービス名</label>
@@ -70,7 +71,7 @@ export default function SystemSettingsForm({ current }: Props) {
 
         {/* セキュリティ設定 */}
         <div className="space-y-4">
-          <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-2">🔒 セキュリティ</p>
+          <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-2 inline-flex items-center gap-1.5"><NavIcon icon="🔒" className="w-3.5 h-3.5" /> セキュリティ</p>
 
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-1">パスワード最低文字数</label>

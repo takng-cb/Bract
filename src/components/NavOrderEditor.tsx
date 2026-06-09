@@ -8,6 +8,7 @@ import {
   resetSystemNavOrder,
 } from '@/app/actions/navSettings'
 import { type NavItem, ALL_NAV_ITEMS } from '@/lib/navItems'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   /** 現在のユーザー設定順序（null = 設定なし） */
@@ -121,14 +122,14 @@ export default function NavOrderEditor({ userOrder, systemOrder, customItems = [
 
       {/* 保存完了メッセージ */}
       {saved && (
-        <div className="mb-4 px-4 py-2.5 bg-green-50 border border-green-200 text-green-700 text-sm rounded-md">
-          ✅ {saved === 'user' ? 'マイ設定として' : 'システムデフォルトとして'}保存しました
+        <div className="mb-4 px-4 py-2.5 bg-green-50 border border-green-200 text-green-700 text-sm rounded-md inline-flex items-center gap-1.5">
+          <NavIcon icon="✅" className="w-4 h-4 shrink-0" /> {saved === 'user' ? 'マイ設定として' : 'システムデフォルトとして'}保存しました
         </div>
       )}
 
       {/* ユーザー設定 */}
       <div className="border border-zinc-200 rounded-lg p-4 mb-4">
-        <p className="text-xs font-semibold text-zinc-600 mb-3">👤 マイ設定</p>
+        <p className="text-xs font-semibold text-zinc-600 mb-3 inline-flex items-center gap-1.5"><NavIcon icon="👤" className="w-3.5 h-3.5" /> マイ設定</p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleSaveUser}
@@ -155,7 +156,7 @@ export default function NavOrderEditor({ userOrder, systemOrder, customItems = [
 
       {/* システム設定 */}
       <div className="border border-zinc-200 rounded-lg p-4">
-        <p className="text-xs font-semibold text-zinc-600 mb-1">🌐 システムデフォルト</p>
+        <p className="text-xs font-semibold text-zinc-600 mb-1 inline-flex items-center gap-1.5"><NavIcon icon="🌐" className="w-3.5 h-3.5" /> システムデフォルト</p>
         <p className="text-xs text-zinc-400 mb-3">マイ設定がないユーザー全員に適用されます</p>
         <div className="flex flex-wrap gap-2">
           <button

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
+import { NavIcon } from '@/lib/navIcon'
 import {
   parseQuickText,
   applyQuickDraft,
@@ -154,7 +155,7 @@ export default function StaffingQuickWizard({ clientAccounts }: { clientAccounts
   if (createdId) {
     return (
       <div className="rounded-xl border border-green-200 bg-green-50 p-5 space-y-3">
-        <p className="text-base font-semibold text-green-800">✅ 案件を起票しました</p>
+        <p className="text-base font-semibold text-green-800 flex items-center gap-2"><NavIcon icon="✅" className="w-4 h-4" />案件を起票しました</p>
         <div className="flex flex-wrap gap-2">
           <Link href={`/assignments/${createdId}`} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">案件を開く</Link>
           <Link href={`/assignments/${createdId}/edit`} className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">編集する</Link>

@@ -17,6 +17,7 @@ import { toggleTaskDone } from '@/app/actions/tasks'
 import { deletePart, createPartMovement, deletePartMovement } from '@/industries/auto-body/actions/parts'
 import { calcStock, stockBadgeColor, MOVEMENT_TYPES } from '@/industries/auto-body/lib/partsHelpers'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { NavIcon } from '@/lib/navIcon'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -370,7 +371,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
       />
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900">🔧 {partRow.name}</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🔧" className="w-6 h-6" />{partRow.name}</h1>
         <p className="text-sm text-zinc-500 mt-1 font-mono">{partRow.part_number}</p>
       </div>
 

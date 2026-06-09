@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { SavedView } from '@/lib/savedViews'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   views: SavedView[]
@@ -163,7 +164,7 @@ export default function SavedViewsClient({
                 onClick={() => handleClickView(view)}
                 className="pl-2.5 pr-1 py-1 flex items-center gap-1"
               >
-                <span className="text-xs">🌐</span>
+                <NavIcon icon="🌐" className="w-3 h-3" />
                 {view.name}
               </button>
               {isAdmin && (
@@ -227,7 +228,7 @@ export default function SavedViewsClient({
               className="px-2 py-1.5 text-sm border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="user">個人</option>
-              <option value="system">🌐 システム全体</option>
+              <option value="system">システム全体</option>
             </select>
           )}
           <button

@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { maintenance_damage_pins } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import { createDamagePin, updateDamagePin, deleteDamagePin } from '@/industries/auto-body/actions/maintenanceDamagePins'
+import { NavIcon } from '@/lib/navIcon'
 import DamageMapEditor from './DamageMapEditor'
 import type { DamageView, DamageCategory, DamageSeverity } from '@/industries/auto-body/lib/damageTypes'
 
@@ -48,7 +49,7 @@ export default async function MaintenanceDamageMap({ maintenanceId, canEdit, bod
   return (
     <div className="space-y-3">
       <div className="bg-zinc-50 border border-zinc-200 rounded-md px-3 py-2 text-xs text-zinc-700">
-        🔧 <strong>損傷マップ</strong> — 車両図面に損傷箇所をピンで記録します（板金特化機能）。
+        <NavIcon icon="🔧" className="w-3.5 h-3.5 inline-block -mt-0.5" /> <strong>損傷マップ</strong> — 車両図面に損傷箇所をピンで記録します（板金特化機能）。
         編集モードでは図面をクリックして追加、ピンをクリックで編集・削除できます。
       </div>
       <DamageMapEditor

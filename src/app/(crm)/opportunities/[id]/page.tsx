@@ -24,6 +24,7 @@ import RecordHeader from '@/components/RecordHeader'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import AISummaryButton from '@/components/AISummaryButton'
+import { NavIcon } from '@/lib/navIcon'
 import { summarizeOpportunity } from '@/app/actions/ai'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { calcProfit, commissionBreakdown, effectiveCommissionRatePct, effectiveCommissionMonths } from '@/industries/real-estate/lib/realEstateCommission'
@@ -37,7 +38,7 @@ const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'qualification', label: '要件確認', activeColor: '#2563eb', pastColor: '#93c5fd' },
   { value: 'proposal',      label: '提案',     activeColor: '#d97706', pastColor: '#fcd34d' },
   { value: 'negotiation',   label: '交渉',     activeColor: '#ea580c', pastColor: '#fdba74' },
-  { value: 'closed_won',    label: '受注 🎉',  activeColor: '#16a34a', pastColor: '#86efac' },
+  { value: 'closed_won',    label: '受注',     activeColor: '#16a34a', pastColor: '#86efac' },
   { value: 'closed_lost',   label: '失注',     activeColor: '#dc2626', pastColor: '#fca5a5' },
 ]
 
@@ -345,8 +346,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 <dt className="text-xs text-zinc-400 mb-1">対象車両</dt>
                 <dd className="text-sm text-zinc-800">
                   {vehicleInfo ? (
-                    <Link href={`/vehicles/${vehicleInfo.id}`} className="text-blue-600 hover:underline">
-                      🚗 {vehicleInfo.maker} {vehicleInfo.model}
+                    <Link href={`/vehicles/${vehicleInfo.id}`} className="text-blue-600 hover:underline inline-flex items-center gap-1">
+                      <NavIcon icon="🚗" className="w-3.5 h-3.5 shrink-0" /> {vehicleInfo.maker} {vehicleInfo.model}
                       {vehicleInfo.year && <span className="text-xs text-zinc-400 ml-1">({vehicleInfo.year}年式)</span>}
                       {vehicleInfo.license_plate && <span className="text-xs text-zinc-400 ml-1">{vehicleInfo.license_plate}</span>}
                     </Link>
@@ -391,7 +392,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             <div className="divide-y divide-zinc-100">
               {attachmentsList.map((f) => (
                 <div key={f.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
-                  <span className="text-xl shrink-0">📄</span>
+                  <NavIcon icon="📄" className="w-5 h-5 shrink-0 text-zinc-400" />
                   <div className="flex-1 min-w-0">
                     <a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">{f.file_name}</a>
                     <p className="text-xs text-zinc-400">{formatFileSize(f.file_size)} · {f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</p>
@@ -508,7 +509,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                       <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
-                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    {t.due_date && <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
                     <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                   <AuthGuard minRole="editor">
@@ -574,7 +575,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       {aiEnabled && (
         <AuthGuard minRole="editor">
           <div className="mb-4 flex justify-end">
-            <AISummaryButton label="🤖 AI で活動をまとめる" action={handleSummarize} />
+            <AISummaryButton label="AI で活動をまとめる" action={handleSummarize} />
           </div>
         </AuthGuard>
       )}
@@ -611,8 +612,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-zinc-900 break-words">{opportunity.name}</h1>
-        {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 block">🏢 {account.name}</Link>}
-        {contact && <Link href={`/contacts/${contact.id}`} className="text-sm text-blue-600 hover:underline mt-0.5 block">👤 {contact.full_name}</Link>}
+        {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 flex items-center gap-1 w-fit"><NavIcon icon="🏢" className="w-3.5 h-3.5 shrink-0" />{account.name}</Link>}
+        {contact && <Link href={`/contacts/${contact.id}`} className="text-sm text-blue-600 hover:underline mt-0.5 flex items-center gap-1 w-fit"><NavIcon icon="👤" className="w-3.5 h-3.5 shrink-0" />{contact.full_name}</Link>}
         <div className="mt-2">
           <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
         </div>

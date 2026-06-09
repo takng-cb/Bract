@@ -12,6 +12,7 @@ import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
+import { NavIcon } from '@/lib/navIcon'
 
 export default async function ActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -131,7 +132,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
                 <div className="flex flex-wrap gap-2 mt-1">
                   {linkedContacts.map((c) => (
                     <Link key={c.record_id} href={c.href} className="inline-flex items-center gap-1 text-blue-600 hover:underline">
-                      👤 {c.label}
+                      <NavIcon icon="👤" className="w-3.5 h-3.5 shrink-0" /> {c.label}
                     </Link>
                   ))}
                 </div>

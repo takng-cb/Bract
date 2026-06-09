@@ -16,6 +16,7 @@ import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDi
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { AB_ICONS } from '@/industries/auto-body/lib/icons'
 import { aggregateLatestConsumables, type LineWithMaintenance } from '@/industries/auto-body/lib/consumablesAggregate'
+import { NavIcon } from '@/lib/navIcon'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
@@ -142,7 +143,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       />
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900">🚗 {v.plate_number ?? v.car_model ?? '車両'}</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🚗" className="w-6 h-6" /> {v.plate_number ?? v.car_model ?? '車両'}</h1>
         <p className="text-sm text-zinc-500 mt-1">
           {[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}
         </p>
@@ -188,19 +189,19 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
             {(contact?.phone || account.phone) && (
               <div>
                 <dt className="text-xs text-zinc-400 mb-1">電話</dt>
-                <dd className="text-zinc-800">📞 {contact?.phone ?? account.phone}</dd>
+                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3.5 h-3.5 shrink-0" /> {contact?.phone ?? account.phone}</dd>
               </div>
             )}
             {contact?.email && (
               <div>
                 <dt className="text-xs text-zinc-400 mb-1">Email</dt>
-                <dd className="text-zinc-800">✉️ {contact.email}</dd>
+                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="✉️" className="w-3.5 h-3.5 shrink-0" /> {contact.email}</dd>
               </div>
             )}
             {account.address && (
               <div className="sm:col-span-2">
                 <dt className="text-xs text-zinc-400 mb-1">住所</dt>
-                <dd className="text-zinc-800">📍 {account.address}</dd>
+                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="📍" className="w-3.5 h-3.5 shrink-0" /> {account.address}</dd>
               </div>
             )}
           </dl>
@@ -218,18 +219,18 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
             {contact.phone && (
               <div>
                 <dt className="text-xs text-zinc-400 mb-1">電話</dt>
-                <dd className="text-zinc-800">📞 {contact.phone}</dd>
+                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3.5 h-3.5 shrink-0" /> {contact.phone}</dd>
               </div>
             )}
             {contact.email && (
               <div>
                 <dt className="text-xs text-zinc-400 mb-1">Email</dt>
-                <dd className="text-zinc-800">✉️ {contact.email}</dd>
+                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="✉️" className="w-3.5 h-3.5 shrink-0" /> {contact.email}</dd>
               </div>
             )}
           </dl>
         ) : (
-          <p className="text-sm text-zinc-400">所有者が設定されていません。「✏️ 編集」から取引先 または 顧客（人物）を選択してください。</p>
+          <p className="text-sm text-zinc-400">所有者が設定されていません。「編集」から取引先 または 顧客（人物）を選択してください。</p>
         )}
       </div>
 
@@ -289,8 +290,8 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
 
       {/* 消耗品の前回交換 (Phase A item 4) */}
       <section className="mb-6">
-        <h2 className="text-base font-semibold text-zinc-800 mb-3">
-          🧰 消耗品の前回交換 <span className="text-zinc-400 font-normal text-sm">({consumables.length})</span>
+        <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-800 mb-3">
+          <NavIcon icon="🧰" className="w-4 h-4" />消耗品の前回交換 <span className="text-zinc-400 font-normal text-sm">({consumables.length})</span>
         </h2>
         {consumables.length > 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">

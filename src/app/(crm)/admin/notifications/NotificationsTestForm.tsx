@@ -5,6 +5,7 @@
  */
 import { useState, useTransition } from 'react'
 import { sendTestDiscordNotification } from '@/app/actions/testDiscord'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   enabled: boolean
@@ -19,9 +20,9 @@ export default function NotificationsTestForm({ enabled }: Props) {
     startTransition(async () => {
       const r = await sendTestDiscordNotification()
       if (r.ok) {
-        setResult({ type: 'success', text: '✅ 送信完了。Discord チャンネルを確認してください。' })
+        setResult({ type: 'success', text: '送信完了。Discord チャンネルを確認してください。' })
       } else {
-        setResult({ type: 'error', text: `❌ ${r.error}` })
+        setResult({ type: 'error', text: `${r.error}` })
       }
     })
   }
@@ -32,9 +33,9 @@ export default function NotificationsTestForm({ enabled }: Props) {
         type="button"
         onClick={handleTest}
         disabled={!enabled || pending}
-        className="px-4 py-2 text-sm bg-violet-600 text-white font-medium rounded-md hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-1 px-4 py-2 text-sm bg-violet-600 text-white font-medium rounded-md hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {pending ? '送信中...' : '🧪 テスト送信'}
+        {pending ? '送信中...' : (<><NavIcon icon="🧪" className="w-3.5 h-3.5 shrink-0" />テスト送信</>)}
       </button>
       {!enabled && (
         <p className="text-xs text-zinc-500 mt-2">

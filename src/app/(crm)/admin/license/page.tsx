@@ -11,6 +11,7 @@ import { redirect } from 'next/navigation'
 import { isAdmin } from '@/lib/auth'
 import { getLicense } from '@/lib/license'
 import LicenseEditForm from './LicenseEditForm'
+import { NavIcon } from '@/lib/navIcon'
 
 export default async function AdminLicensePage() {
   const adminFlag = await isAdmin()
@@ -27,7 +28,7 @@ export default async function AdminLicensePage() {
   return (
     <div className="p-4 md:p-8 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">🎫 ライセンス管理</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🎫" className="w-6 h-6" /> ライセンス管理</h1>
         <p className="text-sm text-zinc-500 mt-1">
           テナントの契約状態と機能フラグを管理します。管理者のみアクセス可能。
         </p>
@@ -40,7 +41,7 @@ export default async function AdminLicensePage() {
 
       {/* 補足情報 */}
       <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-5 text-sm text-blue-900">
-        <h2 className="font-semibold mb-2">⚙️ 環境変数による override について</h2>
+        <h2 className="font-semibold mb-2 flex items-center gap-2"><NavIcon icon="⚙️" className="w-4 h-4" /> 環境変数による override について</h2>
         <p className="mb-2">以下の env 変数は <strong>DB 設定を上書き</strong> します（kill switch として動作）:</p>
         <ul className="list-disc list-inside space-y-1 ml-2">
           <li><code className="bg-white px-1 rounded">AI_FEATURE_ENABLED</code> = <strong>true</strong> → AI 機能を強制的に有効化</li>

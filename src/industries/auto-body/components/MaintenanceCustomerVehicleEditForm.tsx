@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SearchableSelect from '@/components/SearchableSelect'
 import { AB_ICONS } from '@/industries/auto-body/lib/icons'
+import { NavIcon } from '@/lib/navIcon'
 import { updateMaintenanceCustomerVehicle } from '@/industries/auto-body/actions/maintenance'
 import { useSectionModal } from './SectionEditModal'
 
@@ -149,8 +150,8 @@ export default function MaintenanceCustomerVehicleEditForm({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* ━━━ 左: 設定箇所 ━━━ */}
           <div className="space-y-4">
-            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pb-1 border-b border-zinc-200">
-              ✏️ 設定
+            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pb-1 border-b border-zinc-200 flex items-center gap-1">
+              <NavIcon icon="✏️" className="w-3.5 h-3.5" /> 設定
             </div>
 
             {/* 顧客ブロック */}
@@ -259,8 +260,8 @@ export default function MaintenanceCustomerVehicleEditForm({
 
           {/* ━━━ 右: 設定後の反映プレビュー ━━━ */}
           <div className="space-y-4">
-            <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pb-1 border-b border-zinc-200">
-              👁 保存後の反映プレビュー
+            <div className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 uppercase tracking-wide pb-1 border-b border-zinc-200">
+              <NavIcon icon="👁" className="w-3.5 h-3.5 shrink-0" />保存後の反映プレビュー
             </div>
 
             {/* 取引先プレビュー */}
@@ -273,9 +274,9 @@ export default function MaintenanceCustomerVehicleEditForm({
                 <dl className="space-y-1.5">
                   <Row label="会社名" value={selAccount.name} bold />
                   {selAccount.industry && <Row label="業種" value={selAccount.industry} />}
-                  {selAccount.phone && <Row label="📞 電話" value={selAccount.phone} />}
-                  {selAccount.website && <Row label="🌐 Web" value={selAccount.website} />}
-                  {selAccount.address && <Row label="📍 住所" value={selAccount.address} />}
+                  {selAccount.phone && <Row label={<><NavIcon icon="📞" className="w-3 h-3 shrink-0" /> 電話</>} value={selAccount.phone} />}
+                  {selAccount.website && <Row label={<><NavIcon icon="🌐" className="w-3 h-3 shrink-0" /> Web</>} value={selAccount.website} />}
+                  {selAccount.address && <Row label={<><NavIcon icon="📍" className="w-3 h-3 shrink-0" /> 住所</>} value={selAccount.address} />}
                 </dl>
               )}
             </PreviewCard>
@@ -291,8 +292,8 @@ export default function MaintenanceCustomerVehicleEditForm({
                   <Row label="氏名" value={selContact.full_name} bold />
                   {selContact.department && <Row label="部署" value={selContact.department} />}
                   {selContact.title && <Row label="役職" value={selContact.title} />}
-                  {selContact.email && <Row label="✉️ Email" value={selContact.email} />}
-                  {selContact.phone && <Row label="📞 電話" value={selContact.phone} />}
+                  {selContact.email && <Row label={<><NavIcon icon="✉️" className="w-3 h-3 shrink-0" /> Email</>} value={selContact.email} />}
+                  {selContact.phone && <Row label={<><NavIcon icon="📞" className="w-3 h-3 shrink-0" /> 電話</>} value={selContact.phone} />}
                 </dl>
               )}
             </PreviewCard>
@@ -300,15 +301,15 @@ export default function MaintenanceCustomerVehicleEditForm({
             {/* 請求先プレビュー（指定があるときだけ） */}
             {billingAccountId && (
               <PreviewCard
-                title="💳 請求先（別指定）"
+                title={<span className="inline-flex items-center gap-1"><NavIcon icon="💳" className="w-3.5 h-3.5 shrink-0" />請求先（別指定）</span>}
                 emptyText="—"
                 link={selBilling ? `/accounts/${selBilling.id}` : null}
               >
                 {selBilling && (
                   <dl className="space-y-1.5">
                     <Row label="会社名" value={selBilling.name} bold />
-                    {selBilling.phone && <Row label="📞 電話" value={selBilling.phone} />}
-                    {selBilling.address && <Row label="📍 住所" value={selBilling.address} />}
+                    {selBilling.phone && <Row label={<><NavIcon icon="📞" className="w-3 h-3 shrink-0" /> 電話</>} value={selBilling.phone} />}
+                    {selBilling.address && <Row label={<><NavIcon icon="📍" className="w-3 h-3 shrink-0" /> 住所</>} value={selBilling.address} />}
                   </dl>
                 )}
               </PreviewCard>
@@ -328,7 +329,7 @@ export default function MaintenanceCustomerVehicleEditForm({
                   {selVehicle.body_shape && <Row label="車体形状" value={selVehicle.body_shape} />}
                   {selVehicle.vin && <Row label="車台番号" value={selVehicle.vin} mono />}
                   {selVehicle.type_designation && <Row label="型式" value={selVehicle.type_designation} />}
-                  {selVehicle.inspection_due_date && <Row label="⚠️ 車検満了" value={selVehicle.inspection_due_date} />}
+                  {selVehicle.inspection_due_date && <Row label={<><NavIcon icon="⚠️" className="w-3 h-3 shrink-0" /> 車検満了</>} value={selVehicle.inspection_due_date} />}
                 </dl>
               )}
             </PreviewCard>
@@ -394,10 +395,10 @@ function PreviewCard({
   )
 }
 
-function Row({ label, value, bold, mono }: { label: string; value: string; bold?: boolean; mono?: boolean }) {
+function Row({ label, value, bold, mono }: { label: React.ReactNode; value: string; bold?: boolean; mono?: boolean }) {
   return (
     <div className="flex items-start gap-2 text-xs">
-      <dt className="text-zinc-500 w-20 shrink-0">{label}</dt>
+      <dt className="text-zinc-500 w-20 shrink-0 inline-flex items-center gap-1">{label}</dt>
       <dd className={`flex-1 ${bold ? 'font-semibold text-zinc-900' : 'text-zinc-700'} ${mono ? 'font-mono' : ''} break-words`}>
         {value}
       </dd>

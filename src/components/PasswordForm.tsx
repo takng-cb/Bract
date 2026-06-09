@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { updatePassword } from '@/app/actions/settings'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   passwordMinLength?: number
@@ -19,8 +20,8 @@ export default function PasswordForm({ passwordMinLength = 8 }: Props) {
 
       <form action={formAction} className="space-y-4">
         {isSuccess && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md">
-            ✅ パスワードを更新しました
+          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md inline-flex items-center gap-1.5">
+            <NavIcon icon="✅" className="w-4 h-4 shrink-0" /> パスワードを更新しました
           </div>
         )}
         {errorMsg && (

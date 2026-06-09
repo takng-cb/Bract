@@ -27,3 +27,59 @@ export function buildQuickActionGroups(modules: ModuleManifest[]): QuickActionGr
       actions: m.quickActions ?? [],
     }))
 }
+
+// ── クイック操作ウィザード用：モジュール → ブック ツリー（REQ-0022）──────
+export type QuickBook = {
+  apiName: string
+  label: string
+  icon?: string
+  /** 一覧（閲覧）への遷移先 */
+  listHref: string
+  /** 新規作成（手動）への遷移先 */
+  newHref: string
+  /** custom_records ベース（field_definitions 駆動）なら true → 汎用AI作成が可能 */
+  custom: boolean
+  /** 専用 AI 起票ウィザードがある場合の遷移先（例: staffing → /quick/staffing） */
+  aiWizardHref?: string
+}
+export type QuickModule = {
+  id: string
+  name: string
+  category: ModuleCategory
+  icon?: string
+  books: QuickBook[]
+}
+
+/** 専用 AI ウィザードを持つブック（apiName → href）。汎用AIが無い typed ブックの受け皿 */
+const AI_WIZARD_HREF: Record<string, string> = {
+  assignments: '/quick/staffing',
+}
+
+/**
+ * 有効モジュール群 → 「モジュール → ブック」ツリー。
+ * listHref/newHref は各モジュールの navItems（label 一致）から解決し、
+ * 無ければカスタムオブジェクト規約 `/objects/<apiName>` にフォールバックする。
+ */
+export function buildModuleBooks(modules: ModuleManifest[]): QuickModule[] {
+  return [...modules]
+    .filter((m) => (m.books?.length ?? 0) > 0)
+    .sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category))
+    .map((m) => {
+      const firstNavIcon = m.navItems?.[0]?.icon
+      const books: QuickBook[] = (m.books ?? []).map((b) => {
+        const nav = m.navItems?.find((n) => n.label === b.label)
+        const listHref = nav?.href ?? `/objects/${b.apiName}`
+        const custom = listHref.startsWith('/objects/')
+        return {
+          apiName: b.apiName,
+          label: b.label,
+          icon: nav?.icon,
+          listHref,
+          newHref: `${listHref}/new`,
+          custom,
+          aiWizardHref: AI_WIZARD_HREF[b.apiName],
+        }
+      })
+      return { id: m.id, name: m.name, category: m.category, icon: firstNavIcon, books }
+    })
+}

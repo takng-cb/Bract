@@ -13,6 +13,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   /** 表示用タイトル（プリント時はヘッダ右上にも表示） */
@@ -51,9 +52,9 @@ export default function DocumentLayout({ title, maintenanceId, children }: Props
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 shadow-sm"
+            className="inline-flex items-center gap-1 px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 shadow-sm"
           >
-            🖨️ 印刷 / PDF 保存
+            <NavIcon icon="🖨️" className="w-4 h-4" /> 印刷 / PDF 保存
           </button>
         </div>
       </div>

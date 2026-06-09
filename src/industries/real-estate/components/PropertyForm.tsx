@@ -8,6 +8,7 @@ import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 import CreateFeedback from '@/components/CreateFeedback'
 import type { CreateAction } from '@/lib/duplicateTypes'
+import { NavIcon } from '@/lib/navIcon'
 
 const PROPERTY_TYPES  = ['土地・建物', '建物のみ', '土地のみ', 'その他']
 const STATUSES_RE     = ['募集中', '交渉中', '成約', '管理中', '終了']
@@ -165,8 +166,8 @@ export default function PropertyForm({
         <label className={lbl}>カテゴリ</label>
         <div className="flex gap-0 rounded-md border border-zinc-300 overflow-hidden w-fit">
           {[
-            { value: 'real_estate', label: '🏠 不動産' },
-            { value: 'other',       label: '📦 その他商品' },
+            { value: 'real_estate', label: '不動産' },
+            { value: 'other',       label: 'その他商品' },
           ].map(({ value, label }) => (
             <button
               key={value}
@@ -272,7 +273,7 @@ export default function PropertyForm({
       ════════════════════════════════════════════════ */}
       {isRE && (
         <div className={sec}>
-          <h3 className={secH}>🗺️ 土地の登記</h3>
+          <h3 className={`${secH} flex items-center gap-1.5`}><NavIcon icon="🗺️" className="w-4 h-4" />土地の登記</h3>
 
           {/* 表題部 */}
           <p className={subH}>表題部（土地の表示）</p>
@@ -363,7 +364,7 @@ export default function PropertyForm({
       ════════════════════════════════════════════════ */}
       {isRE && (
         <div className={sec}>
-          <h3 className={secH}>🏠 建物の登記</h3>
+          <h3 className={`${secH} flex items-center gap-1.5`}><NavIcon icon="🏠" className="w-4 h-4" />建物の登記</h3>
 
           {/* 表題部 */}
           <p className={subH}>表題部（建物の表示）</p>
@@ -508,7 +509,7 @@ export default function PropertyForm({
       {/* 不動産のみ: 司法書士情報 */}
       {isRE && (
         <div className="border border-zinc-200 rounded-lg p-4 space-y-4 bg-zinc-50">
-          <h3 className="text-sm font-semibold text-zinc-700">⚖️ 司法書士情報</h3>
+          <h3 className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5"><NavIcon icon="⚖️" className="w-4 h-4" />司法書士情報</h3>
 
           {scrivenerAccounts.length === 0 ? (
             <p className="text-xs text-zinc-400">

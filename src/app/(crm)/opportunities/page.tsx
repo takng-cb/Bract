@@ -23,6 +23,9 @@ import OpportunitiesTableView from '@/components/tableviews/OpportunitiesTableVi
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
+import { NavIcon } from '@/lib/navIcon'
+import OpportunityBoard, { type BoardColumn } from '@/components/OpportunityBoard'
+import { List as ListIcon, Kanban as KanbanIcon, BarChart3 } from 'lucide-react'
 
 const PAGE_SIZE = 20
 
@@ -35,11 +38,97 @@ const STAGE_LABELS: Record<string, { label: string; color: string }> = {
   closed_lost:   { label: '失注',     color: 'bg-red-100 text-red-600' },
 }
 
+/** カンバン（パイプライン）用ステージ定義（順序とドット色） */
+const BOARD_STAGES: { id: string; label: string; dot: string }[] = [
+  { id: 'prospecting',   label: '見込み',   dot: 'bg-zinc-400' },
+  { id: 'qualification', label: '要件確認', dot: 'bg-blue-500' },
+  { id: 'proposal',      label: '提案',     dot: 'bg-violet-500' },
+  { id: 'negotiation',   label: '交渉',     dot: 'bg-amber-500' },
+  { id: 'closed_won',    label: '受注',     dot: 'bg-green-500' },
+  { id: 'closed_lost',   label: '失注',     dot: 'bg-zinc-400' },
+]
+
+/** ビュー切替トグル（パイプライン / リスト）＋予実リンク */
+function ViewToggle({ view }: { view: 'board' | 'list' }) {
+  const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition-colors'
+  return (
+    <div className="flex items-center gap-2">
+      <Link href="/forecast" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-zinc-600 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50">
+        <BarChart3 className="w-4 h-4" strokeWidth={2.25} aria-hidden />予実
+      </Link>
+      <div className="inline-flex items-center gap-0.5 rounded-md border border-zinc-200 bg-zinc-100 p-0.5">
+        <Link href="/opportunities?view=board" className={`${base} ${view === 'board' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+          <KanbanIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden />パイプライン
+        </Link>
+        <Link href="/opportunities?view=list" className={`${base} ${view === 'list' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+          <ListIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden />リスト
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string; view?: string }>
 }) {
+  const sp0 = await searchParams
+  const hasListParams = Boolean(sp0.f || sp0.group || sp0.sort || sp0.page)
+  // 既定はパイプライン（カンバン）。view=list か、一覧操作（フィルタ等）時はリスト。
+  const view: 'board' | 'list' = sp0.view === 'list' || (sp0.view !== 'board' && hasListParams) ? 'list' : 'board'
+
+  if (view === 'board') {
+    const [edit, rows, users] = await Promise.all([
+      canEdit(),
+      db.select({
+        id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
+        amount: opportunities.amount, probability: opportunities.probability,
+        close_date: opportunities.close_date, owner_id: opportunities.owner_id,
+        accountName: accounts.name,
+      })
+        .from(opportunities)
+        .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+        .orderBy(desc(opportunities.amount)),
+      getAllUsers(),
+    ])
+    const ownerName = new Map(users.map((u) => [u.id, u.name]))
+    const columns: BoardColumn[] = BOARD_STAGES.map((s) => {
+      const deals = rows
+        .filter((r) => r.stage === s.id)
+        .map((r) => ({
+          id: r.id, name: r.name, accountName: r.accountName ?? null,
+          amount: r.amount != null ? Number(r.amount) : null,
+          probability: r.probability != null ? Number(r.probability) : null,
+          ownerChar: (r.owner_id && ownerName.get(r.owner_id)?.trim()?.[0]) || '—',
+          closeDate: r.close_date ?? null,
+        }))
+      const sum = deals.reduce((acc, d) => acc + (d.amount ?? 0), 0)
+      return { id: s.id, label: s.label, dot: s.dot, deals, sum }
+    })
+    const total = rows.length
+    const weighted = rows.reduce((acc, r) => acc + (r.amount != null && r.probability != null ? Number(r.amount) * Number(r.probability) / 100 : 0), 0)
+
+    return (
+      <div className="flex flex-col h-full p-4 md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-900">商談 <span className="ml-1 text-base font-semibold text-zinc-400 tabular-nums">{total}件 · 加重 ¥{Math.round(weighted).toLocaleString()}</span></h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <ViewToggle view="board" />
+            {edit && (
+              <Link href="/opportunities/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+                <NavIcon icon="💼" className="w-4 h-4" />商談を作成
+              </Link>
+            )}
+          </div>
+        </div>
+        <OpportunityBoard columns={columns} canEdit={edit} />
+      </div>
+    )
+  }
+
   // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('opportunities', uid) : null)
@@ -209,6 +298,7 @@ export default async function OpportunitiesPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <ViewToggle view="list" />
           <CsvToolbar
             exportUrl="/api/export/opportunities"
             importUrl="/api/import/opportunities"
@@ -253,7 +343,7 @@ export default async function OpportunitiesPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">💼</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="💼" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致する商談がありません' : '商談がまだありません'}
           </p>
@@ -292,9 +382,9 @@ export default async function OpportunitiesPage({
                       <span className="font-semibold text-zinc-900 text-sm leading-snug">{o.name}</span>
                       <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${stageConf.color}`}>{stageConf.label}</span>
                     </div>
-                    {account && <p className="text-xs text-zinc-500 mt-0.5">🏢 {account.name}</p>}
+                    {account && <p className="text-xs text-zinc-500 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</p>}
                     <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                      <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
+                      <span className="inline-flex items-center gap-1">{o.close_date ? <><NavIcon icon="📅" className="w-3 h-3 shrink-0" /> {o.close_date}</> : '期限なし'}</span>
                       <div className="text-right">
                         {o.amount && <span className="font-semibold text-zinc-800">¥{Number(o.amount).toLocaleString()}</span>}
                         {o.probability != null && <span className="ml-2 text-zinc-400">確度{o.probability}%</span>}

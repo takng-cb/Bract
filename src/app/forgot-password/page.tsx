@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { requestPasswordReset } from '@/app/actions/auth'
 import Image from 'next/image'
 import Link from 'next/link'
+import { NavIcon } from '@/lib/navIcon'
 
 export default function ForgotPasswordPage() {
   const [state, formAction, pending] = useActionState(requestPasswordReset, null)
@@ -19,7 +20,7 @@ export default function ForgotPasswordPage() {
             </div>
           </div>
           <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm text-center space-y-4">
-            <div className="text-4xl">✉️</div>
+            <div className="flex justify-center"><NavIcon icon="✉️" className="w-10 h-10 text-blue-500" /></div>
             <h2 className="text-lg font-semibold text-zinc-900">メールを送信しました</h2>
             <p className="text-sm text-zinc-500">
               入力したメールアドレスにパスワードリセット用のリンクを送信しました。

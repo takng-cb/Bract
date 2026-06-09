@@ -18,6 +18,7 @@ import { isModuleEnabled } from '@/lib/modules/registry'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getReceivables, sumReceivables, type ReceivableRow } from '@/industries/auto-body/lib/maintenanceReceivables'
+import { NavIcon } from '@/lib/navIcon'
 
 const AGING_BUCKETS = [
   { label: '0–30日',  min: 0,   max: 30,    color: 'bg-zinc-50  text-zinc-700  border-zinc-200' },
@@ -95,7 +96,7 @@ export default async function ReceivablesPage() {
   return (
     <div className="p-4 md:p-8 max-w-6xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">💰 売掛金（未入金）</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="💰" className="w-6 h-6" />売掛金（未入金）</h1>
         <p className="text-sm text-zinc-500 mt-1">
           売上計上対象の整備で、入金が完了していないものを表示。
         </p>
@@ -166,7 +167,7 @@ export default async function ReceivablesPage() {
         <h2 className="text-sm font-bold text-zinc-700 mb-3">未入金整備 全件 ({rows.length})</h2>
         {rows.length === 0 ? (
           <div className="bg-white border border-zinc-200 rounded-lg px-4 py-12 text-center text-sm text-zinc-400">
-            未入金の整備はありません 🎉
+            未入金の整備はありません
           </div>
         ) : (
           <ReceivablesTable rows={rows} />
@@ -271,7 +272,7 @@ function ReceivablesTable({ rows }: { rows: ReceivableRow[] }) {
                   <p className="text-sm font-medium text-zinc-900 truncate">{customerName}</p>
                   <p className="text-xs text-zinc-400 mt-0.5">
                     <span className="font-mono">{r.maintenance_no}</span>
-                    {r.vehicle?.plate_number && <span className="ml-2">🚗 {r.vehicle.plate_number}</span>}
+                    {r.vehicle?.plate_number && <span className="ml-2 inline-flex items-center gap-1"><NavIcon icon="🚗" className="w-3 h-3 shrink-0" />{r.vehicle.plate_number}</span>}
                   </p>
                 </div>
                 <div className="text-right shrink-0">

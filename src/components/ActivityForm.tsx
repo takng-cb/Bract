@@ -10,6 +10,7 @@ import RelatedRecordsPicker, {
   type RelatedRecordSelection,
 } from '@/components/RelatedRecordsPicker'
 import type { ActivityType } from '@/lib/activityTypes'
+import { NavIcon } from '@/lib/navIcon'
 
 type ActivityFormProps = {
   action:          (prevState: string | null, formData: FormData) => Promise<string | null>
@@ -113,7 +114,7 @@ export default function ActivityForm({
                 defaultChecked={(defaultValues.type ?? activityTypes[0]?.value ?? '') === t.value}
                 className="accent-blue-600"
               />
-              <span className="text-sm">{t.icon} {t.label}</span>
+              <span className="text-sm inline-flex items-center gap-1"><NavIcon icon={t.icon} className="w-4 h-4 shrink-0" />{t.label}</span>
             </label>
           ))}
         </div>

@@ -19,7 +19,7 @@
  * 失敗時は AIDisabledError / AIProviderError を throw。
  */
 import { ensureAIEnabled } from './config'
-import type { AIProvider, AICompletionResult } from './types'
+import type { AIProvider, AICompletionResult, AIImageInput } from './types'
 import { groqProvider } from './providers/groq'
 import { geminiProvider } from './providers/gemini'
 import { anthropicProvider } from './providers/anthropic'
@@ -34,6 +34,8 @@ const PROVIDERS: Record<AIProviderKind, AIProvider> = {
 export type CallAIInput = {
   system: string
   user:   string
+  /** Vision 入力（対応プロバイダのみ） */
+  images?: AIImageInput[]
   maxTokens?: number
   temperature?: number
   timeoutMs?: number
@@ -51,6 +53,7 @@ export async function callAI(input: CallAIInput): Promise<AICompletionResult> {
     apiKey:      cfg.apiKey,
     system:      input.system,
     user:        input.user,
+    images:      input.images,
     maxTokens:   input.maxTokens,
     temperature: input.temperature,
     timeoutMs:   input.timeoutMs,

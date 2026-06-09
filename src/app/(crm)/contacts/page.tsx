@@ -23,6 +23,7 @@ import ContactsTableView from '@/components/tableviews/ContactsTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -266,7 +267,7 @@ export default async function ContactsPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">{isBiz ? '👔' : '👤'}</p>
+          <div className="flex justify-center mb-4"><NavIcon icon={isBiz ? '👔' : '👤'} className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter
               ? `条件に一致する${isBiz ? '法人担当者' : '個人顧客'}がいません`
@@ -303,14 +304,14 @@ export default async function ContactsPage({
                 return (
                   <Link href={`/contacts/${c.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-semibold text-zinc-900 text-sm">{isBiz ? '👔' : '👤'} {c.full_name}</span>
+                      <span className="font-semibold text-zinc-900 text-sm inline-flex items-center gap-1"><NavIcon icon={isBiz ? '👔' : '👤'} className="w-3.5 h-3.5 shrink-0" />{c.full_name}</span>
                       {isBiz && c.title && <span className="shrink-0 text-xs text-zinc-500">{c.title}</span>}
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
-                      {isBiz && account && <span>🏢 {account.name}</span>}
+                      {isBiz && account && <span className="inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</span>}
                       {isBiz && c.department && <span>{c.department}</span>}
-                      {c.email && <span>✉️ {c.email}</span>}
-                      {c.phone && <span>📞 {c.phone}</span>}
+                      {c.email && <span className="inline-flex items-center gap-1"><NavIcon icon="✉️" className="w-3 h-3 shrink-0" />{c.email}</span>}
+                      {c.phone && <span className="inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3 h-3 shrink-0" />{c.phone}</span>}
                     </div>
                   </Link>
                 )

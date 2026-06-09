@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   importUrl: string
@@ -203,7 +204,7 @@ ${selectSection}
                     : 'border-transparent text-zinc-500 hover:text-zinc-700'
                 }`}
               >
-                📁 ファイル
+                <span className="inline-flex items-center gap-1"><NavIcon icon="📁" className="w-4 h-4" /> ファイル</span>
               </button>
               <button
                 onClick={() => switchTab('text')}
@@ -213,7 +214,7 @@ ${selectSection}
                     : 'border-transparent text-zinc-500 hover:text-zinc-700'
                 }`}
               >
-                📋 テキスト
+                <span className="inline-flex items-center gap-1"><NavIcon icon="📋" className="w-4 h-4" /> テキスト</span>
               </button>
             </div>
 
