@@ -15,6 +15,9 @@ import { activeIndustry } from '@/lib/industry'
 import { widgetsForIndustry } from '@/lib/dashboard/widgets'
 import { NavIcon } from '@/lib/navIcon'
 import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
+import PageHeader from '@/components/ui/PageHeader'
+import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
@@ -52,10 +55,7 @@ export default async function SettingsPage() {
           一般設定（全ユーザー）
       ══════════════════════════════════════ */}
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">設定</h1>
-          <p className="text-sm text-zinc-500 mt-1">アカウントと表示に関する設定</p>
-        </div>
+        <PageHeader icon="⚙️" title="設定" description="アカウントと表示に関する設定" className="mb-0" />
 
         <ProfileForm
           currentDisplayName={userPref?.display_name ?? null}
@@ -126,7 +126,7 @@ export default async function SettingsPage() {
           <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
             <h3 className="text-sm font-bold text-zinc-700 mb-4">管理画面</h3>
             <div className="space-y-2">
-              <a
+              <Link
                 href="/admin/objects"
                 className="flex items-center justify-between px-4 py-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors group"
               >
@@ -137,9 +137,9 @@ export default async function SettingsPage() {
                     <p className="text-xs text-zinc-400">カスタムオブジェクトとフィールドを管理</p>
                   </div>
                 </div>
-                <span className="text-zinc-400 group-hover:text-zinc-600">→</span>
-              </a>
-              <a
+                <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600" />
+              </Link>
+              <Link
                 href="/admin/users"
                 className="flex items-center justify-between px-4 py-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors group"
               >
@@ -150,8 +150,8 @@ export default async function SettingsPage() {
                     <p className="text-xs text-zinc-400">ユーザーのロールと権限を管理</p>
                   </div>
                 </div>
-                <span className="text-zinc-400 group-hover:text-zinc-600">→</span>
-              </a>
+                <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600" />
+              </Link>
             </div>
           </div>
 
