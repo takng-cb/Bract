@@ -8,8 +8,9 @@ import { db } from '@/lib/db'
 import { products, stock_movements } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
 import { canEdit } from '@/lib/auth'
-import { computeStockBalance, stockBadgeColor } from '@/lib/inventory'
+import { computeStockBalance, stockBadgeColor, isBelowReorder } from '@/lib/inventory'
 import { NavIcon } from '@/lib/navIcon'
+import CsvToolbar from '@/components/CsvToolbar'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,11 +50,20 @@ export default async function ProductsListPage() {
           <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="📦" className="w-6 h-6" /> 商品</h1>
           <p className="text-sm text-zinc-500 mt-1">全 {rows.length} 件</p>
         </div>
-        {edit && (
-          <Link href="/products/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
-            ＋ 新規追加
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <CsvToolbar
+            exportUrl="/api/export/products"
+            importUrl="/api/import/products"
+            label="商品"
+            csvFormat="ID,SKU,商品名,カテゴリ,単位,売価,原価,発注しきい値,備考"
+            showImport={edit}
+          />
+          {edit && (
+            <Link href="/products/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+              ＋ 新規追加
+            </Link>
+          )}
+        </div>
       </div>
 
       {rows.length === 0 ? (
@@ -87,10 +97,13 @@ export default async function ProductsListPage() {
                     <td className="px-3 py-2 text-right text-zinc-700 font-mono">
                       {r.unit_price ? `¥${Number(r.unit_price).toLocaleString()}` : '—'}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
                       <span className={`inline-block px-2 py-0.5 text-xs rounded font-semibold ${stockBadgeColor(total, r.reorder_level ?? 0)}`}>
                         {total}{r.unit ? ` ${r.unit}` : ''}
                       </span>
+                      {isBelowReorder(total, r.reorder_level ?? 0) && (
+                        <span className="ml-1.5 inline-block px-1.5 py-0.5 text-xs rounded font-bold bg-red-600 text-white">発注</span>
+                      )}
                     </td>
                   </tr>
                 )

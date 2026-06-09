@@ -52,6 +52,14 @@ export function computeStockBalance(movements: StockMovementLike[]): StockBalanc
   return { total, byWarehouse }
 }
 
+/**
+ * 在庫が発注点を下回っているか判定する純粋関数。
+ * reorderLevel が 0 以下（未設定）のときは常に false（アラート無効）。
+ */
+export function isBelowReorder(totalBalance: number, reorderLevel: number): boolean {
+  return reorderLevel > 0 && totalBalance <= reorderLevel
+}
+
 /** 在庫数の表示用バッジ色（reorder_level との比較） */
 export function stockBadgeColor(stock: number, reorderLevel: number): string {
   if (stock <= 0) return 'bg-danger-bg text-danger'

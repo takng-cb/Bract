@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeStockBalance, movementDelta } from './inventory'
+import { computeStockBalance, movementDelta, isBelowReorder } from './inventory'
 
 describe('movementDelta', () => {
   it('入庫 is positive', () => {
@@ -47,5 +47,20 @@ describe('computeStockBalance', () => {
 
   it('returns zero total for empty input', () => {
     expect(computeStockBalance([]).total).toBe(0)
+  })
+})
+
+describe('isBelowReorder', () => {
+  it('true when total is at or below a positive reorder level', () => {
+    expect(isBelowReorder(5, 10)).toBe(true)
+    expect(isBelowReorder(10, 10)).toBe(true) // 等しいとき（<=）も発注対象
+    expect(isBelowReorder(0, 3)).toBe(true)
+  })
+  it('false when total exceeds reorder level', () => {
+    expect(isBelowReorder(11, 10)).toBe(false)
+  })
+  it('false when reorder level is unset (0 or negative)', () => {
+    expect(isBelowReorder(0, 0)).toBe(false)
+    expect(isBelowReorder(-1, -5)).toBe(false)
   })
 })

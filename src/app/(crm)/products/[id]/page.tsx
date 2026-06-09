@@ -12,7 +12,7 @@ import { eq, desc, asc } from 'drizzle-orm'
 import RecordHeader from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
-import { computeStockBalance, stockBadgeColor } from '@/lib/inventory'
+import { computeStockBalance, stockBadgeColor, isBelowReorder } from '@/lib/inventory'
 import { deleteProduct } from '@/app/actions/inventory'
 import { NavIcon } from '@/lib/navIcon'
 
@@ -96,6 +96,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           </AuthGuard>
         }
       />
+
+      {/* 発注点アラート */}
+      {isBelowReorder(total, productRow.reorder_level ?? 0) && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 mb-6 text-sm font-medium flex items-center gap-2">
+          <span className="inline-block px-1.5 py-0.5 text-xs rounded font-bold bg-red-600 text-white">発注</span>
+          発注点を下回っています（在庫 {total}{unit} / 発注点 {productRow.reorder_level}{unit}）
+        </div>
+      )}
 
       {/* 商品情報 */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
