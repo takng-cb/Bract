@@ -1,14 +1,17 @@
-import { MODULE_REGISTRY, getEnabledModules } from '@/lib/modules/registry'
+import { MODULE_REGISTRY, ALWAYS_ON, getEnabledModules } from '@/lib/modules/registry'
 import type { ModuleCategory } from '@/lib/modules/types'
+import { requireAdmin } from '@/lib/auth'
+import { getLicense } from '@/lib/license'
+import ModuleToggle from '@/components/ModuleToggle'
 
 // ライセンス/業種を実行時に読むため動的レンダリング
 export const dynamic = 'force-dynamic'
 
 /**
- * モジュール構成ビュー（#10/#11 の読み取り専用ビュー）
+ * モジュール構成（#10/#11）
  *
- * 「モジュール > ブック」の構造と、現在の有効/無効状態を可視化する。
- * ※ Preview 確認用。トグル操作（/admin/modules の編集）と admin ゲートは #11 で追加する。
+ * 「モジュール > ブック」の構造と有効状態を可視化し、管理者が ON/OFF できる。
+ * 基盤(ALWAYS_ON)は固定、entitled 外は有効化不可。
  */
 const CATEGORY_LABEL: Record<ModuleCategory, string> = {
   platform: '基盤',
@@ -25,8 +28,11 @@ const CATEGORY_COLOR: Record<ModuleCategory, string> = {
 }
 
 export default async function ModulesAdminPage() {
-  const enabled = await getEnabledModules()
+  await requireAdmin()
+  const [enabled, lic] = await Promise.all([getEnabledModules(), getLicense()])
   const enabledIds = new Set(enabled.map((m) => m.id))
+  const entitled = (lic?.features as { entitled_modules?: string[] } | undefined)?.entitled_modules
+  const alwaysOn = new Set<string>(ALWAYS_ON)
   const all = Object.values(MODULE_REGISTRY)
     .slice()
     .sort(
@@ -44,7 +50,7 @@ export default async function ModulesAdminPage() {
           {all.length} モジュールが有効です。
           <br />
           <span className="text-xs text-zinc-400">
-            ※ 読み取り専用ビュー（Preview 確認用）。トグル操作・権限ゲートは #11 で追加予定。
+            ※ 右のスイッチで有効/無効を切り替え（再ビルド不要・即反映）。基盤モジュールは常時有効、契約外は有効化不可。
           </span>
         </p>
       </header>
@@ -69,13 +75,12 @@ export default async function ModulesAdminPage() {
                   </div>
                   <div className="mt-0.5 text-xs text-zinc-400 font-mono">{m.id}</div>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                    on ? 'bg-green-100 text-green-700' : 'bg-zinc-200 text-zinc-500'
-                  }`}
-                >
-                  {on ? '有効' : '無効'}
-                </span>
+                <ModuleToggle
+                  moduleId={m.id}
+                  on={on}
+                  locked={alwaysOn.has(m.id) || (!on && entitled !== undefined && !entitled.includes(m.id))}
+                  lockedReason={alwaysOn.has(m.id) ? '常時有効' : '契約外'}
+                />
               </div>
 
               {m.dependsOn && m.dependsOn.length > 0 && (

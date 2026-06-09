@@ -18,7 +18,7 @@ import { ModuleNotEnabledError } from './types'
 const BUILD_PROFILE = (process.env.BRACT_BUILD_PROFILE ?? 'all') as 'crm' | 'crm+erp' | 'all'
 
 /** 暫定で常時有効にする基盤モジュール（crm コア） */
-const ALWAYS_ON = ['crm-core', 'sales', 'expenses'] as const
+export const ALWAYS_ON = ['crm-core', 'sales', 'expenses'] as const
 
 export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
   'crm-core': {
