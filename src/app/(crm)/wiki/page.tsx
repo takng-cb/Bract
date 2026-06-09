@@ -20,7 +20,7 @@ export default async function WikiListPage({
 }: {
   searchParams: Promise<{ q?: string }>
 }) {
-  if (!(await isModuleEnabled('wiki'))) notFound()
+  if (!(await isModuleEnabled('workspace'))) notFound()
   const { q } = await searchParams
   const query = (q ?? '').trim()
 

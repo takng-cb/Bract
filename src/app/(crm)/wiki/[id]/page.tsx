@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function WikiDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  if (!(await isModuleEnabled('wiki'))) notFound()
+  if (!(await isModuleEnabled('workspace'))) notFound()
 
   const [page, allPages] = await Promise.all([
     db.select().from(wiki_pages).where(eq(wiki_pages.id, id)).then((r) => r[0] ?? null),

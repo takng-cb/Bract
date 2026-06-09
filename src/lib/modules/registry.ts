@@ -17,8 +17,8 @@ import { ModuleNotEnabledError } from './types'
 /** 同梱モジュール群（ビルドプロファイル）。未設定は 'all'（ADR-0002） */
 const BUILD_PROFILE = (process.env.BRACT_BUILD_PROFILE ?? 'all') as 'crm' | 'crm+erp' | 'all'
 
-/** 暫定で常時有効にする基盤モジュール（crm コア＋横断の活動・ToDo） */
-export const ALWAYS_ON = ['crm-core', 'activity', 'sales', 'expenses'] as const
+/** 暫定で常時有効にする基盤モジュール（crm コア＋横断のワークスペース） */
+export const ALWAYS_ON = ['crm-core', 'workspace', 'sales', 'expenses'] as const
 
 export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
   'crm-core': {
@@ -38,21 +38,25 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { label: '人物の一覧',       icon: '👤', kind: 'list',   href: '/contacts',     book: 'contacts' },
     ],
   },
-  // 活動履歴・ToDo は特定の業務に属さず、取引先/商談/整備など**どのブックにも紐づく**
-  // 横断的な記録。顧客管理から切り出して独立グループにする（常時有効）。
-  'activity': {
-    id: 'activity', name: '活動・ToDo', category: 'crm',
+  // 活動履歴・ToDo・Wiki は特定業務に属さず、取引先/商談/整備など**どこにでも紐づく**／
+  // 全社で使う横断的な「作業」と「知識」の基盤。1つの「ワークスペース」に集約（常時有効・最上段）。
+  'workspace': {
+    id: 'workspace', name: 'ワークスペース', category: 'platform',
     navItems: [
       { href: '/activities', label: '活動履歴', icon: '🗓️' },
       { href: '/tasks',      label: 'ToDo',   icon: '✅' },
+      { href: '/wiki',       label: 'Wiki',   icon: '📖' },
     ],
     books: [
       { apiName: 'activities', label: '活動履歴' },
       { apiName: 'tasks',      label: 'ToDo' },
+      { apiName: 'wiki_pages', label: 'Wiki' },
     ],
     quickActions: [
-      { label: '活動の記録',     icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
-      { label: 'ToDoの新規作成', icon: '✅', kind: 'create', href: '/tasks/new',      book: 'tasks' },
+      { label: '活動の記録',           icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
+      { label: 'ToDoの新規作成',       icon: '✅', kind: 'create', href: '/tasks/new',      book: 'tasks' },
+      { label: 'Wikiページの新規作成', icon: '📖', kind: 'create', href: '/wiki/new',       book: 'wiki_pages' },
+      { label: 'Wikiを開く',           icon: '📖', kind: 'list',   href: '/wiki',           book: 'wiki_pages' },
     ],
   },
   'sales': {
@@ -92,15 +96,6 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { label: '商品の新規作成', icon: '📦', kind: 'create', href: '/products/new',         book: 'products' },
       { label: '商品の一覧',     icon: '📦', kind: 'list',   href: '/products',              book: 'products' },
       { label: '入出庫の登録',   icon: '🔁', kind: 'create', href: '/stock-movements/new',   book: 'stock_movements' },
-    ],
-  },
-  'wiki': {
-    id: 'wiki', name: 'Wiki', category: 'platform',
-    navItems: [{ href: '/wiki', label: 'Wiki', icon: '📖' }],
-    books: [{ apiName: 'wiki_pages', label: 'Wiki' }],
-    quickActions: [
-      { label: 'Wikiページの新規作成', icon: '📖', kind: 'create', href: '/wiki/new', book: 'wiki_pages' },
-      { label: 'Wikiを開く',          icon: '📖', kind: 'list',   href: '/wiki',     book: 'wiki_pages' },
     ],
   },
   'real-estate': {
