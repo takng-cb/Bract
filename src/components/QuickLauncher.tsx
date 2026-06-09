@@ -262,36 +262,38 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                 </div>
               )}
 
-              {/* モジュール選択 */}
+              {/* モジュール選択（カードパネル・2列） */}
               {step === 'module' && (
-                <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-2.5">
                   {moduleList.map((m) => (
                     <button key={m.id} onClick={() => pickModule(m)}
-                      className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 px-3 py-2.5 text-left hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                      <NavIcon icon={m.icon} className="w-5 h-5 shrink-0 text-zinc-500" />
-                      <span className="flex-1 text-sm font-medium text-zinc-800">{m.name}</span>
-                      <span className="text-xs text-zinc-400">{m.books.length} ブック</span>
+                      className="flex min-h-23 flex-col items-start gap-1.5 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100">
+                      <NavIcon icon={m.icon} className="w-6 h-6 shrink-0 text-zinc-500" />
+                      <span className="text-sm font-semibold leading-tight text-zinc-900">{m.name}</span>
+                      <span className="mt-auto text-xs text-zinc-400">{m.books.length} ブック</span>
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* ブック選択 */}
+              {/* ブック選択（カードパネル・2列） */}
               {step === 'book' && mod && (
-                <div className="space-y-1.5">
+                <div className="space-y-3">
                   {createMode === 'ai' && mode === 'create' && (
-                    <p className="mb-1 text-xs text-zinc-400">AI作成できないブックは手動入力または専用ウィザードに切り替わります。</p>
+                    <p className="text-xs text-zinc-400">AI作成できないブックは手動入力または専用ウィザードに切り替わります。</p>
                   )}
-                  {mod.books.map((b) => (
-                    <button key={b.apiName} onClick={() => pickBook(b)}
-                      className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 px-3 py-2.5 text-left hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                      <NavIcon icon={b.icon} className="w-5 h-5 shrink-0 text-zinc-500" />
-                      <span className="flex-1 text-sm font-medium text-zinc-800">{b.label}</span>
-                      {mode === 'create' && createMode === 'ai' && (b.aiCreate || b.aiWizardHref) && (
-                        <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700"><Sparkles className="w-3 h-3" />AI</span>
-                      )}
-                    </button>
-                  ))}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {mod.books.map((b) => (
+                      <button key={b.apiName} onClick={() => pickBook(b)}
+                        className="relative flex min-h-23 flex-col items-start gap-1.5 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100">
+                        <NavIcon icon={b.icon} className="w-6 h-6 shrink-0 text-zinc-500" />
+                        <span className="text-sm font-semibold leading-tight text-zinc-900">{b.label}</span>
+                        {mode === 'create' && createMode === 'ai' && (b.aiCreate || b.aiWizardHref) && (
+                          <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700"><Sparkles className="w-3 h-3" />AI</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
