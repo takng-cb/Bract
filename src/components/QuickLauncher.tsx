@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, ChevronLeft, Sparkles, PencilLine, FilePlus2, Eye, ImagePlus, Loader2, Search } from 'lucide-react'
+import { X, ChevronLeft, Sparkles, PencilLine, FilePlus2, Eye, ImagePlus, Loader2, Search } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 import type { QuickModule, QuickBook } from '@/lib/modules/quick'
 import {
@@ -27,6 +27,20 @@ import { aiSearchToFilter, type AiSearchResult } from '@/app/actions/aiSearch'
 type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiConfirm' | 'aiNotSupported' | 'aiSearch'
 type Mode = 'create' | 'view' | 'search'
 type CreateMode = 'ai' | 'manual'
+
+/** ウィザードの1段前のステップ（戻る/履歴トラップ共通） */
+function prevStep(step: Step, mode: Mode): Step {
+  switch (step) {
+    case 'createMode': return 'root'
+    case 'module':     return mode === 'create' ? 'createMode' : 'root'
+    case 'book':       return 'module'
+    case 'aiInput':
+    case 'aiSearch':
+    case 'aiNotSupported': return 'book'
+    case 'aiConfirm':  return 'aiInput'
+    default:           return 'root'
+  }
+}
 
 export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const router = useRouter()
@@ -57,6 +71,10 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const [relResults, setRelResults] = useState<RelatedCandidate[]>([])
   const [relSelected, setRelSelected] = useState<RelatedCandidate | null>(null)
 
+  // 戻る（ブラウザ/OS）トラップ用に最新値を参照する ref（同期は effect 側で行う）
+  const stepRef = useRef<Step>(step)
+  const modeRef = useRef<Mode>(mode)
+
   const reset = useCallback(() => {
     setStep('root'); setMode('create'); setCreateMode('manual')
     setMod(null); setBook(null)
@@ -81,6 +99,27 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     window.addEventListener('bract:quick-open', onOpen)
     return () => window.removeEventListener('bract:quick-open', onOpen)
   }, [reset])
+
+  // 最新の step/mode を ref に同期（popstate ハンドラがクロージャ越しに最新を参照するため）
+  useEffect(() => {
+    stepRef.current = step
+    modeRef.current = mode
+  })
+
+  // 戻る（ブラウザ/OS）でポップアップ裏の画面が遷移しないようにする。
+  // 開いている間は履歴にバッファを積み、戻る押下でウィザードを1段戻す（root なら閉じる）。
+  useEffect(() => {
+    if (!open) return
+    window.history.pushState({ bractQuick: true }, '')
+    const onPop = () => {
+      if (stepRef.current === 'root') { close(); return }
+      setError(null)
+      setStep(prevStep(stepRef.current, modeRef.current))
+      window.history.pushState({ bractQuick: true }, '')
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [open, close])
 
   if (modules.length === 0) return null
 
@@ -178,19 +217,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   }
 
   // ── 戻る ───────────────────────────────────────────────────────
-  const back = () => {
-    setError(null)
-    switch (step) {
-      case 'createMode': return setStep('root')
-      case 'module':     return setStep(mode === 'create' ? 'createMode' : 'root')
-      case 'book':       return setStep('module')
-      case 'aiInput':
-      case 'aiSearch':
-      case 'aiNotSupported': return setStep('book')
-      case 'aiConfirm':  return setStep('aiInput')
-      default:           return setStep('root')
-    }
-  }
+  const back = () => { setError(null); setStep(prevStep(step, mode)) }
 
   const title =
     step === 'root' ? 'クイック操作' :
@@ -206,16 +233,8 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
 
   return (
     <>
-      {/* デスクトップ右下フローティングボタン */}
-      <button
-        onClick={() => { reset(); setOpen(true) }}
-        title="クイック操作"
-        data-testid="quick-launcher-open"
-        className="print:hidden hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-lg hover:bg-blue-700 transition-colors"
-      >
-        <Plus className="w-5 h-5 shrink-0" strokeWidth={2.25} aria-hidden />
-        <span className="text-sm font-medium hidden sm:inline">クイック</span>
-      </button>
+      {/* デスクトップのトリガーは Topbar（グローバル検索の横）に配置。
+          モバイルは BottomNav 中央 FAB から bract:quick-open イベントで開く。 */}
 
       {open && (
         <div
