@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen, UserRound, Building2, Briefcase, CalendarDays } from 'lucide-react'
+import { SquarePen, UserRound, Building2, Briefcase, CalendarDays, Mail, Phone, Contact, Tag } from 'lucide-react'
 import { contacts, accounts, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
@@ -366,7 +366,7 @@ export default async function ContactDetailPage({
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-6xl">
       <RecordHeader
         crumbs={[
           { label: '人物', href: `/contacts?view=${view}` },
@@ -394,14 +394,42 @@ export default async function ContactDetailPage({
         }
       />
 
-      <div className="mb-4">
-        <TagsSection objectType="contact" objectId={id} revalidatePath={`/contacts/${id}`} />
-      </div>
+      <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+        <div className="min-w-0">
+          <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+          <div className="mt-6 text-right">
+            <RecordId id={id} />
+          </div>
+        </div>
 
-      <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+        {/* 右レール（design_handoff: Detail rail） */}
+        <aside className="space-y-4 lg:sticky lg:top-20">
+          {ownerName && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />担当者</h4>
+              <div className="flex items-center gap-2.5">
+                <span className="grid place-items-center w-9 h-9 rounded-full bg-brand-600 text-white text-sm font-bold shrink-0">{ownerName.trim()[0]}</span>
+                <span className="text-sm font-semibold text-zinc-900 truncate">{ownerName}</span>
+              </div>
+            </div>
+          )}
 
-      <div className="mt-6 text-right">
-        <RecordId id={id} />
+          {(contact.email || contact.phone || account) && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Contact className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />連絡先</h4>
+              <div className="space-y-2 text-sm text-zinc-700">
+                {contact.email && <div className="flex items-center gap-2 min-w-0"><Mail className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline truncate">{contact.email}</a></div>}
+                {contact.phone && <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><span className="tabular-nums">{contact.phone}</span></div>}
+                {account && <div className="flex items-center gap-2 min-w-0"><Building2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline truncate">{account.name}</Link></div>}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+            <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Tag className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />タグ</h4>
+            <TagsSection objectType="contact" objectId={id} revalidatePath={`/contacts/${id}`} />
+          </div>
+        </aside>
       </div>
     </div>
   )
