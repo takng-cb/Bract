@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen, Briefcase, Building2, Wallet, Percent, CalendarDays } from 'lucide-react'
+import { SquarePen, Briefcase, Building2, Wallet, Percent, CalendarDays, UserRound, Tag } from 'lucide-react'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
@@ -594,7 +594,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-6xl">
       <RecordHeader
         crumbs={[
           { label: '商談', href: '/opportunities' },
@@ -628,15 +628,59 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         }
       />
 
-      <div className="mb-4">
-        {contact && <Link href={`/contacts/${contact.id}`} className="text-sm text-blue-600 hover:underline flex items-center gap-1 w-fit mb-2"><NavIcon icon="👤" className="w-3.5 h-3.5 shrink-0" />{contact.full_name}</Link>}
-        <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
-      </div>
+      <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+        {/* メイン */}
+        <div className="min-w-0">
+          <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+          <div className="mt-6 text-right">
+            <RecordId id={id} />
+          </div>
+        </div>
 
-      <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+        {/* 右レール（design_handoff: Opportunity Detail） */}
+        <aside className="space-y-4 lg:sticky lg:top-20">
+          {ownerName && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />担当者</h4>
+              <div className="flex items-center gap-2.5">
+                <span className="grid place-items-center w-9 h-9 rounded-full bg-brand-600 text-white text-sm font-bold shrink-0">{ownerName.trim()[0]}</span>
+                <span className="text-sm font-semibold text-zinc-900 truncate">{ownerName}</span>
+              </div>
+            </div>
+          )}
 
-      <div className="mt-6 text-right">
-        <RecordId id={id} />
+          {(account || contact) && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Building2 className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />関連先</h4>
+              <div className="space-y-2 text-sm text-zinc-700">
+                {account && <div className="flex items-center gap-2 min-w-0"><Building2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline truncate">{account.name}</Link></div>}
+                {contact && <div className="flex items-center gap-2 min-w-0"><UserRound className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline truncate">{contact.full_name}</Link></div>}
+              </div>
+            </div>
+          )}
+
+          {(opportunity.amount || opportunity.probability != null || opportunity.close_date) && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Wallet className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />金額サマリー</h4>
+              <div className="space-y-2 text-sm">
+                {opportunity.amount && (
+                  <div className="flex justify-between"><span className="text-zinc-500">金額</span><span className="font-semibold text-zinc-800">¥{Number(opportunity.amount).toLocaleString()}</span></div>
+                )}
+                {opportunity.probability != null && (
+                  <div className="flex justify-between"><span className="text-zinc-500">確度</span><span className="font-semibold text-zinc-800">{opportunity.probability}%</span></div>
+                )}
+                {opportunity.close_date && (
+                  <div className="flex justify-between"><span className="text-zinc-500">完了予定</span><span className="font-semibold text-zinc-800">{opportunity.close_date}</span></div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+            <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Tag className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />タグ</h4>
+            <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
+          </div>
+        </aside>
       </div>
     </div>
   )
