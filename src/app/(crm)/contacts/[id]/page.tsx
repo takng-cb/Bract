@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen } from 'lucide-react'
+import { SquarePen, UserRound, Building2, Briefcase, CalendarDays } from 'lucide-react'
 import { contacts, accounts, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
@@ -372,6 +372,18 @@ export default async function ContactDetailPage({
           { label: '人物', href: `/contacts?view=${view}` },
           { label: contact.full_name },
         ]}
+        avatar={<UserRound className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={contact.full_name}
+        badges={
+          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${isBiz ? 'bg-blue-100 text-blue-700' : 'bg-brand-100 text-brand-700'}`}>{isBiz ? '法人担当者' : '個人顧客'}</span>
+        }
+        meta={[
+          ...(isBiz && account ? [{ icon: <Building2 className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '取引先', value: account.name }] : []),
+          ...(isBiz && [contact.title, contact.department].filter(Boolean).length > 0
+            ? [{ icon: <Briefcase className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: [contact.title, contact.department].filter(Boolean).join(' / ') }] : []),
+          ...(ownerName ? [{ icon: <UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '担当', value: ownerName }] : []),
+          ...(contact.created_at ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '登録', value: new Date(contact.created_at).toLocaleDateString('ja-JP') }] : []),
+        ]}
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
@@ -383,15 +395,7 @@ export default async function ContactDetailPage({
       />
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900 break-words">{contact.full_name}</h1>
-        <p className="text-zinc-500 text-sm mt-1">
-          {isBiz
-            ? [contact.title, contact.department].filter(Boolean).join(' · ') || '役職未設定'
-            : '個人顧客'}
-        </p>
-        <div className="mt-2">
-          <TagsSection objectType="contact" objectId={id} revalidatePath={`/contacts/${id}`} />
-        </div>
+        <TagsSection objectType="contact" objectId={id} revalidatePath={`/contacts/${id}`} />
       </div>
 
       <RecordTabs defaultTab="overview" tabs={tabsConfig} />

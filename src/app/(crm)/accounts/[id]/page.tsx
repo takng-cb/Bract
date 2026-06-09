@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen } from 'lucide-react'
+import { SquarePen, Building2, Factory, UserRound, CalendarDays } from 'lucide-react'
 import { accounts, contacts, opportunities, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
@@ -497,12 +497,30 @@ export default async function AccountDetailPage({
     })
   }
 
+  const ownerName = account.owner_id ? (allUsers.find((u) => u.id === account.owner_id)?.name ?? null) : null
+  const industryLabel = [account.type, account.industry].filter(Boolean).join(' / ') || null
+  const statusBadge = ({
+    prospect: { label: '見込み', cls: 'bg-blue-100 text-blue-700' },
+    active:   { label: '顧客',   cls: 'bg-brand-100 text-brand-700' },
+    inactive: { label: '無効',   cls: 'bg-zinc-100 text-zinc-500' },
+  } as Record<string, { label: string; cls: string }>)[account.status] ?? null
+
   return (
     <div className="p-4 md:p-8 max-w-5xl">
       <RecordHeader
         crumbs={[
           { label: '取引先', href: '/accounts' },
           { label: account.name },
+        ]}
+        avatar={<Building2 className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={account.name}
+        badges={statusBadge && (
+          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${statusBadge.cls}`}>{statusBadge.label}</span>
+        )}
+        meta={[
+          ...(industryLabel ? [{ icon: <Factory className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '業種', value: industryLabel }] : []),
+          ...(ownerName ? [{ icon: <UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '担当', value: ownerName }] : []),
+          ...(account.created_at ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '登録', value: new Date(account.created_at).toLocaleDateString('ja-JP') }] : []),
         ]}
         actions={
           <AuthGuard minRole="editor">
@@ -515,13 +533,7 @@ export default async function AccountDetailPage({
       />
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900 break-words">{account.name}</h1>
-        <p className="text-zinc-500 text-sm mt-1">
-          {[account.type, account.industry].filter(Boolean).join(' · ') || '業種未設定'}
-        </p>
-        <div className="mt-2">
-          <TagsSection objectType="account" objectId={id} revalidatePath={`/accounts/${id}`} />
-        </div>
+        <TagsSection objectType="account" objectId={id} revalidatePath={`/accounts/${id}`} />
       </div>
 
       <RecordTabs defaultTab="overview" tabs={tabsConfig} />
