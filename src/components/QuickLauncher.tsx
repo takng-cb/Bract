@@ -6,9 +6,12 @@ import { Plus, X, ChevronLeft, Sparkles, PencilLine, FilePlus2, Eye, ImagePlus, 
 import { NavIcon } from '@/lib/navIcon'
 import type { QuickModule, QuickBook } from '@/lib/modules/quick'
 import {
-  quickAiExtract, quickAiCreate, quickAiDupCandidates, type QuickAiDup,
-  type QuickAiField, type QuickAiDraft,
+  quickAiExtract, quickAiCreate, quickAiDupCandidates, quickRelatedSearch,
+  type QuickAiDup, type QuickAiField, type QuickAiDraft, type RelatedCandidate,
 } from '@/app/actions/quickAi'
+
+/** 関連先紐づけを出すブック（quickAi.ts の linkable spec と一致） */
+const LINKABLE_BOOKS = new Set(['tasks', 'activities'])
 import { aiSearchToFilter, type AiSearchResult } from '@/app/actions/aiSearch'
 
 /**
@@ -49,11 +52,17 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResult, setSearchResult] = useState<AiSearchResult | null>(null)
 
+  // 関連先（活動/ToDo の AI 作成で紐づけ）
+  const [relQuery, setRelQuery] = useState('')
+  const [relResults, setRelResults] = useState<RelatedCandidate[]>([])
+  const [relSelected, setRelSelected] = useState<RelatedCandidate | null>(null)
+
   const reset = useCallback(() => {
     setStep('root'); setMode('create'); setCreateMode('manual')
     setMod(null); setBook(null)
     setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setDups([]); setBusy(false); setError(null)
     setSearchQuery(''); setSearchResult(null)
+    setRelQuery(''); setRelResults([]); setRelSelected(null)
   }, [])
 
   const close = useCallback(() => { setOpen(false); reset() }, [reset])
@@ -90,7 +99,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     }
     if (createMode === 'manual') return go(b.newHref)
     // createMode === 'ai'
-    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setStep('aiInput') }
+    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelQuery(''); setRelResults([]); setRelSelected(null); setStep('aiInput') }
     else if (b.aiWizardHref) go(b.aiWizardHref)
     else setStep('aiNotSupported')
   }
@@ -140,6 +149,12 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     } finally { setBusy(false) }
   }
 
+  const runRelSearch = async (q: string) => {
+    setRelQuery(q)
+    if (q.trim().length < 1) { setRelResults([]); return }
+    try { setRelResults(await quickRelatedSearch(q)) } catch { setRelResults([]) }
+  }
+
   const updField = (apiName: string, value: string) =>
     setDraft((p) => p ? { ...p, fields: p.fields.map((f) => f.apiName === apiName ? { ...f, value } : f) } : p)
 
@@ -154,7 +169,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
         const candidates = await quickAiDupCandidates(book.apiName, values)
         if (candidates.length > 0) { setDups(candidates); setBusy(false); return }
       }
-      const { recordHref } = await quickAiCreate(book.apiName, values)
+      const { recordHref } = await quickAiCreate(book.apiName, values, relSelected ? { object_api: relSelected.object_api, record_id: relSelected.record_id } : null)
       go(recordHref)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -283,11 +298,42 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
               {/* AI入力（自由入力 + 画像） */}
               {step === 'aiInput' && book && (
                 <div className="space-y-3">
+                  {LINKABLE_BOOKS.has(book.apiName) && (
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                      <label className="block text-xs font-semibold text-zinc-600 mb-1">関連先（任意・取引先/人物/商談に紐づけ）</label>
+                      {relSelected ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">{relSelected.kind}: {relSelected.label}</span>
+                          <button type="button" onClick={() => { setRelSelected(null); setRelQuery(''); setRelResults([]) }} className="text-xs text-zinc-500 hover:text-red-600">変更</button>
+                        </div>
+                      ) : (
+                        <>
+                          <input value={relQuery} onChange={(e) => runRelSearch(e.target.value)} placeholder="取引先・人物・商談名で検索…"
+                            className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+                          {relResults.length > 0 && (
+                            <ul className="mt-1 max-h-40 overflow-y-auto rounded-md border border-zinc-200 bg-white divide-y divide-zinc-100">
+                              {relResults.map((r) => (
+                                <li key={`${r.object_api}-${r.record_id}`}>
+                                  <button type="button" onClick={() => { setRelSelected(r); setRelResults([]) }}
+                                    className="block w-full px-2 py-1.5 text-left text-xs hover:bg-blue-50">
+                                    <span className="text-zinc-400">{r.kind}</span> {r.label}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          <p className="mt-1 text-[10px] text-zinc-400">未選択なら単独で作成します。</p>
+                        </>
+                      )}
+                    </div>
+                  )}
                   <textarea
                     value={aiText}
                     onChange={(e) => setAiText(e.target.value)}
                     rows={5}
-                    placeholder={`「${book.label}」の内容を自由に入力（例: メモ・メール・FAX 文面・名刺の文字など）`}
+                    placeholder={LINKABLE_BOOKS.has(book.apiName)
+                      ? `「${book.label}」の内容を自由に入力（例: 明日15時に先方へ見積提出、電話で進捗確認 など）`
+                      : `「${book.label}」の内容を自由に入力（例: メモ・メール・FAX 文面・名刺の文字など）`}
                     className="w-full rounded-lg border border-zinc-300 p-3 text-sm focus:border-blue-400 focus:outline-none"
                   />
                   <div>
