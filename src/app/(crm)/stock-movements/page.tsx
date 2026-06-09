@@ -40,9 +40,14 @@ export default async function StockMovementsListPage() {
           <p className="text-sm text-zinc-500 mt-1">全 {rows.length} 件</p>
         </div>
         {edit && (
-          <Link href="/stock-movements/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
-            ＋ 入出庫を登録
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/stock-movements/stocktake" className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-300 text-zinc-700 text-sm font-medium rounded-md hover:bg-zinc-50">
+              棚卸
+            </Link>
+            <Link href="/stock-movements/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+              ＋ 入出庫を登録
+            </Link>
+          </div>
         )}
       </div>
 
