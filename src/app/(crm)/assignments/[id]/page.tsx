@@ -13,8 +13,9 @@ import { eq, or, ne, asc } from 'drizzle-orm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
-import { deleteAssignment } from '@/industries/staffing/actions/assignments'
-import AssignmentStatusSelect from '@/industries/staffing/components/AssignmentStatusSelect'
+import { deleteAssignment, setAssignmentStatus } from '@/industries/staffing/actions/assignments'
+import StageBar from '@/components/StageBar'
+import { ASSIGNMENT_STAGES } from '@/lib/statusStages'
 import OutreachSection from '@/industries/staffing/components/OutreachSection'
 import CandidatesSection from '@/industries/staffing/components/CandidatesSection'
 
@@ -79,6 +80,11 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
     await deleteAssignment(id)
   }
 
+  async function changeStatus(status: string) {
+    'use server'
+    await setAssignmentStatus(id, status)
+  }
+
   const candidates = candidateRows
   const outreachItems = outreachRows.map((o) => ({
     id: o.id,
@@ -98,10 +104,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
 
       <div className="flex items-start justify-between gap-3 mt-2 mb-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-zinc-900">{a.title ?? a.assignment_no}</h1>
-            <AssignmentStatusSelect id={id} status={a.status} />
-          </div>
+          <h1 className="text-2xl font-bold text-zinc-900 mb-1">{a.title ?? a.assignment_no}</h1>
           {a.title && <p className="text-xs text-zinc-400 font-mono mb-1">{a.assignment_no}</p>}
           {row.client?.id && (
             <p className="text-sm text-zinc-600 mt-1">
@@ -118,6 +121,11 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
             <DeleteButton action={handleDelete} confirmMessage="この案件を削除しますか？" />
           </div>
         </AuthGuard>
+      </div>
+
+      {/* ステータス（矢羽根） */}
+      <div className="mb-6">
+        <StageBar stages={ASSIGNMENT_STAGES} currentStage={a.status} updateAction={changeStatus} />
       </div>
 
       {/* 業務情報 */}

@@ -100,6 +100,18 @@ export async function updateProperty(id: string, formData: FormData) {
   redirect(`/properties/${id}`)
 }
 
+/** ステータスのみ更新（矢羽根 StageBar 用）。custom_records ミラーも同期 */
+export async function setPropertyStatus(id: string, status: string) {
+  await requireEditor()
+  const [row] = await db.update(properties)
+    .set({ status, updated_at: new Date() })
+    .where(eq(properties.id, id))
+    .returning()
+  if (row) await syncPropertyToCustomRecord(row)
+  revalidatePath('/properties')
+  revalidatePath(`/properties/${id}`)
+}
+
 export async function deleteProperty(id: string) {
   await requireEditor()
   await db.delete(properties).where(eq(properties.id, id))

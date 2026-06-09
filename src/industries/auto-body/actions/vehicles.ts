@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { vehicles } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
 import {
   syncVehicleToCustomRecord,
@@ -143,6 +144,20 @@ export async function updateVehicle(id: string, formData: FormData) {
   }
 
   redirect(`/vehicles/${id}`)
+}
+
+/** ステータスのみ更新（矢羽根 StageBar 用）。custom_records ミラーも同期 */
+export async function setVehicleStatus(id: string, status: string) {
+  await requireEditor()
+  await db.update(vehicles).set({ status, updated_at: new Date() }).where(eq(vehicles.id, id))
+  const [v] = await db.select({
+    id: vehicles.id, maker: vehicles.maker, model: vehicles.model, year: vehicles.year,
+    mileage: vehicles.mileage, color: vehicles.color, license_plate: vehicles.license_plate,
+    vin: vehicles.vin, status: vehicles.status, owner_id: vehicles.owner_id,
+  }).from(vehicles).where(eq(vehicles.id, id))
+  if (v) await syncVehicleToCustomRecord(v)
+  revalidatePath(`/vehicles/${id}`)
+  revalidatePath('/vehicles')
 }
 
 export async function deleteVehicle(id: string) {

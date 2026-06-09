@@ -11,8 +11,10 @@ import { eq, desc } from 'drizzle-orm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
-import { deleteStaff } from '@/industries/staffing/actions/staff'
-import { staffStatusColor, assignmentStatusColor } from '@/industries/staffing/lib/staffingService'
+import { deleteStaff, setStaffStatus } from '@/industries/staffing/actions/staff'
+import { assignmentStatusColor } from '@/industries/staffing/lib/staffingService'
+import StageBar from '@/components/StageBar'
+import { STAFF_STAGES } from '@/lib/statusStages'
 
 export default async function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
   if (!(await isModuleEnabled('staffing'))) notFound()
@@ -52,6 +54,11 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
     await deleteStaff(id)
   }
 
+  async function changeStatus(status: string) {
+    'use server'
+    await setStaffStatus(id, status)
+  }
+
   const skills = Array.isArray(s.skills) ? s.skills as string[] : []
   const areas  = Array.isArray(s.available_areas) ? s.available_areas as string[] : []
 
@@ -64,10 +71,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
 
       <div className="flex items-start justify-between gap-3 mt-2 mb-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-zinc-900">{s.name}</h1>
-            <span className={`inline-block px-2 py-0.5 text-xs rounded ${staffStatusColor(s.status)}`}>{s.status}</span>
-          </div>
+          <h1 className="text-2xl font-bold text-zinc-900 mb-1">{s.name}</h1>
           {s.name_kana && <p className="text-sm text-zinc-500">{s.name_kana}</p>}
           {row.belong?.id && (
             <p className="text-sm text-zinc-500 mt-1">
@@ -81,6 +85,11 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
             <DeleteButton action={handleDelete} confirmMessage="このスタッフを削除しますか？" />
           </div>
         </AuthGuard>
+      </div>
+
+      {/* ステータス（矢羽根） */}
+      <div className="mb-6 max-w-md">
+        <StageBar stages={STAFF_STAGES} currentStage={s.status} updateAction={changeStatus} />
       </div>
 
       {/* プロフィール */}
