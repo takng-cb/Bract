@@ -6,7 +6,7 @@
  */
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Building2, SquareCheckBig, CalendarClock, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Building2, SquareCheckBig, CalendarClock, Zap } from 'lucide-react'
 
 type Tab = { href: string; label: string; Icon: typeof LayoutDashboard }
 const LEFT: Tab[] = [
@@ -40,10 +40,10 @@ export default function BottomNav() {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 flex items-stretch z-30 safe-area-pb">
       {LEFT.map(tab)}
-      {/* 中央 FAB（AI/クイック登録） */}
+      {/* 中央 FAB（クイック操作。AIの Sparkles とは別アイコンにする） */}
       <div className="flex-1 flex items-start justify-center">
-        <button onClick={openQuick} aria-label="クイック登録" className="ds-fab -mt-5">
-          <Sparkles className="w-6 h-6" strokeWidth={2.25} aria-hidden />
+        <button onClick={openQuick} aria-label="クイック操作" className="ds-fab -mt-5">
+          <Zap className="w-6 h-6" strokeWidth={2.25} aria-hidden />
         </button>
       </div>
       {RIGHT.map(tab)}
