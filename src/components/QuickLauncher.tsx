@@ -6,7 +6,7 @@ import { Plus, X, ChevronLeft, Sparkles, PencilLine, FilePlus2, Eye, ImagePlus, 
 import { NavIcon } from '@/lib/navIcon'
 import type { QuickModule, QuickBook } from '@/lib/modules/quick'
 import {
-  quickAiExtract, quickAiCreate,
+  quickAiExtract, quickAiCreate, quickAiDupCandidates, type QuickAiDup,
   type QuickAiField, type QuickAiDraft,
 } from '@/app/actions/quickAi'
 
@@ -40,13 +40,14 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const [aiUrl, setAiUrl] = useState('')
   const [aiImage, setAiImage] = useState<{ mediaType: string; dataBase64: string; preview: string } | null>(null)
   const [draft, setDraft] = useState<QuickAiDraft | null>(null)
+  const [dups, setDups] = useState<QuickAiDup[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const reset = useCallback(() => {
     setStep('root'); setMode('create'); setCreateMode('manual')
     setMod(null); setBook(null)
-    setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setBusy(false); setError(null)
+    setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setDups([]); setBusy(false); setError(null)
   }, [])
 
   const close = useCallback(() => { setOpen(false); reset() }, [reset])
@@ -113,12 +114,17 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const updField = (apiName: string, value: string) =>
     setDraft((p) => p ? { ...p, fields: p.fields.map((f) => f.apiName === apiName ? { ...f, value } : f) } : p)
 
-  const runCreate = async () => {
+  const runCreate = async (force = false) => {
     if (!book || !draft) return
     setBusy(true); setError(null)
     try {
       const values: Record<string, string> = {}
       for (const f of draft.fields) values[f.apiName] = f.value
+      // 重複確認（REQ-0018）: 自然キー一致候補があれば確認を出す
+      if (!force) {
+        const candidates = await quickAiDupCandidates(book.apiName, values)
+        if (candidates.length > 0) { setDups(candidates); setBusy(false); return }
+      }
       const { recordHref } = await quickAiCreate(book.apiName, values)
       go(recordHref)
     } catch (e) {
@@ -298,14 +304,34 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                       <DraftField key={f.apiName} field={f} onChange={(v) => updField(f.apiName, v)} />
                     ))}
                   </div>
-                  <div className="flex items-center gap-3 pt-1">
-                    <button onClick={runCreate} disabled={busy}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-                      {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {busy ? '作成中…' : 'この内容で作成'}
-                    </button>
-                    <button onClick={() => setStep('aiInput')} disabled={busy} className="text-sm text-zinc-500 hover:text-zinc-800">入力に戻る</button>
-                  </div>
+
+                  {dups.length > 0 ? (
+                    <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2">
+                      <p className="text-sm font-semibold text-amber-800">同名・類似のレコードが見つかりました</p>
+                      <p className="text-xs text-amber-700">重複を避けるため、既存を開くか、それでも新規作成するか選んでください。</p>
+                      <div className="space-y-1">
+                        {dups.map((d) => (
+                          <a key={d.id} href={d.href} onClick={close} className="block rounded-md border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">✓ 既存「{d.label}」を開く</a>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button onClick={() => runCreate(true)} disabled={busy}
+                          className="rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50">
+                          {busy ? '作成中…' : 'それでも新規作成する'}
+                        </button>
+                        <button onClick={() => setDups([])} disabled={busy} className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50">戻る</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 pt-1">
+                      <button onClick={() => runCreate(false)} disabled={busy}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                        {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {busy ? '作成中…' : 'この内容で作成'}
+                      </button>
+                      <button onClick={() => setStep('aiInput')} disabled={busy} className="text-sm text-zinc-500 hover:text-zinc-800">入力に戻る</button>
+                    </div>
+                  )}
                 </div>
               )}
 
