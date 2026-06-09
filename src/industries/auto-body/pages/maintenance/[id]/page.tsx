@@ -24,6 +24,8 @@ import { getAllUsers } from '@/lib/userUtils'
 import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFullView'
 import CaliInsuranceButton from '@/industries/auto-body/components/CaliInsuranceButton'
 import { inferCaliClass } from '@/industries/auto-body/lib/caliInsurance'
+import WeightTaxButton from '@/industries/auto-body/components/WeightTaxButton'
+import { inferWtType } from '@/industries/auto-body/lib/weightTax'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import { NavIcon } from '@/lib/navIcon'
 
@@ -220,7 +222,8 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
   // ── 全体ビュー（メインの編集 UI）─────────────────────────────
   const fullViewContent = (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <WeightTaxButton maintenanceId={id} defaultType={inferWtType(mRow.vehicle?.vehicle_kind)} />
         <CaliInsuranceButton maintenanceId={id} defaultClass={inferCaliClass(mRow.vehicle?.vehicle_kind)} />
       </div>
       <MaintenanceFullView maintenanceId={id} users={allUsers} />
