@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { import_logs } from '@/lib/schema'
 import { requireAdmin } from '@/lib/auth'
 import { desc } from 'drizzle-orm'
+import PageHeader from '@/components/ui/PageHeader'
 
 const ROUTE_LABELS: Record<string, string> = {
   '/api/import/properties':     '物件',
@@ -25,9 +26,8 @@ export default async function AdminImportLogsPage() {
     .limit(200)
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl">
-      <h1 className="text-2xl font-bold text-zinc-900 mb-1">インポートログ</h1>
-      <p className="text-sm text-zinc-500 mb-6">直近 200 件のインポート実行履歴です（管理者のみ閲覧可能）</p>
+    <div className="mx-auto max-w-5xl p-4 md:p-8">
+      <PageHeader icon="📥" title="インポートログ" description="直近 200 件のインポート実行履歴です（管理者のみ閲覧可能）" />
 
       {logs.length === 0 ? (
         <div className="text-center py-16 text-zinc-400 text-sm">ログがありません</div>

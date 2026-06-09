@@ -3,6 +3,7 @@ import type { ModuleCategory } from '@/lib/modules/types'
 import { requireAdmin } from '@/lib/auth'
 import { getLicense } from '@/lib/license'
 import ModuleToggle from '@/components/ModuleToggle'
+import PageHeader from '@/components/ui/PageHeader'
 
 // ライセンス/業種を実行時に読むため動的レンダリング
 export const dynamic = 'force-dynamic'
@@ -42,18 +43,21 @@ export default async function ModulesAdminPage() {
     )
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">モジュール構成</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          「モジュール ＞ ブック」の構造と現在の有効状態。<span className="font-medium">{enabled.length}</span> /{' '}
-          {all.length} モジュールが有効です。
-          <br />
-          <span className="text-xs text-zinc-400">
-            ※ 右のスイッチで有効/無効を切り替え（再ビルド不要・即反映）。基盤モジュールは常時有効、契約外は有効化不可。
-          </span>
-        </p>
-      </header>
+    <div className="mx-auto max-w-4xl p-4 md:p-8">
+      <PageHeader
+        icon="🧩"
+        title="モジュール構成"
+        description={
+          <>
+            「モジュール ＞ ブック」の構造と現在の有効状態。<span className="font-medium">{enabled.length}</span> /{' '}
+            {all.length} モジュールが有効です。
+            <br />
+            <span className="text-xs text-zinc-400">
+              ※ 右のスイッチで有効/無効を切り替え（再ビルド不要・即反映）。基盤モジュールは常時有効、契約外は有効化不可。
+            </span>
+          </>
+        }
+      />
 
       <div className="grid gap-3 sm:grid-cols-2">
         {all.map((m) => {

@@ -6,7 +6,7 @@ import { OBJECT_TYPE_LABELS } from '@/lib/relationships'
 import { asc } from 'drizzle-orm'
 import Link from 'next/link'
 import DeleteButton from '@/components/DeleteButton'
-import { NavIcon } from '@/lib/navIcon'
+import PageHeader from '@/components/ui/PageHeader'
 
 export default async function AdminRelationshipsPage() {
   await requireAdmin()
@@ -17,23 +17,22 @@ export default async function AdminRelationshipsPage() {
     .orderBy(asc(relationship_definitions.created_at))
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-zinc-900"><NavIcon icon="🔗" className="w-6 h-6" />関係性管理</h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            オブジェクト間の多対多リレーションを定義します
-          </p>
-        </div>
-        <Link
-          href="/admin/relationships/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          ＋ 新規定義
-        </Link>
-      </div>
+    <div className="mx-auto max-w-4xl p-4 md:p-8">
+      <PageHeader
+        icon="🔗"
+        title="関係性管理"
+        description="オブジェクト間の多対多リレーションを定義します"
+        actions={
+          <Link
+            href="/admin/relationships/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            ＋ 新規定義
+          </Link>
+        }
+      />
 
-      <div className="bg-white rounded-lg border border-zinc-200 divide-y divide-zinc-100">
+      <div className="bg-white rounded-xl border border-zinc-200 shadow-xs divide-y divide-zinc-100">
         {defs.length === 0 && (
           <p className="px-5 py-8 text-sm text-zinc-400 text-center">
             関係性の定義がまだありません

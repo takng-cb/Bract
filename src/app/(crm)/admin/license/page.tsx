@@ -12,6 +12,7 @@ import { isAdmin } from '@/lib/auth'
 import { getLicense } from '@/lib/license'
 import LicenseEditForm from './LicenseEditForm'
 import { NavIcon } from '@/lib/navIcon'
+import PageHeader from '@/components/ui/PageHeader'
 
 export default async function AdminLicensePage() {
   const adminFlag = await isAdmin()
@@ -26,13 +27,12 @@ export default async function AdminLicensePage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🎫" className="w-6 h-6" /> ライセンス管理</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          テナントの契約状態と機能フラグを管理します。管理者のみアクセス可能。
-        </p>
-      </div>
+    <div className="mx-auto max-w-4xl p-4 md:p-8">
+      <PageHeader
+        icon="🎫"
+        title="ライセンス管理"
+        description="テナントの契約状態と機能フラグを管理します。管理者のみアクセス可能。"
+      />
 
       <LicenseEditForm
         initial={license}

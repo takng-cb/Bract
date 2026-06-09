@@ -10,6 +10,7 @@ import { activeIndustry } from '@/lib/industry'
 import ActivityTypesEditor from '@/components/ActivityTypesEditor'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { NavIcon } from '@/lib/navIcon'
+import PageHeader from '@/components/ui/PageHeader'
 
 export default async function AdminObjectsPage() {
   await requireAdmin()
@@ -29,23 +30,23 @@ export default async function AdminObjectsPage() {
   )
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🗂️" className="w-6 h-6" /> オブジェクト管理</h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            オブジェクト（テーブル）とフィールドの追加・編集、サイドバーの並び替えができます
-          </p>
-        </div>
-        <Link
-          href="/admin/objects/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          ＋ 新規オブジェクト
-        </Link>
-      </div>
+    <div className="mx-auto max-w-4xl p-4 md:p-8 space-y-8">
+      <PageHeader
+        icon="🗂️"
+        title="オブジェクト管理"
+        description="オブジェクト（テーブル）とフィールドの追加・編集、サイドバーの並び替えができます"
+        className="mb-0"
+        actions={
+          <Link
+            href="/admin/objects/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            ＋ 新規オブジェクト
+          </Link>
+        }
+      />
 
-      <div className="bg-white rounded-lg border border-zinc-200 divide-y divide-zinc-100">
+      <div className="bg-white rounded-xl border border-zinc-200 shadow-xs divide-y divide-zinc-100">
         {objects.length === 0 && (
           <p className="px-5 py-8 text-sm text-zinc-400 text-center">オブジェクトがまだありません</p>
         )}
