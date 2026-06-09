@@ -22,7 +22,7 @@ export const ALWAYS_ON = ['crm-core', 'sales', 'expenses'] as const
 
 export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
   'crm-core': {
-    id: 'crm-core', name: 'CRM コア', category: 'crm',
+    id: 'crm-core', name: '顧客管理', category: 'crm',
     navItems: [
       { href: '/accounts',   label: '取引先', icon: '🏢' },
       { href: '/contacts',   label: '人物',   icon: '👤' },
