@@ -57,20 +57,34 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   // DB の object_definitions (api_name='properties') から自動的にサイドバーに表示される。
 ]
 
-/** サイドバー下部（固定・順序変更不可） */
+/**
+ * サイドバー下部（固定・順序変更不可）。
+ *
+ * 設定・管理系の入口は「設定」1つに集約する（各管理画面は /settings からカードで遷移）。
+ * 個別の /admin/* や /tags はサイドバーに直接出さず、設定ハブ経由で到達する。
+ */
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
-  { href: '/tags',           label: 'タグ管理',       icon: '🏷️' },
-  { href: '/admin/modules',        label: 'モジュール構成',   icon: '🧩' },
-  { href: '/admin/objects',        label: 'オブジェクト管理', icon: '🗂️' },
-  { href: '/admin/relationships',  label: '関係性管理',       icon: '🔗' },
-  { href: '/admin/users',          label: 'ユーザー管理',     icon: '👥' },
-  { href: '/admin/import-logs',    label: 'インポートログ',   icon: '📥' },
-  { href: '/admin/audit-log',      label: '監査ログ',         icon: '📝' },
-  { href: '/admin/ai',             label: 'AI 設定',          icon: '🤖' },
-  { href: '/admin/license',        label: 'ライセンス',       icon: '🎫' },
-  { href: '/admin/notifications',  label: '通知設定',         icon: '🔔' },
   { href: '/settings',       label: '設定',           icon: '⚙️' },
   { href: '/about',          label: '使い方',         icon: '💡' },
+]
+
+/**
+ * 設定ハブ（/settings）から遷移する管理画面の一覧。
+ * すべて管理者専用ページ。AI 設定は AI 機能が有効な場合のみ表示。
+ */
+export type AdminLink = { href: string; label: string; icon: string; desc: string; aiGated?: boolean }
+export const ADMIN_LINKS: AdminLink[] = [
+  { href: '/admin/modules',       label: 'モジュール構成',   icon: '🧩',  desc: '機能モジュールの有効/無効' },
+  { href: '/admin/objects',       label: 'オブジェクト管理', icon: '🗂️', desc: 'オブジェクト・フィールド・並び順' },
+  { href: '/admin/relationships', label: '関係性管理',       icon: '🔗',  desc: 'オブジェクト間のリレーション' },
+  { href: '/admin/users',         label: 'ユーザー管理',     icon: '👥',  desc: '権限・パスワード・削除' },
+  { href: '/tags',                label: 'タグ管理',         icon: '🏷️', desc: 'タグの作成・整理' },
+  { href: '/admin/ai',            label: 'AI 設定',          icon: '🤖',  desc: 'プロバイダ・APIキー・プロンプト', aiGated: true },
+  { href: '/admin/notifications', label: '通知設定',         icon: '🔔',  desc: '外部通知チャンネル' },
+  { href: '/admin/license',       label: 'ライセンス',       icon: '🎫',  desc: '契約状態・機能フラグ' },
+  { href: '/admin/system',        label: '全般設定',         icon: '🛠️', desc: '会社情報・パスワード・危険操作' },
+  { href: '/admin/import-logs',   label: 'インポートログ',   icon: '📥',  desc: 'CSV取込の実行履歴' },
+  { href: '/admin/audit-log',     label: '監査ログ',         icon: '📝',  desc: '全社の変更履歴' },
 ]
 
 /** デフォルト順序（hrefs配列） */

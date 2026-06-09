@@ -1,7 +1,5 @@
 import PasswordForm from '@/components/PasswordForm'
 import ProfileForm from '@/components/ProfileForm'
-import SystemSettingsForm from '@/components/SystemSettingsForm'
-import DangerZone from '@/components/DangerZone'
 import UserManagement from '@/components/UserManagement'
 import DashboardWidgetSettings from '@/components/DashboardWidgetSettings'
 import { getSystemSettings, SYSTEM_DEFAULTS } from '@/lib/systemSettings'
@@ -18,6 +16,8 @@ import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
 import PageHeader from '@/components/ui/PageHeader'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
+import { ADMIN_LINKS } from '@/lib/navItems'
+import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
@@ -41,8 +41,10 @@ export default async function SettingsPage() {
     systemSettings.password_min_length ?? SYSTEM_DEFAULTS.password_min_length, 10
   )
 
-  // 管理者のみ: ユーザー一覧を取得
+  // 管理者のみ: ユーザー一覧 + AI 機能の有効状態を取得
   const userList = adminFlag ? await listUsers() : []
+  const aiEnabled = adminFlag ? await isAIFeatureEnabled() : false
+  const adminLinks = ADMIN_LINKS.filter((l) => !l.aiGated || aiEnabled)
 
   const identities = user?.identities ?? []
   const hasGoogle  = identities.some((i) => i.provider === 'google')
@@ -52,10 +54,15 @@ export default async function SettingsPage() {
     <div className="p-4 md:p-8 max-w-lg space-y-10">
 
       {/* ══════════════════════════════════════
-          一般設定（全ユーザー）
+          個人設定（全ユーザー）
       ══════════════════════════════════════ */}
       <div className="space-y-6">
-        <PageHeader icon="⚙️" title="設定" description="アカウントと表示に関する設定" className="mb-0" />
+        <PageHeader
+          icon="👤"
+          title="個人設定"
+          description="プロフィール・ログイン方法・表示など、あなた個人の設定"
+          className="mb-0"
+        />
 
         <ProfileForm
           currentDisplayName={userPref?.display_name ?? null}
@@ -111,69 +118,48 @@ export default async function SettingsPage() {
       </div>
 
       {/* ══════════════════════════════════════
-          管理者設定（admin のみ）
+          システム設定（admin のみ・テナント全体）
       ══════════════════════════════════════ */}
       {adminFlag && (
         <div className="space-y-6">
           <div className="border-t-2 border-dashed border-zinc-200 pt-8">
             <h2 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
-              <NavIcon icon="🛡️" className="w-4 h-4" /> 管理者設定
+              <NavIcon icon="🛠️" className="w-5 h-5 text-brand-600" /> システム設定
             </h2>
-            <p className="text-sm text-zinc-500 mt-1">管理者のみ表示されます</p>
+            <p className="text-sm text-zinc-500 mt-1">テナント全体の設定・管理（管理者のみ表示）</p>
           </div>
 
-          {/* 管理画面へのリンク */}
-          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-            <h3 className="text-sm font-bold text-zinc-700 mb-4">管理画面</h3>
-            <div className="space-y-2">
-              <Link
-                href="/admin/objects"
-                className="flex items-center justify-between px-4 py-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <NavIcon icon="🗂️" className="w-5 h-5" />
-                  <div>
-                    <p className="text-sm font-medium text-zinc-800">オブジェクト管理</p>
-                    <p className="text-xs text-zinc-400">カスタムオブジェクトとフィールドを管理</p>
+          {/* 管理画面（システム設定の各画面への入口） */}
+          <div className="bg-white border border-zinc-200 rounded-xl shadow-xs p-6">
+            <h3 className="text-sm font-bold text-zinc-700 mb-1">管理画面</h3>
+            <p className="text-xs text-zinc-400 mb-4">各設定・管理画面へ移動します。</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {adminLinks.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="flex items-center justify-between gap-2 px-4 py-3 rounded-lg border border-zinc-200 hover:border-brand-300 hover:bg-brand-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 group-hover:bg-white">
+                      <NavIcon icon={l.icon} className="w-5 h-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-800 truncate">{l.label}</p>
+                      <p className="text-xs text-zinc-400 truncate">{l.desc}</p>
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600" />
-              </Link>
-              <Link
-                href="/admin/users"
-                className="flex items-center justify-between px-4 py-3 rounded-md border border-zinc-200 hover:bg-zinc-50 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <NavIcon icon="👥" className="w-5 h-5" />
-                  <div>
-                    <p className="text-sm font-medium text-zinc-800">ユーザー管理</p>
-                    <p className="text-xs text-zinc-400">ユーザーのロールと権限を管理</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600" />
-              </Link>
+                  <ChevronRight className="w-4 h-4 shrink-0 text-zinc-300 group-hover:text-brand-600" />
+                </Link>
+              ))}
             </div>
           </div>
 
-          {/* ユーザー管理 */}
+          {/* ユーザー管理（追加・ロール変更・代理ログイン。パスワード再発行/削除は「ユーザー管理」画面へ） */}
           <UserManagement
             users={userList}
             currentUserId={user?.id ?? ''}
           />
-
-          {/* システム設定 */}
-          <SystemSettingsForm
-            current={{
-              company_name:            systemSettings.company_name,
-              password_min_length:     systemSettings.password_min_length,
-              session_timeout_minutes: systemSettings.session_timeout_minutes,
-              allow_self_registration: systemSettings.allow_self_registration,
-              fiscal_year_start:       systemSettings.fiscal_year_start,
-            }}
-          />
-
-          {/* 危険ゾーン */}
-          <DangerZone />
         </div>
       )}
     </div>
