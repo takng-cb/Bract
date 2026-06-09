@@ -68,6 +68,9 @@ export const BOTTOM_NAV_ITEMS: NavItem[] = [
   { href: '/about',          label: '使い方',         icon: '💡' },
 ]
 
+/** 管理者のみに出す「システム設定」入口（個人設定とは別メニュー）。 */
+export const SYSTEM_SETTINGS_ITEM: NavItem = { href: '/settings/system', label: 'システム設定', icon: '🛠️' }
+
 /**
  * 設定ハブ（/settings）から遷移する管理画面の一覧。
  * すべて管理者専用ページ。AI 設定は AI 機能が有効な場合のみ表示。
