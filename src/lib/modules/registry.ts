@@ -17,8 +17,8 @@ import { ModuleNotEnabledError } from './types'
 /** 同梱モジュール群（ビルドプロファイル）。未設定は 'all'（ADR-0002） */
 const BUILD_PROFILE = (process.env.BRACT_BUILD_PROFILE ?? 'all') as 'crm' | 'crm+erp' | 'all'
 
-/** 暫定で常時有効にする基盤モジュール（crm コア） */
-export const ALWAYS_ON = ['crm-core', 'sales', 'expenses'] as const
+/** 暫定で常時有効にする基盤モジュール（crm コア＋横断の活動・ToDo） */
+export const ALWAYS_ON = ['crm-core', 'activity', 'sales', 'expenses'] as const
 
 export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
   'crm-core': {
@@ -26,22 +26,33 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     navItems: [
       { href: '/accounts',   label: '取引先', icon: '🏢' },
       { href: '/contacts',   label: '人物',   icon: '👤' },
-      { href: '/activities', label: '活動履歴', icon: '🗓️' },
-      { href: '/tasks',      label: 'ToDo',   icon: '✅' },
     ],
     books: [
       { apiName: 'accounts',   label: '取引先' },
       { apiName: 'contacts',   label: '人物' },
-      { apiName: 'activities', label: '活動履歴' },
-      { apiName: 'tasks',      label: 'ToDo' },
     ],
     quickActions: [
       { label: '取引先の新規作成', icon: '🏢', kind: 'create', href: '/accounts/new', book: 'accounts' },
       { label: '取引先の一覧',     icon: '🏢', kind: 'list',   href: '/accounts',     book: 'accounts' },
       { label: '人物の新規作成',   icon: '👤', kind: 'create', href: '/contacts/new', book: 'contacts' },
       { label: '人物の一覧',       icon: '👤', kind: 'list',   href: '/contacts',     book: 'contacts' },
-      { label: '活動の記録',       icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
-      { label: 'ToDoの新規作成',   icon: '✅', kind: 'create', href: '/tasks/new',    book: 'tasks' },
+    ],
+  },
+  // 活動履歴・ToDo は特定の業務に属さず、取引先/商談/整備など**どのブックにも紐づく**
+  // 横断的な記録。顧客管理から切り出して独立グループにする（常時有効）。
+  'activity': {
+    id: 'activity', name: '活動・ToDo', category: 'crm',
+    navItems: [
+      { href: '/activities', label: '活動履歴', icon: '🗓️' },
+      { href: '/tasks',      label: 'ToDo',   icon: '✅' },
+    ],
+    books: [
+      { apiName: 'activities', label: '活動履歴' },
+      { apiName: 'tasks',      label: 'ToDo' },
+    ],
+    quickActions: [
+      { label: '活動の記録',     icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
+      { label: 'ToDoの新規作成', icon: '✅', kind: 'create', href: '/tasks/new',      book: 'tasks' },
     ],
   },
   'sales': {
