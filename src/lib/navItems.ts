@@ -82,7 +82,7 @@ export const ADMIN_LINKS: AdminLink[] = [
   { href: '/admin/ai',            label: 'AI 設定',          icon: '🤖',  desc: 'プロバイダ・APIキー・プロンプト', aiGated: true },
   { href: '/admin/notifications', label: '通知設定',         icon: '🔔',  desc: '外部通知チャンネル' },
   { href: '/admin/license',       label: 'ライセンス',       icon: '🎫',  desc: '契約状態・機能フラグ' },
-  { href: '/admin/system',        label: 'システム設定',     icon: '🛠️', desc: '会社情報・パスワード・危険操作' },
+  { href: '/admin/system',        label: '全般設定',         icon: '🛠️', desc: '会社情報・パスワード・危険操作' },
   { href: '/admin/import-logs',   label: 'インポートログ',   icon: '📥',  desc: 'CSV取込の実行履歴' },
   { href: '/admin/audit-log',     label: '監査ログ',         icon: '📝',  desc: '全社の変更履歴' },
 ]

@@ -25,7 +25,7 @@ export default async function AdminSystemPage() {
     <div className="mx-auto max-w-lg p-4 md:p-8 space-y-6">
       <PageHeader
         icon="🛠️"
-        title="システム設定"
+        title="全般設定"
         description="会社情報・パスワードポリシー・セッション等のシステム全体の設定。管理者のみアクセス可能。"
       />
 
