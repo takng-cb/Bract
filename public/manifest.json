@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Bract CRM",
-  "short_name": "Bract CRM",
-  "description": "社内CRMシステム",
+  "name": "Bract",
+  "short_name": "Bract",
+  "description": "CRM/ERP プラットフォーム",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
