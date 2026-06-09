@@ -37,6 +37,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
 
   // AI 入力
   const [aiText, setAiText] = useState('')
+  const [aiUrl, setAiUrl] = useState('')
   const [aiImage, setAiImage] = useState<{ mediaType: string; dataBase64: string; preview: string } | null>(null)
   const [draft, setDraft] = useState<QuickAiDraft | null>(null)
   const [busy, setBusy] = useState(false)
@@ -45,7 +46,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const reset = useCallback(() => {
     setStep('root'); setMode('create'); setCreateMode('manual')
     setMod(null); setBook(null)
-    setAiText(''); setAiImage(null); setDraft(null); setBusy(false); setError(null)
+    setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setBusy(false); setError(null)
   }, [])
 
   const close = useCallback(() => { setOpen(false); reset() }, [reset])
@@ -77,7 +78,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     if (mode === 'view') return go(b.listHref)
     if (createMode === 'manual') return go(b.newHref)
     // createMode === 'ai'
-    if (b.custom) { setError(null); setDraft(null); setAiText(''); setAiImage(null); setStep('aiInput') }
+    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setStep('aiInput') }
     else if (b.aiWizardHref) go(b.aiWizardHref)
     else setStep('aiNotSupported')
   }
@@ -100,6 +101,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     try {
       const d = await quickAiExtract(book.apiName, {
         text: aiText || undefined,
+        url: aiUrl.trim() || undefined,
         image: aiImage ? { mediaType: aiImage.mediaType, dataBase64: aiImage.dataBase64 } : undefined,
       })
       setDraft(d); setStep('aiConfirm')
@@ -231,7 +233,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                       className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 px-3 py-2.5 text-left hover:border-blue-300 hover:bg-blue-50 transition-colors">
                       <NavIcon icon={b.icon} className="w-5 h-5 shrink-0 text-zinc-500" />
                       <span className="flex-1 text-sm font-medium text-zinc-800">{b.label}</span>
-                      {mode === 'create' && createMode === 'ai' && (b.custom || b.aiWizardHref) && (
+                      {mode === 'create' && createMode === 'ai' && (b.aiCreate || b.aiWizardHref) && (
                         <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700"><Sparkles className="w-3 h-3" />AI</span>
                       )}
                     </button>
@@ -246,13 +248,23 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                     value={aiText}
                     onChange={(e) => setAiText(e.target.value)}
                     rows={5}
-                    placeholder={`「${book.label}」の内容を自由に入力（例: メモ・メール・FAX 文面など）`}
+                    placeholder={`「${book.label}」の内容を自由に入力（例: メモ・メール・FAX 文面・名刺の文字など）`}
                     className="w-full rounded-lg border border-zinc-300 p-3 text-sm focus:border-blue-400 focus:outline-none"
                   />
                   <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Webサイト / SNS の URL から取り込む（任意）</label>
+                    <input
+                      type="url"
+                      value={aiUrl}
+                      onChange={(e) => setAiUrl(e.target.value)}
+                      placeholder="https://example.co.jp"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
                     <label className="inline-flex items-center gap-2 cursor-pointer rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
                       <ImagePlus className="w-4 h-4" />
-                      画像から読み取る
+                      画像（名刺等）から読み取る
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickImage(e.target.files?.[0] ?? null)} />
                     </label>
                     {aiImage && (
@@ -265,7 +277,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                   </div>
                   <button
                     onClick={runExtract}
-                    disabled={busy || (!aiText.trim() && !aiImage)}
+                    disabled={busy || (!aiText.trim() && !aiImage && !aiUrl.trim())}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
                   >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}

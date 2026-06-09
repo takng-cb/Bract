@@ -39,6 +39,8 @@ export type QuickBook = {
   newHref: string
   /** custom_records ベース（field_definitions 駆動）なら true → 汎用AI作成が可能 */
   custom: boolean
+  /** ウィザードの AI 作成（テキスト/画像/URL→確認→作成）に対応するブックか（#49） */
+  aiCreate: boolean
   /** 専用 AI 起票ウィザードがある場合の遷移先（例: staffing → /quick/staffing） */
   aiWizardHref?: string
 }
@@ -54,6 +56,9 @@ export type QuickModule = {
 const AI_WIZARD_HREF: Record<string, string> = {
   assignments: '/quick/staffing',
 }
+
+/** ウィザードの AI 作成に対応する typed CRM コアブック（#49・quickAi.ts の TYPED_SPECS と一致） */
+const AI_TYPED_BOOKS = new Set(['accounts', 'contacts'])
 
 /**
  * 有効モジュール群 → 「モジュール → ブック」ツリー。
@@ -77,6 +82,7 @@ export function buildModuleBooks(modules: ModuleManifest[]): QuickModule[] {
           listHref,
           newHref: `${listHref}/new`,
           custom,
+          aiCreate: custom || AI_TYPED_BOOKS.has(b.apiName),
           aiWizardHref: AI_WIZARD_HREF[b.apiName],
         }
       })

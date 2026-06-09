@@ -16,6 +16,68 @@ import { custom_records } from '@/lib/schema'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { getObjectDef, getFieldDefs, parseFieldOptions } from '@/lib/objectMetadata'
 import { callAI } from '@/lib/ai/client'
+import { createAccount } from '@/app/actions/accounts'
+import { createContact } from '@/app/actions/contacts'
+
+/**
+ * typed CRM コアブックの AI 作成スペック（#49）。
+ * field_definitions を持たない typed テーブル（accounts/contacts）に、
+ * 抽出対象フィールドと作成処理（既存 create アクション）を定義して AI 作成を可能にする。
+ */
+type TypedField = { apiName: string; label: string; fieldType: string; options?: string[] }
+type TypedSpec = {
+  label: string
+  fields: TypedField[]
+  create: (values: Record<string, string>) => Promise<{ recordHref: string }>
+}
+
+function fd(values: Record<string, string>, map: Record<string, string>): FormData {
+  const f = new FormData()
+  for (const [k, v] of Object.entries(map)) f.set(k, values[v] ?? '')
+  return f
+}
+
+const TYPED_SPECS: Record<string, TypedSpec> = {
+  accounts: {
+    label: '取引先',
+    fields: [
+      { apiName: 'name',        label: '取引先名（会社名）', fieldType: 'text' },
+      { apiName: 'phone',       label: '電話番号',           fieldType: 'text' },
+      { apiName: 'website',     label: 'Webサイト',          fieldType: 'text' },
+      { apiName: 'address',     label: '住所',               fieldType: 'text' },
+      { apiName: 'industry',    label: '業種',               fieldType: 'text' },
+      { apiName: 'type',        label: '取引先種別',         fieldType: 'text' },
+      { apiName: 'description', label: '備考',               fieldType: 'textarea' },
+    ],
+    async create(v) {
+      const id = await createAccount(fd(v, {
+        name: 'name', phone: 'phone', website: 'website', address: 'address',
+        industry: 'industry', type: 'type', description: 'description',
+      }))
+      return { recordHref: `/accounts/${id}` }
+    },
+  },
+  contacts: {
+    label: '人物',
+    fields: [
+      { apiName: 'full_name',   label: '氏名',     fieldType: 'text' },
+      { apiName: 'title',       label: '役職',     fieldType: 'text' },
+      { apiName: 'department',  label: '部署',     fieldType: 'text' },
+      { apiName: 'email',       label: 'メール',   fieldType: 'text' },
+      { apiName: 'phone',       label: '電話番号', fieldType: 'text' },
+      { apiName: 'description', label: '備考',     fieldType: 'textarea' },
+    ],
+    async create(v) {
+      const f = fd(v, {
+        full_name: 'full_name', title: 'title', department: 'department',
+        email: 'email', phone: 'phone', description: 'description',
+      })
+      f.set('contact_type', 'business')
+      const id = await createContact(f)
+      return { recordHref: `/contacts/${id}` }
+    },
+  },
+}
 
 export type QuickAiField = {
   apiName: string
@@ -33,45 +95,55 @@ export type QuickAiDraft = {
 }
 
 export type QuickAiImage = { mediaType: string; dataBase64: string }
+export type QuickAiInput = { text?: string; image?: QuickAiImage; url?: string }
 
-/** custom_records ベースのブックか（typed は false → AI 作成は非対応） */
+/** AI 作成に対応するブックか（custom_records ベース or typed CRM コア） */
 export async function quickAiSupported(apiName: string): Promise<boolean> {
+  if (TYPED_SPECS[apiName]) return true
   const obj = await getObjectDef(apiName)
   return Boolean(obj && !obj.is_builtin)
 }
 
 /**
- * 自由入力 or 画像から、ブックの各フィールド値を抽出して編集可能ドラフトを返す。
- * カスタムオブジェクト（field_definitions あり）のみ対応。
+ * 自由入力／画像／URL から、ブックの各フィールド値を抽出して編集可能ドラフトを返す。
+ * typed CRM コア（accounts/contacts）と カスタムオブジェクトの両方に対応（#49 / REQ-0022）。
  */
-export async function quickAiExtract(
-  apiName: string,
-  input: { text?: string; image?: QuickAiImage },
-): Promise<QuickAiDraft> {
+export async function quickAiExtract(apiName: string, input: QuickAiInput): Promise<QuickAiDraft> {
   if (!(await canEdit())) throw new Error('権限がありません')
 
-  const obj = await getObjectDef(apiName)
-  if (!obj) throw new Error(`ブック "${apiName}" が見つかりません`)
-  if (obj.is_builtin) {
-    throw new Error('このブックは AI 作成に未対応です（手動入力をご利用ください）')
+  // 対象フィールド仕様（typed spec or field_definitions）
+  let label: string
+  let specFields: TypedField[]
+  const typed = TYPED_SPECS[apiName]
+  if (typed) {
+    label = typed.label
+    specFields = typed.fields
+  } else {
+    const obj = await getObjectDef(apiName)
+    if (!obj) throw new Error(`ブック "${apiName}" が見つかりません`)
+    if (obj.is_builtin) throw new Error('このブックは AI 作成に未対応です（手動入力をご利用ください）')
+    const fdefs = await getFieldDefs(obj.id)
+    if (fdefs.length === 0) throw new Error('このブックには入力フィールドが定義されていません')
+    label = obj.label
+    specFields = fdefs.map((f) => ({ apiName: f.api_name, label: f.label, fieldType: f.field_type, options: parseFieldOptions(f) }))
   }
 
-  const fields = await getFieldDefs(obj.id)
-  if (fields.length === 0) throw new Error('このブックには入力フィールドが定義されていません')
+  // URL が指定されたら本文テキストを取得して材料に加える（Webサイト/会社情報）
+  let text = input.text?.trim() ?? ''
+  if (input.url?.trim()) {
+    const fetched = await fetchUrlText(input.url.trim())
+    text = [text, fetched].filter(Boolean).join('\n\n---（Webサイト本文）---\n')
+  }
+  if (!text && !input.image) throw new Error('テキスト・画像・URL のいずれかを入力してください')
 
-  const text = input.text?.trim() ?? ''
-  if (!text && !input.image) throw new Error('テキストまたは画像を入力してください')
-
-  // フィールド仕様を AI に提示
-  const fieldSpec = fields.map((f) => {
-    const opts = parseFieldOptions(f)
-    const optStr = opts.length ? `（選択肢: ${opts.join(' / ')}）` : ''
-    return `- ${f.api_name}: ${f.label}（型: ${f.field_type}）${optStr}`
+  const fieldSpec = specFields.map((f) => {
+    const optStr = f.options?.length ? `（選択肢: ${f.options.join(' / ')}）` : ''
+    return `- ${f.apiName}: ${f.label}（型: ${f.fieldType}）${optStr}`
   }).join('\n')
 
   const system = [
     `あなたは日本語の業務データ抽出アシスタントです。`,
-    `「${obj.label}」レコードの各フィールドを、与えられた情報（テキストや画像）から抽出します。`,
+    `「${label}」レコードの各フィールドを、与えられた情報（テキスト・名刺等の画像・Webサイト本文）から抽出します。`,
     `出力は厳密な JSON のみ。前後に説明文やコードフェンスを付けないこと。`,
     `形式: {"fields": {"<api_name>": "<値の文字列>", ...}, "note": "<曖昧な点があれば短く。無ければ空文字>"}`,
     `ルール:`,
@@ -84,30 +156,20 @@ export async function quickAiExtract(
   ].join('\n')
 
   const user = input.image
-    ? (text ? `次の画像と補足テキストから抽出してください。\n補足: ${text}` : `次の画像から抽出してください。`)
+    ? (text ? `次の画像と補足テキストから抽出してください。\n補足:\n${text}` : `次の画像（名刺等）から抽出してください。`)
     : `次のテキストから抽出してください。\n---\n${text}`
 
   const result = await callAI({
-    system,
-    user,
+    system, user,
     images: input.image ? [input.image] : undefined,
-    maxTokens: 1500,
-    temperature: 0.1,
-    timeoutMs: 45000,
+    maxTokens: 1500, temperature: 0.1, timeoutMs: 45000,
   })
 
   const parsed = extractJson(result.text)
   const valueMap = (parsed?.fields ?? {}) as Record<string, unknown>
-
-  const draftFields: QuickAiField[] = fields.map((f) => {
-    const raw = valueMap[f.api_name]
-    return {
-      apiName: f.api_name,
-      label: f.label,
-      fieldType: f.field_type,
-      value: raw == null ? '' : String(raw),
-      options: parseFieldOptions(f),
-    }
+  const draftFields: QuickAiField[] = specFields.map((f) => {
+    const raw = valueMap[f.apiName]
+    return { apiName: f.apiName, label: f.label, fieldType: f.fieldType, value: raw == null ? '' : String(raw), options: f.options }
   })
 
   return {
@@ -116,12 +178,12 @@ export async function quickAiExtract(
   }
 }
 
-/** 確定値で custom_records に INSERT。レコード詳細への href を返す */
-export async function quickAiCreate(
-  apiName: string,
-  values: Record<string, string>,
-): Promise<{ recordHref: string }> {
+/** 確定値でレコードを作成。typed は既存 create アクション、custom は custom_records。 */
+export async function quickAiCreate(apiName: string, values: Record<string, string>): Promise<{ recordHref: string }> {
   if (!(await canEdit())) throw new Error('権限がありません')
+
+  const typed = TYPED_SPECS[apiName]
+  if (typed) return typed.create(values)
 
   const obj = await getObjectDef(apiName)
   if (!obj) throw new Error(`ブック "${apiName}" が見つかりません`)
@@ -129,9 +191,7 @@ export async function quickAiCreate(
 
   const fields = await getFieldDefs(obj.id)
   const data: Record<string, unknown> = {}
-  for (const f of fields) {
-    data[f.api_name] = coerceValue(f.field_type, values[f.api_name] ?? null)
-  }
+  for (const f of fields) data[f.api_name] = coerceValue(f.field_type, values[f.api_name] ?? null)
 
   const owner_id = (await getCurrentUserId()) ?? null
   const [rec] = await db.insert(custom_records)
@@ -139,6 +199,30 @@ export async function quickAiCreate(
     .returning({ id: custom_records.id })
 
   return { recordHref: `/objects/${apiName}/${rec.id}` }
+}
+
+/** URL の HTML を取得し、本文テキストへ粗く変換（script/style 除去・タグ除去） */
+async function fetchUrlText(url: string): Promise<string> {
+  let u: URL
+  try { u = new URL(url) } catch { throw new Error('URL の形式が正しくありません') }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('http(s) の URL を指定してください')
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 12000)
+  try {
+    const res = await fetch(u.toString(), { signal: controller.signal, headers: { 'User-Agent': 'Mozilla/5.0 BractBot' } })
+    if (!res.ok) throw new Error(`Webサイト取得に失敗しました (HTTP ${res.status})`)
+    const html = await res.text()
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ').trim()
+    return text.slice(0, 6000) // トークン節約
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') throw new Error('Webサイト取得がタイムアウトしました')
+    throw e
+  } finally { clearTimeout(timer) }
 }
 
 // ── helpers ────────────────────────────────────────────────────────
