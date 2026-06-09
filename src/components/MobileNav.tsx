@@ -6,11 +6,8 @@ import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Menu, LogOut } from 'lucide-react'
 import { signOut } from '@/app/actions/auth'
-import { type NavItem, BOTTOM_NAV_ITEMS } from '@/lib/navItems'
+import { type NavItem, BOTTOM_NAV_ITEMS, SYSTEM_SETTINGS_ITEM } from '@/lib/navItems'
 import { NavIcon } from '@/lib/navIcon'
-
-const ADMIN_ONLY_HREFS = new Set(['/tags', '/admin/modules', '/admin/objects', '/admin/relationships', '/admin/users', '/admin/import-logs', '/admin/audit-log', '/admin/ai', '/admin/license', '/admin/notifications'])
-const AI_GATED_HREFS = new Set(['/admin/ai'])
 
 type NavGroup = { id: string; name: string; items: NavItem[] }
 
@@ -23,13 +20,12 @@ type Props = {
   aiEnabled?:    boolean
 }
 
-export default function MobileNav({ navGroups, dashboardItem, companyName, displayName, isAdmin = false, aiEnabled = false }: Props) {
+export default function MobileNav({ navGroups, dashboardItem, companyName, displayName, isAdmin = false }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
-  const bottomItems = BOTTOM_NAV_ITEMS
-    .filter((item) => !ADMIN_ONLY_HREFS.has(item.href) || isAdmin)
-    .filter((item) => !AI_GATED_HREFS.has(item.href) || aiEnabled)
+  // 個人設定/使い方 ＋（管理者のみ）システム設定を別エントリで
+  const bottomItems = isAdmin ? [...BOTTOM_NAV_ITEMS, SYSTEM_SETTINGS_ITEM] : BOTTOM_NAV_ITEMS
 
   const avatarChar = (displayName?.trim()?.[0] ?? '👤').toUpperCase()
 

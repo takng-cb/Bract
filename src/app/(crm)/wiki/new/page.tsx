@@ -21,7 +21,7 @@ export default async function NewWikiPage({
 }: {
   searchParams: Promise<{ title?: string; parent?: string }>
 }) {
-  if (!(await isModuleEnabled('wiki'))) notFound()
+  if (!(await isModuleEnabled('workspace'))) notFound()
   await requireEditor()
   const { title, parent } = await searchParams
 
