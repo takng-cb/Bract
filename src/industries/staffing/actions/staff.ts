@@ -78,6 +78,14 @@ export async function updateStaff(id: string, formData: FormData) {
   redirect(`/staff/${id}`)
 }
 
+/** ステータスのみ更新（矢羽根 StageBar 用） */
+export async function setStaffStatus(id: string, status: string) {
+  await requireEditor()
+  await db.update(staff).set({ status, updated_at: new Date() }).where(eq(staff.id, id))
+  revalidatePath(`/staff/${id}`)
+  revalidatePath('/staff')
+}
+
 export async function deleteStaff(id: string) {
   await requireEditor()
   await db.delete(staff).where(eq(staff.id, id))

@@ -7,7 +7,9 @@ import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, inArray, desc, asc, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { deleteProperty } from '@/industries/real-estate/actions/properties'
+import { deleteProperty, setPropertyStatus } from '@/industries/real-estate/actions/properties'
+import StageBar from '@/components/StageBar'
+import { PROPERTY_STAGES } from '@/lib/statusStages'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import DeleteButton from '@/components/DeleteButton'
 import TagsSection from '@/components/TagsSection'
@@ -23,14 +25,6 @@ import { summarizeProperty } from '@/app/actions/ai'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { NavIcon } from '@/lib/navIcon'
 
-const STATUS_COLORS: Record<string, string> = {
-  '募集中': 'bg-blue-100 text-blue-700',
-  '提案中': 'bg-blue-100 text-blue-700',
-  '交渉中': 'bg-yellow-100 text-yellow-700',
-  '成約':   'bg-green-100 text-green-700',
-  '管理中': 'bg-purple-100 text-purple-700',
-  '終了':   'bg-zinc-100 text-zinc-500',
-}
 const TX_COLORS: Record<string, string> = {
   '売買': 'bg-orange-50 text-orange-700 border-orange-200',
   '賃貸': 'bg-cyan-50 text-cyan-700 border-cyan-200',
@@ -140,6 +134,11 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   async function handleDelete() {
     'use server'
     await deleteProperty(id)
+  }
+
+  async function changeStatus(status: string) {
+    'use server'
+    await setPropertyStatus(id, status)
   }
 
   async function toggleTask(formData: FormData) {
@@ -477,14 +476,16 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[p.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-            {p.status}
-          </span>
           <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${TX_COLORS[p.transaction_type] ?? 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
             {p.transaction_type}
           </span>
           {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
         </div>
+      </div>
+
+      {/* ステータス（矢羽根） */}
+      <div className="mb-6">
+        <StageBar stages={PROPERTY_STAGES} currentStage={p.status} updateAction={changeStatus} />
       </div>
 
       <RecordTabs defaultTab="overview" tabs={tabsConfig} />
