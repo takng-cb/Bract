@@ -15,10 +15,11 @@ import DeleteButton from '@/components/DeleteButton'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import { toggleTaskDone } from '@/app/actions/tasks'
-import { deleteVehicle } from '@/industries/auto-body/actions/vehicles'
+import { deleteVehicle, setVehicleStatus } from '@/industries/auto-body/actions/vehicles'
 import { NavIcon } from '@/lib/navIcon'
+import StageBar from '@/components/StageBar'
+import { VEHICLE_STAGES } from '@/lib/statusStages'
 import {
-  vehicleStatusColor,
   daysUntilInspection,
   calcAutoBodyProfit,
 } from '@/industries/auto-body/lib/autoBodyService'
@@ -141,6 +142,11 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   async function handleDelete() {
     'use server'
     await deleteVehicle(id)
+  }
+
+  async function changeStatus(status: string) {
+    'use server'
+    await setVehicleStatus(id, status)
   }
 
   async function toggleTask(formData: FormData) {
@@ -525,11 +531,15 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           <NavIcon icon="🚗" className="w-6 h-6" /> {v.maker} {v.model}
         </h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-          <span className={`inline-block px-2 py-0.5 text-xs rounded ${vehicleStatusColor(v.status)}`}>{v.status}</span>
           {v.year   && <span>{v.year}年式</span>}
           {v.color  && <span>・ {v.color}</span>}
           {v.mileage != null && <span>・ {Number(v.mileage).toLocaleString()} km</span>}
         </div>
+      </div>
+
+      {/* ステータス（矢羽根） */}
+      <div className="mb-6">
+        <StageBar stages={VEHICLE_STAGES} currentStage={v.status} updateAction={changeStatus} />
       </div>
 
       <RecordTabs defaultTab="overview" tabs={tabsConfig} />
