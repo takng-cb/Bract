@@ -1004,6 +1004,23 @@ export const products = pgTable('products', {
   updated_at:    timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
+// ----------------------------------------------------------------
+// wiki_pages（社内ナレッジ / Wiki, Issue #78）
+//   parent_id は自己参照（階層）。drizzle 循環参照回避のため列はプレーン宣言し、
+//   FK 制約は migration 側 (ON DELETE SET NULL) で付与する（part_movements.maintenance_id 同様）。
+// ----------------------------------------------------------------
+export const wiki_pages = pgTable('wiki_pages', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  title:      text('title').notNull(),
+  body:       text('body'),                 // Markdown
+  parent_id:  uuid('parent_id'),            // 自己参照（階層）。FK は migration 側で ON DELETE SET NULL
+  owner_id:   uuid('owner_id'),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('wiki_pages_parent_idx').on(t.parent_id),
+])
+
 export const warehouses = pgTable('warehouses', {
   id:         uuid('id').primaryKey().defaultRandom(),
   code:       text('code').notNull().unique(),

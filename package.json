@@ -32,7 +32,10 @@
     "next": "16.2.7",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "recharts": "^3.8.1"
+    "react-markdown": "^9.1.0",
+    "recharts": "^3.8.1",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1"
   },
   "overrides": {
     "serialize-javascript": "^7.0.5",
