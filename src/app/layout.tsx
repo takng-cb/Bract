@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import SwUnregister from "./sw-unregister";
@@ -20,6 +20,11 @@ const notoSansJp = Noto_Sans_JP({
   weight: ["400", "500", "700"],
   preload: false,
 });
+
+// インストール時/モバイルのブラウザ上部バー色をブランドグリーンに統一（manifest.json と一致）
+export const viewport: Viewport = {
+  themeColor: "#187a4e",
+};
 
 export const metadata: Metadata = {
   title: "Bract CRM",
