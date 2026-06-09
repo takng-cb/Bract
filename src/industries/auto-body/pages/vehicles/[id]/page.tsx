@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen, Car } from 'lucide-react'
+import { SquarePen, Car, Wallet } from 'lucide-react'
 import { vehicles } from '@/industries/auto-body/schema'
 import { accounts, opportunities, activities, tasks, expenses, change_logs, maintenance_records, customer_vehicles, contacts } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
@@ -510,7 +510,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-6xl">
       <RecordHeader
         crumbs={[
           { label: '車両', href: '/vehicles' },
@@ -539,10 +539,27 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         <StageBar stages={VEHICLE_STAGES} currentStage={v.status} updateAction={changeStatus} />
       </div>
 
-      <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+      <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+        {/* メイン */}
+        <div className="min-w-0">
+          <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+          <div className="mt-6 text-right">
+            <RecordId id={id} />
+          </div>
+        </div>
 
-      <div className="mt-6 text-right">
-        <RecordId id={id} />
+        {/* 右レール（design_handoff: Vehicle Detail） */}
+        <aside className="space-y-4 lg:sticky lg:top-20">
+          {(v.supplier?.id || v.buyer?.id) && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Wallet className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />仕入・売却</h4>
+              <div className="space-y-2 text-sm text-zinc-700">
+                {v.supplier?.id && <div className="flex items-center gap-2 min-w-0"><span className="text-xs text-zinc-400 shrink-0">仕入元</span><Link href={`/accounts/${v.supplier.id}`} className="text-blue-600 hover:underline truncate">{v.supplier.name}</Link></div>}
+                {v.buyer?.id && <div className="flex items-center gap-2 min-w-0"><span className="text-xs text-zinc-400 shrink-0">売却先</span><Link href={`/accounts/${v.buyer.id}`} className="text-blue-600 hover:underline truncate">{v.buyer.name}</Link></div>}
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   )
