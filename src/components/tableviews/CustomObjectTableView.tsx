@@ -4,6 +4,7 @@ import Link from 'next/link'
 import GroupedTable, { type ColDef } from '@/components/GroupedTable'
 import type { FieldDef } from '@/components/FilterBuilder'
 import { evalFormula } from '@/lib/formulaEval'
+import { NavIcon } from '@/lib/navIcon'
 
 // フィールド定義（サーバーから渡す最小限の情報）
 export type SerializedFieldDef = {
@@ -119,7 +120,7 @@ function renderCell(
 
   switch (field.field_type) {
     case 'boolean':
-      return val ? '✅' : '—'
+      return val ? <NavIcon icon="✅" className="w-4 h-4 text-green-600" /> : '—'
     case 'number':
       return Number(val).toLocaleString('ja-JP')
     case 'date':

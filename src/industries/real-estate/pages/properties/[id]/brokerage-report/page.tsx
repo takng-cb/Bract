@@ -17,6 +17,7 @@ import { notFound } from 'next/navigation'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { getSystemSetting } from '@/lib/systemSettings'
+import { NavIcon } from '@/lib/navIcon'
 
 export const dynamic = 'force-dynamic'
 
@@ -210,7 +211,7 @@ export default async function BrokerageReportPage({
           className="ml-auto px-3 py-1 bg-zinc-800 text-white rounded text-sm cursor-default"
           // クライアント JS なしでも window.print() を window.onload に仕込めないので、表示のみ
         >
-          <a href="javascript:window.print()" className="text-white no-underline">🖨 印刷</a>
+          <a href="javascript:window.print()" className="text-white no-underline inline-flex items-center gap-1"><NavIcon icon="🖨" className="w-4 h-4 shrink-0" />印刷</a>
         </button>
       </div>
 

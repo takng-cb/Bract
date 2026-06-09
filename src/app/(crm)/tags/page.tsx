@@ -8,6 +8,7 @@ import { deleteTag } from '@/app/actions/tags'
 import TagDeleteButton from '@/components/TagDeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import { requireAdmin } from '@/lib/auth'
+import { NavIcon } from '@/lib/navIcon'
 
 export default async function TagsPage() {
   await requireAdmin()
@@ -47,7 +48,7 @@ export default async function TagsPage() {
 
       {allTags.length === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">🏷️</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="🏷️" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">タグがまだありません</p>
           <p className="text-sm mt-1">「新規作成」ボタンから追加してください</p>
         </div>

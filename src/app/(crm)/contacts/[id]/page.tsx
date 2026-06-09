@@ -21,6 +21,7 @@ import { canEdit } from '@/lib/auth'
 import RecordHeader from '@/components/RecordHeader'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { NavIcon } from '@/lib/navIcon'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -202,7 +203,7 @@ export default async function ContactDetailPage({
             <div className="divide-y divide-zinc-100">
               {attachmentsList.map((f) => (
                 <div key={f.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
-                  <span className="text-xl shrink-0">📄</span>
+                  <NavIcon icon="📄" className="w-5 h-5 shrink-0 text-zinc-400" />
                   <div className="flex-1 min-w-0">
                     <a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">{f.file_name}</a>
                     <p className="text-xs text-zinc-400">{formatFileSize(f.file_size)} · {f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</p>
@@ -297,7 +298,7 @@ export default async function ContactDetailPage({
                       <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
-                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    {t.due_date && <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
                     <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                   <AuthGuard minRole="editor">
@@ -329,7 +330,7 @@ export default async function ContactDetailPage({
                         <span className="text-sm font-medium text-zinc-800">{e.title}</span>
                         <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${catColor}`}>{e.category}</span>
                       </div>
-                      <p className="text-xs text-zinc-400 mt-0.5">📅 {e.expense_date}</p>
+                      <p className="text-xs text-zinc-400 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{e.expense_date}</p>
                     </div>
                     <span className="font-bold text-zinc-800 text-sm shrink-0">¥{Number(e.amount).toLocaleString()}</span>
                   </Link>

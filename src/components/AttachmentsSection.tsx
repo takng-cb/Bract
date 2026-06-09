@@ -12,6 +12,7 @@
  * Action を props 経由で受け取る (parent 側で id を closure に閉じる)。
  */
 import AuthGuard from '@/components/AuthGuard'
+import { NavIcon } from '@/lib/navIcon'
 
 type Attachment = {
   id:           string
@@ -45,8 +46,8 @@ export default function AttachmentsSection({
   return (
     <section className="mb-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-zinc-800">
-          📎 {heading} <span className="text-zinc-400 font-normal text-sm">({attachments.length})</span>
+        <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-800">
+          <NavIcon icon="📎" className="w-4 h-4" />{heading} <span className="text-zinc-400 font-normal text-sm">({attachments.length})</span>
         </h2>
       </div>
       <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
@@ -67,7 +68,7 @@ export default function AttachmentsSection({
                       />
                     </a>
                   ) : (
-                    <span className="text-2xl shrink-0">📄</span>
+                    <NavIcon icon="📄" className="w-6 h-6 shrink-0 text-zinc-400" />
                   )}
                   <div className="flex-1 min-w-0">
                     <a

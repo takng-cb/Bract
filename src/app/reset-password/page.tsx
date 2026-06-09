@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { updatePassword } from '@/app/actions/auth'
 import Image from 'next/image'
 import Link from 'next/link'
+import { NavIcon } from '@/lib/navIcon'
 
 export default function ResetPasswordPage() {
   const [state, formAction, pending] = useActionState(updatePassword, null)
@@ -19,7 +20,7 @@ export default function ResetPasswordPage() {
             </div>
           </div>
           <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm text-center space-y-4">
-            <div className="text-4xl">✅</div>
+            <div className="flex justify-center"><NavIcon icon="✅" className="w-10 h-10 text-green-600" /></div>
             <h2 className="text-lg font-semibold text-zinc-900">パスワードを更新しました</h2>
             <p className="text-sm text-zinc-500">
               新しいパスワードでログインできます。

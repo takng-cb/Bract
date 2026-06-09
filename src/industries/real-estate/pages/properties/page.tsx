@@ -17,6 +17,7 @@ import PropertiesTableView from '@/industries/real-estate/components/tableviews/
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -171,8 +172,8 @@ export default async function PropertiesPage({
       {/* タブ */}
       <div className="flex gap-1 mb-4 border-b border-zinc-200">
         {[
-          { value: 'real_estate', label: '🏠 不動産' },
-          { value: 'other',       label: '📦 その他商品' },
+          { value: 'real_estate', label: '不動産' },
+          { value: 'other',       label: 'その他商品' },
         ].map(({ value, label }) => (
           <Link
             key={value}
@@ -207,7 +208,7 @@ export default async function PropertiesPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">{isRE ? '🏠' : '📦'}</p>
+          <div className="flex justify-center mb-4"><NavIcon icon={isRE ? '🏠' : '📦'} className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter
               ? `条件に一致する${isRE ? '物件' : '商品'}がありません`
@@ -254,8 +255,8 @@ export default async function PropertiesPage({
                       {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
                       <span className={`text-xs px-1.5 py-0 rounded font-medium ${TX_COLORS[p.transaction_type] ?? ''}`}>{p.transaction_type}</span>
                     </div>
-                    {isRE && p.address && <p className="text-xs text-zinc-400 mt-1 truncate">📍 {p.address}</p>}
-                    {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
+                    {isRE && p.address && <p className="text-xs text-zinc-400 mt-1 truncate inline-flex items-center gap-1"><NavIcon icon="📍" className="w-3 h-3 shrink-0" />{p.address}</p>}
+                    {account && <p className="text-xs text-zinc-400 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</p>}
                     <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
                       <span>{isRE && p.area ? `${Number(p.area).toLocaleString()} ㎡` : ''}</span>
                       {p.price && <span className="font-semibold text-zinc-800">¥{Number(p.price).toLocaleString()}</span>}

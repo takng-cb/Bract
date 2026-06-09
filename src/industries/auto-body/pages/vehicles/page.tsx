@@ -22,6 +22,7 @@ import {
   daysUntilInspection,
   VEHICLE_STATUSES,
 } from '@/industries/auto-body/lib/autoBodyService'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -112,7 +113,7 @@ export default async function VehiclesListPage({
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">🚗 車両</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon="🚗" className="w-6 h-6" />車両</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
             {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
@@ -157,7 +158,7 @@ export default async function VehiclesListPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">🚗</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="🚗" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致する車両がありません' : '車両がまだ登録されていません'}
           </p>
@@ -206,7 +207,7 @@ export default async function VehiclesListPage({
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
                       {v.year && <span>{v.year}年式</span>}
                       {v.mileage && <span>{Number(v.mileage).toLocaleString()} km</span>}
-                      {v.license_plate && <span>🚙 {v.license_plate}</span>}
+                      {v.license_plate && <span className="inline-flex items-center gap-1"><NavIcon icon="🚙" className="w-3 h-3 shrink-0" />{v.license_plate}</span>}
                     </div>
                     <div className="flex items-center justify-between mt-1.5 text-xs">
                       {v.next_inspection_date ? (

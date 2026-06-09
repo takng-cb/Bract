@@ -27,9 +27,9 @@ type TaskFormProps = {
 }
 
 const PRIORITIES = [
-  { value: 'high',   label: '🔴 高', color: 'text-red-600' },
-  { value: 'medium', label: '🟡 中', color: 'text-yellow-600' },
-  { value: 'low',    label: '🟢 低', color: 'text-green-600' },
+  { value: 'high',   label: '高', color: 'text-red-600',    dot: 'bg-red-500' },
+  { value: 'medium', label: '中', color: 'text-yellow-600', dot: 'bg-amber-400' },
+  { value: 'low',    label: '低', color: 'text-green-600',  dot: 'bg-green-500' },
 ]
 
 export default function TaskForm({ action, cancelHref, objectTypes, recordsByObject, users, defaultValues = {} }: TaskFormProps) {
@@ -113,7 +113,10 @@ export default function TaskForm({ action, cancelHref, objectTypes, recordsByObj
                   defaultChecked={(defaultValues.priority ?? 'medium') === p.value}
                   className="accent-blue-600"
                 />
-                <span className={`text-sm font-medium ${p.color}`}>{p.label}</span>
+                <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${p.color}`}>
+                  <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${p.dot}`} aria-hidden />
+                  {p.label}
+                </span>
               </label>
             ))}
           </div>

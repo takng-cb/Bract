@@ -15,6 +15,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateAISettings, testAIConnection } from '@/app/actions/ai'
 import { AI_PROVIDER_LABELS, AI_DEFAULT_MODELS, type AIProviderKind } from '@/lib/ai/types'
+import { NavIcon } from '@/lib/navIcon'
 
 const PROVIDERS: Array<AIProviderKind | ''> = ['', 'groq', 'gemini', 'anthropic']
 
@@ -85,9 +86,9 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
     startTestTransition(async () => {
       const r = await testAIConnection()
       if (r.ok) {
-        setTestResult({ ok: true,  text: `✅ ${r.provider} (${r.model}) → "${r.reply}"` })
+        setTestResult({ ok: true,  text: `${r.provider} (${r.model}) → "${r.reply}"` })
       } else {
-        setTestResult({ ok: false, text: `❌ ${r.error}` })
+        setTestResult({ ok: false, text: `${r.error}` })
       }
     })
   }
@@ -225,9 +226,9 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
             type="button"
             onClick={handleTest}
             disabled={testPending || !provider}
-            className="px-3 py-1.5 text-sm border border-violet-300 text-violet-700 rounded-md hover:bg-violet-50 disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-violet-300 text-violet-700 rounded-md hover:bg-violet-50 disabled:opacity-50"
           >
-            {testPending ? 'テスト中...' : '🧪 接続テスト'}
+            {testPending ? 'テスト中...' : (<><NavIcon icon="🧪" className="w-3.5 h-3.5 shrink-0" />接続テスト</>)}
           </button>
         </div>
         <p className="text-xs text-zinc-500 mb-2">

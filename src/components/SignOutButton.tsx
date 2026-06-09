@@ -1,6 +1,7 @@
 'use client'
 
 import { signOut } from '@/app/actions/auth'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = { collapsed?: boolean }
 
@@ -14,7 +15,7 @@ export default function SignOutButton({ collapsed = false }: Props) {
           collapsed ? 'justify-center' : 'text-left'
         }`}
       >
-        <span className="text-base leading-none shrink-0">🚪</span>
+        <NavIcon icon="🚪" className="w-4 h-4 shrink-0" />
         {!collapsed && <span>ログアウト</span>}
       </button>
     </form>

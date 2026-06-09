@@ -12,6 +12,7 @@ import { eq, and, or, inArray } from 'drizzle-orm'
 import { resolveRecords, OBJECT_TYPE_LABELS } from '@/lib/relationships'
 import { canEdit } from '@/lib/auth'
 import RelatedRecordsEditor from './RelatedRecordsEditor'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   /** このレコードのオブジェクト種別 */
@@ -79,7 +80,7 @@ export default async function RelatedRecordsSection({ objectType, recordId, page
           {/* ヘッダー */}
           <div className="flex items-center justify-between px-4 py-3 bg-zinc-50 border-b border-zinc-200">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-zinc-800">🔗 {label}</span>
+              <span className="text-sm font-semibold text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="🔗" className="w-3 h-3 shrink-0" />{label}</span>
               <span className="text-xs text-zinc-400 bg-zinc-200 rounded-full px-2 py-0.5">
                 {OBJECT_TYPE_LABELS[relatedObjectType] ?? relatedObjectType}
               </span>

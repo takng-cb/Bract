@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { updateProfile } from '@/app/actions/settings'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   currentDisplayName: string | null
@@ -20,8 +21,8 @@ export default function ProfileForm({ currentDisplayName, email }: Props) {
 
       <form action={formAction} className="space-y-4">
         {isSuccess && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md">
-            ✅ プロフィールを更新しました
+          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md inline-flex items-center gap-1.5">
+            <NavIcon icon="✅" className="w-4 h-4 shrink-0" /> プロフィールを更新しました
           </div>
         )}
         {errorMsg && (

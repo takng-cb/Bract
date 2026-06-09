@@ -19,6 +19,7 @@ import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
 import { getCurrentUserId } from '@/lib/auth'
 import { getEnabledModules } from '@/lib/modules/registry'
 import { buildQuickActionGroups } from '@/lib/modules/quick'
+import { NavIcon } from '@/lib/navIcon'
 
 // 色は semantic tone トークンで統一（ADR-0021）
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -371,7 +372,7 @@ export default async function DashboardPage({
                         href={a.href}
                         className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                       >
-                        <span>{a.icon}</span>{a.label}
+                        <NavIcon icon={a.icon} className="w-4 h-4 shrink-0" />{a.label}
                         {a.kind === 'wizard' && <span className="rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-700">AI</span>}
                       </Link>
                     ) : (
@@ -380,7 +381,7 @@ export default async function DashboardPage({
                         title="準備中"
                         className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-400"
                       >
-                        <span>{a.icon}</span>{a.label}
+                        <NavIcon icon={a.icon} className="w-4 h-4 shrink-0" />{a.label}
                       </span>
                     ),
                   )}
@@ -436,7 +437,7 @@ export default async function DashboardPage({
             </div>
             {periodTasks.length === 0 ? (
               <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
-                期間内のToDoはありません 🎉
+                期間内のToDoはありません
               </div>
             ) : (
               <>
@@ -463,7 +464,7 @@ export default async function DashboardPage({
                               <Link href={`/tasks/${t.id}`} className="hover:text-blue-600 block truncate max-w-xs">{t.title}</Link>
                               {rel.opportunities.length > 0 && (
                                 <p className="text-xs text-zinc-400 mt-0.5 truncate">
-                                  💼 {rel.opportunities.map((o) => o.name).join(', ')}
+                                  <span className="inline-flex items-center gap-1"><NavIcon icon="💼" className="w-3 h-3 shrink-0" /> {rel.opportunities.map((o) => o.name).join(', ')}</span>
                                 </p>
                               )}
                             </td>
@@ -471,7 +472,7 @@ export default async function DashboardPage({
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priority.color}`}>{priority.label}</span>
                             </td>
                             <td className={`px-4 py-3 whitespace-nowrap text-sm ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-600'}`}>
-                              {t.due_date ?? '—'}{isOverdue ? ' ⚠️' : ''}
+                              {t.due_date ?? '—'}{isOverdue && <NavIcon icon="⚠️" className="w-3.5 h-3.5 inline-block ml-1 -mt-0.5" />}
                             </td>
                             <td className="px-4 py-3 text-zinc-600 text-sm">
                               {rel.accounts.length > 0 ? (
@@ -507,8 +508,8 @@ export default async function DashboardPage({
                           <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                         </div>
                         <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
-                          {t.due_date && <span className={isOverdue ? 'text-red-500 font-medium' : ''}>📅 {t.due_date}{isOverdue ? ' ⚠️' : ''}</span>}
-                          {rel.accounts.length > 0 && <span>🏢 {rel.accounts.map((a) => a.name).join(', ')}</span>}
+                          {t.due_date && <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-red-500 font-medium' : ''}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{t.due_date}{isOverdue && <NavIcon icon="⚠️" className="w-3 h-3 inline" />}</span>}
+                          {rel.accounts.length > 0 && <span className="inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{rel.accounts.map((a) => a.name).join(', ')}</span>}
                         </div>
                       </Link>
                     )
@@ -589,7 +590,7 @@ export default async function DashboardPage({
                           <span className="font-medium text-zinc-900 text-sm leading-snug">{o.name}</span>
                           <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${stage.color}`}>{stage.label}</span>
                         </div>
-                        {account && <p className="text-xs text-zinc-400 mt-0.5">🏢 {account.name}</p>}
+                        {account && <p className="text-xs text-zinc-400 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</p>}
                         <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
                           <span>{o.close_date ?? '期限なし'}</span>
                           <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
@@ -610,8 +611,8 @@ export default async function DashboardPage({
           {isAutoBody && isWidgetEnabled('auto-body-work-progress', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-zinc-800">
-                  📊 作業進行状況
+                <h2 className="font-semibold text-zinc-800 flex items-center gap-2">
+                  <NavIcon icon="📊" className="w-5 h-5" /> 作業進行状況
                 </h2>
                 <Link href="/maintenance" className="text-xs text-blue-600 hover:text-blue-800">整備一覧 →</Link>
               </div>
@@ -642,8 +643,8 @@ export default async function DashboardPage({
           {isAutoBody && isWidgetEnabled('auto-body-active-loaners', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-zinc-800">
-                  🚙 代車中の車両
+                <h2 className="font-semibold text-zinc-800 flex items-center gap-2">
+                  <NavIcon icon="🚙" className="w-5 h-5" /> 代車中の車両
                   <span className="ml-2 text-zinc-400 font-normal text-sm">({activeLoaners.length})</span>
                 </h2>
                 <Link href="/vehicles?f=status%3Deq%3A%E4%BB%A3%E8%BB%8A%E4%B8%AD" className="text-xs text-blue-600 hover:text-blue-800">代車中一覧 →</Link>
@@ -671,7 +672,7 @@ export default async function DashboardPage({
                         </div>
                         <div className="flex items-center justify-between gap-2 mt-1 text-xs text-zinc-500">
                           <Link href={`/maintenance/${l.maintenance_id}`} className="hover:text-blue-600 truncate">
-                            🔧 {l.maintenance_no} ／ {customer}
+                            <span className="inline-flex items-center gap-1"><NavIcon icon="🔧" className="w-3.5 h-3.5 shrink-0" /> {l.maintenance_no} ／ {customer}</span>
                           </Link>
                           {l.loaner_handover_at && (
                             <span className="shrink-0 text-zinc-400">
@@ -691,15 +692,15 @@ export default async function DashboardPage({
           {isAutoBody && isWidgetEnabled('auto-body-low-stock-parts', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-zinc-800">
-                  🔧 要発注の部品
+                <h2 className="font-semibold text-zinc-800 flex items-center gap-2">
+                  <NavIcon icon="🔧" className="w-5 h-5" /> 要発注の部品
                   <span className="ml-2 text-zinc-400 font-normal text-sm">({lowStockParts.length})</span>
                 </h2>
                 <Link href="/parts" className="text-xs text-blue-600 hover:text-blue-800">部品マスタ →</Link>
               </div>
               {lowStockParts.length === 0 ? (
                 <div className="bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center text-sm text-zinc-400">
-                  発注しきい値を下回る部品はありません 🎉
+                  発注しきい値を下回る部品はありません
                 </div>
               ) : (
                 <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
@@ -713,7 +714,7 @@ export default async function DashboardPage({
                           </p>
                           <p className="text-xs text-zinc-400 mt-0.5">
                             発注しきい値 {p.reorder_level ?? 0} 個
-                            {p.supplier?.id && <span className="ml-2">🏢 {p.supplier.name}</span>}
+                            {p.supplier?.id && <span className="ml-2 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{p.supplier.name}</span>}
                           </p>
                         </div>
                         <span className={`shrink-0 text-xs font-bold px-2 py-1 rounded ${stockBadgeColor(p.stock, p.reorder_level ?? 0)}`}>
@@ -731,8 +732,8 @@ export default async function DashboardPage({
           {isAutoBody && isWidgetEnabled('auto-body-receivables', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-zinc-800">
-                  💰 未入金の整備
+                <h2 className="font-semibold text-zinc-800 flex items-center gap-2">
+                  <NavIcon icon="💰" className="w-5 h-5" /> 未入金の整備
                   <span className="ml-2 text-zinc-400 font-normal text-sm">({receivables.length})</span>
                 </h2>
                 <div className="flex items-center gap-3">
@@ -742,7 +743,7 @@ export default async function DashboardPage({
               </div>
               {receivables.length === 0 ? (
                 <div className="bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center text-sm text-zinc-400">
-                  未入金の整備はありません 🎉
+                  未入金の整備はありません
                 </div>
               ) : (
                 <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
@@ -759,8 +760,8 @@ export default async function DashboardPage({
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 ml-2 align-middle">{r.status}</span>
                             </p>
                             <p className="text-xs text-zinc-400 mt-0.5 truncate">
-                              🔧 {r.maintenance_no}
-                              {r.vehicle?.plate_number && <span className="ml-2">🚗 {r.vehicle.plate_number}</span>}
+                              <span className="inline-flex items-center gap-1"><NavIcon icon="🔧" className="w-3 h-3 shrink-0" />{r.maintenance_no}</span>
+                              {r.vehicle?.plate_number && <span className="ml-2 inline-flex items-center gap-1"><NavIcon icon="🚗" className="w-3 h-3 shrink-0" />{r.vehicle.plate_number}</span>}
                             </p>
                           </div>
                           <div className="text-right shrink-0">
@@ -793,15 +794,15 @@ export default async function DashboardPage({
           {isAutoBody && isWidgetEnabled('auto-body-upcoming-inspections', widgetPrefs) && (
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-zinc-800">
-                  🚗 車検期限アラート
+                <h2 className="font-semibold text-zinc-800 flex items-center gap-2">
+                  <NavIcon icon="🚗" className="w-5 h-5" /> 車検期限アラート
                   <span className="ml-2 text-zinc-400 font-normal text-sm">(30日以内・経過)</span>
                 </h2>
                 <Link href="/vehicles" className="text-xs text-blue-600 hover:text-blue-800">車両一覧 →</Link>
               </div>
               {upcomingInspections.length === 0 ? (
                 <div className="bg-white border border-zinc-200 rounded-lg px-4 py-6 text-center text-sm text-zinc-400">
-                  対象車両はありません 🎉
+                  対象車両はありません
                 </div>
               ) : (
                 <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
@@ -862,7 +863,7 @@ export default async function DashboardPage({
                         return (
                           <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}>{type.icon} {type.label}</span>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${type.color}`}><NavIcon icon={type.icon} className="w-4 h-4 shrink-0" />{type.label}</span>
                             </td>
                             <td className="px-4 py-3 min-w-0">
                               <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600 block truncate max-w-xs">{a.subject}</Link>
@@ -889,12 +890,12 @@ export default async function DashboardPage({
                     return (
                       <Link key={a.id} href={`/activities/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${type.color}`}>{type.icon} {type.label}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium inline-flex items-center gap-1 ${type.color}`}><NavIcon icon={type.icon} className="w-4 h-4 shrink-0" />{type.label}</span>
                           <span className="text-xs text-zinc-400">{a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}</span>
                         </div>
                         <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>
                         {rel.accounts.length > 0 && (
-                          <p className="text-xs text-zinc-400 mt-0.5">🏢 {rel.accounts.map((x) => x.name).join(', ')}</p>
+                          <p className="text-xs text-zinc-400 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{rel.accounts.map((x) => x.name).join(', ')}</p>
                         )}
                       </Link>
                     )
@@ -923,7 +924,7 @@ export default async function DashboardPage({
                       <tr key={i} className="hover:bg-zinc-50 transition-colors">
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
-                            {r.icon} {r.type}
+                            <NavIcon icon={r.icon} className="w-4 h-4 shrink-0" />{r.type}
                           </span>
                         </td>
                         <td className="px-4 py-3 min-w-0">

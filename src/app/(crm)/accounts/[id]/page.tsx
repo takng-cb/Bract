@@ -23,6 +23,7 @@ import { getAllUsers } from '@/lib/userUtils'
 import { canEdit } from '@/lib/auth'
 import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
+import { NavIcon } from '@/lib/navIcon'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 
 const ACCOUNT_STAGES: StageConfig[] = [
@@ -226,11 +227,11 @@ export default async function AccountDetailPage({
             <div className="md:hidden space-y-2">
               {contactsList.map((c) => (
                 <Link key={c.id} href={`/contacts/${c.id}`} className="block bg-white border border-zinc-200 rounded-lg px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
-                  <p className="font-semibold text-zinc-900 text-sm">👤 {c.full_name}</p>
+                  <p className="font-semibold text-zinc-900 text-sm inline-flex items-center gap-1"><NavIcon icon="👤" className="w-3 h-3 shrink-0" />{c.full_name}</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-zinc-500">
                     {(c.title || c.department) && <span>{[c.title, c.department].filter(Boolean).join(' / ')}</span>}
-                    {c.email && <span>✉️ {c.email}</span>}
-                    {c.phone && <span>📞 {c.phone}</span>}
+                    {c.email && <span className="inline-flex items-center gap-1"><NavIcon icon="✉️" className="w-3 h-3 shrink-0" />{c.email}</span>}
+                    {c.phone && <span className="inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3 h-3 shrink-0" />{c.phone}</span>}
                   </div>
                 </Link>
               ))}
@@ -300,7 +301,7 @@ export default async function AccountDetailPage({
                     <span className="shrink-0 text-xs text-zinc-500">{OPPORTUNITY_STAGE_LABELS[o.stage] ?? o.stage}</span>
                   </div>
                   <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                    <span>{o.close_date ? `📅 ${o.close_date}` : '期限なし'}</span>
+                    <span className="inline-flex items-center gap-1">{o.close_date ? <><NavIcon icon="📅" className="w-3 h-3 shrink-0" /> {o.close_date}</> : '期限なし'}</span>
                     <div>
                       {o.amount && <span className="font-semibold text-zinc-700">¥{Number(o.amount).toLocaleString()}</span>}
                       {o.probability != null && <span className="ml-2">確度{o.probability}%</span>}
@@ -325,7 +326,7 @@ export default async function AccountDetailPage({
             <div className="divide-y divide-zinc-100">
               {attachmentsList.map((f) => (
                 <div key={f.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
-                  <span className="text-xl shrink-0">📄</span>
+                  <NavIcon icon="📄" className="w-5 h-5 shrink-0 text-zinc-400" />
                   <div className="flex-1 min-w-0">
                     <a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">{f.file_name}</a>
                     <p className="text-xs text-zinc-400">{formatFileSize(f.file_size)} · {f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</p>
@@ -422,7 +423,7 @@ export default async function AccountDetailPage({
                       <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
-                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    {t.due_date && <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
                     <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                   <AuthGuard minRole="editor">
@@ -455,7 +456,7 @@ export default async function AccountDetailPage({
                         <span className="text-sm font-medium text-zinc-800">{e.title}</span>
                         <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${catColor}`}>{e.category}</span>
                       </div>
-                      <p className="text-xs text-zinc-400 mt-0.5">📅 {e.expense_date}</p>
+                      <p className="text-xs text-zinc-400 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{e.expense_date}</p>
                     </div>
                     <span className="font-bold text-zinc-800 text-sm shrink-0">¥{Number(e.amount).toLocaleString()}</span>
                   </Link>

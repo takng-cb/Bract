@@ -17,6 +17,7 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { lastOfMonth } from '@/lib/dateUtils'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -290,7 +291,7 @@ export default async function ExpensesPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">💰</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="💰" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致する経費がありません' : 'この期間の経費がありません'}
           </p>
@@ -336,8 +337,8 @@ export default async function ExpensesPage({
                     </div>
                     {(account || opportunity) && (
                       <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-zinc-500">
-                        {account && <span>🏢 {account.name}</span>}
-                        {opportunity && <span>💼 {opportunity.name}</span>}
+                        {account && <span className="inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</span>}
+                        {opportunity && <span className="inline-flex items-center gap-1"><NavIcon icon="💼" className="w-3 h-3 shrink-0" />{opportunity.name}</span>}
                       </div>
                     )}
                   </Link>

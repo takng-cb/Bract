@@ -22,6 +22,7 @@ import AccountsTableView from '@/components/tableviews/AccountsTableView'
 import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -220,7 +221,7 @@ export default async function AccountsPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">🏢</p>
+          <div className="flex justify-center mb-4"><NavIcon icon="🏢" className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致する取引先がありません' : '取引先がまだありません'}
           </p>
@@ -266,7 +267,7 @@ export default async function AccountsPage({
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-zinc-500">
                       {a.industry && <span>{a.industry}</span>}
                       {a.type && <span>{a.type}</span>}
-                      {a.phone && <span>📞 {a.phone}</span>}
+                      {a.phone && <span className="inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3 h-3 shrink-0" />{a.phone}</span>}
                     </div>
                   </Link>
                 )

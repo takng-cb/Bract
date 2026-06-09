@@ -1,6 +1,7 @@
 'use client'
 import { useActionState } from 'react'
 import type { ObjectDef } from '@/lib/objectMetadata'
+import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
   obj: ObjectDef
@@ -57,7 +58,7 @@ export default function ObjectEditForm({ obj, updateAction }: Props) {
               defaultChecked={obj.enable_activities}
               className="w-4 h-4 rounded"
             />
-            📋 活動履歴を紐付ける
+            <NavIcon icon="📋" className="w-4 h-4" /> 活動履歴を紐付ける
           </label>
           <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-700">
             <input
@@ -66,7 +67,7 @@ export default function ObjectEditForm({ obj, updateAction }: Props) {
               defaultChecked={obj.enable_tasks}
               className="w-4 h-4 rounded"
             />
-            ✅ ToDo を紐付ける
+            <NavIcon icon="✅" className="w-4 h-4" /> ToDo を紐付ける
           </label>
           <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-700">
             <input
@@ -75,7 +76,7 @@ export default function ObjectEditForm({ obj, updateAction }: Props) {
               defaultChecked={obj.enable_expenses}
               className="w-4 h-4 rounded"
             />
-            💰 経費を紐付ける
+            <NavIcon icon="💰" className="w-4 h-4" /> 経費を紐付ける
           </label>
         </div>
       </div>

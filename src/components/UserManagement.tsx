@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useActionState } from 'react'
 import { createUser, updateUserRole, startImpersonation } from '@/app/actions/userManagement'
+import { NavIcon } from '@/lib/navIcon'
 
 type User = {
   id:         string
@@ -66,7 +67,7 @@ export default function UserManagement({ users, currentUserId }: Props) {
   return (
     <section className="bg-white border border-zinc-200 rounded-xl p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-zinc-800">👥 ユーザー管理</h2>
+        <h2 className="text-base font-semibold text-zinc-800 flex items-center gap-2"><NavIcon icon="👥" className="w-4 h-4" /> ユーザー管理</h2>
         <button
           onClick={() => setShowForm((v) => !v)}
           className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -170,7 +171,7 @@ export default function UserManagement({ users, currentUserId }: Props) {
                     className="text-xs px-2 py-1 border border-zinc-300 rounded-md text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 transition-colors whitespace-nowrap"
                     title={`${u.email} としてログイン`}
                   >
-                    {impersonating === u.id ? '遷移中...' : '🔀 なりすまし'}
+                    {impersonating === u.id ? '遷移中...' : <span className="inline-flex items-center gap-1"><NavIcon icon="🔀" className="w-3.5 h-3.5" /> なりすまし</span>}
                   </button>
                 )}
               </div>

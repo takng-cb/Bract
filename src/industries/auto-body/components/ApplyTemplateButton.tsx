@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { NavIcon } from '@/lib/navIcon'
 
 type TemplateOption = {
   id: string
@@ -30,7 +31,7 @@ export default function ApplyTemplateButton({ templates, applyAction }: Props) {
         href="/maintenance/templates/new"
         className="inline-flex items-center gap-1 px-3 py-1.5 text-xs border border-zinc-300 text-blue-600 rounded-md hover:bg-zinc-50"
       >
-        📋 整備パッケージを作成
+        <NavIcon icon="📋" className="w-3.5 h-3.5" /> 整備パッケージを作成
       </Link>
     )
   }
@@ -42,7 +43,7 @@ export default function ApplyTemplateButton({ templates, applyAction }: Props) {
         onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm"
       >
-        📋 テンプレを適用
+        <NavIcon icon="📋" className="w-3.5 h-3.5" /> テンプレを適用
       </button>
 
       {open && (
@@ -78,7 +79,7 @@ export default function ApplyTemplateButton({ templates, applyAction }: Props) {
                     className="w-full text-left px-3 py-2 hover:bg-zinc-50/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-zinc-800">📋 {t.name}</span>
+                      <span className="text-sm font-medium text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="📋" className="w-3.5 h-3.5 shrink-0" /> {t.name}</span>
                       {t.category && <span className="text-[10px] px-1 py-0.5 rounded bg-zinc-50 text-zinc-700 border border-zinc-200">{t.category}</span>}
                     </div>
                     <div className="text-[11px] text-zinc-500 mt-0.5">

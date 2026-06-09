@@ -16,6 +16,7 @@ import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import { deleteVehicle } from '@/industries/auto-body/actions/vehicles'
+import { NavIcon } from '@/lib/navIcon'
 import {
   vehicleStatusColor,
   daysUntilInspection,
@@ -245,8 +246,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       {/* 代車利用（Issue #45） */}
       {(activeLoan || pastLoans.length > 0) && (
         <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-          <h2 className="text-sm font-bold text-zinc-700 mb-4">
-            🚙 代車利用
+          <h2 className="text-sm font-bold text-zinc-700 mb-4 flex items-center gap-2">
+            <NavIcon icon="🚙" className="w-4 h-4" /> 代車利用
           </h2>
 
           {/* 現在の貸出先 */}
@@ -267,7 +268,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
               <p className="text-xs text-zinc-600 mt-1">
                 顧客: {customerLabelOf(activeLoan)}
                 {activeLoan.vehicle?.plate_number && (
-                  <span className="ml-2 text-zinc-400">／ 顧客車両: 🚗 {activeLoan.vehicle.plate_number}</span>
+                  <span className="ml-2 text-zinc-400 inline-flex items-center gap-1">／ 顧客車両: <NavIcon icon="🚗" className="w-3 h-3 shrink-0" />{activeLoan.vehicle.plate_number}</span>
                 )}
               </p>
               <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2">
@@ -444,7 +445,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                       <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
-                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    {t.due_date && <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" /> {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
                     <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                 </div>
@@ -520,8 +521,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       />
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900">
-          🚗 {v.maker} {v.model}
+        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
+          <NavIcon icon="🚗" className="w-6 h-6" /> {v.maker} {v.model}
         </h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
           <span className={`inline-block px-2 py-0.5 text-xs rounded ${vehicleStatusColor(v.status)}`}>{v.status}</span>

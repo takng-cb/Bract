@@ -17,6 +17,7 @@ import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import { evalFormula } from '@/lib/formulaEval'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { NavIcon } from '@/lib/navIcon'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -238,7 +239,7 @@ export default async function CustomRecordDetailPage({
       {obj.enable_activities && activitiesList.length > 0 && (
         <div className="bg-white rounded-lg border border-zinc-200 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-zinc-700">📋 活動履歴 <span className="text-zinc-400 font-normal ml-1">({activitiesList.length})</span></h2>
+            <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2"><NavIcon icon="📋" className="w-4 h-4" /> 活動履歴 <span className="text-zinc-400 font-normal ml-1">({activitiesList.length})</span></h2>
             {edit && (
               <Link
                 href={`/activities/new?custom_record_id=${recordId}&return_to=${encodeURIComponent(returnTo)}`}
@@ -276,7 +277,7 @@ export default async function CustomRecordDetailPage({
       {obj.enable_tasks && tasksList.length > 0 && (
         <div className="bg-white rounded-lg border border-zinc-200 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-zinc-700">✅ ToDo <span className="text-zinc-400 font-normal ml-1">({tasksList.length})</span></h2>
+            <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2"><NavIcon icon="✅" className="w-4 h-4" /> ToDo <span className="text-zinc-400 font-normal ml-1">({tasksList.length})</span></h2>
             {edit && (
               <Link
                 href={`/tasks/new?custom_record_id=${recordId}&return_to=${encodeURIComponent(returnTo)}`}
@@ -329,7 +330,7 @@ export default async function CustomRecordDetailPage({
       {obj.enable_expenses && expensesList.length > 0 && (
         <div className="bg-white rounded-lg border border-zinc-200 p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-zinc-700">💰 経費 <span className="text-zinc-400 font-normal ml-1">({expensesList.length})</span></h2>
+            <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2"><NavIcon icon="💰" className="w-4 h-4" /> 経費 <span className="text-zinc-400 font-normal ml-1">({expensesList.length})</span></h2>
             {edit && (
               <Link
                 href={`/expenses/new?custom_record_id=${recordId}&return_to=${encodeURIComponent(returnTo)}`}

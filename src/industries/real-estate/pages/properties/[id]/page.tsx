@@ -21,6 +21,7 @@ import { getActivityTypes } from '@/lib/activityTypes'
 import AISummaryButton from '@/components/AISummaryButton'
 import { summarizeProperty } from '@/app/actions/ai'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
+import { NavIcon } from '@/lib/navIcon'
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -58,10 +59,10 @@ function Dl({ items }: { items: DlItem[] }) {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-      <h2 className="text-sm font-bold text-zinc-700 mb-4">{title}</h2>
+      <h2 className="text-sm font-bold text-zinc-700 mb-4 flex items-center gap-2">{title}</h2>
       {children}
     </div>
   )
@@ -181,7 +182,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
       {isRE && (
         <>
-          <Section title="🗺️ 土地の登記">
+          <Section title={<><NavIcon icon="🗺️" className="w-4 h-4" /> 土地の登記</>}>
             <p className="text-xs font-semibold text-zinc-500 mb-3">表題部</p>
             <Dl items={[
               { label: '不動産番号',     value: p.land_fudosan_number },
@@ -202,7 +203,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
             ]} />
           </Section>
 
-          <Section title="🏠 建物の登記">
+          <Section title={<><NavIcon icon="🏠" className="w-4 h-4" /> 建物の登記</>}>
             <p className="text-xs font-semibold text-zinc-500 mb-3">表題部</p>
             <Dl items={[
               { label: '不動産番号', value: p.building_fudosan_number },
@@ -235,7 +236,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           </Section>
 
           <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-            <h2 className="text-sm font-bold text-zinc-700 mb-4">⚖️ 司法書士情報</h2>
+            <h2 className="text-sm font-bold text-zinc-700 mb-4 flex items-center gap-1.5"><NavIcon icon="⚖️" className="w-4 h-4" />司法書士情報</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">売り方</p>
@@ -371,7 +372,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
                       <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
-                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    {t.due_date && <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
                     <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                 </div>
@@ -427,7 +428,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       {aiEnabled && (
         <AuthGuard minRole="editor">
           <div className="mb-4 flex justify-end">
-            <AISummaryButton label="🤖 AI で活動をまとめる" action={handlePropertySummarize} />
+            <AISummaryButton label="AI で活動をまとめる" action={handlePropertySummarize} />
           </div>
         </AuthGuard>
       )}
@@ -455,7 +456,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/properties/${id}/brokerage-report`} target="_blank" className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors" title="媒介業務処理状況報告書を新タブで印刷プレビュー">📄 媒介報告書</Link>
+              <Link href={`/properties/${id}/brokerage-report`} target="_blank" className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors" title="媒介業務処理状況報告書を新タブで印刷プレビュー"><span className="inline-flex items-center gap-1"><NavIcon icon="📄" className="w-3 h-3 shrink-0" />媒介報告書</span></Link>
               <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
               <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
             </div>
@@ -467,9 +468,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         <h1 className="text-2xl font-bold text-zinc-900 break-words">{p.name}</h1>
         {(account || contact) && (
           <div className="flex items-center gap-3 mt-1.5 text-sm text-zinc-600 flex-wrap">
-            {account && <Link href={`/accounts/${account.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">🏢 {account.name}</Link>}
+            {account && <Link href={`/accounts/${account.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</Link>}
             {account && contact && <span className="text-zinc-300">·</span>}
-            {contact && <Link href={`/contacts/${contact.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors">👤 {contact.full_name}</Link>}
+            {contact && <Link href={`/contacts/${contact.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors"><NavIcon icon="👤" className="w-3 h-3 shrink-0" />{contact.full_name}</Link>}
           </div>
         )}
         <div className="mt-2 mb-3">

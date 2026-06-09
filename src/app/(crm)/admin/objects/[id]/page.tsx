@@ -21,7 +21,7 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   date:     '日付',
   boolean:  'チェックボックス',
   select:   '選択肢',
-  formula:  '🔢 数式',
+  formula:  '数式',
   section:  'セクション',
 }
 

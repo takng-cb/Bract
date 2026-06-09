@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useActionState } from 'react'
+import { NavIcon } from '@/lib/navIcon'
 
 type Line = {
   id:               string
@@ -55,7 +56,7 @@ export default function TemplateLineRow({ index, line, canEdit, updateAction, de
           <span>単価: <span className="font-mono">{yen(unit)}</span></span>
           <span>小計: <span className="font-mono font-semibold text-zinc-800">{yen(sub)}</span></span>
         </div>
-        {line.note && <p className="text-xs text-zinc-500 mt-0.5">📝 {line.note}</p>}
+        {line.note && <p className="text-xs text-zinc-500 mt-0.5 inline-flex items-start gap-1"><NavIcon icon="📝" className="w-3 h-3 shrink-0 mt-0.5" /> {line.note}</p>}
       </div>
       {canEdit && (
         <div className="flex items-center gap-1 shrink-0">

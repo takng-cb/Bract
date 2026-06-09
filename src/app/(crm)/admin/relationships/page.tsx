@@ -6,6 +6,7 @@ import { OBJECT_TYPE_LABELS } from '@/lib/relationships'
 import { asc } from 'drizzle-orm'
 import Link from 'next/link'
 import DeleteButton from '@/components/DeleteButton'
+import { NavIcon } from '@/lib/navIcon'
 
 export default async function AdminRelationshipsPage() {
   await requireAdmin()
@@ -19,7 +20,7 @@ export default async function AdminRelationshipsPage() {
     <div className="p-4 md:p-8 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">🔗 関係性管理</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-zinc-900"><NavIcon icon="🔗" className="w-6 h-6" />関係性管理</h1>
           <p className="text-sm text-zinc-500 mt-1">
             オブジェクト間の多対多リレーションを定義します
           </p>

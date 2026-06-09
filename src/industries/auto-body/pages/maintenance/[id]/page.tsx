@@ -25,6 +25,7 @@ import MaintenanceFullView from '@/industries/auto-body/components/MaintenanceFu
 import CaliInsuranceButton from '@/industries/auto-body/components/CaliInsuranceButton'
 import { inferCaliClass } from '@/industries/auto-body/lib/caliInsurance'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
+import { NavIcon } from '@/lib/navIcon'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
@@ -170,7 +171,7 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
                       <Link href={`/tasks/${t.id}`} className={`text-sm ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
                     </div>
-                    {t.due_date && <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>📅 {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
+                    {t.due_date && <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" /> {new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
                     <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
                   </div>
                 </div>
@@ -276,15 +277,15 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
           {vehicle && (
             <>
               <span className="text-zinc-300">·</span>
-              <Link href={`/customer-vehicles/${vehicle.id}`} className="hover:text-blue-600">
-                🚗 {vehicle.plate_number ?? vehicle.car_model ?? '車両'}
+              <Link href={`/customer-vehicles/${vehicle.id}`} className="hover:text-blue-600 inline-flex items-center gap-1">
+                <NavIcon icon="🚗" className="w-3.5 h-3.5 shrink-0" /> {vehicle.plate_number ?? vehicle.car_model ?? '車両'}
               </Link>
             </>
           )}
           {account && (
             <>
               <span className="text-zinc-300">·</span>
-              <Link href={`/accounts/${account.id}`} className="hover:text-blue-600">🏢 {account.name}</Link>
+              <Link href={`/accounts/${account.id}`} className="hover:text-blue-600 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3.5 h-3.5 shrink-0" /> {account.name}</Link>
             </>
           )}
         </div>

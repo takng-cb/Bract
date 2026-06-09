@@ -12,8 +12,28 @@ import {
 import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
+import { NavIcon } from '@/lib/navIcon'
+import MaintenanceBoard, { type BoardColumn } from '@/industries/auto-body/components/MaintenanceBoard'
+import { Wrench, Package, CheckCheck, ClipboardList, LayoutList, Kanban } from 'lucide-react'
 
 const STATUSES = ['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了', 'キャンセル']
+/** カンバン列に出すステータス（キャンセルは除外） */
+const BOARD_STATUSES = ['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了']
+
+/** ビュー切替トグル（ボード / リスト） */
+function ViewToggle({ view }: { view: 'board' | 'list' }) {
+  const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition-colors'
+  return (
+    <div className="inline-flex items-center gap-0.5 rounded-md border border-zinc-200 bg-zinc-100 p-0.5">
+      <Link href="/maintenance?view=board" className={`${base} ${view === 'board' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+        <Kanban className="w-4 h-4" strokeWidth={2.25} aria-hidden />ボード
+      </Link>
+      <Link href="/maintenance?view=list" className={`${base} ${view === 'list' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+        <LayoutList className="w-4 h-4" strokeWidth={2.25} aria-hidden />リスト
+      </Link>
+    </div>
+  )
+}
 
 function statusClass(status: string): string {
   const p = STATUS_PALETTE[status]
@@ -24,12 +44,14 @@ function statusClass(status: string): string {
 export default async function MaintenanceListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; group?: string }>
+  searchParams: Promise<{ f?: string | string[]; group?: string; view?: string }>
 }) {
   const sp = await searchParams
   const filterRaw = [sp.f].flat().filter(Boolean) as string[]
   const groupBy   = (sp.group ?? '').split(',').filter(Boolean)
   const isGrouped = groupBy.length > 0
+  // 既定はボード（カンバン）。view=list か、一覧操作（フィルタ/グループ）時はリスト。
+  const view: 'board' | 'list' = sp.view === 'list' || (sp.view !== 'board' && (filterRaw.length > 0 || isGrouped)) ? 'list' : 'board'
 
   // フィルター解決マップ
   const resolver: FilterColumnResolver = {
@@ -108,6 +130,83 @@ export default async function MaintenanceListPage({
   const hasFilter = conditions.length > 0
   const totalCount = rows.length
 
+  // ── ボード（カンバン）ビュー ──────────────────────────────────
+  if (view === 'board') {
+    const userName = new Map(allUsers.map((u) => [u.id, u.name]))
+    const today = new Date().toISOString().slice(0, 10)
+    const customerOf = (m: typeof rows[number]): { name: string | null; isPersonal: boolean } => {
+      const acc = m.account?.id ? m.account : null
+      const con = m.contact?.id ? m.contact : null
+      if (acc && !isPersonalAccount(acc)) return { name: acc.name, isPersonal: false }
+      if (con) return { name: con.full_name, isPersonal: true }
+      return { name: acc?.name ?? null, isPersonal: true }
+    }
+    const columns: BoardColumn[] = BOARD_STATUSES.map((status) => {
+      const pal = STATUS_PALETTE[status]
+      const jobs = rows.filter((m) => m.status === status).map((m) => {
+        const cust = customerOf(m)
+        const over = Boolean(m.delivery_date && m.delivery_date < today && status !== '完了')
+        return {
+          id: m.id,
+          plate: m.vehicle?.plate_number ?? m.vehicle?.car_model ?? '—',
+          vehicleName: m.vehicle?.car_name ?? m.vehicle?.car_model ?? '車両',
+          customer: cust.name,
+          isPersonal: cust.isPersonal,
+          work: m.intake_category ?? null,
+          branch: m.branch_id ?? null,
+          eta: m.delivery_date ?? m.intake_date ?? null,
+          mechChar: (m.worker_owner_id && userName.get(m.worker_owner_id)?.trim()?.[0]) || '—',
+          over,
+        }
+      })
+      return { status, color: pal?.activeColor ?? '#64748b', badgeBg: pal?.bg ?? 'bg-n-100', badgeText: pal?.text ?? 'text-n-600', jobs }
+    })
+    const cnt = (s: string) => rows.filter((m) => m.status === s).length
+    const todayDelivery = rows.filter((m) => m.delivery_date === today && m.status !== '完了' && m.status !== 'キャンセル').length
+    const stats = [
+      { icon: <Wrench className="w-4.5 h-4.5" strokeWidth={2.25} />, iconCls: 'bg-brand-50 text-brand-700', value: cnt('作業中'), label: '作業中の車両' },
+      { icon: <Package className="w-4.5 h-4.5" strokeWidth={2.25} />, iconCls: 'bg-warning-bg text-warning', value: cnt('部品待ち'), label: '部品待ち' },
+      { icon: <CheckCheck className="w-4.5 h-4.5" strokeWidth={2.25} />, iconCls: 'bg-positive-bg text-positive', value: todayDelivery, label: '本日納車予定' },
+      { icon: <ClipboardList className="w-4.5 h-4.5" strokeWidth={2.25} />, iconCls: 'bg-info-bg text-info', value: cnt('予約') + cnt('受付'), label: '受付・予約' },
+    ]
+
+    return (
+      <div className="flex flex-col h-full p-4 md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h1 className="text-2xl font-bold text-zinc-900">整備</h1>
+          <div className="flex items-center gap-2">
+            <ViewToggle view="board" />
+            {edit && (
+              <Link href="/maintenance/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm">
+                <NavIcon icon="🔧" className="w-4 h-4" />受付を作成
+              </Link>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2.5 mb-4">
+          {stats.map((s, i) => (
+            <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-zinc-200 rounded-lg shadow-xs">
+              <span className={`grid place-items-center w-8 h-8 rounded-md shrink-0 ${s.iconCls}`}>{s.icon}</span>
+              <span>
+                <span className="block text-xl font-bold text-zinc-900 tabular-nums leading-none">{s.value}</span>
+                <span className="block text-xs text-zinc-500 mt-1 whitespace-nowrap">{s.label}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        {totalCount === 0 ? (
+          <div className="text-center py-20 text-zinc-400">
+            <div className="flex justify-center mb-4"><NavIcon icon="🔧" className="w-12 h-12 text-zinc-300" /></div>
+            <p className="text-lg font-medium">整備がまだ登録されていません</p>
+            <p className="text-sm mt-1">「受付を作成」ボタンから追加してください</p>
+          </div>
+        ) : (
+          <MaintenanceBoard columns={columns} />
+        )}
+      </div>
+    )
+  }
+
   // 簡易グルーピング（第1グループのみ）
   type Row = typeof rows[number]
   const groupedRows: { label: string; records: Row[] }[] = (() => {
@@ -150,12 +249,15 @@ export default async function MaintenanceListPage({
             {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
-        {edit && (
-          <Link href="/maintenance/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm">
-            ＋ 整備を作成
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <ViewToggle view="list" />
+          {edit && (
+            <Link href="/maintenance/new"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm">
+              ＋ 整備を作成
+            </Link>
+          )}
+        </div>
       </div>
 
       <ListViewToolbar

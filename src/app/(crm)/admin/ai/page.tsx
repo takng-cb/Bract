@@ -17,6 +17,7 @@ import { isAdmin } from '@/lib/auth'
 import { getAISettingsForUI, DEFAULT_OPPORTUNITY_PROMPT, DEFAULT_PROPERTY_PROMPT } from '@/lib/ai/config'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import AISettingsForm from './AISettingsForm'
+import { NavIcon } from '@/lib/navIcon'
 
 export default async function AdminAIPage() {
   const adminFlag = await isAdmin()
@@ -31,7 +32,7 @@ export default async function AdminAIPage() {
   return (
     <div className="p-4 md:p-8 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">🤖 AI 設定</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-zinc-900"><NavIcon icon="🤖" className="w-6 h-6" />AI 設定</h1>
         <p className="text-sm text-zinc-500 mt-1">
           活動・ToDo まとめなどの AI 機能で使用するプロバイダと API キーを設定します。
           管理者のみアクセス可能。

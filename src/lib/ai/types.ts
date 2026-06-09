@@ -28,6 +28,14 @@ export const AI_DEFAULT_MODELS: Record<AIProviderKind, string> = {
   anthropic: 'claude-3-5-haiku-20241022',
 }
 
+/** 添付画像（Vision 入力）。base64 はプレフィックス無しの生データ */
+export type AIImageInput = {
+  /** MIME タイプ（例: image/jpeg, image/png） */
+  mediaType: string
+  /** base64 エンコード済みデータ（data: プレフィックス無し） */
+  dataBase64: string
+}
+
 /** AI 呼び出しのリクエスト */
 export type AICompletionRequest = {
   /** モデル名（プロバイダ依存） */
@@ -38,6 +46,8 @@ export type AICompletionRequest = {
   system: string
   /** ユーザー入力（要約対象データなど） */
   user: string
+  /** 添付画像（Vision）。対応プロバイダ（anthropic/gemini）のみ。groq は未対応 */
+  images?: AIImageInput[]
   /** 最大トークン数 (省略時 1024) */
   maxTokens?: number
   /** 0.0〜2.0、低いほど決定的（省略時 0.3 = 要約向き） */
