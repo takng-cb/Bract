@@ -13,6 +13,11 @@ import { redirect } from 'next/navigation'
 // ユーザー一覧
 // ─────────────────────────────────────────────
 export async function listUsers() {
+  // 管理者のみ（ユーザーのメール/ロールを露出するため。Server Action 直叩き対策）
+  const supabase = await createSupabaseServerClient()
+  const { data: { user: me } } = await supabase.auth.getUser()
+  if (!me || !(await isAdminUser(me.id))) throw new Error('管理者権限がありません')
+
   return db
     .select({ id: users.id, email: users.email, role: users.role, created_at: users.created_at })
     .from(users)
