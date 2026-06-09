@@ -11,7 +11,7 @@ import { products, warehouses, stock_movements } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { MOVEMENT_TYPES } from '@/lib/inventory'
+import { MOVEMENT_TYPES, computeStockBalance } from '@/lib/inventory'
 
 function s(formData: FormData, key: string): string | null {
   const v = formData.get(key)
@@ -163,6 +163,53 @@ export async function createStockMovement(formData: FormData): Promise<void> {
   revalidatePath('/products')
   revalidatePath(`/products/${productId}`)
   redirect('/stock-movements')
+}
+
+/**
+ * 棚卸調整 — 実在庫数 (actual_qty) に合わせて在庫を補正する。
+ *
+ * '調整' は movementDelta が符号そのままで加算する（abs しない）ため、
+ * delta = actual - current を quantity に保存すれば
+ *   新在庫 = current + (actual - current) = actual
+ * となり、調整後の在庫合計が必ず実在庫数に一致する。
+ * 倉庫を指定した場合はその倉庫別在庫、未指定（null）の場合は
+ * warehouse_id が null の在庫を基準に補正する。
+ * 差分が 0（実在庫 == 現在庫）の場合は何も記録しない。
+ */
+export async function applyStocktake(formData: FormData): Promise<void> {
+  await requireEditor()
+  const productId = s(formData, 'product_id')
+  const warehouseId = s(formData, 'warehouse_id') // null 可（倉庫未指定）
+  const actual = int(formData, 'actual_qty')
+  if (!productId) throw new Error('商品は必須です')
+  if (actual == null) throw new Error('実在庫数は必須です')
+
+  // 対象商品 + 倉庫スコープの現在庫を算出
+  const movements = await db.select({
+    movement_type: stock_movements.movement_type,
+    quantity:      stock_movements.quantity,
+    warehouse_id:  stock_movements.warehouse_id,
+  }).from(stock_movements).where(eq(stock_movements.product_id, productId))
+
+  const { byWarehouse } = computeStockBalance(movements)
+  const current = byWarehouse.get(warehouseId ?? '') ?? 0
+  const delta = actual - current
+
+  if (delta !== 0) {
+    await db.insert(stock_movements).values({
+      product_id:    productId,
+      warehouse_id:  warehouseId,
+      movement_type: '調整',
+      quantity:      delta, // 符号付き（実在庫 - 現在庫）→ 補正後在庫 = 実在庫
+      occurred_at:   new Date().toISOString().slice(0, 10),
+      note:          '棚卸調整',
+    })
+  }
+
+  revalidatePath('/stock-movements')
+  revalidatePath('/products')
+  revalidatePath(`/products/${productId}`)
+  redirect(`/products/${productId}`)
 }
 
 export async function deleteStockMovement(id: string): Promise<void> {
