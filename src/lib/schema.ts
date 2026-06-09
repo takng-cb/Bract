@@ -370,6 +370,9 @@ export const maintenance_records = pgTable('maintenance_records', {
   work_order_note:      text('work_order_note'),            // 作業指示備考
   general_note:         text('general_note'),               // 備考
 
+  // 外部リンク（Google Drive 等）: [{ label, url }]
+  drive_links:          jsonb('drive_links'),
+
   // 税
   tax_mode:             text('tax_mode').notNull().default('税別10%'), // 消費税区分
   tax_rounding:         text('tax_rounding').notNull().default('切り捨て'),

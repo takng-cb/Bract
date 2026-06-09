@@ -11,6 +11,9 @@ import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
+import { canEdit } from '@/lib/auth'
+import MaintenanceDriveLinks from '@/industries/auto-body/components/MaintenanceDriveLinks'
+import type { DriveLink } from '@/industries/auto-body/lib/driveEmbed'
 import DeleteButton from '@/components/DeleteButton'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
@@ -220,12 +223,15 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
   )
 
   // ── 全体ビュー（メインの編集 UI）─────────────────────────────
+  const editable = await canEdit()
+  const driveLinks = Array.isArray(mRow.m.drive_links) ? (mRow.m.drive_links as DriveLink[]) : []
   const fullViewContent = (
     <div className="space-y-3">
       <div className="flex flex-wrap justify-end gap-2">
         <WeightTaxButton maintenanceId={id} defaultType={inferWtType(mRow.vehicle?.vehicle_kind)} />
         <CaliInsuranceButton maintenanceId={id} defaultClass={inferCaliClass(mRow.vehicle?.vehicle_kind)} />
       </div>
+      <MaintenanceDriveLinks maintenanceId={id} links={driveLinks} canEdit={editable} />
       <MaintenanceFullView maintenanceId={id} users={allUsers} />
     </div>
   )
