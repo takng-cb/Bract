@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function EditWikiPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  if (!(await isModuleEnabled('wiki'))) notFound()
+  if (!(await isModuleEnabled('workspace'))) notFound()
   await requireEditor()
 
   const [page, allPages] = await Promise.all([
