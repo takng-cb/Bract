@@ -79,12 +79,17 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     id: 'auto-body', name: '板金・自動車整備', category: 'industry',
     dependsOn: ['crm-core', 'sales'], industry: 'auto-body',
     navItems: [
-      { href: '/vehicles', label: '車両', icon: '🚗' },
-      { href: '/parts',    label: '部品', icon: '🔧' },
+      { href: '/maintenance',       label: '整備',     icon: '🔧' },
+      { href: '/customer-vehicles', label: '顧客車両', icon: '🚙' },
+      { href: '/vehicles',          label: '車両',     icon: '🚗' },
+      { href: '/parts',             label: '部品',     icon: '🪛' },
+      { href: '/receivables',       label: '売掛金',   icon: '💰' },
     ],
     books: [
-      { apiName: 'vehicles', label: '車両' },
-      { apiName: 'parts',    label: '部品' },
+      { apiName: 'maintenance_records', label: '整備' },
+      { apiName: 'customer_vehicles',   label: '顧客車両' },
+      { apiName: 'vehicles',            label: '車両' },
+      { apiName: 'parts',               label: '部品' },
     ],
     quickActions: [
       { label: '車両の新規作成', icon: '🚗', kind: 'create', href: '/vehicles/new',    book: 'vehicles' },

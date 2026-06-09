@@ -10,7 +10,7 @@ import {
   Settings, SquareCheckBig, Ticket, Building2, House, Tag, User, Users, Lightbulb,
   Banknote, Briefcase, LayoutDashboard, ClipboardList, NotebookPen, Inbox, Bell,
   Link2, Library, Bot, Puzzle, Sparkles, Package, Wrench, Car, UserRound, Cog,
-  CalendarClock,
+  CalendarClock, CarFront,
 } from 'lucide-react'
 
 /** 絵文字 → Lucide コンポーネント（design_handoff/README.md「Icon Map」準拠） */
@@ -40,6 +40,7 @@ export const EMOJI_TO_LUCIDE: Record<string, LucideIcon> = {
   '📦': Package,         // モジュール既定/箱
   '🔧': Wrench,          // 整備 maintenance
   '🚗': Car,             // 車両 vehicles
+  '🚙': CarFront,        // 顧客車両 customer-vehicles
   '🧑‍💼': UserRound,      // スタッフ staff
   '🪛': Cog,             // 部品 parts
 }
