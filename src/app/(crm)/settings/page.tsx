@@ -54,10 +54,15 @@ export default async function SettingsPage() {
     <div className="p-4 md:p-8 max-w-lg space-y-10">
 
       {/* ══════════════════════════════════════
-          一般設定（全ユーザー）
+          個人設定（全ユーザー）
       ══════════════════════════════════════ */}
       <div className="space-y-6">
-        <PageHeader icon="⚙️" title="設定" description="アカウントと表示に関する設定" className="mb-0" />
+        <PageHeader
+          icon="👤"
+          title="個人設定"
+          description="プロフィール・ログイン方法・表示など、あなた個人の設定"
+          className="mb-0"
+        />
 
         <ProfileForm
           currentDisplayName={userPref?.display_name ?? null}
@@ -113,21 +118,21 @@ export default async function SettingsPage() {
       </div>
 
       {/* ══════════════════════════════════════
-          管理者設定（admin のみ）
+          システム設定（admin のみ・テナント全体）
       ══════════════════════════════════════ */}
       {adminFlag && (
         <div className="space-y-6">
           <div className="border-t-2 border-dashed border-zinc-200 pt-8">
             <h2 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
-              <NavIcon icon="🛡️" className="w-4 h-4" /> 管理者設定
+              <NavIcon icon="🛠️" className="w-5 h-5 text-brand-600" /> システム設定
             </h2>
-            <p className="text-sm text-zinc-500 mt-1">管理者のみ表示されます</p>
+            <p className="text-sm text-zinc-500 mt-1">テナント全体の設定・管理（管理者のみ表示）</p>
           </div>
 
-          {/* 管理画面（すべての設定系の入口） */}
+          {/* 管理画面（システム設定の各画面への入口） */}
           <div className="bg-white border border-zinc-200 rounded-xl shadow-xs p-6">
             <h3 className="text-sm font-bold text-zinc-700 mb-1">管理画面</h3>
-            <p className="text-xs text-zinc-400 mb-4">各設定・管理画面へ移動します（管理者のみ）。</p>
+            <p className="text-xs text-zinc-400 mb-4">各設定・管理画面へ移動します。</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {adminLinks.map((l) => (
                 <Link
