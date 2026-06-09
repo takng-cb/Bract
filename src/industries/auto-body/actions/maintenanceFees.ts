@@ -6,6 +6,10 @@ import { eq, sql } from 'drizzle-orm'
 import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { calcCaliPremium, CALI_CLASS_LABEL, type CaliVehicleClass } from '@/industries/auto-body/lib/caliInsurance'
+import {
+  calcWeightTax, WT_AGE_LABEL, WT_TYPE_LABEL,
+  type WtVehicleType, type WtAgeCategory, type WtYears,
+} from '@/industries/auto-body/lib/weightTax'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -73,6 +77,26 @@ export async function addCaliInsuranceFee(maintenanceId: string, vehicleClass: C
     item_name: `自賠責保険（${CALI_CLASS_LABEL[vehicleClass]}・${months}ヶ月）`,
     amount:    String(r.premium),
     meta:      { kind: 'cali', months, vehicleClass, revision: r.revision, premium: r.premium },
+  })
+  revalidatePath(`/maintenance/${maintenanceId}`)
+}
+
+export async function addWeightTaxFee(
+  maintenanceId: string,
+  input: { vehicleType: WtVehicleType; ageCategory: WtAgeCategory; years: WtYears; weightKg?: number | null },
+) {
+  await requireEditor()
+  const r = calcWeightTax(input)
+  if (!r) throw new Error('重量税を計算できません（普通車は車両重量が必要です）')
+  const sort_order = await nextSortOrder(maintenanceId)
+  const weightStr = r.vehicleType === 'passenger' ? `${(input.weightKg ?? 0).toLocaleString()}kg・` : ''
+  await db.insert(maintenance_fees).values({
+    maintenance_id: maintenanceId,
+    sort_order,
+    category:  '非課税', // 重量税は印紙＝非課税扱い
+    item_name: `自動車重量税（${WT_TYPE_LABEL[r.vehicleType]}・${weightStr}${WT_AGE_LABEL[r.ageCategory]}・${r.years}年）`,
+    amount:    String(r.amount),
+    meta:      { kind: 'weight_tax', ...input, revision: r.revision, amount: r.amount, brackets: r.brackets },
   })
   revalidatePath(`/maintenance/${maintenanceId}`)
 }
