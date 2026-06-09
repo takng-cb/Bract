@@ -12,7 +12,9 @@
  * - AI は DB を直接触らず、抽出→確認→apply の draft-then-apply を厳守。
  */
 import { db } from '@/lib/db'
-import { custom_records } from '@/lib/schema'
+import { custom_records, accounts, contacts } from '@/lib/schema'
+import { properties } from '@/industries/real-estate/schema'
+import { ilike } from 'drizzle-orm'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { getObjectDef, getFieldDefs, parseFieldOptions } from '@/lib/objectMetadata'
 import { callAI } from '@/lib/ai/client'
@@ -256,6 +258,33 @@ export async function quickAiCreate(apiName: string, values: Record<string, stri
     .returning({ id: custom_records.id })
 
   return { recordHref: `/objects/${apiName}/${rec.id}` }
+}
+
+export type QuickAiDup = { id: string; label: string; href: string }
+
+/**
+ * AI/手動 作成前の重複候補（REQ-0018）。自然キー（取引先=名称 / 人物=氏名 / 物件=物件名）の
+ * 部分一致候補を返す。候補があれば UI 側で「既存を開く / それでも作成」を提示する。
+ */
+export async function quickAiDupCandidates(apiName: string, values: Record<string, string>): Promise<QuickAiDup[]> {
+  if (!(await canEdit())) return []
+  const like = (s: string) => `%${s.trim()}%`
+  if (apiName === 'accounts' && values.name?.trim()) {
+    const rows = await db.select({ id: accounts.id, name: accounts.name }).from(accounts)
+      .where(ilike(accounts.name, like(values.name))).limit(5)
+    return rows.map((r) => ({ id: r.id, label: r.name, href: `/accounts/${r.id}` }))
+  }
+  if (apiName === 'contacts' && values.full_name?.trim()) {
+    const rows = await db.select({ id: contacts.id, name: contacts.full_name }).from(contacts)
+      .where(ilike(contacts.full_name, like(values.full_name))).limit(5)
+    return rows.map((r) => ({ id: r.id, label: r.name, href: `/contacts/${r.id}` }))
+  }
+  if (apiName === 'properties' && values.name?.trim()) {
+    const rows = await db.select({ id: properties.id, name: properties.name }).from(properties)
+      .where(ilike(properties.name, like(values.name))).limit(5)
+    return rows.map((r) => ({ id: r.id, label: r.name, href: `/properties/${r.id}` }))
+  }
+  return []
 }
 
 /** URL の HTML を取得し、本文テキストへ粗く変換（script/style 除去・タグ除去） */
