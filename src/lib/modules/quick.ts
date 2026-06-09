@@ -57,8 +57,8 @@ const AI_WIZARD_HREF: Record<string, string> = {
   assignments: '/quick/staffing',
 }
 
-/** ウィザードの AI 作成に対応する typed CRM コアブック（#49・quickAi.ts の TYPED_SPECS と一致） */
-const AI_TYPED_BOOKS = new Set(['accounts', 'contacts'])
+/** ウィザードの AI 作成に対応する typed ブック（#49・quickAi.ts の TYPED_SPECS と一致） */
+const AI_TYPED_BOOKS = new Set(['accounts', 'contacts', 'vehicles', 'parts', 'properties'])
 
 /**
  * 有効モジュール群 → 「モジュール → ブック」ツリー。
