@@ -65,6 +65,24 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { label: '経費の一覧',     icon: '💰', kind: 'list',   href: '/expenses',     book: 'expenses' },
     ],
   },
+  'inventory': {
+    id: 'inventory', name: '在庫管理', category: 'erp', dependsOn: ['crm-core'],
+    navItems: [
+      { href: '/products',        label: '商品',     icon: '📦' },
+      { href: '/warehouses',      label: '倉庫',     icon: '🏬' },
+      { href: '/stock-movements', label: '在庫移動', icon: '🔁' },
+    ],
+    books: [
+      { apiName: 'products',        label: '商品' },
+      { apiName: 'warehouses',      label: '倉庫' },
+      { apiName: 'stock_movements', label: '在庫移動' },
+    ],
+    quickActions: [
+      { label: '商品の新規作成', icon: '📦', kind: 'create', href: '/products/new',         book: 'products' },
+      { label: '商品の一覧',     icon: '📦', kind: 'list',   href: '/products',              book: 'products' },
+      { label: '入出庫の登録',   icon: '🔁', kind: 'create', href: '/stock-movements/new',   book: 'stock_movements' },
+    ],
+  },
   'real-estate': {
     id: 'real-estate', name: '不動産', category: 'industry',
     dependsOn: ['crm-core', 'sales'], industry: 'real-estate',

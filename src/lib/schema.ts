@@ -983,3 +983,50 @@ export const import_logs = pgTable('import_logs', {
   raw_errors:   text('raw_errors'),               // JSON: string[] — 管理者向け詳細エラー
   created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
+
+// ----------------------------------------------------------------
+// inventory モジュール PoC（Issue #48）: products / warehouses / stock_movements
+// lot/serial は #71 へ先送り。在庫数は stock_movements の集計で算出（冗長カラム無し）。
+// ----------------------------------------------------------------
+export const products = pgTable('products', {
+  id:            uuid('id').primaryKey().defaultRandom(),
+  sku:           text('sku').notNull().unique(),
+  name:          text('name').notNull(),
+  category:      text('category'),
+  unit:          text('unit'),                 // 個/箱/kg 等
+  unit_price:    numeric('unit_price'),         // 売価
+  cost_price:    numeric('cost_price'),         // 原価
+  reorder_level: integer('reorder_level').notNull().default(0),
+  supplier_account_id: uuid('supplier_account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  description:   text('description'),
+  owner_id:      uuid('owner_id'),
+  created_at:    timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:    timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+export const warehouses = pgTable('warehouses', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  code:       text('code').notNull().unique(),
+  name:       text('name').notNull(),
+  location:   text('location'),
+  note:       text('note'),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+export const stock_movements = pgTable('stock_movements', {
+  id:           uuid('id').primaryKey().defaultRandom(),
+  product_id:   uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  warehouse_id: uuid('warehouse_id').references(() => warehouses.id, { onDelete: 'set null' }),
+  movement_type: text('movement_type').notNull(),  // '入庫' | '出庫' | '調整'
+  quantity:     integer('quantity').notNull(),      // 符号なし。type で増減を解釈
+  unit_price:   numeric('unit_price'),
+  occurred_at:  date('occurred_at').notNull().defaultNow(),
+  reference:    text('reference'),                  // 伝票番号等
+  note:         text('note'),
+  owner_id:     uuid('owner_id'),
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('stock_movements_product_idx').on(t.product_id),
+  index('stock_movements_warehouse_idx').on(t.warehouse_id),
+])
