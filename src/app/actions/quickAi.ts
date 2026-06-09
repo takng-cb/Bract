@@ -14,9 +14,10 @@
 import net from 'node:net'
 import { lookup as dnsLookup } from 'node:dns/promises'
 import { db } from '@/lib/db'
-import { custom_records, accounts, contacts } from '@/lib/schema'
+import { custom_records, accounts, contacts, opportunities, tasks, activities, task_related_records, activity_related_records } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { ilike } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { getObjectDef, getFieldDefs, parseFieldOptions } from '@/lib/objectMetadata'
 import { callAI } from '@/lib/ai/client'
@@ -33,10 +34,14 @@ import { createProperty } from '@/industries/real-estate/actions/properties'
  * 抽出対象フィールドと作成処理（既存 create アクション）を定義して AI 作成を可能にする。
  */
 type TypedField = { apiName: string; label: string; fieldType: string; options?: string[] }
+export type QuickAiRelated = { object_api: string; record_id: string }
 type TypedSpec = {
   label: string
   fields: TypedField[]
-  create: (values: Record<string, string>) => Promise<{ recordHref: string }>
+  /** 活動/ToDo 等は関連先(related)に紐づけて作成（任意）。 */
+  create: (values: Record<string, string>, related?: QuickAiRelated | null) => Promise<{ recordHref: string }>
+  /** 関連先の紐づけを推奨/許可するブックか（活動・ToDo） */
+  linkable?: boolean
 }
 
 function fd(values: Record<string, string>, map: Record<string, string>): FormData {
@@ -137,6 +142,60 @@ const TYPED_SPECS: Record<string, TypedSpec> = {
         transaction_type: 'transaction_type', description: 'description',
       }))
       return { recordHref: `/properties/${id}` }
+    },
+  },
+  tasks: {
+    label: 'ToDo',
+    linkable: true,
+    fields: [
+      { apiName: 'title',       label: 'タイトル', fieldType: 'text' },
+      { apiName: 'due_date',    label: '期限',     fieldType: 'date' },
+      { apiName: 'priority',    label: '優先度',   fieldType: 'select', options: ['high', 'medium', 'low'] },
+      { apiName: 'description', label: '詳細',     fieldType: 'textarea' },
+    ],
+    async create(v, related) {
+      const owner_id = (await getCurrentUserId()) ?? null
+      const [row] = await db.insert(tasks).values({
+        title: (v.title || '無題のToDo').trim(),
+        description: v.description?.trim() || null,
+        due_date: v.due_date?.trim() || null,
+        priority: ['high', 'medium', 'low'].includes(v.priority) ? v.priority : 'medium',
+        owner_id,
+      }).returning({ id: tasks.id })
+      if (related?.object_api && related.record_id) {
+        await db.insert(task_related_records)
+          .values({ task_id: row.id, related_object_api: related.object_api, related_record_id: related.record_id })
+          .onConflictDoNothing()
+      }
+      revalidatePath('/tasks')
+      return { recordHref: `/tasks/${row.id}` }
+    },
+  },
+  activities: {
+    label: '活動履歴',
+    linkable: true,
+    fields: [
+      { apiName: 'subject',     label: '件名',   fieldType: 'text' },
+      { apiName: 'type',        label: '種別',   fieldType: 'select', options: ['call', 'email', 'meeting', 'note'] },
+      { apiName: 'body',        label: '内容',   fieldType: 'textarea' },
+      { apiName: 'occurred_at', label: '日時',   fieldType: 'date' },
+    ],
+    async create(v, related) {
+      const owner_id = (await getCurrentUserId()) ?? null
+      const [row] = await db.insert(activities).values({
+        subject: (v.subject || '無題の活動').trim(),
+        type: ['call', 'email', 'meeting', 'note'].includes(v.type) ? v.type : 'note',
+        body: v.body?.trim() || null,
+        occurred_at: v.occurred_at?.trim() ? new Date(v.occurred_at) : new Date(),
+        owner_id,
+      }).returning({ id: activities.id })
+      if (related?.object_api && related.record_id) {
+        await db.insert(activity_related_records)
+          .values({ activity_id: row.id, related_object_api: related.object_api, related_record_id: related.record_id })
+          .onConflictDoNothing()
+      }
+      revalidatePath('/activities')
+      return { recordHref: `/activities/${row.id}` }
     },
   },
 }
@@ -244,12 +303,12 @@ export async function quickAiExtract(apiName: string, input: QuickAiInput): Prom
   }
 }
 
-/** 確定値でレコードを作成。typed は既存 create アクション、custom は custom_records。 */
-export async function quickAiCreate(apiName: string, values: Record<string, string>): Promise<{ recordHref: string }> {
+/** 確定値でレコードを作成。typed は既存 create アクション、custom は custom_records。related は活動/ToDo の紐づけ先。 */
+export async function quickAiCreate(apiName: string, values: Record<string, string>, related?: QuickAiRelated | null): Promise<{ recordHref: string }> {
   if (!(await canEdit())) throw new Error('権限がありません')
 
   const typed = TYPED_SPECS[apiName]
-  if (typed) return typed.create(values)
+  if (typed) return typed.create(values, related)
 
   const obj = await getObjectDef(apiName)
   if (!obj) throw new Error(`ブック "${apiName}" が見つかりません`)
@@ -294,7 +353,26 @@ export async function quickAiDupCandidates(apiName: string, values: Record<strin
   return []
 }
 
-/** URL の HTML を取得し、本文テキストへ粗く変換（script/style 除去・タグ除去） */
+export type RelatedCandidate = { object_api: string; record_id: string; label: string; kind: string }
+
+/** 活動/ToDo の紐づけ先候補を横断検索（取引先/人物/商談）。 */
+export async function quickRelatedSearch(query: string): Promise<RelatedCandidate[]> {
+  if (!(await canEdit())) return []
+  const q = query.trim()
+  if (q.length < 1) return []
+  const like = `%${q}%`
+  const [acc, con, opp] = await Promise.all([
+    db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(ilike(accounts.name, like)).limit(5),
+    db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).where(ilike(contacts.full_name, like)).limit(5),
+    db.select({ id: opportunities.id, name: opportunities.name }).from(opportunities).where(ilike(opportunities.name, like)).limit(5),
+  ])
+  return [
+    ...acc.map((r) => ({ object_api: 'account', record_id: r.id, label: r.name, kind: '取引先' })),
+    ...con.map((r) => ({ object_api: 'contact', record_id: r.id, label: r.name, kind: '人物' })),
+    ...opp.map((r) => ({ object_api: 'opportunity', record_id: r.id, label: r.name, kind: '商談' })),
+  ]
+}
+
 /** SSRF 対策：プライベート/予約 IP か判定 */
 function isPrivateIp(ip: string): boolean {
   if (net.isIPv4(ip)) {
