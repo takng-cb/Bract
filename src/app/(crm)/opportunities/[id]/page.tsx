@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen } from 'lucide-react'
+import { SquarePen, Briefcase, Building2, Wallet, Percent, CalendarDays } from 'lucide-react'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
@@ -600,6 +600,24 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           { label: '商談', href: '/opportunities' },
           { label: opportunity.name },
         ]}
+        avatar={<Briefcase className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={opportunity.name}
+        badges={
+          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${({
+            prospecting:   'bg-zinc-100 text-zinc-600',
+            qualification: 'bg-blue-100 text-blue-700',
+            proposal:      'bg-violet-100 text-violet-700',
+            negotiation:   'bg-amber-100 text-amber-700',
+            closed_won:    'bg-green-100 text-green-700',
+            closed_lost:   'bg-red-100 text-red-600',
+          } as Record<string, string>)[opportunity.stage] ?? 'bg-zinc-100 text-zinc-600'}`}>{STAGE_LABEL[opportunity.stage] ?? opportunity.stage}</span>
+        }
+        meta={[
+          ...(account ? [{ icon: <Building2 className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name}</Link> }] : []),
+          ...(opportunity.amount ? [{ icon: <Wallet className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: `¥${Number(opportunity.amount).toLocaleString()}` }] : []),
+          ...(opportunity.probability != null ? [{ icon: <Percent className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '確度', value: `${opportunity.probability}%` }] : []),
+          ...(opportunity.close_date ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '完了予定', value: opportunity.close_date }] : []),
+        ]}
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
@@ -611,12 +629,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       />
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900 break-words">{opportunity.name}</h1>
-        {account && <Link href={`/accounts/${account.id}`} className="text-sm text-blue-600 hover:underline mt-1 flex items-center gap-1 w-fit"><NavIcon icon="🏢" className="w-3.5 h-3.5 shrink-0" />{account.name}</Link>}
-        {contact && <Link href={`/contacts/${contact.id}`} className="text-sm text-blue-600 hover:underline mt-0.5 flex items-center gap-1 w-fit"><NavIcon icon="👤" className="w-3.5 h-3.5 shrink-0" />{contact.full_name}</Link>}
-        <div className="mt-2">
-          <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
-        </div>
+        {contact && <Link href={`/contacts/${contact.id}`} className="text-sm text-blue-600 hover:underline flex items-center gap-1 w-fit mb-2"><NavIcon icon="👤" className="w-3.5 h-3.5 shrink-0" />{contact.full_name}</Link>}
+        <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
       </div>
 
       <RecordTabs defaultTab="overview" tabs={tabsConfig} />
