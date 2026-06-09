@@ -23,6 +23,13 @@ const BUILTIN_OBJECTS = [
   { api_name: 'tasks',         label: 'ToDo',      label_plural: 'ToDo一覧',      icon: '✅', sort_order: 5 },
   { api_name: 'expenses',      label: '経費',      label_plural: '経費一覧',      icon: '💰', sort_order: 6 },
   { api_name: 'properties',    label: '物件・商品', label_plural: '物件・商品一覧', icon: '🏠', sort_order: 7 },
+  // 業種オブジェクト（typed テーブル＋メタデータ。is_builtin=true で /admin/objects に表示）
+  { api_name: 'vehicles',            label: '車両',     label_plural: '車両一覧',     icon: '🚗',    sort_order: 10 },
+  { api_name: 'parts',               label: '部品',     label_plural: '部品マスタ',   icon: '🪛',    sort_order: 11 },
+  { api_name: 'maintenance_records', label: '整備',     label_plural: '整備一覧',     icon: '🔧',    sort_order: 12 },
+  { api_name: 'customer_vehicles',   label: '顧客車両', label_plural: '顧客車両一覧', icon: '🚙',    sort_order: 13 },
+  { api_name: 'assignments',         label: '案件',     label_plural: '案件一覧',     icon: '📦',    sort_order: 14 },
+  { api_name: 'staff',               label: 'スタッフ', label_plural: 'スタッフ一覧', icon: '🧑‍💼', sort_order: 15 },
 ] as const
 
 async function main() {
