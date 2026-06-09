@@ -83,6 +83,15 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { label: '入出庫の登録',   icon: '🔁', kind: 'create', href: '/stock-movements/new',   book: 'stock_movements' },
     ],
   },
+  'wiki': {
+    id: 'wiki', name: 'Wiki', category: 'platform',
+    navItems: [{ href: '/wiki', label: 'Wiki', icon: '📖' }],
+    books: [{ apiName: 'wiki_pages', label: 'Wiki' }],
+    quickActions: [
+      { label: 'Wikiページの新規作成', icon: '📖', kind: 'create', href: '/wiki/new', book: 'wiki_pages' },
+      { label: 'Wikiを開く',          icon: '📖', kind: 'list',   href: '/wiki',     book: 'wiki_pages' },
+    ],
+  },
   'real-estate': {
     id: 'real-estate', name: '不動産', category: 'industry',
     dependsOn: ['crm-core', 'sales'], industry: 'real-estate',
