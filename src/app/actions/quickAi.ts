@@ -18,6 +18,9 @@ import { getObjectDef, getFieldDefs, parseFieldOptions } from '@/lib/objectMetad
 import { callAI } from '@/lib/ai/client'
 import { createAccount } from '@/app/actions/accounts'
 import { createContact } from '@/app/actions/contacts'
+import { createVehicle } from '@/industries/auto-body/actions/vehicles'
+import { createPart } from '@/industries/auto-body/actions/parts'
+import { createProperty } from '@/industries/real-estate/actions/properties'
 
 /**
  * typed CRM コアブックの AI 作成スペック（#49）。
@@ -75,6 +78,60 @@ const TYPED_SPECS: Record<string, TypedSpec> = {
       f.set('contact_type', 'business')
       const id = await createContact(f)
       return { recordHref: `/contacts/${id}` }
+    },
+  },
+  vehicles: {
+    label: '車両（在庫）',
+    fields: [
+      { apiName: 'maker',         label: 'メーカー', fieldType: 'text' },
+      { apiName: 'model',         label: '車種',     fieldType: 'text' },
+      { apiName: 'year',          label: '年式',     fieldType: 'number' },
+      { apiName: 'color',         label: '色',       fieldType: 'text' },
+      { apiName: 'mileage',       label: '走行距離(km)', fieldType: 'number' },
+      { apiName: 'license_plate', label: 'ナンバー', fieldType: 'text' },
+      { apiName: 'vin',           label: '車台番号', fieldType: 'text' },
+      { apiName: 'description',   label: '備考',     fieldType: 'textarea' },
+    ],
+    async create(v) {
+      const id = await createVehicle(fd(v, {
+        maker: 'maker', model: 'model', year: 'year', color: 'color',
+        mileage: 'mileage', license_plate: 'license_plate', vin: 'vin', description: 'description',
+      }))
+      return { recordHref: `/vehicles/${id}` }
+    },
+  },
+  parts: {
+    label: '部品',
+    fields: [
+      { apiName: 'part_number', label: '品番',     fieldType: 'text' },
+      { apiName: 'name',        label: '部品名',   fieldType: 'text' },
+      { apiName: 'category',    label: 'カテゴリ', fieldType: 'text' },
+      { apiName: 'unit_price',  label: '単価',     fieldType: 'number' },
+      { apiName: 'description', label: '備考',     fieldType: 'textarea' },
+    ],
+    async create(v) {
+      const id = await createPart(fd(v, {
+        part_number: 'part_number', name: 'name', category: 'category',
+        unit_price: 'unit_price', description: 'description',
+      }))
+      return { recordHref: `/parts/${id}` }
+    },
+  },
+  properties: {
+    label: '物件・商品',
+    fields: [
+      { apiName: 'name',             label: '物件名',   fieldType: 'text' },
+      { apiName: 'address',          label: '住所',     fieldType: 'text' },
+      { apiName: 'property_type',    label: '物件種別', fieldType: 'text' },
+      { apiName: 'transaction_type', label: '取引種別', fieldType: 'text' },
+      { apiName: 'description',      label: '備考',     fieldType: 'textarea' },
+    ],
+    async create(v) {
+      const id = await createProperty(fd(v, {
+        name: 'name', address: 'address', property_type: 'property_type',
+        transaction_type: 'transaction_type', description: 'description',
+      }))
+      return { recordHref: `/properties/${id}` }
     },
   },
 }
