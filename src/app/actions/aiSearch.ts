@@ -8,6 +8,7 @@
  */
 import { canEdit } from '@/lib/auth'
 import { callAI } from '@/lib/ai/client'
+import { assertAiRateLimit } from '@/lib/ai/rateLimit'
 
 export type SearchCondition = { field: string; op: string; value: string; label: string }
 export type AiSearchResult = { conditions: SearchCondition[]; note?: string }
@@ -67,6 +68,7 @@ export async function aiSearchSupported(apiName: string): Promise<boolean> {
 
 export async function aiSearchToFilter(apiName: string, query: string): Promise<AiSearchResult> {
   if (!(await canEdit())) throw new Error('権限がありません')
+  await assertAiRateLimit()
   const fields = SEARCH_FIELDS[apiName]
   if (!fields) throw new Error('このブックは AI 検索に未対応です')
   const q = query?.trim()

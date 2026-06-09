@@ -1050,3 +1050,15 @@ export const stock_movements = pgTable('stock_movements', {
   index('stock_movements_product_idx').on(t.product_id),
   index('stock_movements_warehouse_idx').on(t.warehouse_id),
 ])
+
+// ----------------------------------------------------------------
+// ai_rate_log（AI機能のレート制限ログ）— セキュリティ
+//   ユーザー単位で短時間の AI 呼び出し回数を制限する（濫用/コスト対策）。
+// ----------------------------------------------------------------
+export const ai_rate_log = pgTable('ai_rate_log', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  user_id:    uuid('user_id').notNull(),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('ai_rate_log_user_idx').on(t.user_id, t.created_at),
+])

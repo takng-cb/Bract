@@ -20,6 +20,7 @@ import { ilike } from 'drizzle-orm'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { getObjectDef, getFieldDefs, parseFieldOptions } from '@/lib/objectMetadata'
 import { callAI } from '@/lib/ai/client'
+import { assertAiRateLimit } from '@/lib/ai/rateLimit'
 import { createAccount } from '@/app/actions/accounts'
 import { createContact } from '@/app/actions/contacts'
 import { createVehicle } from '@/industries/auto-body/actions/vehicles'
@@ -171,6 +172,7 @@ export async function quickAiSupported(apiName: string): Promise<boolean> {
  */
 export async function quickAiExtract(apiName: string, input: QuickAiInput): Promise<QuickAiDraft> {
   if (!(await canEdit())) throw new Error('権限がありません')
+  await assertAiRateLimit()
 
   // 対象フィールド仕様（typed spec or field_definitions）
   let label: string
