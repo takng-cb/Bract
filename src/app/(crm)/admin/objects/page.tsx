@@ -52,7 +52,7 @@ export default async function AdminObjectsPage() {
         {objects.map((obj) => (
           <div key={obj.id} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50">
             <div className="flex items-center gap-3">
-              <span className="text-xl">{obj.icon}</span>
+              <NavIcon icon={obj.icon} className="w-5 h-5 text-zinc-500" />
               <div>
                 <p className="font-medium text-zinc-900 text-sm">{obj.label_plural}</p>
                 <p className="text-xs text-zinc-400">

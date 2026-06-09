@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen } from 'lucide-react'
+import { SquarePen, Car } from 'lucide-react'
 import { vehicles } from '@/industries/auto-body/schema'
 import { accounts, opportunities, activities, tasks, expenses, change_logs, maintenance_records, customer_vehicles, contacts } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
@@ -516,6 +516,14 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           { label: '車両', href: '/vehicles' },
           { label: `${v.maker} ${v.model}` },
         ]}
+        avatar={<Car className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={`${v.maker} ${v.model}`}
+        meta={[
+          ...(v.year != null ? [{ value: `${v.year}年式` }] : []),
+          ...(v.color ? [{ value: v.color }] : []),
+          ...(v.mileage != null ? [{ value: `${Number(v.mileage).toLocaleString()} km` }] : []),
+          ...(v.license_plate ? [{ value: v.license_plate, mono: true }] : []),
+        ]}
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
@@ -525,17 +533,6 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           </AuthGuard>
         }
       />
-
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2">
-          <NavIcon icon="🚗" className="w-6 h-6" /> {v.maker} {v.model}
-        </h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-          {v.year   && <span>{v.year}年式</span>}
-          {v.color  && <span>・ {v.color}</span>}
-          {v.mileage != null && <span>・ {Number(v.mileage).toLocaleString()} km</span>}
-        </div>
-      </div>
 
       {/* ステータス（矢羽根） */}
       <div className="mb-6">
