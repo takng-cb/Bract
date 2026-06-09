@@ -11,6 +11,7 @@ import { wiki_pages } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import SearchableSelect from '@/components/SearchableSelect'
 import MarkdownEditor from '@/components/MarkdownEditor'
+import SubmitButton from '@/components/SubmitButton'
 import { updateWikiPage } from '@/app/actions/wiki'
 
 export const dynamic = 'force-dynamic'
@@ -85,7 +86,7 @@ export default async function EditWikiPage({ params }: { params: Promise<{ id: s
         </div>
 
         <div className="flex items-center gap-2 pt-2">
-          <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">保存</button>
+          <SubmitButton>保存</SubmitButton>
           <Link href={`/wiki/${id}`} className="px-4 py-2 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">キャンセル</Link>
         </div>
       </form>

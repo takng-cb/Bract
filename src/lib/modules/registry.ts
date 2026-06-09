@@ -70,7 +70,7 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
   'expenses': {
     id: 'expenses', name: '経費', category: 'crm', dependsOn: ['crm-core'],
     navItems: [{ href: '/expenses', label: '経費管理', icon: '💰' }],
-    books: [{ apiName: 'expenses', label: '経費' }],
+    books: [{ apiName: 'expenses', label: '経費管理' }],
     quickActions: [
       { label: '経費の新規作成', icon: '💰', kind: 'create', href: '/expenses/new', book: 'expenses' },
       { label: '経費の一覧',     icon: '💰', kind: 'list',   href: '/expenses',     book: 'expenses' },
@@ -142,7 +142,7 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     id: 'staffing', name: '人材手配', category: 'industry',
     dependsOn: ['crm-core', 'sales'], industry: 'staffing',
     navItems: [
-      { href: '/assignments', label: '案件',   icon: '📦' },
+      { href: '/assignments', label: '案件',   icon: '📋' },
       { href: '/staff',       label: 'スタッフ', icon: '🧑‍💼' },
     ],
     books: [
@@ -152,8 +152,8 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     quickActions: [
       { label: 'クイック登録（AI起票）', icon: '✨', kind: 'wizard', href: '/quick/staffing', book: 'assignments',
         description: 'LINE等の文面を貼り付けてAIで案件を起票' },
-      { label: '案件の新規作成',   icon: '📦', kind: 'create', href: '/assignments/new', book: 'assignments' },
-      { label: '案件の一覧',       icon: '📦', kind: 'list',   href: '/assignments',     book: 'assignments' },
+      { label: '案件の新規作成',   icon: '📋', kind: 'create', href: '/assignments/new', book: 'assignments' },
+      { label: '案件の一覧',       icon: '📋', kind: 'list',   href: '/assignments',     book: 'assignments' },
       { label: 'スタッフの新規作成', icon: '🧑‍💼', kind: 'create', href: '/staff/new',      book: 'staff' },
       { label: 'スタッフの一覧',     icon: '🧑‍💼', kind: 'list',   href: '/staff',          book: 'staff' },
       { label: '活動の記録',       icon: '📝', kind: 'log',    href: '/activities/new', book: 'activities' },
