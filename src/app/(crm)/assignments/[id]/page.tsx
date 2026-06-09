@@ -10,7 +10,8 @@ import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
 import { assignments, assignment_staff, accounts, contacts, staff, outreach } from '@/lib/schema'
 import { eq, or, ne, asc } from 'drizzle-orm'
-import Breadcrumbs from '@/components/Breadcrumbs'
+import RecordHeader from '@/components/RecordHeader'
+import { Package } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { deleteAssignment, setAssignmentStatus } from '@/industries/staffing/actions/assignments'
@@ -97,31 +98,27 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
 
   return (
     <div className="p-4 md:p-8 max-w-4xl">
-      <Breadcrumbs items={[
-        { label: '案件', href: '/assignments' },
-        { label: a.assignment_no },
-      ]} />
-
-      <div className="flex items-start justify-between gap-3 mt-2 mb-4">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-zinc-900 mb-1">{a.title ?? a.assignment_no}</h1>
-          {a.title && <p className="text-xs text-zinc-400 font-mono mb-1">{a.assignment_no}</p>}
-          {row.client?.id && (
-            <p className="text-sm text-zinc-600 mt-1">
-              派遣先: <Link href={`/accounts/${row.client.id}`} className="text-blue-600 hover:underline">{row.client.name}</Link>
-              {row.contact?.id && (
-                <span className="ml-2">／ 担当: <Link href={`/contacts/${row.contact.id}`} className="text-blue-600 hover:underline">{row.contact.full_name}</Link></span>
-              )}
-            </p>
-          )}
-        </div>
-        <AuthGuard minRole="editor">
-          <div className="flex items-center gap-2 shrink-0">
-            <Link href={`/assignments/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">編集</Link>
-            <DeleteButton action={handleDelete} confirmMessage="この案件を削除しますか？" />
-          </div>
-        </AuthGuard>
-      </div>
+      <RecordHeader
+        crumbs={[
+          { label: '案件', href: '/assignments' },
+          { label: a.assignment_no },
+        ]}
+        avatar={<Package className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={a.title ?? a.assignment_no}
+        meta={[
+          ...(a.title ? [{ value: a.assignment_no, mono: true }] : []),
+          ...(row.client?.id ? [{ label: '派遣先', value: <Link href={`/accounts/${row.client.id}`} className="text-blue-600 hover:underline">{row.client.name}</Link> }] : []),
+          ...(row.contact?.id ? [{ label: '担当', value: <Link href={`/contacts/${row.contact.id}`} className="text-blue-600 hover:underline">{row.contact.full_name}</Link> }] : []),
+        ]}
+        actions={
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2 shrink-0">
+              <Link href={`/assignments/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="この案件を削除しますか？" />
+            </div>
+          </AuthGuard>
+        }
+      />
 
       {/* ステータス（矢羽根） */}
       <div className="mb-6">
