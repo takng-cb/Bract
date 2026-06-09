@@ -115,19 +115,25 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
 
   // ── 活動・ToDo・経費タブ ───────────────────────────────────────
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
+  const ret = encodeURIComponent(`/maintenance/${id}`)
+  // 作成後は整備詳細へ戻る（return_to）。空・非空どちらでも常に出す（#45: ToDo がここから作れない問題の修正）
+  const addBar = (
+    <AuthGuard minRole="editor">
+      <div className="flex flex-wrap gap-2">
+        <Link href={`/activities/new?maintenance_id=${id}&return_to=${ret}`} className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 活動を記録</Link>
+        <Link href={`/tasks/new?maintenance_id=${id}&return_to=${ret}`}      className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ ToDo を追加</Link>
+        <Link href={`/expenses/new?maintenance_id=${id}&return_to=${ret}`}   className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 経費を追加</Link>
+      </div>
+    </AuthGuard>
+  )
   const interactionsContent = interactionCount === 0 ? (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-8 text-center">
       <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
-      <AuthGuard minRole="editor">
-        <div className="flex flex-wrap justify-center gap-2">
-          <Link href={`/activities/new?maintenance_id=${id}`} className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 活動を記録</Link>
-          <Link href={`/tasks/new?maintenance_id=${id}`}      className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ ToDo を追加</Link>
-          <Link href={`/expenses/new?maintenance_id=${id}`}   className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 経費を追加</Link>
-        </div>
-      </AuthGuard>
+      <div className="flex justify-center">{addBar}</div>
     </div>
   ) : (
     <>
+      <div className="mb-4">{addBar}</div>
       {activitiesList.length > 0 && (
         <section className="mb-6">
           <h2 className="text-base font-semibold text-zinc-800 mb-3">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
