@@ -21,9 +21,21 @@ export function parseCsv(text: string): string[][] {
   })
 }
 
-/** CSV 行を文字列に変換（セルをダブルクォートでエスケープ） */
+/**
+ * CSV インジェクション（数式インジェクション）対策。
+ * Excel/Sheets は = + - @ や タブ/CR で始まるセルを数式として解釈しうるため、
+ * 「数値ではないのに危険文字で始まるセル」は先頭にタブを付けて無害化（テキスト扱いさせる）。
+ * 取り込み時は parseCsvWithHeaders が trim するためタブは除去され、ラウンドトリップは保たれる。
+ */
+function sanitizeCsvCell(value: string): string {
+  if (value === '') return value
+  if (/^[=+\-@\t\r]/.test(value) && Number.isNaN(Number(value))) return '\t' + value
+  return value
+}
+
+/** CSV 行を文字列に変換（数式インジェクション無害化＋ダブルクォートでエスケープ） */
 export function toCsvRow(cells: (string | number | null | undefined)[]): string {
-  return cells.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')
+  return cells.map((c) => `"${sanitizeCsvCell(String(c ?? '')).replace(/"/g, '""')}"`).join(',')
 }
 
 /** BOM 付き CSV 文字列を構築 */
