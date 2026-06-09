@@ -2,13 +2,13 @@
  * /staff/[id] — スタッフ詳細 (Issue #69)
  */
 import { notFound } from 'next/navigation'
-import { SquarePen } from 'lucide-react'
+import { SquarePen, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
 import { staff, accounts, assignment_staff, assignments } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
-import Breadcrumbs from '@/components/Breadcrumbs'
+import RecordHeader from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { deleteStaff, setStaffStatus } from '@/industries/staffing/actions/staff'
@@ -64,28 +64,26 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
-      <Breadcrumbs items={[
-        { label: 'スタッフ', href: '/staff' },
-        { label: s.name },
-      ]} />
-
-      <div className="flex items-start justify-between gap-3 mt-2 mb-4">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-zinc-900 mb-1">{s.name}</h1>
-          {s.name_kana && <p className="text-sm text-zinc-500">{s.name_kana}</p>}
-          {row.belong?.id && (
-            <p className="text-sm text-zinc-500 mt-1">
-              所属: <Link href={`/accounts/${row.belong.id}`} className="text-blue-600 hover:underline">{row.belong.name}</Link>
-            </p>
-          )}
-        </div>
-        <AuthGuard minRole="editor">
-          <div className="flex items-center gap-2 shrink-0">
-            <Link href={`/staff/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
-            <DeleteButton action={handleDelete} confirmMessage="このスタッフを削除しますか？" />
-          </div>
-        </AuthGuard>
-      </div>
+      <RecordHeader
+        crumbs={[
+          { label: 'スタッフ', href: '/staff' },
+          { label: s.name },
+        ]}
+        avatar={<UserRound className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={s.name}
+        meta={[
+          ...(s.name_kana ? [{ value: s.name_kana }] : []),
+          ...(row.belong?.id ? [{ label: '所属', value: <Link href={`/accounts/${row.belong.id}`} className="text-blue-600 hover:underline">{row.belong.name}</Link> }] : []),
+        ]}
+        actions={
+          <AuthGuard minRole="editor">
+            <div className="flex items-center gap-2 shrink-0">
+              <Link href={`/staff/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <DeleteButton action={handleDelete} confirmMessage="このスタッフを削除しますか？" />
+            </div>
+          </AuthGuard>
+        }
+      />
 
       {/* ステータス（矢羽根） */}
       <div className="mb-6 max-w-md">

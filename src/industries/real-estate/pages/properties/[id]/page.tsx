@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen } from 'lucide-react'
+import { SquarePen, House } from 'lucide-react'
 import { accounts, contacts, activities, tasks, expenses, change_logs } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
@@ -452,6 +452,16 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           { label: '物件・商品', href: `/properties?view=${viewParam}` },
           { label: p.name },
         ]}
+        avatar={<House className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={p.name}
+        badges={
+          <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${TX_COLORS[p.transaction_type] ?? 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>{p.transaction_type}</span>
+        }
+        meta={[
+          ...(isRE && p.property_type ? [{ value: p.property_type }] : []),
+          ...(account ? [{ icon: <NavIcon icon="🏢" className="w-3.5 h-3.5" />, value: <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name}</Link> }] : []),
+          ...(contact ? [{ icon: <NavIcon icon="👤" className="w-3.5 h-3.5" />, value: <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">{contact.full_name}</Link> }] : []),
+        ]}
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
@@ -463,24 +473,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         }
       />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 break-words">{p.name}</h1>
-        {(account || contact) && (
-          <div className="flex items-center gap-3 mt-1.5 text-sm text-zinc-600 flex-wrap">
-            {account && <Link href={`/accounts/${account.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</Link>}
-            {account && contact && <span className="text-zinc-300">·</span>}
-            {contact && <Link href={`/contacts/${contact.id}`} className="flex items-center gap-1 hover:text-blue-600 transition-colors"><NavIcon icon="👤" className="w-3 h-3 shrink-0" />{contact.full_name}</Link>}
-          </div>
-        )}
-        <div className="mt-2 mb-3">
-          <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
-        </div>
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${TX_COLORS[p.transaction_type] ?? 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
-            {p.transaction_type}
-          </span>
-          {isRE && <span className="text-xs text-zinc-500">{p.property_type}</span>}
-        </div>
+      <div className="mb-4">
+        <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
       </div>
 
       {/* ステータス（矢羽根） */}
