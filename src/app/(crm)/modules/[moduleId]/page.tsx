@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Sparkles } from 'lucide-react'
 import { MODULE_REGISTRY, isModuleEnabled } from '@/lib/modules/registry'
 import { NavIcon } from '@/lib/navIcon'
+import PageHeader from '@/components/ui/PageHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,35 +21,44 @@ export default async function ModuleDashboardPage({
   if (!mod) notFound()
   if (!(await isModuleEnabled(moduleId))) notFound()
 
+  const headerIcon = mod.navItems?.[0]?.icon
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">{mod.name}</h1>
-        <p className="text-sm text-zinc-500 mt-1">モジュールダッシュボード</p>
-      </header>
+    <div className="mx-auto max-w-4xl p-4 md:p-8">
+      <PageHeader icon={headerIcon} title={mod.name} description="モジュールダッシュボード" />
 
       {/* クイック起点 */}
       {mod.quickActions && mod.quickActions.length > 0 && (
         <section className="mb-8">
-          <p className="text-xs font-semibold text-zinc-400 mb-2">クイック起点</p>
-          <div className="flex flex-wrap gap-2">
+          <p className="mb-2 text-xs font-semibold text-zinc-400">クイック起点</p>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {mod.quickActions.map((a, i) =>
               a.href ? (
                 <Link
                   key={i}
                   href={a.href}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                  className="group flex min-h-20 flex-col items-start gap-1.5 rounded-xl border border-zinc-200 bg-white p-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50 active:bg-brand-100"
                 >
-                  <NavIcon icon={a.icon} className="w-4 h-4 shrink-0" />{a.label}
-                  {a.kind === 'wizard' && <span className="rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-700">AI</span>}
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 group-hover:bg-white">
+                    <NavIcon icon={a.icon} className="h-5 w-5" />
+                  </span>
+                  <span className="flex items-center gap-1 text-sm font-medium leading-tight text-zinc-800">
+                    {a.label}
+                    {a.kind === 'wizard' && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-700"><Sparkles className="h-3 w-3" />AI</span>
+                    )}
+                  </span>
                 </Link>
               ) : (
                 <span
                   key={i}
                   title="準備中"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-400"
+                  className="flex min-h-20 flex-col items-start gap-1.5 rounded-xl border border-dashed border-zinc-200 p-3 text-zinc-400"
                 >
-                  <NavIcon icon={a.icon} className="w-4 h-4 shrink-0" />{a.label}
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-400">
+                    <NavIcon icon={a.icon} className="h-5 w-5" />
+                  </span>
+                  <span className="text-sm leading-tight">{a.label}</span>
                 </span>
               ),
             )}
@@ -58,8 +69,8 @@ export default async function ModuleDashboardPage({
       {/* ブック（このモジュールのデータ種別） */}
       {mod.books && mod.books.length > 0 && (
         <section className="mb-8">
-          <p className="text-xs font-semibold text-zinc-400 mb-2">ブック</p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <p className="mb-2 text-xs font-semibold text-zinc-400">ブック</p>
+          <div className="grid gap-2.5 sm:grid-cols-2">
             {mod.books.map((b) => {
               const nav = mod.navItems?.find((n) => n.label === b.label)
               const href = nav?.href ?? `/objects/${b.apiName}`
@@ -67,10 +78,15 @@ export default async function ModuleDashboardPage({
                 <Link
                   key={b.apiName}
                   href={href}
-                  className="rounded-lg border border-zinc-200 bg-white p-3 hover:border-blue-300 hover:shadow-sm transition-colors"
+                  className="group flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:shadow-sm"
                 >
-                  <span className="block text-sm font-medium text-zinc-800">{b.label}</span>
-                  <span className="block text-xs text-zinc-400 font-mono">{b.apiName}</span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 group-hover:bg-white">
+                    <NavIcon icon={nav?.icon} className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-zinc-800">{b.label}</span>
+                    <span className="block truncate font-mono text-xs text-zinc-400">{b.apiName}</span>
+                  </span>
                 </Link>
               )
             })}
