@@ -7,7 +7,7 @@
  */
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Bell } from 'lucide-react'
+import { Search, Bell, Plus } from 'lucide-react'
 
 export default function Topbar() {
   const router = useRouter()
@@ -34,6 +34,17 @@ export default function Topbar() {
           />
         </div>
       </form>
+      {/* クイック操作（グローバル検索の横）。モーダルは QuickLauncher がイベントで開く */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event('bract:quick-open'))}
+        data-testid="quick-launcher-open"
+        title="クイック操作"
+        className="ml-2 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+      >
+        <Plus className="w-4 h-4 shrink-0" strokeWidth={2.25} aria-hidden />
+        <span className="hidden lg:inline">クイック</span>
+      </button>
       <div className="flex-1" />
       <button type="button" className="ds-icbtn" title="通知" aria-label="通知">
         <Bell className="w-[18px] h-[18px]" strokeWidth={2.25} aria-hidden />

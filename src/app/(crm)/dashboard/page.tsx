@@ -18,8 +18,6 @@ import { STATUS_PALETTE, MAINTENANCE_STATUSES } from '@/industries/auto-body/lib
 import { isWidgetEnabled } from '@/lib/dashboard/widgets'
 import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
 import { getCurrentUserId } from '@/lib/auth'
-import { getEnabledModules } from '@/lib/modules/registry'
-import { buildQuickActionGroups } from '@/lib/modules/quick'
 import { NavIcon } from '@/lib/navIcon'
 
 // 色は semantic tone トークンで統一（ADR-0021）
@@ -53,9 +51,6 @@ export default async function DashboardPage({
   const from = sp.from || monthFrom
   const to   = sp.to   || monthTo
   const today = todayLocal()
-
-  // クイック起点（REQ-0016）：有効モジュールの起点アクション群
-  const quickGroups = buildQuickActionGroups(await getEnabledModules())
 
   // 動的活動種別（admin/objects で編集可能）
   const activityTypes = await getActivityTypes()
@@ -356,42 +351,6 @@ export default async function DashboardPage({
         </div>
         <PeriodSelector from={from} to={to} />
       </div>
-
-      {/* クイック起点（REQ-0016）：モジュール別の業務フロー起点 */}
-      {quickGroups.length > 0 && (
-        <div className="mb-8 rounded-lg border border-zinc-200 bg-white p-4">
-          <p className="text-xs font-semibold text-zinc-400 mb-3">クイック起点</p>
-          <div className="space-y-3">
-            {quickGroups.map((g) => (
-              <div key={g.moduleId}>
-                <p className="text-[11px] text-zinc-400 mb-1.5">{g.moduleName}</p>
-                <div className="flex flex-wrap gap-2">
-                  {g.actions.map((a, i) =>
-                    a.href ? (
-                      <Link
-                        key={i}
-                        href={a.href}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:border-blue-300 hover:bg-blue-50 transition-colors"
-                      >
-                        <NavIcon icon={a.icon} className="w-4 h-4 shrink-0" />{a.label}
-                        {a.kind === 'wizard' && <span className="rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-700">AI</span>}
-                      </Link>
-                    ) : (
-                      <span
-                        key={i}
-                        title="準備中"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-400"
-                      >
-                        <NavIcon icon={a.icon} className="w-4 h-4 shrink-0" />{a.label}
-                      </span>
-                    ),
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* KPIカード */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
