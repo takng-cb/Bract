@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen, Building2, Factory, UserRound, CalendarDays } from 'lucide-react'
+import { SquarePen, Building2, Factory, UserRound, CalendarDays, Phone, Globe, MapPin, Contact, Tag } from 'lucide-react'
 import { accounts, contacts, opportunities, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
@@ -151,14 +151,11 @@ export default async function AccountDetailPage({
         <h2 className="text-sm font-bold text-zinc-700 mb-4">基本情報</h2>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
-            { label: '電話番号', value: account.phone },
-            { label: 'Webサイト', value: account.website, isLink: true },
-            { label: '住所', value: account.address },
             { label: '従業員数', value: account.employee_count ? `${account.employee_count.toLocaleString()} 名` : null },
             { label: '年間売上', value: account.annual_revenue ? `¥${Number(account.annual_revenue).toLocaleString()}` : null },
-            { label: '担当者', value: account.owner_id ? (allUsers.find((u) => u.id === account.owner_id)?.name ?? '—') : null },
-            { label: '登録日', value: account.created_at ? new Date(account.created_at).toLocaleDateString('ja-JP') : '—' },
-          ].map(({ label, value, isLink }) => (
+            { label: '業種', value: account.industry },
+            { label: '取引先種別', value: account.type },
+          ].map(({ label, value, isLink }: { label: string; value: string | null; isLink?: boolean }) => (
             <div key={label}>
               <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
               <dd className="text-sm text-zinc-800">
@@ -506,7 +503,7 @@ export default async function AccountDetailPage({
   } as Record<string, { label: string; cls: string }>)[account.status] ?? null
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-6xl">
       <RecordHeader
         crumbs={[
           { label: '取引先', href: '/accounts' },
@@ -532,14 +529,43 @@ export default async function AccountDetailPage({
         }
       />
 
-      <div className="mb-4">
-        <TagsSection objectType="account" objectId={id} revalidatePath={`/accounts/${id}`} />
-      </div>
+      <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+        {/* メイン */}
+        <div className="min-w-0">
+          <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+          <div className="mt-6 text-right">
+            <RecordId id={id} />
+          </div>
+        </div>
 
-      <RecordTabs defaultTab="overview" tabs={tabsConfig} />
+        {/* 右レール（design_handoff: Account Detail） */}
+        <aside className="space-y-4 lg:sticky lg:top-20">
+          {ownerName && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />担当者</h4>
+              <div className="flex items-center gap-2.5">
+                <span className="grid place-items-center w-9 h-9 rounded-full bg-brand-600 text-white text-sm font-bold shrink-0">{ownerName.trim()[0]}</span>
+                <span className="text-sm font-semibold text-zinc-900 truncate">{ownerName}</span>
+              </div>
+            </div>
+          )}
 
-      <div className="mt-6 text-right">
-        <RecordId id={id} />
+          {(account.phone || account.website || account.address) && (
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Contact className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />連絡先</h4>
+              <div className="space-y-2 text-sm text-zinc-700">
+                {account.phone && <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><span className="tabular-nums">{account.phone}</span></div>}
+                {account.website && <div className="flex items-center gap-2 min-w-0"><Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><a href={account.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">{account.website}</a></div>}
+                {account.address && <div className="flex items-start gap-2"><MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5" strokeWidth={2.25} aria-hidden /><span>{account.address}</span></div>}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+            <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Tag className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />タグ</h4>
+            <TagsSection objectType="account" objectId={id} revalidatePath={`/accounts/${id}`} />
+          </div>
+        </aside>
       </div>
     </div>
   )
