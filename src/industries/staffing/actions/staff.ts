@@ -50,14 +50,19 @@ export async function createStaff(formData: FormData): Promise<string> {
   return row.id
 }
 
-/** プロフィールカードのインライン編集用・部分更新（氏名/スキル/単価/ステータスには触れない）。 */
+/**
+ * インライン編集用・部分更新。送信されたフィールドだけ更新（formData.has 判定）。
+ * 氏名(name) は必須のため空送信時は更新しない。スキル/対応エリアはカンマ区切り→配列。
+ */
 export async function updateStaffBasic(id: string, formData: FormData) {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
-  if (formData.has('gender'))     set.gender = pick(formData, 'gender')
-  if (formData.has('birth_date')) set.birth_date = pick(formData, 'birth_date')
-  if (formData.has('phone'))      set.phone = pick(formData, 'phone')
-  if (formData.has('email'))      set.email = pick(formData, 'email')
+  for (const k of ['name_kana', 'belong_account_id', 'gender', 'birth_date', 'phone', 'email', 'default_hourly_rate', 'default_cost_per_hour', 'notes', 'owner_id'] as const) {
+    if (formData.has(k)) set[k] = pick(formData, k)
+  }
+  if (formData.has('skills'))          set.skills = pickJsonArray(formData, 'skills')
+  if (formData.has('available_areas')) set.available_areas = pickJsonArray(formData, 'available_areas')
+  if (formData.has('name') && pick(formData, 'name')) set.name = pick(formData, 'name')
   await db.update(staff).set(set).where(eq(staff.id, id))
   redirect(`/staff/${id}`)
 }

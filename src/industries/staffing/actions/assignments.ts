@@ -78,16 +78,18 @@ export async function setAssignmentStatus(id: string, status: string) {
   revalidatePath('/assignments')
 }
 
-/** 業務情報カードのインライン編集用・部分更新（番号/顧客/ステータス/時間には触れない）。 */
+/**
+ * インライン編集用・部分更新。送信されたフィールドだけ更新（formData.has 判定）。
+ * 派遣先(client_account_id) は必須のため空送信時は更新しない。
+ */
 export async function updateAssignmentBasic(id: string, formData: FormData) {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
-  if (formData.has('service_date'))         set.service_date = pick(formData, 'service_date')
-  if (formData.has('service_type'))         set.service_type = pick(formData, 'service_type')
-  if (formData.has('service_location'))     set.service_location = pick(formData, 'service_location')
+  for (const k of ['client_contact_id', 'owner_id', 'service_date', 'service_start_time', 'service_end_time', 'service_type', 'service_location', 'client_total_fee', 'service_description', 'internal_memo'] as const) {
+    if (formData.has(k)) set[k] = pick(formData, k)
+  }
   if (formData.has('staff_count_required')) set.staff_count_required = pickInt(formData, 'staff_count_required')
-  if (formData.has('client_total_fee'))     set.client_total_fee = pick(formData, 'client_total_fee')
-  if (formData.has('service_description'))  set.service_description = pick(formData, 'service_description')
+  if (formData.has('client_account_id') && pick(formData, 'client_account_id')) set.client_account_id = pick(formData, 'client_account_id')
   await db.update(assignments).set(set).where(eq(assignments.id, id))
   redirect(`/assignments/${id}`)
 }
