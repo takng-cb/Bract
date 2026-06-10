@@ -48,18 +48,18 @@ export default async function WarehousesListPage() {
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 border-b border-zinc-200">
               <tr>
-                <th className="text-left px-3 py-2 font-medium text-zinc-600">コード</th>
                 <th className="text-left px-3 py-2 font-medium text-zinc-600">倉庫名</th>
+                <th className="text-left px-3 py-2 font-medium text-zinc-600">コード</th>
                 <th className="text-left px-3 py-2 font-medium text-zinc-600">所在地</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-zinc-50">
-                  <td className="px-3 py-2 font-mono text-xs text-zinc-500">{r.code}</td>
                   <td className="px-3 py-2">
                     <Link href={`/warehouses/${r.id}`} className="text-blue-600 hover:underline font-medium">{r.name}</Link>
                   </td>
+                  <td className="px-3 py-2 font-mono text-xs text-zinc-500">{r.code}</td>
                   <td className="px-3 py-2 text-zinc-600">{r.location ?? '—'}</td>
                 </tr>
               ))}

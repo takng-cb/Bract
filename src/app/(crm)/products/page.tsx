@@ -77,8 +77,8 @@ export default async function ProductsListPage() {
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 border-b border-zinc-200">
               <tr>
-                <th className="text-left  px-3 py-2 font-medium text-zinc-600">SKU</th>
                 <th className="text-left  px-3 py-2 font-medium text-zinc-600">商品名</th>
+                <th className="text-left  px-3 py-2 font-medium text-zinc-600">SKU</th>
                 <th className="text-left  px-3 py-2 font-medium text-zinc-600">カテゴリ</th>
                 <th className="text-right px-3 py-2 font-medium text-zinc-600">売価</th>
                 <th className="text-right px-3 py-2 font-medium text-zinc-600">在庫合計</th>
@@ -89,10 +89,10 @@ export default async function ProductsListPage() {
                 const { total } = computeStockBalance(byProduct.get(r.id) ?? [])
                 return (
                   <tr key={r.id} className="hover:bg-zinc-50">
-                    <td className="px-3 py-2 font-mono text-xs text-zinc-500">{r.sku}</td>
                     <td className="px-3 py-2">
                       <Link href={`/products/${r.id}`} className="text-blue-600 hover:underline font-medium">{r.name}</Link>
                     </td>
+                    <td className="px-3 py-2 font-mono text-xs text-zinc-500">{r.sku}</td>
                     <td className="px-3 py-2 text-zinc-600">{r.category ?? '—'}</td>
                     <td className="px-3 py-2 text-right text-zinc-700 font-mono">
                       {r.unit_price ? `¥${Number(r.unit_price).toLocaleString()}` : '—'}
