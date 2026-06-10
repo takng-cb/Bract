@@ -66,6 +66,7 @@ export default function EditableInfoCard({
   hiddenFields,
   showEditButton = true,
   editEvent = 'bract:edit-record',
+  dense = false,
 }: {
   title: string
   fields: EditField[]
@@ -77,6 +78,8 @@ export default function EditableInfoCard({
   showEditButton?: boolean
   /** この名前のイベントを受けると編集モードに入る（右上の編集ボタン連動） */
   editEvent?: string
+  /** コンパクト表示（左カラムの参照カード用・dt/dd 1カラム） */
+  dense?: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -94,6 +97,70 @@ export default function EditableInfoCard({
   useEffect(() => {
     if (editing) rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [editing])
+
+  if (dense) {
+    return (
+      <div ref={rootRef} className="scroll-mt-20">
+        {!editing ? (
+          <div className="bg-white border border-zinc-200 rounded-xl shadow-xs">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100">
+              <h2 className="text-[13px] font-bold text-zinc-800">{title}</h2>
+              {canEdit && showEditButton && (
+                <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-1 text-xs text-brand-700 font-semibold hover:text-brand-800">
+                  <SquarePen className="w-3 h-3" strokeWidth={2.25} />編集
+                </button>
+              )}
+            </div>
+            <div className="px-4 py-1.5">
+              {groups.map((g, gi) => (
+                <div key={gi}>
+                  {g.section && <p className="text-[11px] font-semibold text-zinc-500 pt-2.5 pb-1">{g.section}</p>}
+                  {g.fields.map((f, i) => (
+                    f.fullWidth ? (
+                      <div key={i} className="py-2 border-b border-zinc-100 last:border-0">
+                        <dt className="text-[12.5px] text-zinc-500 mb-1">{f.label}</dt>
+                        <dd className="text-[13.5px] text-zinc-900 whitespace-pre-wrap">{f.view}</dd>
+                      </div>
+                    ) : (
+                      <div key={i} className="grid grid-cols-[88px_1fr] gap-2.5 items-center py-2 border-b border-zinc-100 last:border-0">
+                        <dt className="text-[12.5px] text-zinc-500">{f.label}</dt>
+                        <dd className="text-[13.5px] text-zinc-900 min-w-0">{f.view}</dd>
+                      </div>
+                    )
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <form action={action} className="bg-white border border-brand-300 rounded-xl shadow-xs">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100">
+              <h2 className="text-[13px] font-bold text-zinc-800">{title}<span className="ml-2 text-[11px] font-normal text-brand-600">編集中</span></h2>
+              <button type="button" onClick={() => setEditing(false)} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-700"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="px-4 py-3 space-y-2.5">
+              {hiddenFields?.map((h) => <input key={h.name} type="hidden" name={h.name} value={h.value} />)}
+              {groups.map((g, gi) => (
+                <div key={gi} className="space-y-2.5">
+                  {g.section && <p className="text-[11px] font-semibold text-zinc-500 pt-1">{g.section}</p>}
+                  {g.fields.map((f, i) => (
+                    <label key={i} className="block">
+                      <span className="block text-[12px] text-zinc-500 mb-1">{f.label}</span>
+                      <FieldInput f={f} />
+                    </label>
+                  ))}
+                </div>
+              ))}
+              <div className="flex items-center gap-2 pt-1">
+                <SubmitButton>保存</SubmitButton>
+                <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">取消</button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div ref={rootRef} className="mb-6 scroll-mt-20">
