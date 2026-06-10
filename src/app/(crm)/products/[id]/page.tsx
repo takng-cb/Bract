@@ -13,7 +13,9 @@ import RecordHeader from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { computeStockBalance, stockBadgeColor, isBelowReorder } from '@/lib/inventory'
-import { deleteProduct } from '@/app/actions/inventory'
+import { deleteProduct, updateProductBasic } from '@/app/actions/inventory'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import { NavIcon } from '@/lib/navIcon'
 
 export const dynamic = 'force-dynamic'
@@ -53,6 +55,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   ])
 
   if (!productRow) notFound()
+
+  const [editFlag, supplierAccounts] = await Promise.all([
+    canEdit(),
+    db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+  ])
+
+  async function saveProductInline(formData: FormData) {
+    'use server'
+    await updateProductBasic(id, formData)
+  }
 
   const { total, byWarehouse } = computeStockBalance(movementRows)
   const warehouseName = new Map(warehouseRows.map((w) => [w.id, `${w.name}（${w.code}）`]))
@@ -105,42 +117,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      {/* 商品情報 */}
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">商品情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">売価</dt>
-            <dd className="text-sm text-zinc-800">{productRow.unit_price ? `¥${Number(productRow.unit_price).toLocaleString()}` : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">原価</dt>
-            <dd className="text-sm text-zinc-800">{productRow.cost_price ? `¥${Number(productRow.cost_price).toLocaleString()}` : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">単位</dt>
-            <dd className="text-sm text-zinc-800">{productRow.unit ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">発注しきい値</dt>
-            <dd className="text-sm text-zinc-800">{productRow.reorder_level}{unit}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">主仕入元</dt>
-            <dd className="text-sm text-zinc-800">
-              {productRow.supplier?.id
-                ? <Link href={`/accounts/${productRow.supplier.id}`} className="text-blue-600 hover:underline">{productRow.supplier.name}</Link>
-                : '—'}
-            </dd>
-          </div>
-        </dl>
-        {productRow.description && (
-          <div className="mt-4 pt-4 border-t border-zinc-100">
-            <dt className="text-xs text-zinc-400 mb-1">備考</dt>
-            <dd className="text-sm text-zinc-800 whitespace-pre-wrap">{productRow.description}</dd>
-          </div>
-        )}
-      </div>
+      {/* 商品情報（インライン編集） */}
+      <EditableInfoCard
+        title="商品情報"
+        canEdit={editFlag}
+        editEvent="bract:edit-product"
+        action={saveProductInline}
+        fields={[
+          { label: '売価', name: 'unit_price', kind: 'number', value: productRow.unit_price != null ? String(productRow.unit_price) : '', view: productRow.unit_price ? `¥${Number(productRow.unit_price).toLocaleString()}` : '—' },
+          { label: '原価', name: 'cost_price', kind: 'number', value: productRow.cost_price != null ? String(productRow.cost_price) : '', view: productRow.cost_price ? `¥${Number(productRow.cost_price).toLocaleString()}` : '—' },
+          { label: '単位', name: 'unit', kind: 'text', value: productRow.unit, view: productRow.unit ?? '—' },
+          { label: '発注しきい値', name: 'reorder_level', kind: 'number', value: productRow.reorder_level != null ? String(productRow.reorder_level) : '', view: `${productRow.reorder_level}${unit}` },
+          { label: '主仕入元', name: 'supplier_account_id', kind: 'select', value: productRow.supplier?.id ?? '', options: supplierAccounts.map((a) => ({ value: a.id, label: a.name })),
+            view: productRow.supplier?.id ? <Link href={`/accounts/${productRow.supplier.id}`} className="text-blue-600 hover:underline">{productRow.supplier.name}</Link> : '—' },
+          { label: '備考', name: 'description', kind: 'textarea', value: productRow.description, fullWidth: true, view: productRow.description ? productRow.description : <span className="text-zinc-300">—</span> },
+        ]}
+      />
 
       {/* 倉庫別在庫 */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
