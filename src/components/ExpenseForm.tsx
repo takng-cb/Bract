@@ -3,6 +3,7 @@
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
+import FormSection from '@/components/FormSection'
 import RelatedRecordsPicker, {
   type ObjectTypeOption,
   type RecordOption,
@@ -33,33 +34,40 @@ export default function ExpenseForm({
   const formRef = useRef<HTMLFormElement>(null)
   const today = new Date().toISOString().slice(0, 10)
 
+  const actions = (
+    <div className="flex gap-3">
+      <button
+        type="submit"
+        disabled={pending}
+        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
+        {pending ? '保存中...' : '保存'}
+      </button>
+      <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+        キャンセル
+      </Link>
+    </div>
+  )
+
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-4">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
 
-      <div className="flex justify-end">
-        <FormFillModal
-          formRef={formRef}
-          csvFormat="件名,金額,カテゴリ,日付,備考"
-          fieldMap={{ '件名': 'title', '金額': 'amount', 'カテゴリ': 'category', '日付': 'expense_date', '備考': 'notes' }}
-        />
-      </div>
-
+      <FormSection
+        title="経費情報"
+        action={
+          <FormFillModal
+            formRef={formRef}
+            csvFormat="件名,金額,カテゴリ,日付,備考"
+            fieldMap={{ '件名': 'title', '金額': 'amount', 'カテゴリ': 'category', '日付': 'expense_date', '備考': 'notes' }}
+          />
+        }
+      >
+        <div className="space-y-4">
       {/* ── 関連レコード（画面最上部） ─────────────────────────────── */}
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-2">
@@ -134,19 +142,10 @@ export default function ExpenseForm({
           placeholder="詳細や目的を記入してください..."
         />
       </div>
+        </div>
+      </FormSection>
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
     </form>
   )
 }

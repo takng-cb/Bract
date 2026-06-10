@@ -127,7 +127,6 @@ export default async function NewTaskPage({
         { label: '新規作成' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">ToDoを追加</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <TaskForm
           action={createTaskAction}
           cancelHref={cancelHref}
@@ -139,7 +138,6 @@ export default async function NewTaskPage({
             owner_id:        currentUserId ?? null,  // 新規作成時は自分を初期セット
           }}
         />
-      </div>
     </div>
   )
 }

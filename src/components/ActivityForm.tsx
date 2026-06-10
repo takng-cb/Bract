@@ -3,6 +3,7 @@
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
+import FormSection from '@/components/FormSection'
 import SearchableSelect from '@/components/SearchableSelect'
 import RelatedRecordsPicker, {
   type ObjectTypeOption,
@@ -57,34 +58,41 @@ export default function ActivityForm({
     .toISOString()
     .slice(0, 16)
 
+  const actions = (
+    <div className="flex gap-3">
+      <button
+        type="submit"
+        disabled={pending}
+        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
+        {pending ? '保存中...' : '保存'}
+      </button>
+      <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+        キャンセル
+      </Link>
+    </div>
+  )
+
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-4">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
 
-      <div className="flex justify-end">
-        <FormFillModal
-          formRef={formRef}
-          csvFormat="種別,件名,内容,日時"
-          fieldMap={{ '種別': 'type', '件名': 'subject', '内容': 'body', '日時': 'occurred_at' }}
-          valueMap={{ type: labelToValue }}
-        />
-      </div>
-
+      <FormSection
+        title="活動情報"
+        action={
+          <FormFillModal
+            formRef={formRef}
+            csvFormat="種別,件名,内容,日時"
+            fieldMap={{ '種別': 'type', '件名': 'subject', '内容': 'body', '日時': 'occurred_at' }}
+            valueMap={{ type: labelToValue }}
+          />
+        }
+      >
+        <div className="space-y-4">
       {/* ── 関連レコード（画面最上部に配置） ─────────────────────────── */}
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-2">
@@ -166,16 +174,10 @@ export default function ActivityForm({
           />
         </div>
       </div>
+        </div>
+      </FormSection>
 
-      <div className="flex gap-3 pt-2">
-        <button type="submit" disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors">
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
     </form>
   )
 }

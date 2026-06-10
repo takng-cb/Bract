@@ -103,7 +103,6 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
         { label: '編集' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">経費を編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <ExpenseForm
           action={updateExpenseAction}
           cancelHref={`/expenses/${id}`}
@@ -118,7 +117,6 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
             related_records: defaultRelated,
           }}
         />
-      </div>
     </div>
   )
 }
