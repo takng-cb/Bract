@@ -6,12 +6,14 @@ import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, inArray, desc, asc, count } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { SquarePen } from 'lucide-react'
 import { canEdit } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
-import { deleteCustomRecord } from '@/app/actions/customRecords'
+import { deleteCustomRecord, updateCustomRecord } from '@/app/actions/customRecords'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import DeleteButton from '@/components/DeleteButton'
+import DynamicForm from '@/components/DynamicForm'
+import InlineFormToggle from '@/components/detail/InlineFormToggle'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
@@ -102,10 +104,40 @@ export default async function CustomRecordDetailPage({
   const isNotSelf = (r: { object_api: string; record_id: string }) =>
     !(r.object_api === objectApiName && r.record_id === recordId)
 
+  // インライン編集用：フォームのピッカー用に取引先・人物の全件を取得（該当フィールドがある時のみ）
+  const hasAccountField = accountIdApiNames.size > 0
+  const hasContactField = contactIdApiNames.size > 0
+  const [accountOptionsList, contactOptionsList] = await Promise.all([
+    hasAccountField ? db.select({ id: accounts.id, name: accounts.name }).from(accounts).orderBy(asc(accounts.name)) : Promise.resolve([] as { id: string; name: string }[]),
+    hasContactField ? db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).orderBy(asc(contacts.full_name)) : Promise.resolve([] as { id: string; name: string }[]),
+  ])
+
   async function handleDelete() {
     'use server'
     await deleteCustomRecord(objectApiName, recordId)
   }
+
+  async function handleUpdate(_prev: unknown, fd: FormData) {
+    'use server'
+    await updateCustomRecord(objectApiName, recordId, fd)
+  }
+
+  // インライン編集フォーム（既存 DynamicForm を再利用）
+  const editForm = (
+    <div className="bg-white rounded-lg border border-brand-300 shadow-xs p-6 mb-6">
+      <DynamicForm
+        fields={fields}
+        defaultValues={data}
+        action={handleUpdate}
+        submitLabel="保存"
+        cancelHref={returnTo}
+        accountOptions={hasAccountField ? accountOptionsList.map((a) => ({ value: a.id, label: a.name })) : undefined}
+        contactOptions={hasContactField ? contactOptionsList.map((c) => ({ value: c.id, label: c.name })) : undefined}
+        userOptions={allUsers.map((u) => ({ value: u.id, label: u.name }))}
+        defaultOwnerId={record.owner_id ?? null}
+      />
+    </div>
+  )
 
   async function toggleTask(formData: FormData) {
     'use server'
@@ -117,6 +149,7 @@ export default async function CustomRecordDetailPage({
   // ── 概要タブ ─────────────────────────────────────────────────────
   const overviewContent = (
     <>
+      <InlineFormToggle canEdit={edit} form={editForm} view={
       <div className="bg-white rounded-lg border border-zinc-200 p-6 mb-6">
         {visibleFields.length === 0 ? (
           <p className="text-sm text-zinc-400">フィールドが定義されていません。管理画面でフィールドを追加してください。</p>
@@ -205,6 +238,7 @@ export default async function CustomRecordDetailPage({
           <span>更新: {record.updated_at ? new Date(record.updated_at).toLocaleString('ja-JP') : '—'}</span>
         </div>
       </div>
+      } />
 
       {/* 関係性（多対多） */}
       <RelatedRecordsSection
@@ -405,12 +439,7 @@ export default async function CustomRecordDetailPage({
           </h1>
           {edit && (
             <div className="flex gap-2 shrink-0">
-              <Link
-                href={`/objects/${objectApiName}/${recordId}/edit`}
-                className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集
-              </Link>
+              <InlineEditButton />
               <DeleteButton
                 action={handleDelete}
                 confirmMessage={`この${obj.label}を削除しますか？`}
