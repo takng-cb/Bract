@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen, Briefcase, Building2, Wallet, Percent, CalendarDays, UserRound, Tag } from 'lucide-react'
+import { Briefcase, Building2, Wallet, Percent, CalendarDays, UserRound, Tag } from 'lucide-react'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
@@ -7,7 +7,9 @@ import { eq, and, asc, desc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
-import { updateOpportunityStage, deleteOpportunity } from '@/app/actions/opportunities'
+import { updateOpportunityStage, deleteOpportunity, updateOpportunityBasic } from '@/app/actions/opportunities'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import TagsSection from '@/components/TagsSection'
@@ -63,7 +65,7 @@ function formatFileSize(bytes: number | null) {
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, , allUsers, activityTypes, changeLogCountRow] = await Promise.all([
+  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag, allUsers, activityTypes, changeLogCountRow] = await Promise.all([
     db.select({
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
@@ -126,6 +128,12 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         }).from(vehicles).where(eq(vehicles.id, opportunity.vehicle_id)).then((r) => r[0] ?? null)
       : null
 
+  // 商談情報のインライン編集（部分更新・業種/ステージ項目は不変）
+  async function saveOppBasic(formData: FormData) {
+    'use server'
+    await updateOpportunityBasic(id, formData)
+  }
+
   async function changeStage(stage: string) {
     'use server'
     await updateOpportunityStage(id, stage)
@@ -166,41 +174,24 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         <StageBar stages={OPPORTUNITY_STAGES} currentStage={opportunity.stage} updateAction={changeStage} />
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">商談情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">ステージ</dt>
-            <dd className="text-sm font-medium text-zinc-800">{STAGE_LABEL[opportunity.stage] ?? opportunity.stage}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">完了予定日</dt>
-            <dd className="text-sm text-zinc-800">{opportunity.close_date ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">{activeIndustry === 'real-estate' && opportunity.transaction_type === '賃貸' ? '月額賃料' : '金額'}</dt>
-            <dd className="text-sm font-semibold text-zinc-800">{opportunity.amount ? `¥${Number(opportunity.amount).toLocaleString()}` : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">確度</dt>
-            <dd className="text-sm text-zinc-800">{opportunity.probability != null ? `${opportunity.probability}%` : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
-            <dd className="text-sm text-zinc-800">{ownerName ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
-            <dd className="text-sm text-zinc-800">{opportunity.created_at ? new Date(opportunity.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
-          </div>
-        </dl>
-        <div className="mt-4 pt-4 border-t border-zinc-100">
-          <dt className="text-xs text-zinc-400 mb-1">概要・メモ</dt>
-          <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
-            {opportunity.description ?? <span className="text-zinc-300">—</span>}
-          </dd>
-        </div>
-        {(() => {
+      <EditableInfoCard
+        title="商談情報"
+        canEdit={editFlag}
+        showEditButton={false}
+        action={saveOppBasic}
+        fields={[
+          { label: 'ステージ', view: STAGE_LABEL[opportunity.stage] ?? opportunity.stage },
+          { label: '完了予定日', name: 'close_date', kind: 'date', value: opportunity.close_date ? String(opportunity.close_date).slice(0, 10) : '', view: opportunity.close_date ?? '—' },
+          { label: activeIndustry === 'real-estate' && opportunity.transaction_type === '賃貸' ? '月額賃料' : '金額', name: 'amount', kind: 'number', value: opportunity.amount != null ? String(opportunity.amount) : '', view: opportunity.amount ? `¥${Number(opportunity.amount).toLocaleString()}` : '—' },
+          { label: '確度', name: 'probability', kind: 'number', value: opportunity.probability != null ? String(opportunity.probability) : '', view: opportunity.probability != null ? `${opportunity.probability}%` : '—' },
+          { label: '担当者', name: 'owner_id', kind: 'select', value: opportunity.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
+          { label: '登録日', view: opportunity.created_at ? new Date(opportunity.created_at).toLocaleDateString('ja-JP') : '—' },
+          { label: '概要・メモ', name: 'description', kind: 'textarea', value: opportunity.description, fullWidth: true, view: opportunity.description ? opportunity.description : <span className="text-zinc-300">—</span> },
+        ]}
+      />
+
+      {/* 財務サマリー（自動計算・閲覧専用） */}
+      {(() => {
           const isReal     = activeIndustry === 'real-estate'
           const isAutoBody = activeIndustry === 'auto-body'
           const totalExp = expensesList.reduce((s, e) => s + Number(e.amount), 0)
@@ -241,7 +232,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
           if (baseValue === 0 && totalExp === 0) return null
           return (
-            <div className="mt-4 pt-4 border-t border-zinc-200">
+            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">財務サマリー</p>
               <div className="space-y-2">
                 {showWeighted && weighted != null && (
@@ -264,7 +255,6 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             </div>
           )
         })()}
-      </div>
 
       {/* 不動産情報 */}
       {activeIndustry === 'real-estate' && (() => {
@@ -621,7 +611,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/opportunities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton />
               <DeleteButton action={handleDelete} confirmMessage="この商談を削除しますか？" />
             </div>
           </AuthGuard>
