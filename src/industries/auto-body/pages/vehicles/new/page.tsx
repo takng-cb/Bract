@@ -36,9 +36,7 @@ export default async function NewVehiclePage() {
         <span className="text-zinc-700">新規追加</span>
       </div>
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">車両を追加</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <VehicleForm action={action} cancelHref="/vehicles" accounts={accountsList} users={users} />
-      </div>
     </div>
   )
 }

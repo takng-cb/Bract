@@ -4,6 +4,7 @@ import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import SearchableSelect from '@/components/SearchableSelect'
 import CreateFeedback from '@/components/CreateFeedback'
+import FormSection from '@/components/FormSection'
 import type { CreateAction } from '@/lib/duplicateTypes'
 import { VEHICLE_STATUSES } from '@/industries/auto-body/lib/autoBodyService'
 
@@ -40,16 +41,6 @@ type VehicleFormProps = {
 const inputClass =
   'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
-function Section({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-3 pt-2">
-      <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
-      <span className="text-sm font-bold text-zinc-700 tracking-wide">{title}</span>
-      <div className="flex-1 h-px bg-zinc-200" />
-    </div>
-  )
-}
-
 export default function VehicleForm({
   action, cancelHref, accounts, users = [], defaultValues = {},
 }: VehicleFormProps) {
@@ -57,23 +48,27 @@ export default function VehicleForm({
   const formRef = useRef<HTMLFormElement>(null)
   const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }))
 
+  const actions = (
+    <div className="flex gap-3">
+      <button type="submit" disabled={pending}
+        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
+        {pending ? '保存中...' : '保存'}
+      </button>
+      <Link href={cancelHref}
+        className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50">
+        キャンセル
+      </Link>
+    </div>
+  )
+
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-4">
       <CreateFeedback state={state} formRef={formRef} />
 
-      <div className="flex gap-3">
-        <button type="submit" disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref}
-          className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
 
-      <Section title="車両情報" />
-
+      <FormSection title="車両情報">
+        <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">
@@ -131,8 +126,11 @@ export default function VehicleForm({
         </div>
       </div>
 
-      <Section title="仕入" />
+        </div>
+      </FormSection>
 
+      <FormSection title="仕入">
+        <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">仕入日</label>
@@ -154,8 +152,11 @@ export default function VehicleForm({
         />
       </div>
 
-      <Section title="販売" />
+        </div>
+      </FormSection>
 
+      <FormSection title="販売">
+        <div className="space-y-4">
       <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">希望売価（円・税抜）</label>
@@ -181,8 +182,11 @@ export default function VehicleForm({
         />
       </div>
 
-      <Section title="車検・備考" />
+        </div>
+      </FormSection>
 
+      <FormSection title="車検・備考">
+        <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">次回車検期日</label>
         <input name="next_inspection_date" type="date" defaultValue={defaultValues.next_inspection_date ?? ''} className={inputClass} />
@@ -193,17 +197,10 @@ export default function VehicleForm({
         <textarea name="description" rows={3} defaultValue={defaultValues.description ?? ''}
           placeholder="装備、修復歴、特記事項など" className={`${inputClass} resize-none`} />
       </div>
+        </div>
+      </FormSection>
 
-      <div className="flex gap-3 pt-2">
-        <button type="submit" disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref}
-          className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
     </form>
   )
 }

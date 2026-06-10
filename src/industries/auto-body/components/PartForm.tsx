@@ -4,6 +4,7 @@ import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import SearchableSelect from '@/components/SearchableSelect'
 import CreateFeedback from '@/components/CreateFeedback'
+import FormSection from '@/components/FormSection'
 import type { CreateAction } from '@/lib/duplicateTypes'
 
 type Account = { id: string; name: string }
@@ -32,10 +33,26 @@ export default function PartForm({ action, cancelHref, accounts, users = [], def
   const [state, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
+  const actions = (
+    <div className="flex gap-3">
+      <button type="submit" disabled={pending}
+        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
+        {pending ? '保存中...' : '保存'}
+      </button>
+      <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50">
+        キャンセル
+      </Link>
+    </div>
+  )
+
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-4">
       <CreateFeedback state={state} formRef={formRef} />
 
+      {actions}
+
+      <FormSection title="部品情報">
+        <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">
@@ -93,16 +110,10 @@ export default function PartForm({ action, cancelHref, accounts, users = [], def
         <label className="block text-sm font-medium text-zinc-700 mb-1">備考</label>
         <textarea name="description" rows={3} defaultValue={defaultValues.description ?? ''} className={`${inputClass} resize-none`} />
       </div>
+        </div>
+      </FormSection>
 
-      <div className="flex gap-3 pt-2">
-        <button type="submit" disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
     </form>
   )
 }
