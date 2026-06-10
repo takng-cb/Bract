@@ -1,5 +1,4 @@
 import { db } from '@/lib/db'
-import { SquarePen } from 'lucide-react'
 import {
   maintenance_records, customer_vehicles, accounts, contacts,
   activities, tasks, expenses, change_logs, attachments,
@@ -278,7 +277,7 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/maintenance/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 shadow-sm"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <Link href={`/maintenance/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細フォーム</Link>
               <DeleteButton action={handleDelete} confirmMessage="この整備を削除しますか？関連する行アイテム・諸費用・入金もすべて削除されます。" />
             </div>
           </AuthGuard>

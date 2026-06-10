@@ -3,7 +3,7 @@
  */
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Warehouse, SquarePen } from 'lucide-react'
+import { Warehouse } from 'lucide-react'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
 import { warehouses, stock_movements, products } from '@/lib/schema'
@@ -15,6 +15,7 @@ import { computeStockBalance } from '@/lib/inventory'
 import { deleteWarehouse, updateWarehouseBasic } from '@/app/actions/inventory'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,7 +71,8 @@ export default async function WarehouseDetailPage({ params }: { params: Promise<
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/warehouses/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton event="bract:edit-warehouse" />
+              <Link href={`/warehouses/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この倉庫を削除しますか？在庫移動の倉庫参照は空になります（履歴は残ります）。" />
             </div>
           </AuthGuard>
@@ -80,6 +82,7 @@ export default async function WarehouseDetailPage({ params }: { params: Promise<
       <EditableInfoCard
         title="倉庫情報"
         canEdit={editFlag}
+        showEditButton={false}
         editEvent="bract:edit-warehouse"
         action={saveWarehouseInline}
         fields={[
