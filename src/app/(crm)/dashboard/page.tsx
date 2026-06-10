@@ -2,13 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, activities, tasks, task_related_records, activity_related_records } from '@/lib/schema'
-import { eq, desc, asc, ne, count, and, inArray } from 'drizzle-orm'
+import { eq, desc, asc, and, inArray } from 'drizzle-orm'
 import Link from 'next/link'
-import { Building2, SquareCheckBig, TrendingUp, Wallet } from 'lucide-react'
 import PeriodSelector from '@/components/PeriodSelector'
-import { activeIndustry } from '@/lib/industry'
-import { getMaintenanceForecast, sumMaintenanceWeighted } from '@/industries/auto-body/lib/maintenanceForecast'
-import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { NavIcon } from '@/lib/navIcon'
@@ -56,23 +52,13 @@ export default async function DashboardPage({
     }
   }
 
-  const isReal     = activeIndustry === 'real-estate'
-  const isAutoBody = activeIndustry === 'auto-body'
-
-  // auto-body: 期間内の整備（売上予測加算用）。運用ボードはモジュールダッシュボードへ移設（#4）
-  const maintList = isAutoBody ? await getMaintenanceForecast(from, to) : []
-  const maintWeighted = sumMaintenanceWeighted(maintList)
-
   const [
-    accountCountRows,
     pendingTasks,
-    allOpportunities,
     recentAccounts,
     recentContacts,
     recentOpportunities,
     allActivities,
   ] = await Promise.all([
-    db.select({ count: count() }).from(accounts).where(ne(accounts.status, 'inactive')),
     // tasks 単体を取得（関連は junction 経由で後段で attach）
     db.select({
       id: tasks.id, title: tasks.title, done: tasks.done,
@@ -81,19 +67,6 @@ export default async function DashboardPage({
       .from(tasks)
       .where(eq(tasks.done, false))
       .orderBy(asc(tasks.due_date)),
-    db.select({
-      id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
-      amount: opportunities.amount, probability: opportunities.probability,
-      close_date: opportunities.close_date,
-      commission_fee: opportunities.commission_fee,
-      brokerage_type: opportunities.brokerage_type,
-      other_profit: opportunities.other_profit,
-      accounts: { name: accounts.name },
-    })
-      .from(opportunities)
-      .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
-      .where(ne(opportunities.stage, 'closed_lost'))
-      .orderBy(asc(opportunities.close_date)),
     db.select({ id: accounts.id, name: accounts.name, industry: accounts.industry, updated_at: accounts.updated_at })
       .from(accounts).orderBy(desc(accounts.updated_at)).limit(4),
     db.select({ id: contacts.id, full_name: contacts.full_name, title: contacts.title, updated_at: contacts.updated_at })
@@ -168,16 +141,6 @@ export default async function DashboardPage({
     activityById.get(r.host_id)!.accounts.push({ id: r.rec_id, name: accountNameById.get(r.rec_id) ?? '—' })
   }
 
-  // 期間内の商談（close_date で絞る）
-  const periodOpps = allOpportunities.filter(
-    (o) => o.close_date && o.close_date >= from && o.close_date <= to
-  )
-
-  // 期間内の期限タスク
-  const periodTasks = pendingTasks.filter(
-    (t) => t.due_date && t.due_date >= from && t.due_date <= to
-  )
-
   // 直近のやること：期限超過 ＋ 今後7日以内（期間に依存しない・ホームの主役）
   const weekAhead = (() => { const d = new Date(today); d.setDate(d.getDate() + 7); return formatDateLocal(d) })()
   const imminentTasks = pendingTasks
@@ -193,22 +156,6 @@ export default async function DashboardPage({
       return d >= from && d <= to
     })
     .slice(0, 8)
-
-  const accountCount = accountCountRows[0]?.count ?? 0
-
-  const baseRevenueOf = (o: typeof periodOpps[number]) => {
-    if (!isReal) return Number(o.amount ?? 0)
-    const fee = o.commission_fee != null ? Number(o.commission_fee) : null
-    const oth = o.other_profit != null ? Number(o.other_profit) : 0
-    return fee != null ? calcProfit(fee, o.brokerage_type, oth) : 0
-  }
-
-  const oppForecast = periodOpps.reduce((sum, o) => {
-    const base = baseRevenueOf(o)
-    return sum + base * (o.probability != null ? o.probability / 100 : 1)
-  }, 0)
-  // auto-body は 商談 + 整備 の合算
-  const forecast = oppForecast + maintWeighted
 
   const recent = [
     ...recentAccounts.map((r) => ({ type: '取引先', icon: '🏢', href: `/accounts/${r.id}`, title: r.name, sub: r.industry ?? '', at: r.updated_at })),
@@ -266,132 +213,7 @@ export default async function DashboardPage({
         )}
       </section>
 
-      {/* KPIカード */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'アクティブな取引先', value: accountCount, unit: '社', href: '/accounts', color: 'text-zinc-800', sub: '期間外集計', Icon: Building2, iconCls: 'bg-brand-50 text-brand-700' },
-          { label: '期間内のToDo', value: periodTasks.length, unit: '件', href: '/tasks', color: periodTasks.length > 0 ? 'text-orange-600' : 'text-zinc-800', sub: '未完了・期限が期間内', Icon: SquareCheckBig, iconCls: periodTasks.length > 0 ? 'bg-warning-bg text-warning' : 'bg-n-100 text-n-500' },
-          isAutoBody
-            ? { label: '期間内の商談+整備', value: periodOpps.length + maintList.length, unit: '件', href: `/forecast?from=${from}&to=${to}`, color: 'text-blue-600', sub: `商談 ${periodOpps.length} + 整備 ${maintList.length}`, Icon: TrendingUp, iconCls: 'bg-info-bg text-info' }
-            : { label: '期間内の商談', value: periodOpps.length, unit: '件', href: `/forecast?from=${from}&to=${to}`, color: 'text-blue-600', sub: '完了予定が期間内', Icon: TrendingUp, iconCls: 'bg-info-bg text-info' },
-          {
-            label: '期間内の想定売上',
-            value: `¥${Math.round(forecast).toLocaleString()}`,
-            unit: '',
-            href: `/forecast?from=${from}&to=${to}`,
-            color: 'text-green-700',
-            sub: isAutoBody
-              ? `商談 ¥${Math.round(oppForecast).toLocaleString()} + 整備 ¥${Math.round(maintWeighted).toLocaleString()}`
-              : isReal ? '確度 × 利益' : '確度 × 金額',
-            Icon: Wallet, iconCls: 'bg-positive-bg text-positive',
-          },
-        ].map((k) => (
-          <Link key={k.label} href={k.href} className="bg-white border border-zinc-200 shadow-xs rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`grid place-items-center w-7 h-7 rounded-md shrink-0 ${k.iconCls}`}><k.Icon className="w-4 h-4" strokeWidth={2.25} aria-hidden /></span>
-              <p className="text-sm text-zinc-500">{k.label}</p>
-            </div>
-            <p className={`text-3xl font-bold tabular-nums tracking-tight ${k.color}`}>
-              {typeof k.value === 'number' ? k.value.toLocaleString() : k.value}
-              {k.unit && <span className="text-sm font-normal text-zinc-500 ml-1">{k.unit}</span>}
-            </p>
-            {k.sub && <p className="text-xs text-zinc-400 mt-1">{k.sub}</p>}
-          </Link>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        {/* 左カラム */}
-        <div className="col-span-1 md:col-span-3 space-y-6">
-
-          {/* 期間内の商談 */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-zinc-800">
-                期間内の商談
-                <span className="ml-2 text-zinc-400 font-normal text-sm">({periodOpps.length})</span>
-              </h2>
-              <Link href={`/forecast?from=${from}&to=${to}`} className="text-xs text-blue-600 hover:text-blue-800">売上予測へ →</Link>
-            </div>
-            {periodOpps.length === 0 ? (
-              <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
-                期間内に完了予定の商談がありません
-              </div>
-            ) : (
-              <>
-                {/* PC: テーブル */}
-                <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
-                  <table className="w-full text-sm">
-                    <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
-                      <tr>
-                        <th className="text-left px-4 py-3 font-medium text-zinc-600">商談名</th>
-                        <th className="text-left px-4 py-3 font-medium text-zinc-600">ステージ</th>
-                        <th className="text-left px-4 py-3 font-medium text-zinc-600">完了予定日</th>
-                        <th className="text-right px-4 py-3 font-medium text-zinc-600">想定売上</th>
-                        <th className="px-4 py-3"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                      {periodOpps.slice(0, 5).map((o) => {
-                        const base     = baseRevenueOf(o)
-                        const prob     = o.probability != null ? o.probability / 100 : 1
-                        const weighted = Math.round(base * prob)
-                        const account  = o.accounts?.name ? o.accounts : null
-                        const stage    = STAGE_CONFIG[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
-                        return (
-                          <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
-                            <td className="px-4 py-3 font-medium text-zinc-900">
-                              <Link href={`/opportunities/${o.id}`} className="hover:text-blue-600 block truncate max-w-56">{o.name}</Link>
-                              {account && <p className="text-xs text-zinc-400 mt-0.5">{account.name}</p>}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${stage.color}`}>{stage.label}</span>
-                            </td>
-                            <td className="px-4 py-3 text-zinc-600 whitespace-nowrap">{o.close_date ?? '—'}</td>
-                            <td className="px-4 py-3 text-right whitespace-nowrap">
-                              <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
-                              {o.probability != null && <p className="text-xs text-zinc-400">確度 {o.probability}%</p>}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <Link href={`/opportunities/${o.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {/* モバイル: カード */}
-                <div className="md:hidden space-y-2">
-                  {periodOpps.slice(0, 5).map((o) => {
-                    const base     = baseRevenueOf(o)
-                    const prob     = o.probability != null ? o.probability / 100 : 1
-                    const weighted = Math.round(base * prob)
-                    const account  = o.accounts?.name ? o.accounts : null
-                    const stage    = STAGE_CONFIG[o.stage] ?? { label: o.stage, color: 'bg-zinc-100 text-zinc-600' }
-                    return (
-                      <Link key={o.id} href={`/opportunities/${o.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-medium text-zinc-900 text-sm leading-snug">{o.name}</span>
-                          <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${stage.color}`}>{stage.label}</span>
-                        </div>
-                        {account && <p className="text-xs text-zinc-400 mt-0.5 inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{account.name}</p>}
-                        <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500">
-                          <span>{o.close_date ?? '期限なし'}</span>
-                          <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-          </section>
-        </div>
-
-        {/* 右カラム */}
-        <div className="col-span-1 md:col-span-2 space-y-6">
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 期間内の活動 */}
           <section>
             <div className="flex items-center justify-between mb-3">
@@ -496,7 +318,6 @@ export default async function DashboardPage({
               </div>
             )}
           </section>
-        </div>
       </div>
     </div>
   )
