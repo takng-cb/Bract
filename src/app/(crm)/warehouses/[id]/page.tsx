@@ -72,7 +72,6 @@ export default async function WarehouseDetailPage({ params }: { params: Promise<
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-warehouse" />
-              <Link href={`/warehouses/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この倉庫を削除しますか？在庫移動の倉庫参照は空になります（履歴は残ります）。" />
             </div>
           </AuthGuard>
@@ -86,6 +85,8 @@ export default async function WarehouseDetailPage({ params }: { params: Promise<
         editEvent="bract:edit-warehouse"
         action={saveWarehouseInline}
         fields={[
+          { label: '倉庫名', name: 'name', kind: 'text', value: w.name, view: w.name ?? '—' },
+          { label: 'コード', name: 'code', kind: 'text', value: w.code, view: w.code ? <span className="font-mono">{w.code}</span> : '—' },
           { label: '所在地', name: 'location', kind: 'text', value: w.location, view: w.location ?? '—' },
           { label: '備考', name: 'note', kind: 'textarea', value: w.note, fullWidth: true, view: w.note ? w.note : <span className="text-zinc-300">—</span> },
         ]}

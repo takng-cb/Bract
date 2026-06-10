@@ -81,28 +81,40 @@ export async function updateProduct(id: string, formData: FormData): Promise<voi
   redirect(`/products/${id}`)
 }
 
-/** 商品情報カードのインライン編集用・部分更新（SKU/商品名/カテゴリ/担当には触れない）。 */
+/**
+ * インライン編集用・部分更新。送信されたフィールドだけ更新（formData.has 判定）。
+ * SKU/商品名は必須のため空送信時は更新しない。
+ */
 export async function updateProductBasic(id: string, formData: FormData): Promise<void> {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('category'))            set.category = s(formData, 'category')
   if (formData.has('unit'))                set.unit = s(formData, 'unit')
   if (formData.has('unit_price'))          set.unit_price = num(formData, 'unit_price')
   if (formData.has('cost_price'))          set.cost_price = num(formData, 'cost_price')
   if (formData.has('reorder_level'))       set.reorder_level = int(formData, 'reorder_level') ?? 0
   if (formData.has('supplier_account_id')) set.supplier_account_id = s(formData, 'supplier_account_id')
+  if (formData.has('owner_id'))            set.owner_id = s(formData, 'owner_id')
   if (formData.has('description'))         set.description = s(formData, 'description')
+  if (formData.has('sku') && s(formData, 'sku'))   set.sku = s(formData, 'sku')
+  if (formData.has('name') && s(formData, 'name')) set.name = s(formData, 'name')
   await db.update(products).set(set).where(eq(products.id, id))
   revalidatePath('/products')
   revalidatePath(`/products/${id}`)
   redirect(`/products/${id}`)
 }
 
-/** 倉庫情報カードのインライン編集用・部分更新（名前/コードには触れない）。 */
+/**
+ * インライン編集用・部分更新。送信されたフィールドだけ更新（formData.has 判定）。
+ * 倉庫名(name)/コード(code) は必須のため空送信時は更新しない。
+ */
 export async function updateWarehouseBasic(id: string, formData: FormData): Promise<void> {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('location')) set.location = s(formData, 'location')
   if (formData.has('note'))     set.note = s(formData, 'note')
+  if (formData.has('code') && s(formData, 'code')) set.code = s(formData, 'code')
+  if (formData.has('name') && s(formData, 'name')) set.name = s(formData, 'name')
   await db.update(warehouses).set(set).where(eq(warehouses.id, id))
   revalidatePath('/warehouses')
   revalidatePath(`/warehouses/${id}`)

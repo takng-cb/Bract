@@ -71,7 +71,10 @@ export async function updatePart(id: string, formData: FormData) {
   redirect(`/parts/${id}`)
 }
 
-/** 部品情報カードのインライン編集用・部分更新（品番/部品名/担当には触れない）。 */
+/**
+ * インライン編集用・部分更新。送信されたフィールドだけ更新（formData.has 判定）。
+ * 品番(part_number)/部品名(name) は必須のため空送信時は更新しない。
+ */
 export async function updatePartBasic(id: string, formData: FormData) {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
@@ -80,6 +83,8 @@ export async function updatePartBasic(id: string, formData: FormData) {
   if (formData.has('unit_price'))          set.unit_price = n(formData, 'unit_price')
   if (formData.has('reorder_level'))       set.reorder_level = i(formData, 'reorder_level') ?? 0
   if (formData.has('description'))         set.description = s(formData, 'description')
+  if (formData.has('part_number') && s(formData, 'part_number')) set.part_number = s(formData, 'part_number')
+  if (formData.has('name') && s(formData, 'name'))               set.name = s(formData, 'name')
   await db.update(parts).set(set).where(eq(parts.id, id))
   revalidatePath('/parts')
   revalidatePath(`/parts/${id}`)

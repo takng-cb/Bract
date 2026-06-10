@@ -129,6 +129,8 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
         editEvent="bract:edit-part"
         action={savePartInline}
         fields={[
+          { label: '部品名', name: 'name', kind: 'text', value: partRow.name, view: partRow.name ?? '—' },
+          { label: '品番', name: 'part_number', kind: 'text', value: partRow.part_number, view: partRow.part_number ? <span className="font-mono">{partRow.part_number}</span> : '—' },
           { label: 'カテゴリ', name: 'category', kind: 'text', value: partRow.category, view: partRow.category ?? '—' },
           { label: '標準仕入単価', name: 'unit_price', kind: 'number', value: partRow.unit_price != null ? String(partRow.unit_price) : '', view: partRow.unit_price ? `¥${Number(partRow.unit_price).toLocaleString()}` : '—' },
           { label: '主仕入元', name: 'supplier_account_id', kind: 'select', value: partRow.supplier?.id ?? '', options: supplierAccounts.map((a) => ({ value: a.id, label: a.name })),
@@ -355,7 +357,6 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-part" />
-              <Link href={`/parts/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この部品を削除しますか？関連する入出庫履歴もすべて削除されます。" />
             </div>
           </AuthGuard>

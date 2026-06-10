@@ -15,6 +15,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { computeStockBalance, stockBadgeColor, isBelowReorder } from '@/lib/inventory'
 import { deleteProduct, updateProductBasic } from '@/app/actions/inventory'
 import { canEdit } from '@/lib/auth'
+import { getAllUsers } from '@/lib/userUtils'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { NavIcon } from '@/lib/navIcon'
@@ -31,7 +32,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       category: products.category, unit: products.unit,
       unit_price: products.unit_price, cost_price: products.cost_price,
       reorder_level: products.reorder_level, description: products.description,
-      created_at: products.created_at,
+      created_at: products.created_at, owner_id: products.owner_id,
       supplier: { id: accounts.id, name: accounts.name },
     })
       .from(products)
@@ -57,10 +58,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   if (!productRow) notFound()
 
-  const [editFlag, supplierAccounts] = await Promise.all([
+  const [editFlag, supplierAccounts, usersList] = await Promise.all([
     canEdit(),
     db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    getAllUsers(),
   ])
+  const ownerName = productRow.owner_id ? (usersList.find((u) => u.id === productRow.owner_id)?.name ?? null) : null
 
   async function saveProductInline(formData: FormData) {
     'use server'
@@ -104,7 +107,6 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-product" />
-              <Link href={`/products/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この商品を削除しますか？関連する在庫移動もすべて削除されます。" />
             </div>
           </AuthGuard>
@@ -127,12 +129,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         editEvent="bract:edit-product"
         action={saveProductInline}
         fields={[
+          { label: '商品名', name: 'name', kind: 'text', value: productRow.name, view: productRow.name ?? '—' },
+          { label: 'SKU', name: 'sku', kind: 'text', value: productRow.sku, view: productRow.sku ? <span className="font-mono">{productRow.sku}</span> : '—' },
+          { label: 'カテゴリ', name: 'category', kind: 'text', value: productRow.category, view: productRow.category ?? '—' },
           { label: '売価', name: 'unit_price', kind: 'number', value: productRow.unit_price != null ? String(productRow.unit_price) : '', view: productRow.unit_price ? `¥${Number(productRow.unit_price).toLocaleString()}` : '—' },
           { label: '原価', name: 'cost_price', kind: 'number', value: productRow.cost_price != null ? String(productRow.cost_price) : '', view: productRow.cost_price ? `¥${Number(productRow.cost_price).toLocaleString()}` : '—' },
           { label: '単位', name: 'unit', kind: 'text', value: productRow.unit, view: productRow.unit ?? '—' },
           { label: '発注しきい値', name: 'reorder_level', kind: 'number', value: productRow.reorder_level != null ? String(productRow.reorder_level) : '', view: `${productRow.reorder_level}${unit}` },
           { label: '主仕入元', name: 'supplier_account_id', kind: 'select', value: productRow.supplier?.id ?? '', options: supplierAccounts.map((a) => ({ value: a.id, label: a.name })),
             view: productRow.supplier?.id ? <Link href={`/accounts/${productRow.supplier.id}`} className="text-blue-600 hover:underline">{productRow.supplier.name}</Link> : '—' },
+          { label: '担当', name: 'owner_id', kind: 'select', value: productRow.owner_id ?? '', options: usersList.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
           { label: '備考', name: 'description', kind: 'textarea', value: productRow.description, fullWidth: true, view: productRow.description ? productRow.description : <span className="text-zinc-300">—</span> },
         ]}
       />
