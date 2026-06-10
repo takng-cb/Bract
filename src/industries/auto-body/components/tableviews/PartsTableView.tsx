@@ -18,17 +18,17 @@ type Part = {
 
 const ALL_COLS: ColDef[] = [
   {
-    key: 'part_number', label: '品番',
-    render: (r) => {
-      const p = r as unknown as Part
-      return <Link href={`/parts/${p.id}`} className="font-mono text-zinc-700 hover:text-blue-600">{p.part_number}</Link>
-    },
-  },
-  {
     key: 'name', label: '部品名',
     render: (r) => {
       const p = r as unknown as Part
       return <Link href={`/parts/${p.id}`} className="font-medium text-zinc-900 hover:text-blue-600">{p.name}</Link>
+    },
+  },
+  {
+    key: 'part_number', label: '品番',
+    render: (r) => {
+      const p = r as unknown as Part
+      return <Link href={`/parts/${p.id}`} className="font-mono text-zinc-700 hover:text-blue-600">{p.part_number}</Link>
     },
   },
   { key: 'category', label: 'カテゴリ', render: (r) => (r as unknown as Part).category ?? '—' },
@@ -68,7 +68,7 @@ const ALL_COLS: ColDef[] = [
   },
 ]
 
-const DEFAULT_KEYS = ['part_number', 'name', 'category', 'unit_price', 'supplier', 'stock']
+const DEFAULT_KEYS = ['name', 'part_number', 'category', 'unit_price', 'supplier', 'stock']
 
 type Props = {
   records: Record<string, unknown>[]

@@ -19,17 +19,17 @@ const TYPE_LABEL: Record<string, string> = {
 
 const ALL_COLS: ColDef[] = [
   {
-    key: 'type', label: '種別',
-    render: (r) => {
-      const t = (r as unknown as Activity).type
-      return <span className="text-sm">{TYPE_LABEL[t] ?? t}</span>
-    },
-  },
-  {
     key: 'subject', label: '件名',
     render: (r) => {
       const a = r as unknown as Activity
       return <Link href={`/activities/${a.id}`} className="font-medium text-zinc-900 hover:text-blue-600">{a.subject}</Link>
+    },
+  },
+  {
+    key: 'type', label: '種別',
+    render: (r) => {
+      const t = (r as unknown as Activity).type
+      return <span className="text-sm">{TYPE_LABEL[t] ?? t}</span>
     },
   },
   {
@@ -50,7 +50,7 @@ const ALL_COLS: ColDef[] = [
   },
 ]
 
-const DEFAULT_KEYS = ['type', 'subject', 'account', 'occurred_at']
+const DEFAULT_KEYS = ['subject', 'type', 'account', 'occurred_at']
 
 type Props = {
   records: Record<string, unknown>[]
