@@ -71,6 +71,21 @@ export async function updatePart(id: string, formData: FormData) {
   redirect(`/parts/${id}`)
 }
 
+/** 部品情報カードのインライン編集用・部分更新（品番/部品名/担当には触れない）。 */
+export async function updatePartBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('category'))            set.category = s(formData, 'category')
+  if (formData.has('supplier_account_id')) set.supplier_account_id = s(formData, 'supplier_account_id')
+  if (formData.has('unit_price'))          set.unit_price = n(formData, 'unit_price')
+  if (formData.has('reorder_level'))       set.reorder_level = i(formData, 'reorder_level') ?? 0
+  if (formData.has('description'))         set.description = s(formData, 'description')
+  await db.update(parts).set(set).where(eq(parts.id, id))
+  revalidatePath('/parts')
+  revalidatePath(`/parts/${id}`)
+  redirect(`/parts/${id}`)
+}
+
 export async function deletePart(id: string) {
   await requireEditor()
   await db.delete(parts).where(eq(parts.id, id))  // cascade で part_movements も削除
