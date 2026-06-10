@@ -89,6 +89,7 @@ export async function createTask(formData: FormData) {
 export async function updateTaskBasic(id: string, formData: FormData) {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('title') && (formData.get('title') as string)?.trim()) set.title = (formData.get('title') as string).trim()
   if (formData.has('due_date'))    set.due_date    = (formData.get('due_date') as string) || null
   if (formData.has('priority'))    set.priority    = (formData.get('priority') as string) || 'medium'
   if (formData.has('description')) set.description  = (formData.get('description') as string)?.trim() || null

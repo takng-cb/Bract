@@ -73,7 +73,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-expense" />
-              <Link href={`/expenses/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">件名・関連</Link>
+              <Link href={`/expenses/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">関連</Link>
               <DeleteButton action={deleteAction} confirmMessage="この経費を削除しますか？" />
             </div>
           </AuthGuard>
@@ -113,6 +113,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
         editEvent="bract:edit-expense"
         action={saveExpenseInline}
         fields={[
+          { label: '件名', name: 'title', kind: 'text', value: expense.title, fullWidth: true, view: expense.title ?? '—' },
           { label: '日付', name: 'expense_date', kind: 'date', value: expense.expense_date ? String(expense.expense_date).slice(0, 10) : '', view: expense.expense_date ?? '—' },
           { label: '金額', name: 'amount', kind: 'number', value: expense.amount != null ? String(expense.amount) : '', view: `¥${Number(expense.amount).toLocaleString()}` },
           { label: 'カテゴリ', name: 'category', kind: 'select', value: expense.category, options: Object.keys(CATEGORY_COLORS).map((c) => ({ value: c, label: c })), view: expense.category },

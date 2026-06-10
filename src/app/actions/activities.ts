@@ -63,6 +63,9 @@ async function syncActivityRelatedRecords(
 export async function updateActivityBasic(id: string, formData: FormData) {
   await requireEditor()
   const set: Record<string, unknown> = {}
+  if (formData.has('subject') && (formData.get('subject') as string)?.trim()) set.subject = (formData.get('subject') as string).trim()
+  if (formData.has('type') && (formData.get('type') as string)?.trim())       set.type = (formData.get('type') as string).trim()
+  if (formData.has('occurred_at')) set.occurred_at = (formData.get('occurred_at') as string) ? new Date(formData.get('occurred_at') as string) : null
   if (formData.has('body'))     set.body = (formData.get('body') as string) || null
   if (formData.has('owner_id')) set.owner_id = (formData.get('owner_id') as string)?.trim() || null
   await db.update(activities).set(set).where(eq(activities.id, id))
