@@ -90,7 +90,7 @@ export default function NavOrderEditor({ userOrder, systemOrder, customItems = [
               key={item.href}
               className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2.5"
             >
-              <span className="text-lg w-6 text-center shrink-0">{item.icon}</span>
+              <span className="w-6 flex items-center justify-center shrink-0 text-zinc-500"><NavIcon icon={item.icon} className="w-4.5 h-4.5" /></span>
               <span className="flex-1 text-sm font-medium text-zinc-800">{item.label}</span>
               {isCustom && (
                 <span className="text-xs text-violet-500 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5 shrink-0">
