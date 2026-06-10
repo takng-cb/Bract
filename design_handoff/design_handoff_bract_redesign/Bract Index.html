@@ -13,8 +13,7 @@
   body { background: var(--n-100); overflow-y: auto; }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 64px 40px 100px; }
   .head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
-  .bmark { width: 40px; height: 40px; flex: none; border-radius: 9px; background: linear-gradient(160deg, oklch(0.69 0.062 146), oklch(0.55 0.072 148)); display: grid; place-items: center; }
-  .bmark svg { width: 78%; height: 78%; }
+  .bmark { width: 38px; height: 38px; flex: none; background: var(--primary); border-radius: 2px 80% 2px 80% / 80% 2px 80% 2px; transform: rotate(-8deg); }
   .head h1 { margin: 0; font-size: var(--text-display); font-weight: 700; letter-spacing: -0.02em; color: var(--n-900); }
   .lede { font-size: var(--text-lg); color: var(--n-600); max-width: 64ch; margin: 0 0 40px; }
   .group { margin-bottom: 40px; }
@@ -33,23 +32,14 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><span class="bmark"><svg viewBox="3 4 58 58"><path fill="#fff" fill-rule="evenodd" d="M32 5.5 C 46 5.5 56.5 15.5 56.5 29 C 56.5 36 53 41 47.5 43.5 C 53 46 56.5 51.5 56.5 56.5 L56.5 57 C 56 60 54 61.5 50 61.5 C 49 61.5 41 61.5 32 61.5 C 17.5 61.5 7.5 50 7.5 33.5 C 7.5 17.5 18 5.5 32 5.5 Z M18 26 C 27 20 42 20.5 47 26.5 C 39.5 26.8 31 27.8 24 29 C 21 29.5 18.5 28.4 18 26 Z M20 41.5 C 29 35.5 44 36 49 42 C 41.5 42.3 33 43.3 26 44.5 C 23 45 20.5 43.9 20 41.5 Z"/></svg></span><h1>Bract</h1></div>
-    <p class="lede">デザイン刷新の成果物一覧。ウォームニュートラル × サージュグリーンで「信頼できる業務SaaS」へ。各画面の入口です。</p>
+    <div class="head"><span class="bmark"></span><h1>Bract</h1></div>
+    <p class="lede">デザイン刷新の成果物一覧。ウォームニュートラル × 植物的なグリーン（Foliage）で「信頼できる業務SaaS」へ。各画面右下の「見た目」でライト/ダーク・密度を切替できます。</p>
 
     <div class="group">
-      <div class="group-t">ブランド</div>
+      <div class="group-t">基盤</div>
       <div class="cards">
-        <a class="nav-card" href="Bract Logo Set.html"><span class="ico"><i data-lucide="shapes"></i></span><span class="nt">ロゴセット</span><span class="nd">葉カール／サージュ・アプリアイコン・配色・使用ルール</span></a>
         <a class="nav-card" href="Bract Design System.html"><span class="ico"><i data-lucide="swatch-book"></i></span><span class="nt">デザインシステム</span><span class="nd">トークン・タイポ・アイコン方針・コアコンポーネント</span></a>
         <a class="nav-card file-card" href="export/globals.css"><span class="ico"><i data-lucide="file-code-2"></i></span><span class="nt">globals.css（書き出し）</span><span class="nd">Tailwind v4 @theme・緑確定・ダーク対応の実装用</span></a>
-      </div>
-    </div>
-
-    <div class="group">
-      <div class="group-t">レコード詳細（刷新レイアウト）</div>
-      <div class="cards">
-        <a class="nav-card" href="Bract Record Layout.html"><span class="ico"><i data-lucide="panels-top-left"></i></span><span class="nt">取引先 詳細（統合案）</span><span class="nd">サマリ＋左=参照／右=タブ（活動⇄関連）・インライン編集</span></a>
-        <a class="nav-card" href="Bract Record Types.html"><span class="ico"><i data-lucide="layers"></i></span><span class="nt">商談・活動・ToDo</span><span class="nd">親=統合フル／葉=軽量。上部スイッチで切替</span></a>
       </div>
     </div>
 

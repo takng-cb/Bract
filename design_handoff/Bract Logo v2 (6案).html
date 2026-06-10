@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja" data-brand="foliage" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — ロゴ 追加6案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<style>
+  body { background: var(--n-100); overflow-y: auto; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 56px 40px 100px; }
+  .head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; flex-wrap: wrap; }
+  .head h1 { margin: 0; font-size: var(--text-display); font-weight: 700; letter-spacing: -0.02em; color: var(--n-900); }
+  .head .pill { font-size: var(--text-sm); font-weight: 600; color: var(--primary-text); background: var(--brand-50); border: 1px solid var(--brand-200); padding: 3px 10px; border-radius: var(--r-pill); }
+  .lede { font-size: var(--text-lg); color: var(--n-600); max-width: 70ch; margin: 0 0 14px; }
+  .note { font-size: var(--text-sm); color: var(--n-500); max-width: 72ch; margin: 0 0 40px; display: flex; gap: 8px; align-items: flex-start; }
+  .note .ic { width: 16px; height: 16px; color: var(--primary); flex: none; margin-top: 2px; }
+  .toplink { font-size: var(--text-sm); color: var(--primary-text); font-weight: 600; text-decoration: none; }
+
+  .concept { background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--r-xl); padding: 28px; margin-bottom: 22px; box-shadow: var(--shadow-xs); }
+  .c-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; }
+  .c-num { font-family: "Geist", sans-serif; font-size: var(--text-sm); font-weight: 600; color: var(--primary); border: 1px solid var(--brand-200); background: var(--brand-50); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; font-variant-numeric: tabular-nums; }
+  .c-title { font-size: var(--text-xl); font-weight: 700; color: var(--n-900); display: flex; align-items: center; gap: 10px; }
+  .c-rationale { font-size: var(--text-sm); color: var(--n-600); margin-top: 3px; line-height: 1.6; max-width: 72ch; }
+
+  .c-body { display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: start; }
+  @media (max-width: 820px) { .c-body { grid-template-columns: 1fr; } }
+  .hero-col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .ios-tile { width: 124px; height: 124px; border-radius: 28px; display: grid; place-items: center; box-shadow: var(--shadow-md), inset 0 1px 0 oklch(1 0 0 / 0.18); overflow: hidden; }
+  .ios-tile.green { background: linear-gradient(160deg, var(--brand-500), var(--brand-700)); }
+  .ios-tile svg { width: 72px; height: 72px; }
+  .tile-cap { font-size: var(--text-xs); color: var(--n-500); }
+
+  .variants { display: flex; flex-direction: column; gap: 22px; }
+  .v-group .v-label { font-size: var(--text-2xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--n-400); margin-bottom: 10px; }
+  .sizes { display: flex; align-items: flex-end; gap: 18px; }
+  .size-item { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .size-item .tile { border-radius: 22%; display: grid; place-items: center; background: linear-gradient(160deg, var(--brand-500), var(--brand-700)); box-shadow: var(--shadow-sm); flex: none; overflow: hidden; }
+  .size-item .tile svg { width: 60%; height: 60%; }
+  .size-item .sz { font-size: 10px; color: var(--n-400); font-variant-numeric: tabular-nums; }
+  .t56 { width: 56px; height: 56px; } .t40 { width: 40px; height: 40px; } .t32 { width: 32px; height: 32px; } .t24 { width: 24px; height: 24px; } .t16 { width: 16px; height: 16px; }
+
+  .shapes { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .shape-item { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .shape-item .sl { font-size: 10px; color: var(--n-400); }
+  .tile-circle { width: 52px; height: 52px; border-radius: 50%; }
+  .tile-sq { width: 52px; height: 52px; border-radius: 12px; }
+  .tile-inv { width: 52px; height: 52px; border-radius: 12px; background: var(--n-0); border: 1px solid var(--n-200); }
+  .tile-ink { width: 52px; height: 52px; border-radius: 12px; background: var(--n-900); }
+  .tile-mono { width: 52px; height: 52px; border-radius: 12px; background: var(--n-100); }
+  .ctx-tile { display: grid; place-items: center; overflow: hidden; box-shadow: var(--shadow-xs); }
+  .ctx-tile.green { background: linear-gradient(160deg, var(--brand-500), var(--brand-700)); }
+  .ctx-tile svg { width: 58%; height: 58%; }
+
+  .lockups { display: flex; flex-direction: column; gap: 16px; }
+  .lockup { display: flex; align-items: center; gap: 13px; }
+  .lockup .lk-mark { width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center; overflow: hidden; flex: none; }
+  .lockup .lk-mark.green { background: linear-gradient(160deg, var(--brand-500), var(--brand-700)); }
+  .lockup .lk-mark svg { width: 60%; height: 60%; }
+  .wordmark { font-family: "Geist", sans-serif; font-weight: 700; font-size: 27px; letter-spacing: -0.03em; color: var(--n-900); }
+  .lockup.ondark { background: var(--n-900); border-radius: var(--r-md); padding: 12px 16px; align-self: flex-start; }
+  .lockup.ondark .wordmark { color: var(--n-0); }
+  .home-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .phone-home { width: 132px; padding: 16px; border-radius: 22px; background: linear-gradient(170deg, oklch(0.4 0.03 240), oklch(0.28 0.04 280)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 10px; box-shadow: var(--shadow-md); }
+  .phone-home .ai { aspect-ratio: 1; border-radius: 11px; background: oklch(1 0 0 / 0.16); }
+  .phone-home .ai.real { overflow: hidden; display: grid; place-items: center; background: linear-gradient(160deg, var(--brand-500), var(--brand-700)); box-shadow: var(--shadow-sm); }
+  .phone-home .ai.real svg { width: 60%; height: 60%; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head"><h1>Bract ロゴ</h1><span class="pill">追加6案（05–10）</span><a class="toplink" href="Bract Logo.html">← 最初の4案へ</a></div>
+    <p class="lede">方向性を広げた6案。いずれも<strong style="color:var(--n-800);">アプリアイコン適性</strong>（タイルいっぱい・単純シルエット・高コントラスト）を満たすよう設計しています。</p>
+    <p class="note"><i data-lucide="scan-eye" class="ic"></i><span>各案を <strong>iOSスクワークル／円形／反転／濃地／モノクロ</strong> と <strong>56〜16px</strong> で検証できます。</span></p>
+    <div id="concepts"></div>
+  </div>
+
+  <script>
+  const W = '#ffffff';
+  // marks: fn(a, b) where a=primary, b=accent/echo. Two-tone marks use opacity internally.
+  const MARKS = {
+    // 05 — B lettermark, spine top tapers into a leaf tip
+    bmark(a, b) {
+      return `
+        <path fill="${a}" fill-rule="evenodd" d="M22 12 h12.5 a11 11 0 0 1 4.6 21 a11.5 11.5 0 0 1 -3.1 22 H22 Z
+          M30 21 v9 h4 a4.5 4.5 0 0 0 0 -9 Z
+          M30 39 v9.5 h4.4 a4.75 4.75 0 0 0 0 -9.5 Z"/>
+        <path fill="${a}" d="M22 12 C 19 6 22 1 28 1 C 28 7 26 11 22 13 Z"/>
+        <path fill="${b}" d="M24.5 8.5 C 25.5 6 26.8 4.4 27.6 3.4" stroke="${b}" stroke-width="1.4" stroke-linecap="round" opacity="0.0"/>`;
+    },
+    // 06 — layered bracts (modular depth)
+    layer(a) {
+      const leaf = `M32 8 C 21 19 21 39 32 53 C 43 39 43 19 32 8 Z`;
+      return `
+        <path d="${leaf}" fill="${a}" opacity="0.42" transform="translate(7 -4)"/>
+        <path d="${leaf}" fill="${a}" transform="translate(-4 3)"/>
+        <path d="M28 18 Q31.2 30 30.5 47" transform="translate(-4 3)" fill="none" stroke="${a}" stroke-width="0" />`;
+    },
+    // 07 — growth bract: leaf + upward arrow vein
+    grow(a, b) {
+      return `
+        <path d="M12 52 A44 44 0 0 1 52 12 A44 44 0 0 1 12 52 Z" fill="${a}"/>
+        <path d="M20 46 L41 25" fill="none" stroke="${b}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M33 25 L41 25 L41 33" fill="none" stroke="${b}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+    },
+    // 08 — sprout (双葉) two seed leaves on a stem
+    sprout(a) {
+      return `
+        <path d="M32 56 L32 30" stroke="${a}" stroke-width="5" stroke-linecap="round"/>
+        <path d="M32 36 C 21 36 13.5 28.5 13.5 18 C 25 18 32 26 32 36 Z" fill="${a}"/>
+        <path d="M32 32 C 43 32 50.5 24.5 50.5 14 C 39 14 32 22 32 32 Z" fill="${a}"/>`;
+    },
+    // 09 — faceted / folded bract (two-tone, geometric)
+    facet(a) {
+      return `
+        <path d="M32 5 C 19 18 17 39 26 55 L32 47 Z" fill="${a}"/>
+        <path d="M32 5 C 45 18 47 39 38 55 L32 47 Z" fill="${a}" opacity="0.55"/>
+        <path d="M32 5 L32 47" stroke="${a}" stroke-width="0"/>`;
+    },
+    // 10 — check bract: leaf fused with a checkmark
+    check(a, b) {
+      return `
+        <path d="M12 52 A44 44 0 0 1 52 12 A44 44 0 0 1 12 52 Z" fill="${a}"/>
+        <path d="M21 33 L29 42 L45 22" fill="none" stroke="${b}" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+    },
+  };
+
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  function markFor(key, mode) {
+    const g600 = css('--brand-600'), g700 = css('--brand-700'), ink = css('--n-900'), n100 = css('--n-100');
+    let a, b;
+    if (mode === 'onWhite') { a = g600; b = W; }
+    else if (mode === 'ink') { a = W; b = ink; }
+    else if (mode === 'mono') { a = ink; b = n100; }
+    else { a = W; b = g700; } // onGreen
+    const f = MARKS[key];
+    return f.length >= 2 ? f(a, b) : f(a);
+  }
+
+  const CONCEPTS = [
+    { n:5, key:'bmark', title:'B レターマーク', tags:'頭文字 / 最高の可読性',
+      why:'ブランドの頭文字「B」を太く端正に。スパインの先端だけを苞の尖りに変え、葉の気配を残す。文字なので最小サイズでも即認知でき、アプリアイコンとして極めて堅実。' },
+    { n:6, key:'layer', title:'重ね苞（レイヤー）', tags:'モジュラー / 奥行き',
+      why:'2枚の苞を少しずらして重ね、「モジュール＞ブック＞レコード」の階層と奥行きを表現。背面を半透明にして重なりを示し、前面はベタ塗りで小サイズの視認性を確保。' },
+    { n:7, key:'grow', title:'伸びる苞（成長）', tags:'業績 / 右肩上がり',
+      why:'葉脈を上向きの矢印に置き換え、「葉＝信頼」と「成長＝業績」を一体化。業務SaaSらしい前向きさが伝わる。輪郭は単葉と同じく単純で小サイズに強い。' },
+    { n:8, key:'sprout', title:'双葉（芽）', tags:'育てる / オンボーディング',
+      why:'発芽したばかりの双葉。データや顧客関係を「育てる」プロダクト姿勢を象徴。左右対称で覚えやすく、シルエットが明快なのでドックでもよく目立つ。' },
+    { n:9, key:'facet', title:'面取り苞（幾何）', tags:'モダン / ソフトウェア感',
+      why:'苞を中央で折った2面構成。片面を淡くして“面取り”の陰影を出し、有機的すぎないソフトウェアらしい知性を加える。直線の折り目でテック感が出る。' },
+    { n:10, key:'check', title:'チェック苞（タスク）', tags:'生産性 / 完了',
+      why:'苞の中にチェックマークを内包。CRMの「やること・完了」を直感的に示す。葉＋✓で“片づく業務”を表現。チェックは万国共通で瞬時に伝わる。' },
+  ];
+
+  function svg(inner) { return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`; }
+
+  document.getElementById('concepts').innerHTML = CONCEPTS.map(c => {
+    const sizes = [['t56','56'],['t40','40'],['t32','32'],['t24','24'],['t16','16']].map(([cl,sz]) =>
+      `<div class="size-item"><div class="tile ${cl}">${svg(markFor(c.key,'onGreen'))}</div><span class="sz">${sz}px</span></div>`).join('');
+    const shapes = `
+      <div class="shape-item"><div class="ctx-tile green tile-circle">${svg(markFor(c.key,'onGreen'))}</div><span class="sl">円形</span></div>
+      <div class="shape-item"><div class="ctx-tile green tile-sq">${svg(markFor(c.key,'onGreen'))}</div><span class="sl">角丸</span></div>
+      <div class="shape-item"><div class="ctx-tile tile-inv">${svg(markFor(c.key,'onWhite'))}</div><span class="sl">反転</span></div>
+      <div class="shape-item"><div class="ctx-tile tile-ink">${svg(markFor(c.key,'ink'))}</div><span class="sl">濃地</span></div>
+      <div class="shape-item"><div class="ctx-tile tile-mono">${svg(markFor(c.key,'mono'))}</div><span class="sl">モノ</span></div>`;
+    const home = `<div class="phone-home">
+        <div class="ai"></div><div class="ai real">${svg(markFor(c.key,'onGreen'))}</div><div class="ai"></div><div class="ai"></div>
+        <div class="ai"></div><div class="ai"></div><div class="ai"></div><div class="ai"></div>
+      </div>`;
+    const lock = `
+      <div class="lockup"><span class="lk-mark green">${svg(markFor(c.key,'onGreen'))}</span><span class="wordmark">Bract</span></div>
+      <div class="lockup ondark"><span class="lk-mark green">${svg(markFor(c.key,'onGreen'))}</span><span class="wordmark">Bract</span></div>`;
+    return `
+    <div class="concept">
+      <div class="c-head">
+        <span class="c-num">${c.n}</span>
+        <div><div class="c-title">${c.title} <span class="badge badge-neutral">${c.tags}</span></div><div class="c-rationale">${c.why}</div></div>
+      </div>
+      <div class="c-body">
+        <div class="hero-col"><div class="ios-tile green">${svg(markFor(c.key,'onGreen'))}</div><span class="tile-cap">iOS アプリアイコン</span></div>
+        <div class="variants">
+          <div class="v-group"><div class="v-label">極小サイズ視認性</div><div class="sizes">${sizes}</div></div>
+          <div class="v-group"><div class="v-label">形状・地色のバリエーション</div><div class="shapes">${shapes}</div></div>
+          <div class="v-group"><div class="v-label">ロックアップ ／ ホーム画面</div><div class="home-row"><div class="lockups">${lock}</div>${home}</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  window.addEventListener('load', () => window.lucide && window.lucide.createIcons({ attrs: { 'stroke-width': 2.25 } }));
+  </script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script>window.lucide && window.lucide.createIcons({attrs:{'stroke-width':2.25}});</script>
+</body>
+</html>

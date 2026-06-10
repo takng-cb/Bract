@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bract — 商談・活動・ToDo レコード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --sage:oklch(.69 .062 146);--sage-deep:oklch(.55 .072 148);--sage-700:oklch(.47 .066 149);
+    --sage-50:oklch(.965 .016 145);--sage-100:oklch(.93 .03 146);--sage-200:oklch(.87 .045 147);
+    --n0:oklch(.995 .002 110);--n50:oklch(.978 .005 108);--n100:oklch(.963 .006 106);--n150:oklch(.945 .007 104);
+    --n200:oklch(.915 .008 100);--n300:oklch(.85 .009 96);--n400:oklch(.72 .01 92);--n500:oklch(.60 .01 88);
+    --n600:oklch(.50 .009 84);--n700:oklch(.405 .009 80);--n800:oklch(.30 .008 76);--n900:oklch(.235 .008 72);
+    --danger:oklch(.55 .19 27);--danger-bg:oklch(.965 .022 30);--danger-tx:oklch(.47 .15 27);--danger-bd:oklch(.89 .055 30);
+    --warn:oklch(.70 .14 70);--warn-bg:oklch(.965 .04 82);--warn-tx:oklch(.5 .09 62);--warn-bd:oklch(.88 .075 80);
+    --pos:oklch(.58 .13 152);--pos-bg:oklch(.965 .035 156);--pos-tx:oklch(.47 .10 152);--pos-bd:oklch(.88 .06 156);
+    --info:oklch(.56 .13 240);--info-bg:oklch(.965 .03 240);--info-tx:oklch(.47 .11 245);--info-bd:oklch(.885 .055 240);
+    --ai:oklch(.535 .165 292);--ai-bg:oklch(.965 .03 292);--ai-tx:oklch(.46 .15 292);--ai-bd:oklch(.885 .055 292);
+    --r:7px;--r-sm:5px;--r-lg:10px;--shadow:0 1px 2px oklch(.3 .02 70/.06);--shadow-md:0 4px 12px oklch(.3 .02 70/.09);
+    --side:oklch(.255 .018 150);--side2:oklch(.22 .018 150);--side-dim:oklch(.6 .015 140);--side-tx:oklch(.76 .015 140);
+    --fz:14px;--font:"Geist","Noto Sans JP",system-ui,sans-serif;--mono:"Geist Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);font-size:var(--fz);color:var(--n900);background:var(--n100);-webkit-font-smoothing:antialiased;font-feature-settings:"palt" 1;line-height:1.7;}
+  .tnum{font-variant-numeric:tabular-nums;}.mono{font-family:var(--mono);}
+  .app{display:flex;height:100vh;overflow:hidden;}
+  .side{width:60px;flex:none;background:var(--side);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px;}
+  .side .mk{width:30px;height:30px;border-radius:8px;background:linear-gradient(160deg,var(--sage),var(--sage-deep));display:grid;place-items:center;margin-bottom:10px;}
+  .side .mk svg{width:74%;height:74%;}
+  .side .ni{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;color:var(--side-dim);cursor:pointer;}
+  .side .ni:hover{background:var(--side2);color:var(--side-tx);}
+  .side .ni.on{background:var(--sage-deep);color:#fff;}.side .ni svg{width:19px;height:19px;}.side .sp{flex:1;}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .top{height:52px;flex:none;background:var(--n0);border-bottom:1px solid var(--n200);display:flex;align-items:center;gap:14px;padding:0 22px;}
+  .crumb{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--n500);white-space:nowrap;}
+  .crumb a{color:var(--n500);text-decoration:none;}.crumb a:hover{color:var(--n800);}
+  .crumb .sep{color:var(--n300);}.crumb .here{color:var(--n800);font-weight:600;}
+  .top .sp{flex:1;}
+  .switch{display:inline-flex;background:var(--n100);border:1px solid var(--n200);border-radius:var(--r);padding:3px;gap:2px;}
+  .switch button{appearance:none;border:none;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--n600);padding:5px 12px;border-radius:var(--r-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+  .switch button svg{width:14px;height:14px;}
+  .switch button.on{background:var(--n0);color:var(--sage-700);box-shadow:var(--shadow);}
+  .ibtn{width:32px;height:32px;border-radius:var(--r-sm);display:grid;place-items:center;color:var(--n600);cursor:pointer;}
+  .ibtn:hover{background:var(--n100);}
+  .btn{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 13px;font:inherit;font-size:13px;font-weight:600;border:1px solid transparent;border-radius:var(--r-sm);cursor:pointer;white-space:nowrap;}
+  .btn svg{width:15px;height:15px;}
+  .btn-pri{background:var(--sage-deep);color:#fff;}.btn-pri:hover{background:var(--sage-700);}
+  .btn-sec{background:var(--n0);color:var(--n800);border-color:var(--n300);}.btn-sec:hover{background:var(--n50);}
+  .btn-ai{background:var(--ai);color:#fff;}
+
+  .scroll{flex:1;overflow-y:auto;}
+  .wrap{max-width:1280px;margin:0 auto;padding:22px 26px 60px;}
+  .view{display:none;}.view.on{display:block;}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 8px;font-size:11.5px;font-weight:600;border-radius:var(--r-sm);border:1px solid transparent;white-space:nowrap;}
+  .badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .b-brand{background:var(--sage-50);color:var(--sage-700);border-color:var(--sage-200);}
+  .b-neutral{background:var(--n100);color:var(--n600);border-color:var(--n200);}
+  .b-warn{background:var(--warn-bg);color:var(--warn-tx);border-color:var(--warn-bd);}
+  .b-info{background:var(--info-bg);color:var(--info-tx);border-color:var(--info-bd);}
+  .b-pos{background:var(--pos-bg);color:var(--pos-tx);border-color:var(--pos-bd);}
+  .b-danger{background:var(--danger-bg);color:var(--danger-tx);border-color:var(--danger-bd);}
+  .b-ai{background:var(--ai-bg);color:var(--ai-tx);border-color:var(--ai-bd);}
+
+  /* record header */
+  .rhead{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;}
+  .rav{width:54px;height:54px;border-radius:11px;display:grid;place-items:center;flex:none;}
+  .rav svg{width:26px;height:26px;}
+  .rid{flex:1;min-width:0;}
+  .rid .nm{display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+  .rid h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--n900);}
+  .rid .sub{font-size:12.5px;color:var(--n500);margin-top:5px;display:flex;gap:14px;flex-wrap:wrap;}
+  .rid .sub .mono{color:var(--n600);}
+  .ractions{display:flex;gap:8px;flex:none;}
+
+  .summary{display:grid;gap:1px;background:var(--n200);border:1px solid var(--n200);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px;}
+  .sum4{grid-template-columns:repeat(4,1fr);}
+  .kpi{background:var(--n0);padding:13px 16px;}
+  .kpi .l{font-size:12px;color:var(--n500);font-weight:500;display:flex;align-items:center;gap:6px;}
+  .kpi .l svg{width:14px;height:14px;color:var(--n400);}
+  .kpi .v{font-size:21px;font-weight:700;color:var(--n900);letter-spacing:-.01em;margin-top:5px;}
+  .kpi .v small{font-size:13px;color:var(--n400);font-weight:600;}
+  .kpi .d{font-size:11.5px;font-weight:600;margin-top:2px;white-space:nowrap;}
+  .kpi .d.up{color:var(--pos-tx);}.kpi .d.down{color:var(--danger-tx);}.kpi .d.warn{color:var(--warn-tx);}.kpi .d.mut{color:var(--n500);}
+
+  .cols{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
+  @media(max-width:1080px){.cols{grid-template-columns:1fr;}}
+  .cols-narrow{grid-template-columns:380px 1fr;}
+
+  .card{background:var(--n0);border:1px solid var(--n200);border-radius:var(--r-lg);box-shadow:var(--shadow);}
+  .card+.card{margin-top:16px;}
+  .card-h{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--n150);}
+  .card-h .t{font-size:13px;font-weight:700;color:var(--n800);display:flex;align-items:center;gap:8px;white-space:nowrap;}
+  .card-h .t svg{width:15px;height:15px;color:var(--n400);}
+  .card-h .ed{font-size:12px;color:var(--sage-700);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+  .card-h .ed svg{width:13px;height:13px;}
+  .card-b{padding:14px 16px;}
+
+  .attrs{display:flex;flex-direction:column;}
+  .attr{display:grid;grid-template-columns:96px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--n100);align-items:center;}
+  .attr:last-child{border-bottom:none;}
+  .attr dt{font-size:12.5px;color:var(--n500);}
+  .attr dd{margin:0;font-size:13.5px;color:var(--n900);}
+  .editable{border-radius:var(--r-sm);padding:3px 7px;margin:-3px -7px;cursor:text;border:1px solid transparent;transition:background .1s,border-color .1s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+  .editable:hover{background:var(--sage-50);border-color:var(--sage-200);}
+  .editable:hover::after{content:"";width:12px;height:12px;flex:none;background:var(--sage-700);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E") center/contain no-repeat;}
+
+  .mini{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--n100);}
+  .mini:last-child{border-bottom:none;}
+  .mini .mi{width:28px;height:28px;border-radius:var(--r-sm);display:grid;place-items:center;flex:none;}
+  .mini .mi svg{width:15px;height:15px;}
+  .mini .mt{flex:1;min-width:0;}
+  .mini .mt .a{font-size:13px;font-weight:600;color:var(--n900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mini .mt .b{font-size:11.5px;color:var(--n500);}
+  .mini .amt{font-size:12.5px;font-weight:600;color:var(--n800);}
+  .mini .lk{color:var(--sage-700);}
+
+  .tags{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag{display:inline-flex;align-items:center;gap:5px;height:25px;padding:0 9px;font-size:12.5px;border-radius:var(--r-sm);background:var(--n100);color:var(--n700);font-weight:500;}
+  .tag .x{color:var(--n400);cursor:pointer;display:grid;place-items:center;}.tag .x svg{width:11px;height:11px;}
+  .tag-add{border:1px dashed var(--n300);background:none;color:var(--n500);cursor:pointer;}
+
+  .panel{background:var(--n0);border:1px solid var(--n200);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden;}
+  .ptabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--n200);background:var(--n50);}
+  .ptab{appearance:none;background:none;border:none;font:inherit;font-size:13.5px;font-weight:600;color:var(--n500);padding:12px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}
+  .ptab svg{width:16px;height:16px;}.ptab:hover{color:var(--n800);}
+  .ptab.on{color:var(--sage-700);border-bottom-color:var(--sage-deep);}
+  .ptab .ct{font-size:11px;font-variant-numeric:tabular-nums;background:var(--n200);color:var(--n600);padding:0 6px;border-radius:999px;font-weight:600;}
+  .ptab.on .ct{background:var(--sage-100);color:var(--sage-700);}
+  .ppanel{display:none;}.ppanel.on{display:block;}
+
+  .composer{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--n150);background:var(--n50);}
+  .composer .av{width:30px;height:30px;border-radius:50%;background:var(--sage-deep);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;}
+  .composer .inp{flex:1;height:34px;border:1px solid var(--n300);border-radius:var(--r-sm);background:var(--n0);display:flex;align-items:center;padding:0 12px;color:var(--n400);font-size:13px;cursor:text;}
+  .composer .qbtns{display:flex;gap:4px;}
+  .qb{width:32px;height:32px;border-radius:var(--r-sm);border:1px solid var(--n200);background:var(--n0);display:grid;place-items:center;color:var(--n500);cursor:pointer;}
+  .qb:hover{background:var(--sage-50);color:var(--sage-700);border-color:var(--sage-200);}.qb svg{width:16px;height:16px;}
+
+  .fchips{display:flex;align-items:center;gap:7px;padding:11px 16px;border-bottom:1px solid var(--n150);flex-wrap:wrap;}
+  .fchip{height:27px;padding:0 11px;border-radius:999px;border:1px solid var(--n300);background:var(--n0);font-size:12.5px;font-weight:600;color:var(--n600);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .fchip svg{width:13px;height:13px;}.fchip:hover{border-color:var(--n400);}
+  .fchip.on{background:var(--sage-deep);color:#fff;border-color:var(--sage-deep);}.fchip .n{font-size:11px;opacity:.7;}
+
+  .stream{padding:6px 18px 18px;position:relative;}
+  .stream::before{content:"";position:absolute;left:33px;top:14px;bottom:14px;width:1.5px;background:var(--n200);}
+  .day{font-size:11.5px;font-weight:700;color:var(--n500);padding:14px 0 8px 34px;letter-spacing:.02em;}
+  .ev{position:relative;padding:0 0 14px 34px;}
+  .ev .dot{position:absolute;left:6px;top:1px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--n0);border:1px solid var(--n200);z-index:1;}
+  .ev .dot svg{width:13px;height:13px;}
+  .ev .bd{background:var(--n0);border:1px solid var(--n200);border-radius:var(--r);padding:10px 13px;}
+  .ev .bd:hover{border-color:var(--n300);}
+  .ev .eh{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+  .ev .eh .ty{font-size:11px;font-weight:700;padding:1px 7px;border-radius:var(--r-sm);}
+  .ev .eh .who{font-size:12px;color:var(--n600);font-weight:600;}
+  .ev .eh .tm{font-size:11.5px;color:var(--n400);margin-left:auto;}
+  .ev .tx{font-size:13.5px;color:var(--n800);}
+  .ev .tx .strong{font-weight:600;color:var(--n900);}.ev .amt{font-weight:700;color:var(--n900);}
+  .ev.todo .bd{display:flex;align-items:flex-start;gap:10px;}
+  .chk{width:18px;height:18px;border:1.5px solid var(--n300);border-radius:5px;flex:none;cursor:pointer;margin-top:1px;display:grid;place-items:center;}
+  .chk.done{background:var(--sage-deep);border-color:var(--sage-deep);}.chk.done svg{width:11px;height:11px;color:#fff;}
+  .ty-act{background:var(--info-bg);color:var(--info-tx);}.ty-todo{background:var(--sage-50);color:var(--sage-700);}
+  .ty-exp{background:var(--warn-bg);color:var(--warn-tx);}.ty-his{background:var(--n100);color:var(--n600);}.ty-note{background:var(--ai-bg);color:var(--ai-tx);}
+  .dot-act{background:var(--info-bg);border-color:var(--info-bd);color:var(--info-tx);}
+  .dot-todo{background:var(--sage-50);border-color:var(--sage-200);color:var(--sage-700);}
+  .dot-exp{background:var(--warn-bg);border-color:var(--warn-bd);color:var(--warn-tx);}
+  .dot-his{background:var(--n100);border-color:var(--n200);color:var(--n600);}
+  .dot-note{background:var(--ai-bg);border-color:var(--ai-bd);color:var(--ai-tx);}
+
+  .relseg{display:flex;gap:2px;padding:11px 16px 0;flex-wrap:wrap;}
+  .rseg{appearance:none;background:none;border:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--n500);padding:6px 11px;border-radius:var(--r-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .rseg:hover{background:var(--n100);color:var(--n800);}.rseg.on{background:var(--sage-50);color:var(--sage-700);}.rseg .ct{font-size:11px;color:var(--n400);}
+  .rtable{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  .rtable th{text-align:left;font-size:11.5px;color:var(--n500);font-weight:600;padding:8px 16px;background:var(--n50);border-top:1px solid var(--n150);border-bottom:1px solid var(--n200);}
+  .rtable td{padding:10px 16px;border-bottom:1px solid var(--n100);color:var(--n800);}
+  .rtable tr:hover td{background:var(--n50);}
+  .rtable .col-num{text-align:right;font-variant-numeric:tabular-nums;}.rtable .strong{font-weight:600;color:var(--n900);}
+  .rgroup{display:none;}.rgroup.on{display:block;}
+  .seemore{display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;font-size:12.5px;color:var(--sage-700);font-weight:600;cursor:pointer;border-top:1px solid var(--n100);}
+  .seemore:hover{background:var(--sage-50);}.seemore svg{width:14px;height:14px;}
+
+  .note{margin:0 0 18px;display:flex;gap:9px;align-items:center;padding:10px 14px;border-radius:var(--r);background:var(--sage-50);border:1px solid var(--sage-200);font-size:12.5px;color:var(--sage-700);}
+  .note svg{width:16px;height:16px;flex:none;}
+
+  /* stage progress (opp) */
+  .stages{display:flex;gap:4px;margin-bottom:20px;}
+  .stg{flex:1;text-align:center;font-size:11.5px;font-weight:600;color:var(--n500);padding:7px 4px;background:var(--n0);border:1px solid var(--n200);border-radius:var(--r-sm);position:relative;}
+  .stg.done{background:var(--sage-50);color:var(--sage-700);border-color:var(--sage-200);}
+  .stg.cur{background:var(--sage-deep);color:#fff;border-color:var(--sage-deep);}
+  .stg.lost{background:var(--n100);color:var(--n400);}
+
+  /* todo checklist */
+  .checklist{display:flex;flex-direction:column;}
+  .cli{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--n100);}
+  .cli:last-child{border-bottom:none;}
+  .cli .tx{flex:1;font-size:13.5px;color:var(--n800);}
+  .cli.done .tx{text-decoration:line-through;color:var(--n400);}
+  .prog{height:6px;border-radius:3px;background:var(--n150);overflow:hidden;margin-top:4px;}
+  .prog i{display:block;height:100%;background:var(--sage-deep);border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="side">
+    <div class="mk" id="mk"></div>
+    <div class="ni"><svg data-i="layout-dashboard"></svg></div>
+    <div class="ni"><svg data-i="building-2"></svg></div>
+    <div class="ni on"><svg data-i="trending-up"></svg></div>
+    <div class="ni"><svg data-i="calendar-clock"></svg></div>
+    <div class="ni"><svg data-i="square-check-big"></svg></div>
+    <div class="sp"></div>
+    <div class="ni"><svg data-i="settings"></svg></div>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumb" id="crumb"></div>
+      <div class="sp"></div>
+      <div class="switch">
+        <button class="on" data-v="opp"><svg data-i="trending-up"></svg>商談</button>
+        <button data-v="act"><svg data-i="calendar-clock"></svg>活動</button>
+        <button data-v="todo"><svg data-i="square-check-big"></svg>ToDo</button>
+      </div>
+      <button class="btn btn-sec"><svg data-i="square-pen"></svg>編集</button>
+      <div class="ibtn"><svg data-i="ellipsis"></svg></div>
+    </header>
+
+    <div class="scroll">
+      <div class="wrap">
+
+        <!-- ============ 商談 ============ -->
+        <div class="view on" data-view="opp">
+          <div class="note"><svg data-i="info"></svg><span><strong>商談レコード</strong>：取引先と同じ統合レイアウト（サマリ＋左=参照／右=タブ）。上部にステージ進捗、サマリは商談指標に差し替え。</span></div>
+          <div class="rhead">
+            <div class="rav" style="background:var(--info-bg);color:var(--info-tx);"><svg data-i="trending-up"></svg></div>
+            <div class="rid">
+              <div class="nm"><h1>板金ライン更新 2026</h1><span class="badge b-warn"><span class="dot"></span>交渉</span></div>
+              <div class="sub"><span class="mono">OP-01182</span><span>株式会社ブラクト製作所</span><span>担当 田中 一郎</span><span>作成 2026-05-02</span></div>
+            </div>
+            <div class="ractions"><button class="btn btn-sec"><svg data-i="check"></svg>受注にする</button><button class="btn btn-pri"><svg data-i="plus"></svg>活動を記録</button></div>
+          </div>
+          <div class="stages">
+            <div class="stg done">見込み</div><div class="stg done">選別</div><div class="stg done">提案</div><div class="stg cur">交渉</div><div class="stg">受注</div>
+          </div>
+          <div class="summary sum4">
+            <div class="kpi"><div class="l"><svg data-i="banknote"></svg>金額</div><div class="v">¥3,200,000</div><div class="d mut">税抜</div></div>
+            <div class="kpi"><div class="l"><svg data-i="activity"></svg>確度 / 加重</div><div class="v">70<small>%</small></div><div class="d up">加重 ¥2,240,000</div></div>
+            <div class="kpi"><div class="l"><svg data-i="calendar-clock"></svg>完了予定</div><div class="v" style="font-size:17px;">2026-06-30</div><div class="d warn">残 20日</div></div>
+            <div class="kpi"><div class="l"><svg data-i="history"></svg>このステージ</div><div class="v">8<small> 日</small></div><div class="d mut">最終活動 1時間前</div></div>
+          </div>
+          <div class="cols">
+            <div>
+              <div class="card">
+                <div class="card-h"><span class="t"><svg data-i="info"></svg>商談情報</span><span class="ed"><svg data-i="square-pen"></svg>編集</span></div>
+                <div class="card-b"><dl class="attrs">
+                  <div class="attr"><dt>金額</dt><dd><span class="editable tnum">¥3,200,000</span></dd></div>
+                  <div class="attr"><dt>確度</dt><dd><span class="editable">70%</span></dd></div>
+                  <div class="attr"><dt>完了予定</dt><dd><span class="editable">2026-06-30</span></dd></div>
+                  <div class="attr"><dt>商談タイプ</dt><dd><span class="editable">設備更新</span></dd></div>
+                  <div class="attr"><dt>競合</dt><dd><span class="editable">東日本マシナリ</span></dd></div>
+                  <div class="attr"><dt>次アクション</dt><dd><span class="editable">6/12 見積提出</span></dd></div>
+                </dl></div>
+              </div>
+              <div class="card">
+                <div class="card-h"><span class="t"><svg data-i="building-2"></svg>取引先・連絡先</span></div>
+                <div class="card-b">
+                  <div class="mini"><span class="mi" style="background:var(--sage-50);color:var(--sage-700);"><svg data-i="building-2"></svg></span><div class="mt"><div class="a">株式会社ブラクト製作所</div><div class="b">製造業 / 板金</div></div><span class="lk"><svg data-i="external-link" style="width:14px;height:14px;"></svg></span></div>
+                  <div class="mini"><span class="mi" style="background:var(--n100);color:var(--n600);"><svg data-i="contact"></svg></span><div class="mt"><div class="a">近藤 誠一（代表）</div><div class="b">購買 佐藤様</div></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="ptabs">
+                <button class="ptab on" data-tab="oflow"><svg data-i="activity"></svg>アクティビティ <span class="ct">14</span></button>
+                <button class="ptab" data-tab="orel"><svg data-i="folder"></svg>関連情報 <span class="ct">6</span></button>
+              </div>
+              <div class="ppanel on" data-panel="oflow">
+                <div class="composer"><span class="av">田</span><span class="inp">活動・メモを記録…</span><span class="qbtns"><span class="qb"><svg data-i="phone"></svg></span><span class="qb"><svg data-i="square-check-big"></svg></span><span class="qb"><svg data-i="receipt"></svg></span></span></div>
+                <div class="fchips"><span class="fchip on">すべて <span class="n">14</span></span><span class="fchip"><svg data-i="phone"></svg>活動 <span class="n">8</span></span><span class="fchip"><svg data-i="square-check-big"></svg>ToDo <span class="n">3</span></span><span class="fchip"><svg data-i="history"></svg>履歴 <span class="n">3</span></span></div>
+                <div class="stream" id="oppStream"></div>
+                <div class="seemore"><svg data-i="chevron-down"></svg>さらに表示</div>
+              </div>
+              <div class="ppanel" data-panel="orel">
+                <div class="relseg"><button class="rseg on" data-r="oqt"><svg data-i="receipt" style="width:14px;height:14px;"></svg>見積 <span class="ct">3</span></button><button class="rseg" data-r="ofile"><svg data-i="paperclip" style="width:14px;height:14px;"></svg>添付 <span class="ct">3</span></button></div>
+                <div class="rgroup on" data-r="oqt"><table class="rtable"><thead><tr><th>見積</th><th>版</th><th class="col-num">金額</th><th>状態</th></tr></thead><tbody>
+                  <tr><td class="strong">板金ライン更新 見積</td><td>v3</td><td class="col-num">¥3,200,000</td><td><span class="badge b-info">提出済</span></td></tr>
+                  <tr><td class="strong">板金ライン更新 見積</td><td>v2</td><td class="col-num">¥3,480,000</td><td><span class="badge b-neutral">旧版</span></td></tr>
+                  <tr><td class="strong">概算見積</td><td>v1</td><td class="col-num">¥3,600,000</td><td><span class="badge b-neutral">旧版</span></td></tr>
+                </tbody></table></div>
+                <div class="rgroup" data-r="ofile"><table class="rtable"><thead><tr><th>ファイル</th><th>サイズ</th><th>追加日</th></tr></thead><tbody>
+                  <tr><td class="strong">見積書_v3.pdf</td><td>248 KB</td><td>2日前</td></tr>
+                  <tr><td class="strong">ライン図面.dwg</td><td>1.8 MB</td><td>1週間前</td></tr>
+                  <tr><td class="strong">現地写真.jpg</td><td>2.1 MB</td><td>2週間前</td></tr>
+                </tbody></table></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ 活動 ============ -->
+        <div class="view" data-view="act">
+          <div class="note"><svg data-i="info"></svg><span><strong>活動レコード（葉レコード）</strong>：軽量レイアウト。属性＋成果＋紐づくレコード＋フォローのToDo／コメント。</span></div>
+          <div class="rhead">
+            <div class="rav" style="background:var(--info-bg);color:var(--info-tx);"><svg data-i="phone"></svg></div>
+            <div class="rid">
+              <div class="nm"><h1>電話：見積条件のすり合わせ</h1><span class="badge b-info"><span class="dot"></span>電話</span><span class="badge b-pos">完了</span></div>
+              <div class="sub"><span class="mono">AC-04421</span><span>2026-06-10 11:20</span><span>担当 田中 一郎</span></div>
+            </div>
+            <div class="ractions"><button class="btn btn-sec"><svg data-i="square-pen"></svg>編集</button><button class="btn btn-pri"><svg data-i="plus"></svg>フォロー追加</button></div>
+          </div>
+          <div class="cols cols-narrow">
+            <div>
+              <div class="card">
+                <div class="card-h"><span class="t"><svg data-i="info"></svg>活動情報</span><span class="ed"><svg data-i="square-pen"></svg>編集</span></div>
+                <div class="card-b"><dl class="attrs">
+                  <div class="attr"><dt>種別</dt><dd><span class="editable">電話（発信）</span></dd></div>
+                  <div class="attr"><dt>日時</dt><dd><span class="editable">2026-06-10 11:20</span></dd></div>
+                  <div class="attr"><dt>所要</dt><dd><span class="editable">18分</span></dd></div>
+                  <div class="attr"><dt>担当</dt><dd><span class="editable">田中 一郎</span></dd></div>
+                  <div class="attr"><dt>成果</dt><dd><span class="badge b-pos">合意</span></dd></div>
+                </dl></div>
+              </div>
+              <div class="card">
+                <div class="card-h"><span class="t"><svg data-i="link"></svg>紐づくレコード</span></div>
+                <div class="card-b">
+                  <div class="mini"><span class="mi" style="background:var(--sage-50);color:var(--sage-700);"><svg data-i="building-2"></svg></span><div class="mt"><div class="a">株式会社ブラクト製作所</div><div class="b">取引先</div></div><span class="lk"><svg data-i="external-link" style="width:14px;height:14px;"></svg></span></div>
+                  <div class="mini"><span class="mi" style="background:var(--info-bg);color:var(--info-tx);"><svg data-i="trending-up"></svg></span><div class="mt"><div class="a">板金ライン更新 2026</div><div class="b">商談 · ¥3,200,000</div></div><span class="lk"><svg data-i="external-link" style="width:14px;height:14px;"></svg></span></div>
+                  <div class="mini"><span class="mi" style="background:var(--n100);color:var(--n600);"><svg data-i="contact"></svg></span><div class="mt"><div class="a">近藤 誠一</div><div class="b">人物 · 代表</div></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="ptabs"><button class="ptab on" data-tab="adet"><svg data-i="file-text"></svg>内容・メモ</button><button class="ptab" data-tab="afollow"><svg data-i="activity"></svg>フォロー <span class="ct">3</span></button></div>
+              <div class="ppanel on" data-panel="adet">
+                <div class="card-b" style="padding:18px;">
+                  <div style="font-size:13.5px;color:var(--n800);line-height:1.85;">
+                    先方経理と支払いサイトについて確認。<strong>月末締め・翌月末払い</strong>で合意。<br>
+                    板金ライン更新（¥3,200,000）の見積条件は概ね了承。次回 6/12 に正式見積を提出予定。<br>
+                    塗装ブース増設の話も出たため、別商談として起票する。
+                  </div>
+                  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+                    <span class="tag">月末締め</span><span class="tag">見積条件</span><span class="tag">フォロー要</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ppanel" data-panel="afollow">
+                <div class="composer"><span class="av">田</span><span class="inp">フォローのToDo・メモを追加…</span><span class="qbtns"><span class="qb"><svg data-i="square-check-big"></svg></span></span></div>
+                <div class="stream" id="actStream"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ ToDo ============ -->
+        <div class="view" data-view="todo">
+          <div class="note"><svg data-i="info"></svg><span><strong>ToDoレコード（葉レコード）</strong>：軽量レイアウト。属性＋サブタスク（チェックリスト）＋紐づくレコード＋コメント／履歴ストリーム。</span></div>
+          <div class="rhead">
+            <div class="rav" style="background:var(--sage-50);color:var(--sage-700);"><svg data-i="square-check-big"></svg></div>
+            <div class="rid">
+              <div class="nm"><h1>見積書を再送付する</h1><span class="badge b-danger">高</span><span class="badge b-warn"><span class="dot"></span>進行中</span></div>
+              <div class="sub"><span class="mono">TD-02087</span><span>期限 今日 17:00</span><span>担当 田中 一郎</span></div>
+            </div>
+            <div class="ractions"><button class="btn btn-sec"><svg data-i="user-round"></svg>担当変更</button><button class="btn btn-pri"><svg data-i="check"></svg>完了にする</button></div>
+          </div>
+          <div class="cols cols-narrow">
+            <div>
+              <div class="card">
+                <div class="card-h"><span class="t"><svg data-i="info"></svg>ToDo情報</span><span class="ed"><svg data-i="square-pen"></svg>編集</span></div>
+                <div class="card-b"><dl class="attrs">
+                  <div class="attr"><dt>担当</dt><dd><span class="editable">田中 一郎</span></dd></div>
+                  <div class="attr"><dt>期限</dt><dd><span class="editable">2026-06-10 17:00</span></dd></div>
+                  <div class="attr"><dt>優先度</dt><dd><span class="editable"><span class="badge b-danger">高</span></span></dd></div>
+                  <div class="attr"><dt>状態</dt><dd><span class="editable"><span class="badge b-warn">進行中</span></span></dd></div>
+                  <div class="attr"><dt>リマインド</dt><dd><span class="editable">15分前</span></dd></div>
+                </dl>
+                <div style="margin-top:12px;font-size:11.5px;color:var(--n500);">サブタスク 2/3 完了</div>
+                <div class="prog"><i style="width:66%"></i></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-h"><span class="t"><svg data-i="link"></svg>紐づくレコード</span></div>
+                <div class="card-b">
+                  <div class="mini"><span class="mi" style="background:var(--sage-50);color:var(--sage-700);"><svg data-i="building-2"></svg></span><div class="mt"><div class="a">株式会社ブラクト製作所</div><div class="b">取引先</div></div><span class="lk"><svg data-i="external-link" style="width:14px;height:14px;"></svg></span></div>
+                  <div class="mini"><span class="mi" style="background:var(--info-bg);color:var(--info-tx);"><svg data-i="trending-up"></svg></span><div class="mt"><div class="a">板金ライン更新 2026</div><div class="b">商談</div></div><span class="lk"><svg data-i="external-link" style="width:14px;height:14px;"></svg></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="ptabs"><button class="ptab on" data-tab="tsub"><svg data-i="square-check-big"></svg>サブタスク <span class="ct">3</span></button><button class="ptab" data-tab="tcmt"><svg data-i="activity"></svg>コメント・履歴 <span class="ct">5</span></button></div>
+              <div class="ppanel on" data-panel="tsub">
+                <div class="card-b">
+                  <div class="checklist">
+                    <div class="cli done"><span class="chk done"><svg data-i="check"></svg></span><span class="tx">最新の金額・条件を反映</span><span class="badge b-neutral">完了</span></div>
+                    <div class="cli done"><span class="chk done"><svg data-i="check"></svg></span><span class="tx">PDFを生成して確認</span><span class="badge b-neutral">完了</span></div>
+                    <div class="cli"><span class="chk"></span><span class="tx">購買 佐藤様宛にメール送付</span><span class="badge b-warn">残</span></div>
+                  </div>
+                  <div style="margin-top:12px;"><span class="tag tag-add"><svg data-i="plus" style="width:13px;height:13px;"></svg>サブタスクを追加</span></div>
+                </div>
+              </div>
+              <div class="ppanel" data-panel="tcmt">
+                <div class="composer"><span class="av">田</span><span class="inp">コメントを追加… 「@」で宛先</span></div>
+                <div class="stream" id="todoStream"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const I={
+ 'layout-dashboard':'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+ 'building-2':'<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+ 'trending-up':'<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+ 'calendar-clock':'<path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><circle cx="17.5" cy="17.5" r="3.5"/><path d="M17.5 16v1.5l1 1"/>',
+ 'square-check-big':'<path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.5"/><path d="m9 11 3 3L22 4"/>',
+ 'settings':'<circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>',
+ 'square-pen':'<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/>',
+ 'ellipsis':'<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+ 'info':'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+ 'phone':'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/>',
+ 'plus':'<path d="M5 12h14"/><path d="M12 5v14"/>',
+ 'banknote':'<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+ 'activity':'<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+ 'history':'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+ 'folder':'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+ 'receipt':'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+ 'paperclip':'<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+ 'contact':'<path d="M16 2v2M8 2v2"/><rect width="18" height="18" x="3" y="4" rx="2"/><circle cx="12" cy="10" r="2"/><path d="M8 18a4 4 0 0 1 8 0"/>',
+ 'link':'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+ 'external-link':'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+ 'file-text':'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+ 'user-round':'<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+ 'check':'<path d="M20 6 9 17l-5-5"/>','chevron-down':'<path d="m6 9 6 6 6-6"/>',
+ 'x':'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+};
+function drawIcons(root){(root||document).querySelectorAll('svg[data-i]').forEach(s=>{const n=s.getAttribute('data-i');if(I[n]&&!s.dataset.done){s.setAttribute('viewBox','0 0 24 24');s.setAttribute('fill','none');s.setAttribute('stroke','currentColor');s.setAttribute('stroke-width','2');s.setAttribute('stroke-linecap','round');s.setAttribute('stroke-linejoin','round');s.innerHTML=I[n];s.dataset.done='1';}});}
+document.getElementById('mk').innerHTML='<svg viewBox="3 4 58 58" width="100%" height="100%"><path fill="#fff" fill-rule="evenodd" d="M32 5.5 C 46 5.5 56.5 15.5 56.5 29 C 56.5 36 53 41 47.5 43.5 C 53 46 56.5 51.5 56.5 56.5 L56.5 57 C 56 60 54 61.5 50 61.5 C 49 61.5 41 61.5 32 61.5 C 17.5 61.5 7.5 50 7.5 33.5 C 7.5 17.5 18 5.5 32 5.5 Z M18 26 C 27 20 42 20.5 47 26.5 C 39.5 26.8 31 27.8 24 29 C 21 29.5 18.5 28.4 18 26 Z M20 41.5 C 29 35.5 44 36 49 42 C 41.5 42.3 33 43.3 26 44.5 C 23 45 20.5 43.9 20 41.5 Z"/></svg>';
+
+function ev(t,ic,ty,who,tm,tx,done){
+ const chk=t==='todo'?`<span class="chk ${done?'done':''}">${done?'<svg data-i="check"></svg>':''}</span>`:'';
+ const inner=`<div class="eh"><span class="ty ty-${t}">${ty}</span><span class="who">${who}</span><span class="tm">${tm}</span></div><div class="tx">${tx}</div>`;
+ const body=t==='todo'?`<div class="bd">${chk}<div style="flex:1">${inner}</div></div>`:`<div class="bd">${inner}</div>`;
+ return `<div class="ev ${t==='todo'?'todo':''}"><span class="dot dot-${t}"><svg data-i="${ic}"></svg></span>${body}</div>`;
+}
+document.getElementById('oppStream').innerHTML=
+ `<div class="day">今日</div>`+
+ ev('act','phone','活動','田中 一郎','11:20','<span class="strong">電話：</span>見積条件のすり合わせ。月末締め翌月末で合意。')+
+ ev('todo','square-check-big','ToDo','田中 一郎','10:05','見積書を再送付する',false)+
+ `<div class="day">昨日</div>`+
+ ev('his','history','履歴','田中 一郎','15:10','ステージを <span class="strong">提案 → 交渉</span> に変更')+
+ ev('act','phone','活動','佐藤 花子','11:00','<span class="strong">来店：</span>仕様の最終確認。図面を持ち帰り。');
+document.getElementById('actStream').innerHTML=
+ ev('todo','square-check-big','ToDo','田中 一郎','すぐ','6/12 正式見積を提出する',false)+
+ ev('todo','square-check-big','ToDo','田中 一郎','6/11','塗装ブース増設を別商談として起票',false)+
+ ev('note','file-text','メモ','田中 一郎','11:40','経理の承認フローは月初が早いとのこと。次回は月初提案を狙う。');
+document.getElementById('todoStream').innerHTML=
+ `<div class="day">今日</div>`+
+ ev('note','file-text','コメント','佐藤 花子','13:20','@田中 金額はv3で確定済みです。送付OKです。')+
+ ev('his','history','履歴','田中 一郎','10:05','優先度を <span class="strong">中 → 高</span> に変更')+
+ ev('his','history','履歴','システム','9:00','期限リマインドを送信（15分前）');
+drawIcons();
+
+// crumbs per view
+const CR={opp:'<a href="#">商談</a><span class="sep">/</span><span class="here">板金ライン更新 2026</span>',
+ act:'<a href="#">活動</a><span class="sep">/</span><span class="here">電話：見積条件のすり合わせ</span>',
+ todo:'<a href="#">ToDo</a><span class="sep">/</span><span class="here">見積書を再送付する</span>'};
+function setCrumb(v){document.getElementById('crumb').innerHTML=CR[v];drawIcons(document.getElementById('crumb'));}
+setCrumb('opp');
+
+document.querySelectorAll('.switch button').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('.switch button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+ const v=b.dataset.v;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.dataset.view===v));setCrumb(v);
+}));
+document.addEventListener('click',e=>{
+ const pt=e.target.closest('.ptab');if(pt){const wrap=pt.closest('.panel');wrap.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));pt.classList.add('on');const id=pt.dataset.tab;wrap.querySelectorAll('.ppanel').forEach(p=>p.classList.toggle('on',p.dataset.panel===id));}
+ const rs=e.target.closest('.rseg');if(rs){const wrap=rs.closest('.ppanel');wrap.querySelectorAll('.rseg').forEach(x=>x.classList.remove('on'));rs.classList.add('on');const r=rs.dataset.r;wrap.querySelectorAll('.rgroup').forEach(g=>g.classList.toggle('on',g.dataset.r===r));}
+ const fc=e.target.closest('.fchip');if(fc){fc.parentElement.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));fc.classList.add('on');}
+ const chk=e.target.closest('.chk');if(chk){chk.classList.toggle('done');chk.innerHTML=chk.classList.contains('done')?'<svg data-i="check"></svg>':'';drawIcons(chk);const cli=chk.closest('.cli');if(cli)cli.classList.toggle('done');}
+ const ed=e.target.closest('.editable');if(ed&&ed.querySelector('.badge')===null){if(!ed.isContentEditable){ed.setAttribute('contenteditable','true');ed.focus();window.getSelection().selectAllChildren(ed);}}
+});
+document.addEventListener('focusout',e=>{const ed=e.target.closest&&e.target.closest('.editable');if(ed)ed.removeAttribute('contenteditable');});
+</script>
+</body>
+</html>

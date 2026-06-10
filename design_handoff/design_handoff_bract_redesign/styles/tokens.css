@@ -1,0 +1,266 @@
+/* ============================================================
+   Bract Design System — Foundation Tokens
+   ライト主・将来ダーク可。warm neutral + 3 brand directions.
+   ============================================================ */
+
+:root {
+  /* ---- Warm neutral scale (hue ~80, ベージュ寄りの低彩度) ---- */
+  --n-0:   oklch(0.995 0.002 90);   /* page surface (ほぼ白・微温) */
+  --n-50:  oklch(0.984 0.0035 88);
+  --n-100: oklch(0.967 0.0045 86);
+  --n-150: oklch(0.948 0.0055 85);
+  --n-200: oklch(0.918 0.0065 84);  /* hairline border */
+  --n-250: oklch(0.888 0.0070 83);
+  --n-300: oklch(0.855 0.0075 82);  /* control border */
+  --n-400: oklch(0.730 0.0085 80);  /* placeholder / disabled text */
+  --n-500: oklch(0.605 0.0090 79);  /* muted text / table header */
+  --n-600: oklch(0.505 0.0090 77);  /* secondary text */
+  --n-700: oklch(0.405 0.0090 75);  /* body strong */
+  --n-800: oklch(0.300 0.0085 73);  /* headings */
+  --n-900: oklch(0.225 0.0075 72);  /* primary text */
+  --n-950: oklch(0.165 0.0065 70);
+
+  /* dark warm surfaces (sidebar) */
+  --side-bg:        oklch(0.235 0.010 80);
+  --side-bg-2:      oklch(0.205 0.010 80);
+  --side-border:    oklch(0.315 0.012 80);
+  --side-text:      oklch(0.760 0.012 82);
+  --side-text-dim:  oklch(0.600 0.012 82);
+  --side-heading:   oklch(0.520 0.014 82);
+
+  /* ---- Semantic (テーマ非依存・共通トークン) ---- */
+  --danger:        oklch(0.555 0.190 27);
+  --danger-strong: oklch(0.470 0.170 27);
+  --danger-bg:     oklch(0.965 0.022 30);
+  --danger-border: oklch(0.890 0.055 30);
+  --danger-text:   oklch(0.470 0.150 27);
+
+  --warning:        oklch(0.700 0.140 70);
+  --warning-bg:     oklch(0.965 0.040 82);
+  --warning-border: oklch(0.880 0.075 80);
+  --warning-text:   oklch(0.500 0.090 62);
+
+  --positive:        oklch(0.580 0.130 152);
+  --positive-bg:     oklch(0.965 0.035 156);
+  --positive-border: oklch(0.880 0.060 156);
+  --positive-text:   oklch(0.470 0.100 152);
+
+  --info:        oklch(0.560 0.130 240);
+  --info-bg:     oklch(0.965 0.030 240);
+  --info-border: oklch(0.885 0.055 240);
+  --info-text:   oklch(0.470 0.110 245);
+
+  /* AI / クイック登録アクセント (violet) */
+  --ai:        oklch(0.535 0.165 292);
+  --ai-strong: oklch(0.470 0.165 292);
+  --ai-bg:     oklch(0.965 0.030 292);
+  --ai-border: oklch(0.885 0.055 292);
+  --ai-text:   oklch(0.460 0.150 292);
+
+  /* neutral pill */
+  --pill-neutral-bg:   var(--n-100);
+  --pill-neutral-text: var(--n-600);
+  --pill-neutral-border: var(--n-200);
+
+  /* ---- Spacing (4px base) ---- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
+  --sp-9: 48px; --sp-10: 64px;
+
+  /* ---- Radius (default: シャープ) ---- */
+  --r-xs: 3px;
+  --r-sm: 4px;
+  --r-md: 5px;
+  --r-lg: 7px;
+  --r-xl: 10px;
+  --r-pill: 999px;
+
+  /* ---- Elevation (warm-tinted, 最小) ---- */
+  --shadow-xs: 0 1px 1px oklch(0.30 0.02 70 / 0.05);
+  --shadow-sm: 0 1px 2px oklch(0.30 0.02 70 / 0.06), 0 1px 1px oklch(0.30 0.02 70 / 0.04);
+  --shadow-md: 0 4px 10px oklch(0.30 0.02 70 / 0.08), 0 1px 2px oklch(0.30 0.02 70 / 0.06);
+  --shadow-lg: 0 12px 28px oklch(0.28 0.02 70 / 0.12), 0 2px 6px oklch(0.30 0.02 70 / 0.07);
+
+  /* ---- Focus ring ---- */
+  --ring-w: 2px;
+  --ring-offset: 1px;
+
+  /* ---- Type ---- */
+  --font-sans: "Geist", "Noto Sans JP", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Noto Sans JP", ui-monospace, monospace;
+
+  --text-2xs: 10.5px;
+  --text-xs:  11.5px;
+  --text-sm:  12.5px;
+  --text-base:13.5px;
+  --text-md:  14px;
+  --text-lg:  16px;
+  --text-xl:  18px;
+  --text-2xl: 22px;
+  --text-3xl: 28px;
+  --text-display: 36px;
+
+  --lh-tight: 1.35;
+  --lh-body:  1.7;   /* 和文向けに行間ゆとり */
+  --lh-ui:    1.5;
+
+  /* ---- Density (default: medium) ---- */
+  --row-h:    44px;
+  --cell-py:  10px;
+  --cell-px:  14px;
+  --card-pad: 20px;
+  --control-h: 36px;
+  --control-px: 12px;
+
+  /* resolved brand defaults (Foliage) — overridden by [data-brand] */
+  --brand-50:  oklch(0.962 0.020 158);
+  --brand-100: oklch(0.930 0.038 158);
+  --brand-200: oklch(0.880 0.060 158);
+  --brand-300: oklch(0.790 0.085 158);
+  --brand-500: oklch(0.585 0.110 158);
+  --brand-600: oklch(0.520 0.110 158);
+  --brand-700: oklch(0.455 0.105 158);
+  --brand-800: oklch(0.390 0.090 158);
+  --primary:        var(--brand-600);
+  --primary-hover:  var(--brand-700);
+  --primary-active: var(--brand-800);
+  --on-primary:     oklch(0.99 0.01 158);
+  --primary-bg:     var(--brand-50);
+  --primary-border: var(--brand-200);
+  --primary-text:   var(--brand-700);
+  --ring:           var(--brand-500);
+}
+
+/* =================== BRAND: Foliage (推奨・苞の葉) =================== */
+:root[data-brand="foliage"] {
+  --brand-50:  oklch(0.962 0.020 158);
+  --brand-100: oklch(0.930 0.040 158);
+  --brand-200: oklch(0.880 0.062 158);
+  --brand-300: oklch(0.785 0.090 158);
+  --brand-500: oklch(0.585 0.112 158);
+  --brand-600: oklch(0.515 0.112 158);
+  --brand-700: oklch(0.450 0.106 158);
+  --brand-800: oklch(0.385 0.090 159);
+  --on-primary: oklch(0.99 0.01 158);
+  --primary: oklch(0.515 0.112 158); --primary-hover: oklch(0.450 0.106 158); --primary-active: oklch(0.385 0.090 159);
+  --primary-bg: oklch(0.962 0.020 158); --primary-border: oklch(0.880 0.062 158); --primary-text: oklch(0.450 0.106 158); --ring: oklch(0.585 0.112 158);
+}
+
+/* =================== BRAND: Vermillion (色づいた苞) =================== */
+:root[data-brand="vermillion"] {
+  --brand-50:  oklch(0.965 0.022 32);
+  --brand-100: oklch(0.930 0.045 32);
+  --brand-200: oklch(0.875 0.080 33);
+  --brand-300: oklch(0.780 0.130 34);
+  --brand-500: oklch(0.625 0.180 34);
+  --brand-600: oklch(0.565 0.185 33);
+  --brand-700: oklch(0.500 0.170 31);
+  --brand-800: oklch(0.430 0.150 30);
+  --on-primary: oklch(0.99 0.012 40);
+  --primary: oklch(0.565 0.185 33); --primary-hover: oklch(0.500 0.170 31); --primary-active: oklch(0.430 0.150 30);
+  --primary-bg: oklch(0.965 0.022 32); --primary-border: oklch(0.875 0.080 33); --primary-text: oklch(0.500 0.170 31); --ring: oklch(0.625 0.180 34);
+}
+
+/* =================== BRAND: Indigo (信頼の進化系) =================== */
+:root[data-brand="indigo"] {
+  --brand-50:  oklch(0.962 0.020 268);
+  --brand-100: oklch(0.928 0.040 268);
+  --brand-200: oklch(0.872 0.070 268);
+  --brand-300: oklch(0.770 0.115 268);
+  --brand-500: oklch(0.560 0.165 267);
+  --brand-600: oklch(0.500 0.175 267);
+  --brand-700: oklch(0.435 0.165 266);
+  --brand-800: oklch(0.375 0.140 265);
+  --on-primary: oklch(0.99 0.01 268);
+  --primary: oklch(0.500 0.175 267); --primary-hover: oklch(0.435 0.165 266); --primary-active: oklch(0.375 0.140 265);
+  --primary-bg: oklch(0.962 0.020 268); --primary-border: oklch(0.872 0.070 268); --primary-text: oklch(0.435 0.165 266); --ring: oklch(0.560 0.165 267);
+}
+
+/* =================== DENSITY =================== */
+:root[data-density="high"] {
+  --row-h: 36px;
+  --cell-py: 6px;
+  --cell-px: 12px;
+  --card-pad: 16px;
+  --control-h: 32px;
+  --lh-body: 1.6;
+}
+
+/* =================== RADIUS variants =================== */
+:root[data-radius="standard"] {
+  --r-xs: 4px; --r-sm: 6px; --r-md: 7px; --r-lg: 9px; --r-xl: 12px;
+}
+:root[data-radius="soft"] {
+  --r-xs: 6px; --r-sm: 8px; --r-md: 10px; --r-lg: 13px; --r-xl: 16px;
+}
+
+/* =================== DARK MODE (warm dark, Foliage-locked) ===================
+   Placed last so it overrides the brand literal --primary* in dark. */
+:root[data-theme="dark"] {
+  --n-0:   oklch(0.215 0.006 80);   /* card surface */
+  --n-50:  oklch(0.175 0.006 80);   /* page bg */
+  --n-100: oklch(0.245 0.007 82);
+  --n-150: oklch(0.278 0.008 82);
+  --n-200: oklch(0.310 0.008 82);   /* border */
+  --n-250: oklch(0.345 0.008 82);
+  --n-300: oklch(0.395 0.009 82);
+  --n-400: oklch(0.520 0.009 82);   /* placeholder */
+  --n-500: oklch(0.640 0.009 84);   /* muted text */
+  --n-600: oklch(0.720 0.008 84);
+  --n-700: oklch(0.800 0.007 86);
+  --n-800: oklch(0.880 0.006 88);   /* headings */
+  --n-900: oklch(0.945 0.005 90);   /* primary text */
+  --n-950: oklch(0.975 0.004 92);
+
+  --side-bg:       oklch(0.150 0.006 80);
+  --side-bg-2:     oklch(0.215 0.008 80);
+  --side-border:   oklch(0.280 0.008 80);
+  --side-text:     oklch(0.740 0.012 82);
+  --side-text-dim: oklch(0.560 0.012 82);
+  --side-heading:  oklch(0.500 0.014 82);
+
+  /* brand tints for dark surfaces */
+  --brand-50:  oklch(0.275 0.045 158);
+  --brand-100: oklch(0.330 0.060 158);
+  --brand-200: oklch(0.400 0.072 158);
+  --brand-300: oklch(0.500 0.095 158);
+  --primary:        oklch(0.605 0.118 158);
+  --primary-hover:  oklch(0.665 0.115 158);
+  --primary-active: oklch(0.550 0.112 158);
+  --primary-bg:     oklch(0.275 0.045 158);
+  --primary-border: oklch(0.400 0.072 158);
+  --primary-text:   oklch(0.800 0.105 158);
+  --on-primary:     oklch(0.16 0.02 158);
+  --ring:           oklch(0.640 0.120 158);
+
+  /* semantic — dark-tinted bg, lighter text */
+  --danger:        oklch(0.640 0.185 27);
+  --danger-bg:     oklch(0.300 0.060 28);
+  --danger-border: oklch(0.400 0.090 28);
+  --danger-text:   oklch(0.805 0.120 27);
+  --warning-bg:     oklch(0.300 0.050 75);
+  --warning-border: oklch(0.400 0.070 78);
+  --warning-text:   oklch(0.830 0.110 82);
+  --positive:        oklch(0.620 0.135 152);
+  --positive-bg:     oklch(0.285 0.050 156);
+  --positive-border: oklch(0.380 0.070 156);
+  --positive-text:   oklch(0.800 0.110 156);
+  --info:        oklch(0.620 0.130 240);
+  --info-bg:     oklch(0.285 0.050 245);
+  --info-border: oklch(0.380 0.070 245);
+  --info-text:   oklch(0.805 0.100 245);
+  --ai:        oklch(0.620 0.160 292);
+  --ai-bg:     oklch(0.295 0.060 292);
+  --ai-border: oklch(0.400 0.080 292);
+  --ai-text:   oklch(0.825 0.100 292);
+
+  --pill-neutral-bg: var(--n-150);
+  --pill-neutral-text: var(--n-600);
+  --pill-neutral-border: var(--n-250);
+
+  /* deeper shadows on dark */
+  --shadow-xs: 0 1px 1px oklch(0 0 0 / 0.30);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.35), 0 1px 1px oklch(0 0 0 / 0.25);
+  --shadow-md: 0 4px 10px oklch(0 0 0 / 0.42), 0 1px 2px oklch(0 0 0 / 0.30);
+  --shadow-lg: 0 14px 30px oklch(0 0 0 / 0.52), 0 2px 6px oklch(0 0 0 / 0.35);
+}

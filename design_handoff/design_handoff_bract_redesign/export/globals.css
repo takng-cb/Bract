@@ -1,0 +1,170 @@
+/* ============================================================================
+   Bract — globals.css  (実装ハンドオフ / Tailwind v4)
+   ----------------------------------------------------------------------------
+   現状の Next 既定スキャフォルド（body の Arial 落ち）を脱し、Geist + Noto Sans JP
+   を正しく適用。デザイントークンを @theme で一元化し、ユーティリティで参照可能に。
+   ブランドは Foliage（グリーン）に確定。ライト主・ダーク対応。
+
+   置き場所：src/app/globals.css
+   フォント：next/font の Geist / Geist Mono は layout.tsx で読込済みの前提
+            （--font-geist-sans / --font-geist-mono）。和文 Noto Sans JP は
+            next/font(Google) で読み込み、--font-noto-jp として渡す。
+   ============================================================================ */
+
+@import "tailwindcss";
+
+/* ダークは class 戦略（<html class="dark">）。OS 連動にするなら custom-variant を
+   prefers-color-scheme に差し替える。 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ---- Fonts ---- */
+  --font-sans: var(--font-geist-sans), var(--font-noto-jp), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), var(--font-noto-jp), ui-monospace, monospace;
+
+  /* ---- Warm neutral scale (hue≈80) ---- */
+  --color-n-0:   oklch(0.995 0.002 90);
+  --color-n-50:  oklch(0.984 0.0035 88);
+  --color-n-100: oklch(0.967 0.0045 86);
+  --color-n-150: oklch(0.948 0.0055 85);
+  --color-n-200: oklch(0.918 0.0065 84);
+  --color-n-300: oklch(0.855 0.0075 82);
+  --color-n-400: oklch(0.730 0.0085 80);
+  --color-n-500: oklch(0.605 0.0090 79);
+  --color-n-600: oklch(0.505 0.0090 77);
+  --color-n-700: oklch(0.405 0.0090 75);
+  --color-n-800: oklch(0.300 0.0085 73);
+  --color-n-900: oklch(0.225 0.0075 72);
+  --color-n-950: oklch(0.165 0.0065 70);
+
+  /* ---- Brand: Foliage (green) ---- */
+  --color-brand-50:  oklch(0.962 0.020 158);
+  --color-brand-100: oklch(0.930 0.040 158);
+  --color-brand-200: oklch(0.880 0.062 158);
+  --color-brand-300: oklch(0.785 0.090 158);
+  --color-brand-500: oklch(0.585 0.112 158);
+  --color-brand-600: oklch(0.515 0.112 158);   /* primary / buttons */
+  --color-brand-700: oklch(0.450 0.106 158);   /* primary text on tint */
+  --color-brand-800: oklch(0.385 0.090 159);
+
+  /* ---- Semantic ---- */
+  --color-danger:   oklch(0.555 0.190 27);
+  --color-warning:  oklch(0.700 0.140 70);
+  --color-positive: oklch(0.580 0.130 152);
+  --color-info:     oklch(0.560 0.130 240);
+  --color-ai:       oklch(0.535 0.165 292);   /* AI / クイック登録 */
+
+  /* tint backgrounds (badges / bands) */
+  --color-danger-bg:   oklch(0.965 0.022 30);
+  --color-warning-bg:  oklch(0.965 0.040 82);
+  --color-positive-bg: oklch(0.965 0.035 156);
+  --color-info-bg:     oklch(0.965 0.030 240);
+  --color-ai-bg:       oklch(0.965 0.030 292);
+
+  /* sidebar (warm dark) */
+  --color-side:        oklch(0.235 0.010 80);
+  --color-side-2:      oklch(0.205 0.010 80);
+  --color-side-border: oklch(0.315 0.012 80);
+
+  /* ---- Radius (Sharp) ---- */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 5px;
+  --radius-lg: 7px;
+  --radius-xl: 10px;
+
+  /* ---- Shadow (warm, minimal) ---- */
+  --shadow-xs: 0 1px 1px oklch(0.30 0.02 70 / 0.05);
+  --shadow-sm: 0 1px 2px oklch(0.30 0.02 70 / 0.06), 0 1px 1px oklch(0.30 0.02 70 / 0.04);
+  --shadow-md: 0 4px 10px oklch(0.30 0.02 70 / 0.08), 0 1px 2px oklch(0.30 0.02 70 / 0.06);
+  --shadow-lg: 0 12px 28px oklch(0.28 0.02 70 / 0.12), 0 2px 6px oklch(0.30 0.02 70 / 0.07);
+
+  /* ---- Type scale ---- */
+  --text-2xs: 10.5px;
+  --text-xs:  11.5px;
+  --text-sm:  12.5px;
+  --text-base:13.5px;
+  --text-md:  14px;
+  --text-lg:  16px;
+  --text-xl:  18px;
+  --text-2xl: 22px;
+  --text-3xl: 28px;
+}
+
+/* ============================================================================
+   DARK MODE — neutrals/surfaces/semantic を上書き（<html class="dark">）
+   ============================================================================ */
+.dark {
+  --color-n-0:   oklch(0.215 0.006 80);
+  --color-n-50:  oklch(0.175 0.006 80);
+  --color-n-100: oklch(0.245 0.007 82);
+  --color-n-150: oklch(0.278 0.008 82);
+  --color-n-200: oklch(0.310 0.008 82);
+  --color-n-300: oklch(0.395 0.009 82);
+  --color-n-400: oklch(0.520 0.009 82);
+  --color-n-500: oklch(0.640 0.009 84);
+  --color-n-600: oklch(0.720 0.008 84);
+  --color-n-700: oklch(0.800 0.007 86);
+  --color-n-800: oklch(0.880 0.006 88);
+  --color-n-900: oklch(0.945 0.005 90);
+  --color-n-950: oklch(0.975 0.004 92);
+
+  --color-brand-50:  oklch(0.275 0.045 158);
+  --color-brand-100: oklch(0.330 0.060 158);
+  --color-brand-200: oklch(0.400 0.072 158);
+  --color-brand-600: oklch(0.605 0.118 158);
+  --color-brand-700: oklch(0.800 0.105 158);
+
+  --color-danger-bg:   oklch(0.300 0.060 28);
+  --color-warning-bg:  oklch(0.300 0.050 75);
+  --color-positive-bg: oklch(0.285 0.050 156);
+  --color-info-bg:     oklch(0.285 0.050 245);
+  --color-ai-bg:       oklch(0.295 0.060 292);
+
+  --color-side:        oklch(0.150 0.006 80);
+  --color-side-2:      oklch(0.215 0.008 80);
+  --color-side-border: oklch(0.280 0.008 80);
+}
+
+/* ============================================================================
+   BASE — Geist/Noto を確実に適用（旧 body{font-family:Arial...} を置換）
+   ============================================================================ */
+@layer base {
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-n-900);
+    background: var(--color-n-50);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "palt" 1;     /* 和文の詰め */
+    line-height: 1.7;                    /* 和文向けに行間ゆとり */
+  }
+
+  /* 数字は等幅で桁揃え（金額・件数） */
+  .tnum, .tabular { font-variant-numeric: tabular-nums; }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 1px;
+  }
+}
+
+/* ============================================================================
+   STATUS TOKENS — 画面ごとのハードコードを廃し、共通 map に集約する指針
+
+   商談ステージ:  prospecting=neutral / qualification=info / proposal=ai /
+                  negotiation=warning / closed-won=positive / closed-lost=neutral
+   ToDo 優先度:    high=danger / medium=warning / low=neutral
+   整備ステータス: 受付=neutral / 入庫=info / 部品待ち=warning / 作業中=brand / 納車=positive
+
+   実装例（TS）:
+     export const STAGE_TONE = {
+       prospecting: 'neutral', qualification: 'info', proposal: 'ai',
+       negotiation: 'warning', won: 'positive', lost: 'neutral',
+     } as const;
+   バッジは tone を受け取り bg-{tone}-bg / text-{tone} / border を当てる単一
+   コンポーネント <Badge tone> に集約する（色のハードコードをやめる）。
+   ============================================================================ */
