@@ -67,18 +67,16 @@ export default async function NewOpportunityPage({
         { label: '新規作成' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">商談を追加</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <OpportunityForm
-          action={createOpportunityAction}
-          cancelHref={cancelHref}
-          accounts={accountsList}
-          contacts={contactsList}
-          users={allUsers}
-          vehicles={vehicleOptions}
-          defaultValues={{ account_id: account_id ?? '', vehicle_id: vehicle_id ?? null }}
-          customFields={fields}
-        />
-      </div>
+      <OpportunityForm
+        action={createOpportunityAction}
+        cancelHref={cancelHref}
+        accounts={accountsList}
+        contacts={contactsList}
+        users={allUsers}
+        vehicles={vehicleOptions}
+        defaultValues={{ account_id: account_id ?? '', vehicle_id: vehicle_id ?? null }}
+        customFields={fields}
+      />
     </div>
   )
 }

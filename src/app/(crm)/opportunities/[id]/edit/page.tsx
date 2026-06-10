@@ -54,27 +54,25 @@ export default async function EditOpportunityPage({ params }: { params: Promise<
         { label: '編集' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">商談を編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <OpportunityForm
-          action={updateOpportunityAction}
-          cancelHref={`/opportunities/${id}`}
-          accounts={accountsList}
-          contacts={contactsList}
-          users={allUsers}
-          vehicles={vehiclesList.map((v) => ({
-            id: v.id,
-            label: [`${v.maker} ${v.model}`, v.year ? `${v.year}年式` : null, v.license_plate].filter(Boolean).join(' / '),
-            purchase_price: v.purchase_price,
-          }))}
-          defaultValues={{
-            ...opportunity,
-            close_date: opportunity.close_date ?? null,
-            amount: opportunity.amount !== null ? Number(opportunity.amount) : null,
-          }}
-          customFields={customData.fields}
-          customValues={customData.values}
-        />
-      </div>
+      <OpportunityForm
+        action={updateOpportunityAction}
+        cancelHref={`/opportunities/${id}`}
+        accounts={accountsList}
+        contacts={contactsList}
+        users={allUsers}
+        vehicles={vehiclesList.map((v) => ({
+          id: v.id,
+          label: [`${v.maker} ${v.model}`, v.year ? `${v.year}年式` : null, v.license_plate].filter(Boolean).join(' / '),
+          purchase_price: v.purchase_price,
+        }))}
+        defaultValues={{
+          ...opportunity,
+          close_date: opportunity.close_date ?? null,
+          amount: opportunity.amount !== null ? Number(opportunity.amount) : null,
+        }}
+        customFields={customData.fields}
+        customValues={customData.values}
+      />
     </div>
   )
 }
