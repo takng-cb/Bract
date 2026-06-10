@@ -77,7 +77,7 @@ export default async function PropertiesPage({
   // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('properties', uid) : null)
-  const [sp, edit, colConfig, userId, dv] = await Promise.all([
+  const [sp, edit, colConfig, _userId, dv] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('properties'), userIdPromise, dvPromise,
   ])
   const view      = sp.view === 'other' ? 'other' : 'real_estate'

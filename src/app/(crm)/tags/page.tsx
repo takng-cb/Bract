@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 
 import { db } from '@/lib/db'
 import { tags, taggables } from '@/lib/schema'
-import { desc } from 'drizzle-orm'
 import Link from 'next/link'
 import { deleteTag } from '@/app/actions/tags'
 import TagDeleteButton from '@/components/TagDeleteButton'

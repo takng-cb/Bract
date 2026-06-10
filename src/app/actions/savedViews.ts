@@ -19,7 +19,6 @@ export async function createSavedView(
   if (!userId) throw new Error('Not authenticated')
   if (scope === 'system' && !(await isAdmin())) throw new Error('Admin required')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await db.insert(saved_views).values({
     object_type:   objectType,
     name:          name.trim(),

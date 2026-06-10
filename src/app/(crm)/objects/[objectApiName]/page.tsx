@@ -41,7 +41,7 @@ export default async function CustomObjectListPage({
   // パフォーマンス最適化: getDefaultView を Round 1 に含めて RTT 削減
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView(objectApiName, uid) : null)
-  const [obj, edit, userId, dv] = await Promise.all([
+  const [obj, edit, _userId, dv] = await Promise.all([
     getObjectDef(objectApiName),
     canEdit(),
     userIdPromise,

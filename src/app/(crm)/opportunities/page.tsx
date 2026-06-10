@@ -132,7 +132,7 @@ export default async function OpportunitiesPage({
   // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('opportunities', uid) : null)
-  const [sp, edit, colConfig, userId, dv] = await Promise.all([
+  const [sp, edit, colConfig, _userId, dv] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('opportunities'), userIdPromise, dvPromise,
   ])
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]

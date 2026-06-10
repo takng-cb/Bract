@@ -44,6 +44,7 @@ export default function MarkdownView({ body }: { body: string }) {
           thead: ({ children }) => <thead className="bg-zinc-50">{children}</thead>,
           th: ({ children }) => <th className="border border-zinc-200 px-3 py-1.5 text-left font-medium text-zinc-600">{children}</th>,
           td: ({ children }) => <td className="border border-zinc-200 px-3 py-1.5 text-zinc-700">{children}</td>,
+          // eslint-disable-next-line @next/next/no-img-element -- Markdown 中の任意の外部画像は寸法不明で next/image 化できない
           img: ({ src, alt }) => <img src={typeof src === 'string' ? src : undefined} alt={alt} className="max-w-full rounded-md my-3" />,
           strong: ({ children }) => <strong className="font-semibold text-zinc-900">{children}</strong>,
         }}

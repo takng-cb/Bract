@@ -20,7 +20,7 @@ export default async function EditAssignmentPage({ params }: { params: Promise<{
   const { id } = await params
   await requireEditor()
 
-  const [row, allClients, allContacts, allStaff, existingAssignedStaff] = await Promise.all([
+  const [row, allClients, _allContacts, allStaff, existingAssignedStaff] = await Promise.all([
     db.select().from(assignments).where(eq(assignments.id, id)).then((r) => r[0] ?? null),
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts)

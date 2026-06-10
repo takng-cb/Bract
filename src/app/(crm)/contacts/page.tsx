@@ -35,7 +35,7 @@ export default async function ContactsPage({
   // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('contacts', uid) : null)
-  const [sp, edit, colConfig, userId, dv] = await Promise.all([
+  const [sp, edit, colConfig, _userId, dv] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('contacts'), userIdPromise, dvPromise,
   ])
   const view       = (sp.view === 'consumer') ? 'consumer' : 'business'

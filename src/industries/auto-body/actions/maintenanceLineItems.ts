@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db'
 import { maintenance_line_items, part_movements } from '@/lib/schema'
-import { eq, sql, and } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 

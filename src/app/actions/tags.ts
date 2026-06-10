@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db'
 import { tags, taggables } from '@/lib/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireEditor } from '@/lib/auth'
