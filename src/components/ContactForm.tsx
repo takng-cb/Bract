@@ -7,6 +7,7 @@ import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 import CreateFeedback from '@/components/CreateFeedback'
+import FormSection from '@/components/FormSection'
 import type { CreateAction } from '@/lib/duplicateTypes'
 
 type Account    = { id: string; name: string }
@@ -41,38 +42,42 @@ export default function ContactForm({ action, cancelHref, accounts, users = [], 
   const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
   const lbl   = 'block text-sm font-medium text-zinc-700 mb-1'
 
+  const actions = (
+    <div className="flex gap-3">
+      <button
+        type="submit"
+        disabled={pending}
+        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
+        {pending ? '保存中...' : '保存'}
+      </button>
+      <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+        キャンセル
+      </Link>
+    </div>
+  )
+
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-4">
       <CreateFeedback state={state} formRef={formRef} />
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
 
-      <div className="flex items-center gap-3">
-        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
-        <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
-        <div className="flex-1 h-px bg-zinc-200" />
-        <FormFillModal
-          formRef={formRef}
-          csvFormat="氏名,役職,部署,メール,電話番号,誕生日,メモ"
-          fieldMap={{
-            '氏名': 'full_name', '役職': 'title', '部署': 'department',
-            'メール': 'email', '電話番号': 'phone', '誕生日': 'birthday', 'メモ': 'description',
-          }}
-          customFields={customFields}
-        />
-      </div>
-
+      <FormSection
+        title="基本情報"
+        action={
+          <FormFillModal
+            formRef={formRef}
+            csvFormat="氏名,役職,部署,メール,電話番号,誕生日,メモ"
+            fieldMap={{
+              '氏名': 'full_name', '役職': 'title', '部署': 'department',
+              'メール': 'email', '電話番号': 'phone', '誕生日': 'birthday', 'メモ': 'description',
+            }}
+            customFields={customFields}
+          />
+        }
+      >
+        <div className="space-y-4">
       {/* 人物タイプ */}
       <div>
         <label className={lbl}>人物タイプ</label>
@@ -204,21 +209,16 @@ export default function ContactForm({ action, cancelHref, accounts, users = [], 
           placeholder="メモを記入してください..."
         />
       </div>
+        </div>
+      </FormSection>
 
-      <CustomFieldsFields fields={customFields} values={customValues} />
+      {customFields.length > 0 && (
+        <FormSection title="カスタム項目">
+          <CustomFieldsFields fields={customFields} values={customValues} />
+        </FormSection>
+      )}
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
     </form>
   )
 }

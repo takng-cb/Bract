@@ -45,19 +45,17 @@ export default async function EditAccountPage({
         { label: '編集' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">取引先を編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <AccountForm
-          action={updateAccountAction}
-          cancelHref={`/accounts/${id}`}
-          users={allUsers}
-          defaultValues={{
-            ...account,
-            annual_revenue: account.annual_revenue !== null ? Number(account.annual_revenue) : null,
-          }}
-          customFields={customData.fields}
-          customValues={customData.values}
-        />
-      </div>
+      <AccountForm
+        action={updateAccountAction}
+        cancelHref={`/accounts/${id}`}
+        users={allUsers}
+        defaultValues={{
+          ...account,
+          annual_revenue: account.annual_revenue !== null ? Number(account.annual_revenue) : null,
+        }}
+        customFields={customData.fields}
+        customValues={customData.values}
+      />
     </div>
   )
 }

@@ -34,14 +34,12 @@ export default async function NewAccountPage() {
         { label: '新規作成' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">取引先を追加</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <AccountForm
-          action={createAccountAction}
-          cancelHref="/accounts"
-          users={allUsers}
-          customFields={fields}
-        />
-      </div>
+      <AccountForm
+        action={createAccountAction}
+        cancelHref="/accounts"
+        users={allUsers}
+        customFields={fields}
+      />
     </div>
   )
 }
