@@ -16,8 +16,9 @@ import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { deleteAssignment, setAssignmentStatus, updateAssignmentBasic } from '@/industries/staffing/actions/assignments'
 import { canEdit } from '@/lib/auth'
-import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
+import { getAllUsers } from '@/lib/userUtils'
 import StageBar from '@/components/StageBar'
 import { ASSIGNMENT_STAGES } from '@/lib/statusStages'
 import OutreachSection from '@/industries/staffing/components/OutreachSection'
@@ -28,7 +29,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
   const { id } = await params
 
   const agencyAcc = accounts
-  const [row, candidateRows, outreachRows, suppliers, staffList] = await Promise.all([
+  const [row, candidateRows, outreachRows, suppliers, staffList, accountsList, contactsList, usersList] = await Promise.all([
     db.select({
       a:       assignments,
       client:  { id: accounts.id, name: accounts.name },
@@ -74,6 +75,11 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
       .from(staff)
       .where(ne(staff.status, '引退'))
       .orderBy(asc(staff.name)),
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
+    getAllUsers(),
   ])
 
   if (!row) notFound()
@@ -94,6 +100,26 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
     'use server'
     await setAssignmentStatus(id, status)
   }
+
+  const accountOptions = accountsList.map((acc) => ({ value: acc.id, label: acc.name }))
+  const contactOptions = contactsList.map((c) => ({ value: c.id, label: c.full_name }))
+  const userOptions = usersList.map((u) => ({ value: u.id, label: u.name }))
+  const ownerName = a.owner_id ? (usersList.find((u) => u.id === a.owner_id)?.name ?? null) : null
+
+  const assignmentFields: EditField[] = [
+    { section: '案件', label: '派遣先', name: 'client_account_id', kind: 'select', value: a.client_account_id ?? '', options: accountOptions, view: row.client?.id ? <Link href={`/accounts/${row.client.id}`} className="text-blue-600 hover:underline">{row.client.name}</Link> : '—' },
+    { section: '案件', label: '担当者', name: 'client_contact_id', kind: 'select', value: a.client_contact_id ?? '', options: contactOptions, view: row.contact?.id ? <Link href={`/contacts/${row.contact.id}`} className="text-blue-600 hover:underline">{row.contact.full_name}</Link> : '—' },
+    { section: '案件', label: '社内担当', name: 'owner_id', kind: 'select', value: a.owner_id ?? '', options: userOptions, view: ownerName ?? '—' },
+    { section: '業務', label: '業務日', name: 'service_date', kind: 'date', value: a.service_date ? String(a.service_date).slice(0, 10) : '', view: a.service_date ?? '—' },
+    { section: '業務', label: '開始時刻', name: 'service_start_time', kind: 'text', value: a.service_start_time, view: a.service_start_time ?? '—' },
+    { section: '業務', label: '終了時刻', name: 'service_end_time', kind: 'text', value: a.service_end_time, view: a.service_end_time ?? '—' },
+    { section: '業務', label: '業務区分', name: 'service_type', kind: 'text', value: a.service_type, view: a.service_type ?? '—' },
+    { section: '業務', label: '場所', name: 'service_location', kind: 'text', value: a.service_location, view: a.service_location ?? '—' },
+    { section: '業務', label: '募集人数', name: 'staff_count_required', kind: 'number', value: a.staff_count_required != null ? String(a.staff_count_required) : '', view: `${a.staff_count_required ?? '—'} 名` },
+    { section: '業務', label: '発注単価（請求総額）', name: 'client_total_fee', kind: 'number', value: a.client_total_fee != null ? String(a.client_total_fee) : '', view: a.client_total_fee ? `¥${Number(a.client_total_fee).toLocaleString()}` : '—' },
+    { section: '業務', label: '業務内容', name: 'service_description', kind: 'textarea', value: a.service_description, fullWidth: true, view: a.service_description ? a.service_description : <span className="text-zinc-300">—</span> },
+    { section: '内部メモ', label: '内部メモ', name: 'internal_memo', kind: 'textarea', value: a.internal_memo, fullWidth: true, view: a.internal_memo ? a.internal_memo : <span className="text-zinc-300">—</span> },
+  ]
 
   const candidates = candidateRows
   const outreachItems = outreachRows.map((o) => ({
@@ -123,7 +149,6 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2 shrink-0">
               <InlineEditButton event="bract:edit-assignment" />
-              <Link href={`/assignments/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この案件を削除しますか？" />
             </div>
           </AuthGuard>
@@ -135,22 +160,14 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
         <StageBar stages={ASSIGNMENT_STAGES} currentStage={a.status} updateAction={changeStatus} />
       </div>
 
-      {/* 業務情報（インライン編集） */}
+      {/* 案件・業務情報（インライン編集） */}
       <EditableInfoCard
-        title="業務情報"
+        title="案件情報（全項目）"
         canEdit={editFlag}
         showEditButton={false}
         editEvent="bract:edit-assignment"
         action={saveAssignmentInline}
-        fields={[
-          { label: '業務日', name: 'service_date', kind: 'date', value: a.service_date ? String(a.service_date).slice(0, 10) : '', view: a.service_date ?? '—' },
-          { label: '時間', view: a.service_start_time && a.service_end_time ? `${a.service_start_time} 〜 ${a.service_end_time}` : '—' },
-          { label: '業務区分', name: 'service_type', kind: 'text', value: a.service_type, view: a.service_type ?? '—' },
-          { label: '場所', name: 'service_location', kind: 'text', value: a.service_location, view: a.service_location ?? '—' },
-          { label: '募集人数', name: 'staff_count_required', kind: 'number', value: a.staff_count_required != null ? String(a.staff_count_required) : '', view: `${a.staff_count_required ?? '—'} 名` },
-          { label: '発注単価（請求総額）', name: 'client_total_fee', kind: 'number', value: a.client_total_fee != null ? String(a.client_total_fee) : '', view: a.client_total_fee ? `¥${Number(a.client_total_fee).toLocaleString()}` : '—' },
-          { label: '業務内容', name: 'service_description', kind: 'textarea', value: a.service_description, fullWidth: true, view: a.service_description ? a.service_description : <span className="text-zinc-300">—</span> },
-        ]}
+        fields={assignmentFields}
       />
 
       {/* 打診状況 */}
@@ -165,13 +182,6 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
         clientTotalFee={a.client_total_fee}
         requiredCount={a.staff_count_required}
       />
-
-      {a.internal_memo && (
-        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-          <h2 className="text-sm font-bold text-zinc-700 mb-2">内部メモ</h2>
-          <p className="text-sm text-zinc-800 whitespace-pre-wrap">{a.internal_memo}</p>
-        </section>
-      )}
 
       {a.raw_message && (
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mt-6">

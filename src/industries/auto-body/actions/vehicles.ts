@@ -147,17 +147,28 @@ export async function updateVehicle(id: string, formData: FormData) {
 }
 
 /**
- * 車両情報（概要カード）のインライン編集用・部分更新。
- * 送信された基本項目（ナンバー/車台番号/次回車検/備考）のみ更新し、仕入/売却等には
- * 触れない。custom_records ミラーは全行から再同期する。
+ * インライン編集用・部分更新。送信されたフィールドだけを更新する（formData.has 判定）。
+ * maker/model は必須のため、空送信時は更新しない（NOT NULL を壊さない）。
+ * custom_records ミラーは保存ごとに全行から再同期する。
  */
 export async function updateVehicleBasic(id: string, formData: FormData) {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
-  if (formData.has('license_plate'))        set.license_plate = s(formData, 'license_plate')
-  if (formData.has('vin'))                  set.vin = s(formData, 'vin')
-  if (formData.has('next_inspection_date')) set.next_inspection_date = s(formData, 'next_inspection_date')
-  if (formData.has('description'))          set.description = s(formData, 'description')
+  // 文字列
+  for (const k of ['color', 'license_plate', 'vin', 'purchase_date', 'supplier_account_id', 'sold_date', 'buyer_account_id', 'next_inspection_date', 'description', 'owner_id'] as const) {
+    if (formData.has(k)) set[k] = s(formData, k)
+  }
+  // 数値（文字列化）
+  for (const k of ['purchase_price', 'sale_price', 'sold_price'] as const) {
+    if (formData.has(k)) set[k] = n(formData, k)
+  }
+  // 整数
+  for (const k of ['year', 'mileage'] as const) {
+    if (formData.has(k)) set[k] = i(formData, k)
+  }
+  // 必須項目は非空時のみ更新
+  if (formData.has('maker') && s(formData, 'maker')) set.maker = s(formData, 'maker')
+  if (formData.has('model') && s(formData, 'model')) set.model = s(formData, 'model')
   await db.update(vehicles).set(set).where(eq(vehicles.id, id))
 
   const [row] = await db.select().from(vehicles).where(eq(vehicles.id, id))

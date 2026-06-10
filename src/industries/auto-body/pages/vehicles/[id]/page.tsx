@@ -17,7 +17,8 @@ import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import { deleteVehicle, setVehicleStatus, updateVehicleBasic } from '@/industries/auto-body/actions/vehicles'
 import { canEdit } from '@/lib/auth'
-import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import { getAllUsers } from '@/lib/userUtils'
+import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { NavIcon } from '@/lib/navIcon'
 import StageBar from '@/components/StageBar'
@@ -39,7 +40,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   const supplier = alias(accounts, 'supplier')
   const buyer    = alias(accounts, 'buyer')
 
-  const [vRow, relatedOpps, activitiesList, tasksList, expensesList, activityTypes, changeLogCountRow, loanerHistory] = await Promise.all([
+  const [vRow, relatedOpps, activitiesList, tasksList, expensesList, activityTypes, changeLogCountRow, loanerHistory, accountsList, usersList] = await Promise.all([
     db.select({
       id:                   vehicles.id,
       maker:                vehicles.maker,
@@ -57,6 +58,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       sold_price:           vehicles.sold_price,
       next_inspection_date: vehicles.next_inspection_date,
       description:          vehicles.description,
+      owner_id:             vehicles.owner_id,
       created_at:           vehicles.created_at,
       supplier: { id: supplier.id, name: supplier.name },
       buyer:    { id: buyer.id,    name: buyer.name },
@@ -110,6 +112,9 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
       .where(eq(maintenance_records.loaner_vehicle_id, id))
       .orderBy(desc(maintenance_records.created_at)),
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    getAllUsers(),
   ])
 
   if (!vRow) notFound()
@@ -166,81 +171,44 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   }
 
   // ── 概要タブ ─────────────────────────────────────────────────────
+  const accountOptions = accountsList.map((a) => ({ value: a.id, label: a.name }))
+  const userOptions = usersList.map((u) => ({ value: u.id, label: u.name }))
+  const ownerName = v.owner_id ? (usersList.find((u) => u.id === v.owner_id)?.name ?? null) : null
+
+  const vehicleFields: EditField[] = [
+    { section: '車両', label: 'メーカー', name: 'maker', kind: 'text', value: v.maker, view: v.maker ?? '—' },
+    { section: '車両', label: '車種', name: 'model', kind: 'text', value: v.model, view: v.model ?? '—' },
+    { section: '車両', label: '年式', name: 'year', kind: 'number', value: v.year != null ? String(v.year) : '', view: v.year ?? '—' },
+    { section: '車両', label: '走行距離', name: 'mileage', kind: 'number', value: v.mileage != null ? String(v.mileage) : '', view: v.mileage != null ? `${Number(v.mileage).toLocaleString()} km` : '—' },
+    { section: '車両', label: '色', name: 'color', kind: 'text', value: v.color, view: v.color ?? '—' },
+    { section: '車両', label: 'ナンバー', name: 'license_plate', kind: 'text', value: v.license_plate, view: v.license_plate ?? '—' },
+    { section: '車両', label: '車台番号', name: 'vin', kind: 'text', value: v.vin, view: v.vin ? <span className="font-mono">{v.vin}</span> : '—' },
+    { section: '車両', label: '次回車検', name: 'next_inspection_date', kind: 'date', value: v.next_inspection_date ? String(v.next_inspection_date).slice(0, 10) : '',
+      view: <span className={expiringSoon ? 'text-red-600 font-semibold' : ''}>{v.next_inspection_date ?? '—'}{days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}</span> },
+    { section: '車両', label: '担当', name: 'owner_id', kind: 'select', value: v.owner_id ?? '', options: userOptions, view: ownerName ?? '—' },
+    { section: '車両', label: '登録日', view: v.created_at ? new Date(v.created_at).toLocaleDateString('ja-JP') : '—' },
+    { section: '仕入・販売', label: '仕入日', name: 'purchase_date', kind: 'date', value: v.purchase_date ? String(v.purchase_date).slice(0, 10) : '', view: v.purchase_date ?? '—' },
+    { section: '仕入・販売', label: '仕入価格', name: 'purchase_price', kind: 'number', value: v.purchase_price != null ? String(v.purchase_price) : '', view: v.purchase_price ? `¥${Number(v.purchase_price).toLocaleString()}` : '—' },
+    { section: '仕入・販売', label: '仕入元', name: 'supplier_account_id', kind: 'select', value: v.supplier?.id ?? '', options: accountOptions, view: v.supplier?.id ? <Link href={`/accounts/${v.supplier.id}`} className="text-blue-600 hover:underline">{v.supplier.name}</Link> : '—' },
+    { section: '仕入・販売', label: '希望売価', name: 'sale_price', kind: 'number', value: v.sale_price != null ? String(v.sale_price) : '', view: v.sale_price ? `¥${Number(v.sale_price).toLocaleString()}` : '—' },
+    { section: '仕入・販売', label: '売却日', name: 'sold_date', kind: 'date', value: v.sold_date ? String(v.sold_date).slice(0, 10) : '', view: v.sold_date ?? '—' },
+    { section: '仕入・販売', label: '売却価格', name: 'sold_price', kind: 'number', value: v.sold_price != null ? String(v.sold_price) : '', view: v.sold_price ? <span className="font-semibold text-green-700">¥{Number(v.sold_price).toLocaleString()}</span> : '—' },
+    { section: '仕入・販売', label: '売却先', name: 'buyer_account_id', kind: 'select', value: v.buyer?.id ?? '', options: accountOptions, view: v.buyer?.id ? <Link href={`/accounts/${v.buyer.id}`} className="text-blue-600 hover:underline">{v.buyer.name}</Link> : '—' },
+    ...(v.purchase_price && v.sold_price ? [{ section: '仕入・販売', label: '車両単体粗利（売価 − 仕入）', fullWidth: true,
+      view: <span className={`text-lg font-bold ${Number(v.sold_price) - Number(v.purchase_price) >= 0 ? 'text-green-700' : 'text-red-600'}`}>¥{(Number(v.sold_price) - Number(v.purchase_price)).toLocaleString()}</span> }] : []),
+    { section: '備考', label: '備考', name: 'description', kind: 'textarea', value: v.description, fullWidth: true, view: v.description ? v.description : <span className="text-zinc-300">—</span> },
+  ]
+
   const overviewContent = (
     <>
       <EditableInfoCard
-        title="車両情報"
+        title="車両情報（全項目）"
         canEdit={editFlag}
         showEditButton={false}
         editEvent="bract:edit-vehicle"
         action={saveVehicleInline}
-        fields={[
-          { label: 'ナンバー', name: 'license_plate', kind: 'text', value: v.license_plate, view: v.license_plate ?? '—' },
-          { label: '車台番号', name: 'vin', kind: 'text', value: v.vin, view: v.vin ?? '—' },
-          { label: '次回車検', name: 'next_inspection_date', kind: 'date', value: v.next_inspection_date ? String(v.next_inspection_date).slice(0, 10) : '',
-            view: <span className={expiringSoon ? 'text-red-600 font-semibold' : ''}>{v.next_inspection_date ?? '—'}{days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}</span> },
-          { label: '登録日', view: v.created_at ? new Date(v.created_at).toLocaleDateString('ja-JP') : '—' },
-        ]}
+        fields={vehicleFields}
       />
-
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">仕入・販売</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">仕入日</dt>
-            <dd className="text-sm text-zinc-800">{v.purchase_date ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">仕入価格</dt>
-            <dd className="text-sm text-zinc-800">{v.purchase_price ? `¥${Number(v.purchase_price).toLocaleString()}` : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">仕入元</dt>
-            <dd className="text-sm text-zinc-800">
-              {v.supplier?.id ? (
-                <Link href={`/accounts/${v.supplier.id}`} className="text-blue-600 hover:underline">{v.supplier.name}</Link>
-              ) : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">希望売価</dt>
-            <dd className="text-sm text-zinc-800">{v.sale_price ? `¥${Number(v.sale_price).toLocaleString()}` : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">売却日</dt>
-            <dd className="text-sm text-zinc-800">{v.sold_date ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">売却価格</dt>
-            <dd className="text-sm text-zinc-800">
-              {v.sold_price ? <span className="font-semibold text-green-700">¥{Number(v.sold_price).toLocaleString()}</span> : '—'}
-            </dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-xs text-zinc-400 mb-1">売却先</dt>
-            <dd className="text-sm text-zinc-800">
-              {v.buyer?.id ? (
-                <Link href={`/accounts/${v.buyer.id}`} className="text-blue-600 hover:underline">{v.buyer.name}</Link>
-              ) : '—'}
-            </dd>
-          </div>
-        </dl>
-        {v.purchase_price && v.sold_price && (
-          <div className="mt-4 pt-4 border-t border-zinc-200 flex justify-between items-baseline">
-            <span className="text-sm font-semibold text-zinc-700">車両単体粗利（売価 − 仕入）</span>
-            <span className={`text-xl font-bold ${Number(v.sold_price) - Number(v.purchase_price) >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-              ¥{(Number(v.sold_price) - Number(v.purchase_price)).toLocaleString()}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {v.description && (
-        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-          <h2 className="text-sm font-bold text-zinc-700 mb-2">備考</h2>
-          <p className="text-sm text-zinc-800 whitespace-pre-wrap">{v.description}</p>
-        </div>
-      )}
 
       {/* 代車利用（Issue #45） */}
       {(activeLoan || pastLoans.length > 0) && (
@@ -521,7 +489,6 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-vehicle" />
-              <Link href={`/vehicles/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この車両を削除しますか？" />
             </div>
           </AuthGuard>
