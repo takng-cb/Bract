@@ -6,11 +6,12 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
-import { assignments, assignment_staff, accounts, contacts, staff, outreach } from '@/lib/schema'
-import { eq, or, ne, asc } from 'drizzle-orm'
+import { assignments, assignment_staff, accounts, contacts, staff, outreach, activities, tasks, expenses, change_logs } from '@/lib/schema'
+import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
+import { eq, or, ne, asc, desc, and, inArray } from 'drizzle-orm'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
-import { Package, Users, Wallet, UserCheck, Send, FileText } from 'lucide-react'
+import { Package, Users, Wallet, UserCheck, Send, FileText, Activity } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { deleteAssignment, setAssignmentStatus, updateAssignmentBasic } from '@/industries/staffing/actions/assignments'
@@ -18,12 +19,22 @@ import { canEdit } from '@/lib/auth'
 import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { getAllUsers } from '@/lib/userUtils'
+import { getActivityTypes } from '@/lib/activityTypes'
+import { toggleTaskDone, quickCreateTask } from '@/app/actions/tasks'
+import { quickCreateActivity } from '@/app/actions/activities'
+import { quickCreateExpense } from '@/app/actions/expenses'
 import StageBar from '@/components/StageBar'
 import { ASSIGNMENT_STAGES } from '@/lib/statusStages'
 import OutreachSection from '@/industries/staffing/components/OutreachSection'
 import CandidatesSection from '@/industries/staffing/components/CandidatesSection'
-import { RecordColumns, KpiBand, type KpiItem } from '@/components/record/RecordUI'
+import { RecordColumns, KpiBand, Badge, type KpiItem, type BadgeTone } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
+import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
+import InlineComposer from '@/components/record/InlineComposer'
+
+const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
+  high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
+}
 
 export default async function AssignmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   if (!(await isModuleEnabled('staffing'))) notFound()
@@ -44,6 +55,14 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
     getAllUsers(),
   ])
 
+  const [activitiesList, tasksList, expensesList, activityTypes, changeLogs] = await Promise.all([
+    db.select().from(activities).where(inArray(activities.id, activityIdsRelatedTo('assignment', id))).orderBy(desc(activities.occurred_at)),
+    db.select().from(tasks).where(inArray(tasks.id, taskIdsRelatedTo('assignment', id))).orderBy(asc(tasks.done), asc(tasks.due_date)),
+    db.select().from(expenses).where(inArray(expenses.id, expenseIdsRelatedTo('assignment', id))).orderBy(desc(expenses.expense_date)),
+    getActivityTypes(),
+    db.select().from(change_logs).where(and(eq(change_logs.object_type, 'assignment'), eq(change_logs.object_id, id))).orderBy(desc(change_logs.changed_at)).limit(40),
+  ])
+
   if (!row) notFound()
   const a = row.a
   const editFlag = await canEdit()
@@ -51,6 +70,55 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
   async function handleDelete() { 'use server'; await deleteAssignment(id) }
   async function saveAssignmentInline(formData: FormData) { 'use server'; await updateAssignmentBasic(id, formData) }
   async function changeStatus(status: string) { 'use server'; await setAssignmentStatus(id, status) }
+  async function toggleTask(formData: FormData) { 'use server'; await toggleTaskDone(formData.get('task_id') as string, formData.get('done') === 'true', `/assignments/${id}`) }
+
+  // ── アクティビティ・ストリーム（活動 / ToDo / 経費 / 履歴）──
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = t.label
+  // eslint-disable-next-line react-hooks/purity
+  const NOW = Date.now()
+  const dayLabel = (d: Date) => {
+    const t0 = new Date(NOW); t0.setHours(0, 0, 0, 0); const d0 = new Date(d); d0.setHours(0, 0, 0, 0)
+    const diff = Math.round((t0.getTime() - d0.getTime()) / 86400000)
+    if (diff === 0) return '今日'; if (diff === 1) return '昨日'
+    return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
+  }
+  const hm = (d: Date) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  const stream: (StreamEvent & { sort: number })[] = []
+  for (const act of activitiesList) {
+    const d = act.occurred_at ? new Date(act.occurred_at) : act.created_at ? new Date(act.created_at) : null
+    if (!d) continue
+    stream.push({ id: `a-${act.id}`, kind: 'act', typeLabel: ACTIVITY_TYPE_LABELS[act.type] ?? act.type, time: hm(d), day: dayLabel(d), sort: d.getTime(),
+      body: <><Link href={`/activities/${act.id}`} className="font-semibold text-zinc-900 hover:text-brand-700">{act.subject}</Link>{act.body && <span className="block text-zinc-500 text-[12.5px] mt-0.5 line-clamp-2">{act.body}</span>}</> })
+  }
+  for (const t of tasksList) {
+    const d = t.created_at ? new Date(t.created_at) : null
+    if (!d) continue
+    const pr = PRIORITY_BADGE[t.priority] ?? PRIORITY_BADGE.medium
+    stream.push({ id: `t-${t.id}`, kind: 'todo', typeLabel: 'ToDo', time: hm(d), day: dayLabel(d), sort: d.getTime(),
+      leading: <AuthGuard minRole="editor"><form action={toggleTask}><input type="hidden" name="task_id" value={t.id} /><input type="hidden" name="done" value={(!t.done).toString()} /><button type="submit" className={`w-4.5 h-4.5 rounded-md border-[1.5px] grid place-items-center ${t.done ? 'bg-brand-600 border-brand-600 text-white' : 'border-zinc-300 hover:border-brand-400'}`}>{t.done && <span className="text-[10px] leading-none">✓</span>}</button></form></AuthGuard>,
+      body: <div className="flex items-center gap-2 flex-wrap"><Link href={`/tasks/${t.id}`} className={`font-semibold hover:text-brand-700 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>{t.title}</Link><Badge tone={pr.tone}>{pr.label}</Badge></div> })
+  }
+  for (const e of expensesList) {
+    const d = e.expense_date ? new Date(e.expense_date) : e.created_at ? new Date(e.created_at) : null
+    if (!d) continue
+    stream.push({ id: `e-${e.id}`, kind: 'exp', typeLabel: '経費', day: dayLabel(d), sort: d.getTime(),
+      body: <Link href={`/expenses/${e.id}`} className="flex items-center justify-between gap-2"><span className="font-semibold text-zinc-900">{e.title}</span><span className="font-bold text-zinc-900 shrink-0">¥{Number(e.amount).toLocaleString()}</span></Link> })
+  }
+  for (const c of changeLogs) {
+    const d = c.changed_at ? new Date(c.changed_at) : null
+    if (!d) continue
+    stream.push({ id: `c-${c.id}`, kind: 'his', typeLabel: '履歴', time: hm(d), day: dayLabel(d), sort: d.getTime(),
+      body: <span className="text-zinc-600">{c.field_label}を <span className="text-zinc-900 font-medium">{c.old_value ?? '—'}</span> → <span className="text-zinc-900 font-medium">{c.new_value ?? '—'}</span> に変更</span> })
+  }
+  stream.sort((x, y) => y.sort - x.sort)
+  const interactionCount = activitiesList.length + tasksList.length + expensesList.length
+
+  const composer = (
+    <AuthGuard minRole="editor">
+      <InlineComposer relatedToken={`assignment:${id}`} revalidate={`/assignments/${id}`} activityTypes={activityTypes.map((t) => ({ value: t.value, label: t.label }))} createActivity={quickCreateActivity} createTask={quickCreateTask} createExpense={quickCreateExpense} />
+    </AuthGuard>
+  )
 
   const accountOptions = accountsList.map((acc) => ({ value: acc.id, label: acc.name }))
   const contactOptions = contactsList.map((c) => ({ value: c.id, label: c.full_name }))
@@ -120,6 +188,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
         <RecordTabPanel
           tabs={[
             { id: 'coord', label: '打診・候補', icon: <UserCheck />, count: candidateRows.length, content: coordinationTab },
+            { id: 'flow', label: 'アクティビティ', icon: <Activity />, count: interactionCount, content: <ActivityStream events={stream} composer={composer} /> },
             ...(a.raw_message ? [{ id: 'raw', label: '依頼原文', icon: <FileText />, content: <div className="px-4 py-4"><p className="text-sm text-zinc-600 whitespace-pre-wrap">{a.raw_message}</p></div> }] : []),
           ]}
         />
