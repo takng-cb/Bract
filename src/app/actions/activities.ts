@@ -12,6 +12,7 @@ import {
 } from '@/lib/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
 /** related_records[] hidden inputs（"<api>:<id>"）をパース */
 function parseRelatedRecords(formData: FormData): { object_api: string; record_id: string }[] {
@@ -149,6 +150,28 @@ export async function createActivity(formData: FormData) {
   const firstCustom = selections.find((s) => !['account', 'contact', 'opportunity'].includes(s.object_api))
   if (firstCustom) redirect(recordHref(firstCustom.object_api, firstCustom.record_id))
   redirect('/activities')
+}
+
+/**
+ * インラインコンポーザ用・その場で活動を作成（遷移せず revalidate のみ）。
+ * related_records で紐づくレコードを受け取り、junction を同期する。
+ */
+export async function quickCreateActivity(formData: FormData) {
+  await requireEditor()
+  const subject = (formData.get('subject') as string)?.trim()
+  if (!subject) throw new Error('件名は必須です')
+  const type = (formData.get('type') as string) || 'note'
+  const occurred_at = formData.get('occurred_at') as string
+  const owner_id = (formData.get('owner_id') as string)?.trim() || null
+  const [row] = await db.insert(activities).values({
+    subject, type,
+    body: (formData.get('body') as string)?.trim() || null,
+    occurred_at: occurred_at ? new Date(occurred_at) : new Date(),
+    owner_id,
+  }).returning({ id: activities.id })
+  await syncActivityRelatedRecords(row.id, parseRelatedRecords(formData))
+  const revalidate = formData.get('revalidate') as string
+  if (revalidate) revalidatePath(revalidate)
 }
 
 /**

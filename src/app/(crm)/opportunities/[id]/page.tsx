@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { Briefcase, Building2, Wallet, CalendarDays, UserRound, Tag, Activity, SquareCheckBig, Receipt, Phone, Link2, TrendingUp, Folder } from 'lucide-react'
+import { Briefcase, Building2, Wallet, CalendarDays, UserRound, Tag, Activity, Link2, TrendingUp, Folder } from 'lucide-react'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
 import { eq, and, asc, desc, inArray } from 'drizzle-orm'
@@ -10,7 +10,10 @@ import { updateOpportunityStage, deleteOpportunity, updateOpportunityBasic } fro
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
-import { toggleTaskDone } from '@/app/actions/tasks'
+import { toggleTaskDone, quickCreateTask } from '@/app/actions/tasks'
+import { quickCreateActivity } from '@/app/actions/activities'
+import { quickCreateExpense } from '@/app/actions/expenses'
+import InlineComposer from '@/components/record/InlineComposer'
 import TagsSection from '@/components/TagsSection'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
@@ -200,15 +203,15 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   const composer = (
     <AuthGuard minRole="editor">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-100 bg-zinc-50">
-        <span className="w-7 h-7 rounded-full bg-brand-600 text-white grid place-items-center text-xs font-bold shrink-0">{(ownerName ?? opportunity.name).trim()[0]}</span>
-        <Link href={`/activities/new?opportunity_id=${id}`} className="flex-1 h-9 border border-zinc-300 rounded-md bg-white flex items-center px-3 text-sm text-zinc-400 hover:border-zinc-400 min-w-0">活動・メモを記録…</Link>
-        <div className="flex gap-1 shrink-0">
-          <Link href={`/activities/new?opportunity_id=${id}`} title="活動" className="w-8 h-8 rounded-md border border-zinc-200 grid place-items-center text-zinc-500 hover:bg-brand-50 hover:text-brand-700"><Phone className="w-4 h-4" /></Link>
-          <Link href={`/tasks/new?opportunity_id=${id}`} title="ToDo" className="w-8 h-8 rounded-md border border-zinc-200 grid place-items-center text-zinc-500 hover:bg-brand-50 hover:text-brand-700"><SquareCheckBig className="w-4 h-4" /></Link>
-          <Link href={`/expenses/new?opportunity_id=${id}`} title="経費" className="w-8 h-8 rounded-md border border-zinc-200 grid place-items-center text-zinc-500 hover:bg-brand-50 hover:text-brand-700"><Receipt className="w-4 h-4" /></Link>
-        </div>
-      </div>
+      <InlineComposer
+        relatedToken={`opportunity:${id}`}
+        revalidate={`/opportunities/${id}`}
+        activityTypes={activityTypes.map((t) => ({ value: t.value, label: t.label }))}
+        userInitial={(ownerName ?? opportunity.name).trim()[0]}
+        createActivity={quickCreateActivity}
+        createTask={quickCreateTask}
+        createExpense={quickCreateExpense}
+      />
     </AuthGuard>
   )
 

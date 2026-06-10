@@ -123,6 +123,27 @@ export async function updateExpense(id: string, formData: FormData) {
   redirect(`/expenses/${id}`)
 }
 
+/**
+ * インラインコンポーザ用・その場で経費を作成（遷移せず revalidate のみ）。
+ */
+export async function quickCreateExpense(formData: FormData) {
+  await requireEditor()
+  const title = (formData.get('title') as string)?.trim()
+  if (!title) throw new Error('件名は必須です')
+  const amount = formData.get('amount') as string
+  if (!amount || Number(amount) <= 0) throw new Error('金額は0より大きい値を入力してください')
+  const [row] = await db.insert(expenses).values({
+    title,
+    amount: String(Number(amount)),
+    category: (formData.get('category') as string) || 'その他',
+    expense_date: (formData.get('expense_date') as string) || new Date().toISOString().slice(0, 10),
+    notes: (formData.get('notes') as string)?.trim() || null,
+  }).returning({ id: expenses.id })
+  await syncExpenseRelatedRecords(row.id, parseRelatedRecords(formData))
+  const revalidate = formData.get('revalidate') as string
+  if (revalidate) revalidatePath(revalidate)
+}
+
 /** 関連レコードのインライン編集用・junction 同期のみ。 */
 export async function updateExpenseRelatedRecords(id: string, formData: FormData) {
   await requireEditor()
