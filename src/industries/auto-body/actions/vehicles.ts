@@ -146,6 +146,30 @@ export async function updateVehicle(id: string, formData: FormData) {
   redirect(`/vehicles/${id}`)
 }
 
+/**
+ * 車両情報（概要カード）のインライン編集用・部分更新。
+ * 送信された基本項目（ナンバー/車台番号/次回車検/備考）のみ更新し、仕入/売却等には
+ * 触れない。custom_records ミラーは全行から再同期する。
+ */
+export async function updateVehicleBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('license_plate'))        set.license_plate = s(formData, 'license_plate')
+  if (formData.has('vin'))                  set.vin = s(formData, 'vin')
+  if (formData.has('next_inspection_date')) set.next_inspection_date = s(formData, 'next_inspection_date')
+  if (formData.has('description'))          set.description = s(formData, 'description')
+  await db.update(vehicles).set(set).where(eq(vehicles.id, id))
+
+  const [row] = await db.select().from(vehicles).where(eq(vehicles.id, id))
+  if (row) await syncVehicleToCustomRecord({
+    id, maker: row.maker, model: row.model, year: row.year, mileage: row.mileage,
+    color: row.color, license_plate: row.license_plate, vin: row.vin, status: row.status, owner_id: row.owner_id,
+  })
+  revalidatePath('/vehicles')
+  revalidatePath(`/vehicles/${id}`)
+  redirect(`/vehicles/${id}`)
+}
+
 /** ステータスのみ更新（矢羽根 StageBar 用）。custom_records ミラーも同期 */
 export async function setVehicleStatus(id: string, status: string) {
   await requireEditor()
