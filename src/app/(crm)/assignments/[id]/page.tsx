@@ -115,7 +115,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
       <KpiBand items={kpis} />
 
       <RecordColumns
-        left={<EditableInfoCard title="案件情報（全項目）" dense canEdit={editFlag} showEditButton={false} editEvent="bract:edit-assignment" action={saveAssignmentInline} fields={assignmentFields} />}
+        left={<EditableInfoCard title="案件情報（全項目）" dense canEdit={editFlag} editEvent="bract:edit-assignment" action={saveAssignmentInline} fields={assignmentFields} />}
       >
         <RecordTabPanel
           tabs={[

@@ -91,7 +91,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
               title="ToDo情報"
               dense
               canEdit={canEditFlag}
-              showEditButton={false}
+
               editEvent="bract:edit-task"
               action={saveTaskInline}
               fields={[
@@ -124,7 +124,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         <EditableInfoCard
           title="詳細・メモ"
           canEdit={canEditFlag}
-          showEditButton={false}
+
           editEvent="bract:edit-task"
           action={saveTaskInline}
           fields={[

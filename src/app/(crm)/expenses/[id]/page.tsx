@@ -80,7 +80,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
               title="経費情報"
               dense
               canEdit={editFlag}
-              showEditButton={false}
+
               editEvent="bract:edit-expense"
               action={saveExpenseInline}
               fields={[
@@ -113,7 +113,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
         <EditableInfoCard
           title="備考"
           canEdit={editFlag}
-          showEditButton={false}
+
           editEvent="bract:edit-expense"
           action={saveExpenseInline}
           fields={[

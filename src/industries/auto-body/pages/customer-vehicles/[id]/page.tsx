@@ -139,7 +139,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
               title="顧客車両（全項目）"
               dense
               canEdit={editFlag}
-              showEditButton={false}
+
               editEvent="bract:edit-customer-vehicle"
               action={saveCustomerVehicleInline}
               fields={[

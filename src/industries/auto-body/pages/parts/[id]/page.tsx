@@ -173,7 +173,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
             title="部品情報"
             dense
             canEdit={editFlag}
-            showEditButton={false}
+
             editEvent="bract:edit-part"
             action={savePartInline}
             fields={[

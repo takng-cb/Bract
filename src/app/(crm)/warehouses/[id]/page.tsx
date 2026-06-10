@@ -89,7 +89,7 @@ export default async function WarehouseDetailPage({ params }: { params: Promise<
             title="倉庫情報"
             dense
             canEdit={editFlag}
-            showEditButton={false}
+
             editEvent="bract:edit-warehouse"
             action={saveWarehouseInline}
             fields={[

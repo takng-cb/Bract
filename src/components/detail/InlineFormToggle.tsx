@@ -6,6 +6,7 @@
  * カスタムオブジェクトなど、既存の編集フォームをそのままインライン表示したい場合に使う。
  */
 import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { SquarePen } from 'lucide-react'
 
 export default function InlineFormToggle({
   canEdit,
@@ -34,7 +35,20 @@ export default function InlineFormToggle({
 
   return (
     <div ref={ref} className="scroll-mt-20">
-      {editing ? form : view}
+      {editing ? form : (
+        <div className="relative">
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="absolute top-4 right-4 z-10 inline-flex items-center gap-1 rounded-md bg-white/90 px-1.5 py-0.5 text-xs text-zinc-500 hover:text-zinc-800"
+            >
+              <SquarePen className="w-3.5 h-3.5" strokeWidth={2.25} />編集
+            </button>
+          )}
+          {view}
+        </div>
+      )}
     </div>
   )
 }

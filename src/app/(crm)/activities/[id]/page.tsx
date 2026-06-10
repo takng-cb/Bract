@@ -83,7 +83,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
               title="活動情報"
               dense
               canEdit={editFlag}
-              showEditButton={false}
+
               editEvent="bract:edit-activity"
               action={saveActivityInline}
               fields={[
@@ -116,7 +116,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
         <EditableInfoCard
           title="内容・メモ"
           canEdit={editFlag}
-          showEditButton={false}
+
           editEvent="bract:edit-activity"
           action={saveActivityInline}
           fields={[

@@ -238,7 +238,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       <RecordColumns
         left={
           <>
-            <EditableInfoCard title={isRE ? '物件情報（登記など全項目）' : '商品情報'} dense canEdit={editFlag} showEditButton={false} editEvent="bract:edit-property" action={savePropertyInline} fields={propertyFields} />
+            <EditableInfoCard title={isRE ? '物件情報（登記など全項目）' : '商品情報'} dense canEdit={editFlag} editEvent="bract:edit-property" action={savePropertyInline} fields={propertyFields} />
 
             {(account || contact) && (
               <RefCard title="関連先" icon={<Building2 />}>
