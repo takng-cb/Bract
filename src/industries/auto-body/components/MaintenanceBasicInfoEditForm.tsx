@@ -186,8 +186,7 @@ export default function MaintenanceBasicInfoEditForm({
         )}
 
         {/* ─── 基本情報グリッド（パネルと同じ 4 列・同じ並び順）─── */}
-        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">基本情報</h3>
+        <div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-3">
             {/* Row 1: 拠点 / 入庫区分 / 入庫日 / 入庫時間 */}
             <Cell label="拠点">
@@ -277,11 +276,11 @@ export default function MaintenanceBasicInfoEditForm({
               </Cell>
             </div>
           </div>
-        </section>
+        </div>
       </div>
 
-      {/* sticky フッタ */}
-      <div className="sticky bottom-0 bg-white border-t border-zinc-200 mt-4 -mx-5 px-5 py-3 flex items-center justify-between">
+      {/* フッタ */}
+      <div className="mt-4 pt-3 border-t border-zinc-200 flex items-center justify-between">
         <p className="text-xs text-zinc-500">
           {dirty
             ? <><span className="text-blue-600 font-semibold">●</span> 未保存の変更があります</>
