@@ -53,6 +53,16 @@ export async function createCustomerVehicle(formData: FormData): Promise<string>
   return row.id
 }
 
+/** 車検満了日・メモのインライン編集用・部分更新（登記情報/顧客には触れない）。 */
+export async function updateCustomerVehicleBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('inspection_due_date')) set.inspection_due_date = pickField(formData, 'inspection_due_date')
+  if (formData.has('memo'))                set.memo = pickField(formData, 'memo')
+  await db.update(customer_vehicles).set(set).where(eq(customer_vehicles.id, id))
+  redirect(`/customer-vehicles/${id}`)
+}
+
 export async function updateCustomerVehicle(id: string, formData: FormData) {
   await requireEditor()
 

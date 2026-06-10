@@ -50,6 +50,18 @@ export async function createStaff(formData: FormData): Promise<string> {
   return row.id
 }
 
+/** プロフィールカードのインライン編集用・部分更新（氏名/スキル/単価/ステータスには触れない）。 */
+export async function updateStaffBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('gender'))     set.gender = pick(formData, 'gender')
+  if (formData.has('birth_date')) set.birth_date = pick(formData, 'birth_date')
+  if (formData.has('phone'))      set.phone = pick(formData, 'phone')
+  if (formData.has('email'))      set.email = pick(formData, 'email')
+  await db.update(staff).set(set).where(eq(staff.id, id))
+  redirect(`/staff/${id}`)
+}
+
 export async function updateStaff(id: string, formData: FormData) {
   await requireEditor()
 

@@ -11,8 +11,10 @@ import { eq, desc } from 'drizzle-orm'
 import RecordHeader from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
-import { deleteStaff, setStaffStatus } from '@/industries/staffing/actions/staff'
+import { deleteStaff, setStaffStatus, updateStaffBasic } from '@/industries/staffing/actions/staff'
 import { assignmentStatusColor } from '@/industries/staffing/lib/staffingService'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import StageBar from '@/components/StageBar'
 import { STAFF_STAGES } from '@/lib/statusStages'
 
@@ -48,10 +50,16 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
 
   if (!row) notFound()
   const s = row.s
+  const editFlag = await canEdit()
 
   async function handleDelete() {
     'use server'
     await deleteStaff(id)
+  }
+
+  async function saveStaffInline(formData: FormData) {
+    'use server'
+    await updateStaffBasic(id, formData)
   }
 
   async function changeStatus(status: string) {
@@ -90,16 +98,19 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
         <StageBar stages={STAFF_STAGES} currentStage={s.status} updateAction={changeStatus} />
       </div>
 
-      {/* プロフィール */}
-      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">プロフィール</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div><dt className="text-xs text-zinc-400 mb-1">性別</dt><dd>{s.gender ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">生年月日</dt><dd>{s.birth_date ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">電話</dt><dd>{s.phone ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">メール</dt><dd>{s.email ?? '—'}</dd></div>
-        </dl>
-      </section>
+      {/* プロフィール（インライン編集） */}
+      <EditableInfoCard
+        title="プロフィール"
+        canEdit={editFlag}
+        editEvent="bract:edit-staff"
+        action={saveStaffInline}
+        fields={[
+          { label: '性別', name: 'gender', kind: 'text', value: s.gender, view: s.gender ?? '—' },
+          { label: '生年月日', name: 'birth_date', kind: 'date', value: s.birth_date ? String(s.birth_date).slice(0, 10) : '', view: s.birth_date ?? '—' },
+          { label: '電話', name: 'phone', kind: 'tel', value: s.phone, view: s.phone ?? '—' },
+          { label: 'メール', name: 'email', kind: 'email', value: s.email, view: s.email ?? '—' },
+        ]}
+      />
 
       {/* スキル + エリア */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
