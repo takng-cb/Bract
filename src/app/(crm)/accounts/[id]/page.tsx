@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { Building2, Factory, UserRound, CalendarDays, Phone, Globe, MapPin, Contact, Tag } from 'lucide-react'
+import { Building2, Factory, UserRound, CalendarDays, Phone, Globe, MapPin, Tag } from 'lucide-react'
 import { accounts, contacts, opportunities, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
@@ -9,7 +9,7 @@ import { eq, and, asc, desc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
-import { updateAccountStatus, deleteAccount, updateAccount } from '@/app/actions/accounts'
+import { updateAccountStatus, deleteAccount, updateAccount, updateAccountContact } from '@/app/actions/accounts'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 
@@ -120,6 +120,12 @@ export default async function AccountDetailPage({
   async function saveAccountInline(formData: FormData) {
     'use server'
     await updateAccount(id, formData)
+  }
+
+  // 連絡先（右レール）のインライン編集（部分更新）
+  async function saveAccountContact(formData: FormData) {
+    'use server'
+    await updateAccountContact(id, formData)
   }
 
   async function changeStatus(status: string) {
@@ -559,16 +565,17 @@ export default async function AccountDetailPage({
             </div>
           )}
 
-          {(account.phone || account.website || account.address) && (
-            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Contact className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />連絡先</h4>
-              <div className="space-y-2 text-sm text-zinc-700">
-                {account.phone && <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><span className="tabular-nums">{account.phone}</span></div>}
-                {account.website && <div className="flex items-center gap-2 min-w-0"><Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><a href={account.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">{account.website}</a></div>}
-                {account.address && <div className="flex items-start gap-2"><MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5" strokeWidth={2.25} aria-hidden /><span>{account.address}</span></div>}
-              </div>
-            </div>
-          )}
+          <EditableInfoCard
+            title="連絡先"
+            canEdit={editFlag}
+            editEvent="bract:edit-account-contact"
+            action={saveAccountContact}
+            fields={[
+              { label: '電話番号', name: 'phone', kind: 'tel', value: account.phone, fullWidth: true, view: account.phone ? <span className="inline-flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden />{account.phone}</span> : '—' },
+              { label: 'Webサイト', name: 'website', kind: 'text', value: account.website, fullWidth: true, view: account.website ? <span className="inline-flex items-center gap-2 min-w-0"><Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><a href={account.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">{account.website}</a></span> : '—' },
+              { label: '住所', name: 'address', kind: 'text', value: account.address, fullWidth: true, view: account.address ? <span className="inline-flex items-start gap-2"><MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5" strokeWidth={2.25} aria-hidden />{account.address}</span> : '—' },
+            ]}
+          />
 
           <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
             <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Tag className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />タグ</h4>

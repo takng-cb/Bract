@@ -21,9 +21,9 @@ const notoSansJp = Noto_Sans_JP({
   preload: false,
 });
 
-// インストール時/モバイルのブラウザ上部バー色をブランドグリーンに統一（manifest.json と一致）
+// インストール時/モバイルのブラウザ上部バー色をブランド（Sage Deep）に統一（manifest.json と一致）
 export const viewport: Viewport = {
-  themeColor: "#187a4e",
+  themeColor: "#5E7C5A",
 };
 
 export const metadata: Metadata = {
