@@ -85,6 +85,28 @@ export async function createProperty(formData: FormData): Promise<string> {
   return row.id
 }
 
+/**
+ * 物件情報（概要カード）のインライン編集用・部分更新。
+ * 送信された基本項目（物件種別/取引種別/価格/備考）のみ更新し、登記等の詳細項目には
+ * 一切触れない。custom_records ミラーは全行で再同期する（関連表示の整合を保つ）。
+ */
+export async function updatePropertyBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const raw    = (k: string) => (formData.get(k) as string | null) ?? ''
+  const numStr = (k: string) => { const v = raw(k); return v ? String(Number(v)) : null }
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('property_type'))    set.property_type    = raw('property_type') || 'その他'
+  if (formData.has('transaction_type')) set.transaction_type = raw('transaction_type') || '売買'
+  if (formData.has('price'))            set.price            = numStr('price')
+  if (formData.has('description'))      set.description      = raw('description') || null
+
+  const [row] = await db.update(properties).set(set).where(eq(properties.id, id)).returning()
+  if (row) await syncPropertyToCustomRecord(row)
+  revalidatePath('/properties')
+  revalidatePath(`/properties/${id}`)
+  redirect(`/properties/${id}`)
+}
+
 export async function updateProperty(id: string, formData: FormData) {
   await requireEditor()
   const data = parseForm(formData)
