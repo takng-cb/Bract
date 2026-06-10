@@ -12,7 +12,9 @@ import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
-import { updateExpenseBasic } from '@/app/actions/expenses'
+import InlineRelatedRecordsEditor from '@/components/detail/InlineRelatedRecordsEditor'
+import { updateExpenseBasic, updateExpenseRelatedRecords } from '@/app/actions/expenses'
+import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 
 const CATEGORY_COLORS: Record<string, string> = {
   交通費:  'bg-blue-50 text-blue-700 border-blue-200',
@@ -46,13 +48,21 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
 
   if (!expense) notFound()
 
-  const allRelated = await resolveRelatedRecords(relatedPairs)
+  const [allRelated, pickerData] = await Promise.all([
+    resolveRelatedRecords(relatedPairs),
+    getRelatedRecordsPickerData('expenses'),
+  ])
   const catColor   = CATEGORY_COLORS[expense.category] ?? CATEGORY_COLORS['その他']
   const editFlag   = await canEdit()
 
   async function saveExpenseInline(formData: FormData) {
     'use server'
     await updateExpenseBasic(id, formData)
+  }
+
+  async function saveExpenseRelated(formData: FormData) {
+    'use server'
+    await updateExpenseRelatedRecords(id, formData)
   }
 
   async function deleteAction() {
@@ -73,17 +83,21 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-expense" />
-              <Link href={`/expenses/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">関連</Link>
               <DeleteButton action={deleteAction} confirmMessage="この経費を削除しますか？" />
             </div>
           </AuthGuard>
         }
       />
 
-      {/* 関連レコード（junction 経由で全件表示） */}
-      <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-md px-4 py-3">
-        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">関連レコード</p>
-        {allRelated.length > 0 ? (
+      {/* 関連レコード（閲覧⇄編集トグル） */}
+      <InlineRelatedRecordsEditor
+        canEdit={editFlag}
+        editEvent="bract:edit-expense"
+        action={saveExpenseRelated}
+        objectTypes={pickerData.objectTypes}
+        recordsByObject={pickerData.recordsByObject}
+        defaultValue={relatedPairs.map((p) => ({ object_api: p.object_api, record_id: p.record_id }))}
+        view={allRelated.length > 0 ? (
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {allRelated.map((r, i) => (
               <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-blue-600 hover:underline">
@@ -94,7 +108,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
         ) : (
           <p className="text-sm text-zinc-400">紐づくレコードなし</p>
         )}
-      </div>
+      />
 
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">

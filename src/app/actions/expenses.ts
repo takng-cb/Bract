@@ -123,6 +123,13 @@ export async function updateExpense(id: string, formData: FormData) {
   redirect(`/expenses/${id}`)
 }
 
+/** 関連レコードのインライン編集用・junction 同期のみ。 */
+export async function updateExpenseRelatedRecords(id: string, formData: FormData) {
+  await requireEditor()
+  await syncExpenseRelatedRecords(id, parseRelatedRecords(formData))
+  redirect(`/expenses/${id}`)
+}
+
 export async function deleteExpense(id: string, revalidate: string) {
   await requireEditor()
   await db.delete(expenses).where(eq(expenses.id, id))

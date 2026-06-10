@@ -122,6 +122,13 @@ export async function updateTask(id: string, formData: FormData) {
   redirect(`/tasks/${id}`)
 }
 
+/** 関連レコードのインライン編集用・junction 同期のみ。 */
+export async function updateTaskRelatedRecords(id: string, formData: FormData) {
+  await requireEditor()
+  await syncTaskRelatedRecords(id, parseRelatedRecords(formData))
+  redirect(`/tasks/${id}`)
+}
+
 export async function deleteTask(id: string) {
   await requireEditor()
   await db.delete(tasks).where(eq(tasks.id, id))

@@ -12,8 +12,8 @@
  * UI のオプションとして提供する必要がある。
  */
 import { db } from '@/lib/db'
-import { maintenance_records, customer_vehicles, accounts, contacts } from '@/lib/schema'
-import { desc, asc, eq } from 'drizzle-orm'
+import { maintenance_records, customer_vehicles, accounts, contacts, opportunities, custom_records, object_definitions } from '@/lib/schema'
+import { desc, asc, eq, and } from 'drizzle-orm'
 import { activeIndustry } from '@/lib/industry'
 import type { ObjectTypeOption, RecordOption } from '@/components/RelatedRecordsPicker'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
@@ -87,4 +87,74 @@ export async function getIndustryPickerData(): Promise<IndustryPickerData> {
       })),
     },
   }
+}
+
+/** カスタムレコードの表示名: data.name → data.title → "<ラベル> #<short id>" */
+function customRecordTitle(
+  data: Record<string, unknown> | null | undefined,
+  objectLabel: string | null | undefined,
+  recordId: string,
+): string {
+  const d = (data ?? {}) as Record<string, unknown>
+  const name = typeof d.name === 'string' ? d.name : null
+  const title = typeof d.title === 'string' ? d.title : null
+  return name ?? title ?? `${objectLabel ?? 'カスタム'} #${recordId.slice(0, 8)}`
+}
+
+export type PickerKind = 'activities' | 'tasks' | 'expenses'
+
+/**
+ * 関連レコード Picker（活動/ToDo/経費の詳細インライン編集・新規/編集フォーム共通）
+ * の objectTypes / recordsByObject を組み立てて返す。標準（取引先/人物/商談）＋
+ * 当該機能を有効化したカスタムオブジェクト＋業種固有オブジェクトを含む。
+ */
+export async function getRelatedRecordsPickerData(kind: PickerKind): Promise<{
+  objectTypes: ObjectTypeOption[]
+  recordsByObject: Record<string, RecordOption[]>
+}> {
+  const enableCol =
+    kind === 'activities' ? object_definitions.enable_activities :
+    kind === 'tasks'      ? object_definitions.enable_tasks :
+                            object_definitions.enable_expenses
+
+  const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, industryPicker] = await Promise.all([
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
+    db.select({ id: opportunities.id, name: opportunities.name })
+      .from(opportunities).orderBy(asc(opportunities.name)),
+    db.select({ id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label, icon: object_definitions.icon })
+      .from(object_definitions)
+      .where(and(eq(object_definitions.is_builtin, false), eq(enableCol, true)))
+      .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label)),
+    db.select({ id: custom_records.id, object_id: custom_records.object_id, data: custom_records.data }).from(custom_records),
+    getIndustryPickerData(),
+  ])
+
+  const objectTypes: ObjectTypeOption[] = [
+    { api: 'account',     label: '取引先', icon: '🏢' },
+    { api: 'contact',     label: '人物',   icon: '👤' },
+    { api: 'opportunity', label: '商談',   icon: '💼' },
+    ...industryPicker.industryObjectTypes,
+    ...enabledCustomObjects.map((o) => ({ api: o.api_name, label: o.label, icon: o.icon ?? undefined })),
+  ]
+
+  const recordsByObject: Record<string, RecordOption[]> = {
+    account:     accountsList.map((a) => ({ id: a.id, label: a.name })),
+    contact:     contactsList.map((c) => ({ id: c.id, label: c.full_name })),
+    opportunity: opportunitiesList.map((o) => ({ id: o.id, label: o.name })),
+    ...industryPicker.industryRecordsByObject,
+  }
+
+  const objectIdToApiName = new Map(enabledCustomObjects.map((o) => [o.id, o.api_name]))
+  const objectIdToLabel   = new Map(enabledCustomObjects.map((o) => [o.id, o.label]))
+  for (const r of allCustomRecords) {
+    const api = objectIdToApiName.get(r.object_id)
+    if (!api) continue
+    if (!recordsByObject[api]) recordsByObject[api] = []
+    recordsByObject[api].push({ id: r.id, label: customRecordTitle(r.data as Record<string, unknown>, objectIdToLabel.get(r.object_id), r.id) })
+  }
+
+  return { objectTypes, recordsByObject }
 }
