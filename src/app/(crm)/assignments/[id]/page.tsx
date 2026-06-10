@@ -14,7 +14,9 @@ import RecordHeader from '@/components/RecordHeader'
 import { Package } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
-import { deleteAssignment, setAssignmentStatus } from '@/industries/staffing/actions/assignments'
+import { deleteAssignment, setAssignmentStatus, updateAssignmentBasic } from '@/industries/staffing/actions/assignments'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import StageBar from '@/components/StageBar'
 import { ASSIGNMENT_STAGES } from '@/lib/statusStages'
 import OutreachSection from '@/industries/staffing/components/OutreachSection'
@@ -75,10 +77,16 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
 
   if (!row) notFound()
   const a = row.a
+  const editFlag = await canEdit()
 
   async function handleDelete() {
     'use server'
     await deleteAssignment(id)
+  }
+
+  async function saveAssignmentInline(formData: FormData) {
+    'use server'
+    await updateAssignmentBasic(id, formData)
   }
 
   async function changeStatus(status: string) {
@@ -125,21 +133,22 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
         <StageBar stages={ASSIGNMENT_STAGES} currentStage={a.status} updateAction={changeStatus} />
       </div>
 
-      {/* 業務情報 */}
-      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">業務情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div><dt className="text-xs text-zinc-400 mb-1">業務日</dt><dd>{a.service_date ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">時間</dt><dd>{a.service_start_time && a.service_end_time ? `${a.service_start_time} 〜 ${a.service_end_time}` : '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">業務区分</dt><dd>{a.service_type ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">場所</dt><dd>{a.service_location ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">募集人数</dt><dd>{a.staff_count_required ?? '—'} 名</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">発注単価（請求総額）</dt><dd className="font-mono">{a.client_total_fee ? `¥${Number(a.client_total_fee).toLocaleString()}` : '—'}</dd></div>
-          {a.service_description && (
-            <div className="sm:col-span-2"><dt className="text-xs text-zinc-400 mb-1">業務内容</dt><dd className="whitespace-pre-wrap">{a.service_description}</dd></div>
-          )}
-        </dl>
-      </section>
+      {/* 業務情報（インライン編集） */}
+      <EditableInfoCard
+        title="業務情報"
+        canEdit={editFlag}
+        editEvent="bract:edit-assignment"
+        action={saveAssignmentInline}
+        fields={[
+          { label: '業務日', name: 'service_date', kind: 'date', value: a.service_date ? String(a.service_date).slice(0, 10) : '', view: a.service_date ?? '—' },
+          { label: '時間', view: a.service_start_time && a.service_end_time ? `${a.service_start_time} 〜 ${a.service_end_time}` : '—' },
+          { label: '業務区分', name: 'service_type', kind: 'text', value: a.service_type, view: a.service_type ?? '—' },
+          { label: '場所', name: 'service_location', kind: 'text', value: a.service_location, view: a.service_location ?? '—' },
+          { label: '募集人数', name: 'staff_count_required', kind: 'number', value: a.staff_count_required != null ? String(a.staff_count_required) : '', view: `${a.staff_count_required ?? '—'} 名` },
+          { label: '発注単価（請求総額）', name: 'client_total_fee', kind: 'number', value: a.client_total_fee != null ? String(a.client_total_fee) : '', view: a.client_total_fee ? `¥${Number(a.client_total_fee).toLocaleString()}` : '—' },
+          { label: '業務内容', name: 'service_description', kind: 'textarea', value: a.service_description, fullWidth: true, view: a.service_description ? a.service_description : <span className="text-zinc-300">—</span> },
+        ]}
+      />
 
       {/* 打診状況 */}
       <OutreachSection assignmentId={id} agencies={suppliers} items={outreachItems} />
