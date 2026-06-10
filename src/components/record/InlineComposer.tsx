@@ -17,7 +17,6 @@ export default function InlineComposer({
   relatedToken,
   revalidate,
   activityTypes,
-  userInitial,
   createActivity,
   createTask,
   createExpense,
@@ -25,7 +24,8 @@ export default function InlineComposer({
   relatedToken: string
   revalidate: string
   activityTypes: { value: string; label: string }[]
-  userInitial: string
+  /** @deprecated アバター廃止につき未使用（呼び出し側互換のため optional で残置） */
+  userInitial?: string
   createActivity: (fd: FormData) => Promise<void>
   createTask: (fd: FormData) => Promise<void>
   createExpense: (fd: FormData) => Promise<void>
@@ -57,7 +57,6 @@ export default function InlineComposer({
   if (mode === 'collapsed') {
     return (
       <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-100 bg-zinc-50">
-        <span className="w-7 h-7 rounded-full bg-brand-600 text-white grid place-items-center text-xs font-bold shrink-0">{userInitial}</span>
         <button type="button" onClick={() => setMode('activity')} className="flex-1 h-9 border border-zinc-300 rounded-md bg-white flex items-center px-3 text-sm text-zinc-400 hover:border-zinc-400 transition-colors min-w-0 text-left">活動・メモを記録…</button>
         <div className="flex gap-1 shrink-0">
           <button type="button" onClick={() => setMode('activity')} title="活動" className="w-8 h-8 rounded-md border border-zinc-200 grid place-items-center text-zinc-500 hover:bg-brand-50 hover:text-brand-700"><Phone className="w-4 h-4" /></button>
