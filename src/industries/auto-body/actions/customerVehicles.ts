@@ -53,12 +53,25 @@ export async function createCustomerVehicle(formData: FormData): Promise<string>
   return row.id
 }
 
-/** 車検満了日・メモのインライン編集用・部分更新（登記情報/顧客には触れない）。 */
+/**
+ * インライン編集用・部分更新。送信されたフィールドだけを更新する
+ * （formData.has で判定）ため、顧客・所有者カードと車両情報カードの
+ * どちらを保存しても他方の値を消さない。
+ */
 export async function updateCustomerVehicleBasic(id: string, formData: FormData) {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
-  if (formData.has('inspection_due_date')) set.inspection_due_date = pickField(formData, 'inspection_due_date')
-  if (formData.has('memo'))                set.memo = pickField(formData, 'memo')
+  const FIELDS = [
+    'account_id', 'contact_id', 'owner_id',
+    'transport_branch', 'classification_number', 'kana', 'plate_number',
+    'car_name', 'car_model', 'grade', 'vehicle_kind', 'vehicle_usage',
+    'private_business', 'body_shape', 'vin', 'type_designation', 'class_category',
+    'first_registration_year', 'first_registration_month',
+    'inspection_due_date', 'memo',
+  ] as const
+  for (const key of FIELDS) {
+    if (formData.has(key)) set[key] = pickField(formData, key)
+  }
   await db.update(customer_vehicles).set(set).where(eq(customer_vehicles.id, id))
   redirect(`/customer-vehicles/${id}`)
 }

@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { customer_vehicles, accounts, contacts, maintenance_records, maintenance_line_items, attachments } from '@/lib/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, asc } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -12,6 +12,7 @@ import AttachmentsSection from '@/components/AttachmentsSection'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
 import { deleteCustomerVehicle, updateCustomerVehicleBasic } from '@/industries/auto-body/actions/customerVehicles'
 import { canEdit } from '@/lib/auth'
+import { getAllUsers } from '@/lib/userUtils'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
@@ -39,7 +40,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
   const mAccount = alias(accounts, 'm_account')
   const mContact = alias(contacts, 'm_contact')
 
-  const [vRow, maintenances, consumableLines, attachmentRows] = await Promise.all([
+  const [vRow, maintenances, consumableLines, attachmentRows, accountsList, contactsList, users] = await Promise.all([
     db.select({
       v:       customer_vehicles,
       account: {
@@ -88,6 +89,11 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       .innerJoin(maintenance_records, eq(maintenance_line_items.maintenance_id, maintenance_records.id))
       .where(eq(maintenance_records.customer_vehicle_id, id)),
     db.select().from(attachments).where(eq(attachments.customer_vehicle_id, id)).orderBy(desc(attachments.created_at)),
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
+    getAllUsers(),
   ])
 
   if (!vRow) notFound()
@@ -95,6 +101,10 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
   const account = vRow.account?.id ? vRow.account : null
   const contact = vRow.contact?.id ? vRow.contact : null
   const accountIsPersonal = isPersonalAccount(account)
+  const ownerName = v.owner_id ? (users.find((u) => u.id === v.owner_id)?.name ?? null) : null
+  const accountOptions = accountsList.map((a) => ({ value: a.id, label: a.name }))
+  const contactOptions = contactsList.map((c) => ({ value: c.id, label: c.full_name }))
+  const userOptions = users.map((u) => ({ value: u.id, label: u.name }))
 
   // RSC は 1 リクエストにつき 1 回しか render されないため Date.now() は安定。
   // react-hooks/purity は client component 向けの規則なのでここでは無効化する。
@@ -145,7 +155,6 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-customer-vehicle" />
-              <Link href={`/customer-vehicles/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この顧客車両を削除しますか？" />
             </div>
           </AuthGuard>
@@ -172,119 +181,55 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
         </div>
       </div>
 
-      {/* 顧客（所有者） */}
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">顧客（所有者）</h2>
-        {(account && !accountIsPersonal) ? (
-          /* BtoB: 法人取引先 */
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
-              <dd>
-                <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline font-medium">
-                  {AB_ICONS.account} {account.name}
-                </Link>
-              </dd>
-            </div>
-            {contact && (
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">顧客担当者</dt>
-                <dd>
-                  <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">
-                    {AB_ICONS.contact} {contact.full_name}
-                  </Link>
-                </dd>
-              </div>
-            )}
-            {(contact?.phone || account.phone) && (
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">電話</dt>
-                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3.5 h-3.5 shrink-0" /> {contact?.phone ?? account.phone}</dd>
-              </div>
-            )}
-            {contact?.email && (
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">Email</dt>
-                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="✉️" className="w-3.5 h-3.5 shrink-0" /> {contact.email}</dd>
-              </div>
-            )}
-            {account.address && (
-              <div className="sm:col-span-2">
-                <dt className="text-xs text-zinc-400 mb-1">住所</dt>
-                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="📍" className="w-3.5 h-3.5 shrink-0" /> {account.address}</dd>
-              </div>
-            )}
-          </dl>
-        ) : contact ? (
-          /* BtoC: 個人 */
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div className="sm:col-span-2">
-              <dt className="text-xs text-zinc-400 mb-1">顧客</dt>
-              <dd>
-                <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline font-medium">
-                  {AB_ICONS.contact} {contact.full_name}
-                </Link>
-              </dd>
-            </div>
-            {contact.phone && (
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">電話</dt>
-                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3.5 h-3.5 shrink-0" /> {contact.phone}</dd>
-              </div>
-            )}
-            {contact.email && (
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">Email</dt>
-                <dd className="text-zinc-800 inline-flex items-center gap-1"><NavIcon icon="✉️" className="w-3.5 h-3.5 shrink-0" /> {contact.email}</dd>
-              </div>
-            )}
-          </dl>
-        ) : (
-          <p className="text-sm text-zinc-400">所有者が設定されていません。「編集」から取引先 または 顧客（人物）を選択してください。</p>
-        )}
-      </div>
-
-      {/* ナンバープレート */}
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">ナンバープレート</h2>
-        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div><dt className="text-xs text-zinc-400 mb-1">運輸支局</dt><dd className="text-sm text-zinc-800">{v.transport_branch ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">分類番号</dt><dd className="text-sm text-zinc-800">{v.classification_number ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">かな</dt><dd className="text-sm text-zinc-800">{v.kana ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">ナンバー</dt><dd className="text-sm text-zinc-800 font-medium">{v.plate_number ?? '—'}</dd></div>
-        </dl>
-      </div>
-
-      {/* 車両情報 */}
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">車両情報</h2>
-        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div><dt className="text-xs text-zinc-400 mb-1">車名</dt><dd className="text-sm text-zinc-800">{v.car_name ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">車種</dt><dd className="text-sm text-zinc-800">{v.car_model ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">グレード</dt><dd className="text-sm text-zinc-800">{v.grade ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">種別</dt><dd className="text-sm text-zinc-800">{v.vehicle_kind ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">用途</dt><dd className="text-sm text-zinc-800">{v.vehicle_usage ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">自家・事業</dt><dd className="text-sm text-zinc-800">{v.private_business ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">車体の形状</dt><dd className="text-sm text-zinc-800">{v.body_shape ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">車台番号</dt><dd className="text-sm text-zinc-800 font-mono">{v.vin ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">型式</dt><dd className="text-sm text-zinc-800">{v.type_designation ?? '—'}</dd></div>
-          <div><dt className="text-xs text-zinc-400 mb-1">類別区分</dt><dd className="text-sm text-zinc-800">{v.class_category ?? '—'}</dd></div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">初年度</dt>
-            <dd className="text-sm text-zinc-800">{[v.first_registration_year, v.first_registration_month].filter(Boolean).join(' / ') || '—'}</dd>
-          </div>
-        </dl>
-        <p className="mt-4 pt-3 border-t border-zinc-100 text-xs text-zinc-400">登記情報の編集は右上「編集」から行えます。</p>
-      </div>
-
-      {/* 車検・メモ（インライン編集） */}
+      {/* 顧客・所有者（インライン編集） */}
       <EditableInfoCard
-        title="車検・メモ"
+        title="顧客・所有者"
         canEdit={editFlag}
         showEditButton={false}
         editEvent="bract:edit-customer-vehicle"
         action={saveCustomerVehicleInline}
         fields={[
+          { label: '取引先', name: 'account_id', kind: 'select', value: v.account_id ?? '', options: accountOptions,
+            view: account && !accountIsPersonal ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{AB_ICONS.account} {account.name}</Link> : <span className="text-zinc-300">—</span> },
+          { label: '顧客（人物）', name: 'contact_id', kind: 'select', value: v.contact_id ?? '', options: contactOptions,
+            view: contact ? <Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline">{AB_ICONS.contact} {contact.full_name}</Link> : <span className="text-zinc-300">—</span> },
+          { label: '社内担当', name: 'owner_id', kind: 'select', value: v.owner_id ?? '', options: userOptions, view: ownerName ?? <span className="text-zinc-300">—</span> },
+          { label: '連絡先', fullWidth: true, view: (
+            (contact?.phone ?? account?.phone) || contact?.email || account?.address ? (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700">
+                {(contact?.phone ?? account?.phone) && <span className="inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3.5 h-3.5 shrink-0" /> {contact?.phone ?? account?.phone}</span>}
+                {contact?.email && <span className="inline-flex items-center gap-1"><NavIcon icon="✉️" className="w-3.5 h-3.5 shrink-0" /> {contact.email}</span>}
+                {account?.address && <span className="inline-flex items-center gap-1"><NavIcon icon="📍" className="w-3.5 h-3.5 shrink-0" /> {account.address}</span>}
+              </div>
+            ) : <span className="text-zinc-400">—</span>
+          ) },
+        ]}
+      />
+
+      {/* 車両情報（登録情報・インライン編集） */}
+      <EditableInfoCard
+        title="車両情報（登録情報）"
+        canEdit={editFlag}
+        showEditButton={false}
+        editEvent="bract:edit-customer-vehicle"
+        action={saveCustomerVehicleInline}
+        fields={[
+          { label: '運輸支局', name: 'transport_branch', kind: 'text', value: v.transport_branch, view: v.transport_branch ?? '—' },
+          { label: '分類番号', name: 'classification_number', kind: 'text', value: v.classification_number, view: v.classification_number ?? '—' },
+          { label: 'かな', name: 'kana', kind: 'text', value: v.kana, view: v.kana ?? '—' },
+          { label: 'ナンバー', name: 'plate_number', kind: 'text', value: v.plate_number, view: v.plate_number ? <span className="font-medium">{v.plate_number}</span> : '—' },
+          { label: '車名', name: 'car_name', kind: 'text', value: v.car_name, view: v.car_name ?? '—' },
+          { label: '車種', name: 'car_model', kind: 'text', value: v.car_model, view: v.car_model ?? '—' },
+          { label: 'グレード', name: 'grade', kind: 'text', value: v.grade, view: v.grade ?? '—' },
+          { label: '種別', name: 'vehicle_kind', kind: 'text', value: v.vehicle_kind, view: v.vehicle_kind ?? '—' },
+          { label: '用途', name: 'vehicle_usage', kind: 'text', value: v.vehicle_usage, view: v.vehicle_usage ?? '—' },
+          { label: '自家・事業', name: 'private_business', kind: 'text', value: v.private_business, view: v.private_business ?? '—' },
+          { label: '車体の形状', name: 'body_shape', kind: 'text', value: v.body_shape, view: v.body_shape ?? '—' },
+          { label: '車台番号', name: 'vin', kind: 'text', value: v.vin, view: v.vin ? <span className="font-mono">{v.vin}</span> : '—' },
+          { label: '型式', name: 'type_designation', kind: 'text', value: v.type_designation, view: v.type_designation ?? '—' },
+          { label: '類別区分', name: 'class_category', kind: 'text', value: v.class_category, view: v.class_category ?? '—' },
+          { label: '初年度（年）', name: 'first_registration_year', kind: 'number', value: v.first_registration_year != null ? String(v.first_registration_year) : '', view: v.first_registration_year ?? '—' },
+          { label: '初年度（月）', name: 'first_registration_month', kind: 'number', value: v.first_registration_month != null ? String(v.first_registration_month) : '', view: v.first_registration_month ?? '—' },
           { label: '車検満了日', name: 'inspection_due_date', kind: 'date', value: v.inspection_due_date ? String(v.inspection_due_date).slice(0, 10) : '',
             view: <span className={urgent ? 'text-red-600 font-semibold' : ''}>{v.inspection_due_date ?? '—'}{days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}</span> },
           { label: 'メモ', name: 'memo', kind: 'textarea', value: v.memo, fullWidth: true, view: v.memo ? v.memo : <span className="text-zinc-300">—</span> },
