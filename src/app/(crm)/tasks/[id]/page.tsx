@@ -75,7 +75,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-task" />
-              <Link href={`/tasks/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
+              <Link href={`/tasks/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">関連</Link>
               <DeleteButton action={handleDelete} confirmMessage="このToDoを削除しますか？" />
             </div>
           </AuthGuard>
@@ -127,6 +127,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         editEvent="bract:edit-task"
         action={saveTaskInline}
         fields={[
+          { label: 'タイトル', name: 'title', kind: 'text', value: task.title, fullWidth: true, view: task.title ?? '—' },
           { label: '期限', name: 'due_date', kind: 'date', value: task.due_date ? String(task.due_date).slice(0, 10) : '',
             view: task.due_date ? <span className={!task.done && new Date(task.due_date) < new Date() ? 'text-red-600 font-medium' : ''}>{new Date(task.due_date).toLocaleDateString('ja-JP')}{!task.done && new Date(task.due_date) < new Date() && ' (期限超過)'}</span> : '—' },
           { label: '優先度', name: 'priority', kind: 'select', value: task.priority, options: [{ value: 'high', label: '高' }, { value: 'medium', label: '中' }, { value: 'low', label: '低' }], view: priority.label },

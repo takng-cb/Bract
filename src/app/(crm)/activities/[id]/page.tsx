@@ -79,7 +79,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-activity" />
-              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
+              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">関連</Link>
               <DeleteButton action={handleDelete} confirmMessage="この活動履歴を削除しますか？" />
             </div>
           </AuthGuard>
@@ -124,6 +124,11 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
         editEvent="bract:edit-activity"
         action={saveActivityInline}
         fields={[
+          { label: '件名', name: 'subject', kind: 'text', value: activityRow.subject, fullWidth: true, view: activityRow.subject ?? '—' },
+          { label: '種別', name: 'type', kind: 'select', value: activityRow.type, options: activityTypes.map((t) => ({ value: t.value, label: t.label })),
+            view: <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs font-medium ${typeConf.color}`}>{typeConf.icon} {typeConf.label}</span> },
+          { label: '日時', name: 'occurred_at', kind: 'datetime', value: activityRow.occurred_at ? new Date(activityRow.occurred_at).toISOString().slice(0, 16) : '',
+            view: activityRow.occurred_at ? new Date(activityRow.occurred_at).toLocaleString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—' },
           { label: '内容', name: 'body', kind: 'textarea', value: activityRow.body, fullWidth: true, view: activityRow.body ? activityRow.body : <span className="text-zinc-300">—</span> },
           { label: '担当者', name: 'owner_id', kind: 'select', value: activityRow.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? <span className="text-zinc-300">—</span> },
           { label: '登録日', view: activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—' },

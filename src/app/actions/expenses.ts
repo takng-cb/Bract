@@ -81,10 +81,14 @@ export async function createExpense(formData: FormData) {
   redirect(`/expenses/${row.id}`)
 }
 
-/** 詳細情報カードのインライン編集用・部分更新（件名/関連には触れない）。 */
+/**
+ * インライン編集用・部分更新。関連レコードには触れない（別途「関連」画面）。
+ * 件名(title) は必須のため空送信時は更新しない。
+ */
 export async function updateExpenseBasic(id: string, formData: FormData) {
   await requireEditor()
   const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('title') && (formData.get('title') as string)?.trim()) set.title = (formData.get('title') as string).trim()
   if (formData.has('amount')) {
     const a = formData.get('amount') as string
     if (a && Number(a) > 0) set.amount = String(Number(a))

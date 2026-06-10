@@ -20,7 +20,7 @@ export type EditField = {
   view: ReactNode
   /** 編集対象なら form フィールド名。未指定＝閲覧専用（編集モードでも表示のみ） */
   name?: string
-  kind?: 'text' | 'email' | 'tel' | 'date' | 'number' | 'textarea' | 'select'
+  kind?: 'text' | 'email' | 'tel' | 'date' | 'datetime' | 'number' | 'textarea' | 'select'
   /** 入力初期値（生の値） */
   value?: string | null
   options?: { value: string; label: string }[]
@@ -43,7 +43,7 @@ function FieldInput({ f }: { f: EditField }) {
         {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     )
-  const type = f.kind === 'email' ? 'email' : f.kind === 'tel' ? 'tel' : f.kind === 'date' ? 'date' : f.kind === 'number' ? 'number' : 'text'
+  const type = f.kind === 'email' ? 'email' : f.kind === 'tel' ? 'tel' : f.kind === 'date' ? 'date' : f.kind === 'datetime' ? 'datetime-local' : f.kind === 'number' ? 'number' : 'text'
   return <input type={type} name={f.name} defaultValue={v} className={INPUT} />
 }
 
