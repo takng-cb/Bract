@@ -78,7 +78,7 @@ export default function MobileNav({ navGroups, dashboardItem, companyName, displ
           <span className="text-base font-bold tracking-wide truncate">{companyName}</span>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-3">
+        <nav className="flex-1 overflow-y-auto px-2 py-3 scrollbar-dark">
           {dashboardItem && <div className="space-y-0.5">{renderItem(dashboardItem)}</div>}
           {navGroups.map((group) => (
             <div key={group.id} className="mt-3 first:mt-1">
