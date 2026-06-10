@@ -1,9 +1,8 @@
 import { db } from '@/lib/db'
-import { Briefcase, Building2, Wallet, Percent, CalendarDays, UserRound, Tag } from 'lucide-react'
+import { Briefcase, Building2, Wallet, CalendarDays, UserRound, Tag, Activity, SquareCheckBig, Receipt, Phone, Link2, TrendingUp, Folder } from 'lucide-react'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs } from '@/lib/schema'
-import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
-import OtherRelationsChips from '@/components/OtherRelationsChips'
-import { eq, and, asc, desc, inArray, count } from 'drizzle-orm'
+import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
+import { eq, and, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
@@ -13,7 +12,6 @@ import InlineEditButton from '@/components/detail/InlineEditButton'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import TagsSection from '@/components/TagsSection'
-import ChangeLogSection from '@/components/ChangeLogSection'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
@@ -21,9 +19,7 @@ import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
 import { canEdit } from '@/lib/auth'
-import TextImportModal from '@/components/TextImportModal'
 import RecordHeader from '@/components/RecordHeader'
-import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import AISummaryButton from '@/components/AISummaryButton'
 import { NavIcon } from '@/lib/navIcon'
@@ -34,6 +30,10 @@ import { calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
 import { vehicles } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, RecordTable, RecordTableEmpty, type KpiItem, type BadgeTone } from '@/components/record/RecordUI'
+import RecordTabPanel from '@/components/record/RecordTabPanel'
+import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
+import RelatedSegments, { type RelatedSegment } from '@/components/record/RelatedSegments'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -43,16 +43,15 @@ const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'closed_won',    label: '受注',     activeColor: '#16a34a', pastColor: '#86efac' },
   { value: 'closed_lost',   label: '失注',     activeColor: '#dc2626', pastColor: '#fca5a5' },
 ]
-
 const STAGE_LABEL: Record<string, string> = {
   prospecting: '見込み', qualification: '要件確認', proposal: '提案',
   negotiation: '交渉', closed_won: '受注', closed_lost: '失注',
 }
-
-const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  high:   { label: '高', color: 'text-red-600 bg-red-50' },
-  medium: { label: '中', color: 'text-yellow-700 bg-yellow-50' },
-  low:    { label: '低', color: 'text-green-700 bg-green-50' },
+const STAGE_TONE: Record<string, BadgeTone> = {
+  prospecting: 'neutral', qualification: 'info', proposal: 'ai', negotiation: 'warn', closed_won: 'pos', closed_lost: 'danger',
+}
+const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
+  high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
 }
 
 function formatFileSize(bytes: number | null) {
@@ -65,552 +64,252 @@ function formatFileSize(bytes: number | null) {
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag, allUsers, activityTypes, changeLogCountRow] = await Promise.all([
+  const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag, allUsers, activityTypes, changeLogs] = await Promise.all([
     db.select({
       id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
       amount: opportunities.amount, probability: opportunities.probability,
       close_date: opportunities.close_date, description: opportunities.description,
       created_at: opportunities.created_at, owner_id: opportunities.owner_id,
-      transaction_type: opportunities.transaction_type,
-      commission_fee:  opportunities.commission_fee,
-      brokerage_type:  opportunities.brokerage_type,
-      other_profit:    opportunities.other_profit,
-      service_type:    opportunities.service_type,
-      vehicle_id:      opportunities.vehicle_id,
-      parts_cost:      opportunities.parts_cost,
+      transaction_type: opportunities.transaction_type, commission_fee: opportunities.commission_fee,
+      brokerage_type: opportunities.brokerage_type, other_profit: opportunities.other_profit,
+      service_type: opportunities.service_type, vehicle_id: opportunities.vehicle_id, parts_cost: opportunities.parts_cost,
       accounts: { id: accounts.id, name: accounts.name },
       contacts: { id: contacts.id, full_name: contacts.full_name },
     })
       .from(opportunities)
       .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
       .leftJoin(contacts, eq(opportunities.contact_id, contacts.id))
-      .where(eq(opportunities.id, id))
-      .then((r) => r[0] ?? null),
-    db.select().from(activities)
-      .where(inArray(activities.id, activityIdsRelatedTo('opportunity', id)))
-      .orderBy(desc(activities.occurred_at)),
-    db.select().from(tasks)
-      .where(inArray(tasks.id, taskIdsRelatedTo('opportunity', id)))
-      .orderBy(asc(tasks.done), asc(tasks.due_date)),
+      .where(eq(opportunities.id, id)).then((r) => r[0] ?? null),
+    db.select().from(activities).where(inArray(activities.id, activityIdsRelatedTo('opportunity', id))).orderBy(desc(activities.occurred_at)),
+    db.select().from(tasks).where(inArray(tasks.id, taskIdsRelatedTo('opportunity', id))).orderBy(asc(tasks.done), asc(tasks.due_date)),
     db.select().from(attachments).where(eq(attachments.opportunity_id, id)).orderBy(desc(attachments.created_at)),
-    db.select().from(expenses)
-      .where(inArray(expenses.id, expenseIdsRelatedTo('opportunity', id)))
-      .orderBy(desc(expenses.expense_date)),
+    db.select().from(expenses).where(inArray(expenses.id, expenseIdsRelatedTo('opportunity', id))).orderBy(desc(expenses.expense_date)),
     getCustomFieldsWithValues('opportunities', id),
     canEdit(),
     getAllUsers(),
     getActivityTypes(),
-    db.select({ c: count() }).from(change_logs)
-      .where(and(eq(change_logs.object_type, 'opportunity'), eq(change_logs.object_id, id))),
+    db.select().from(change_logs).where(and(eq(change_logs.object_type, 'opportunity'), eq(change_logs.object_id, id))).orderBy(desc(change_logs.changed_at)).limit(40),
   ])
-
-  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
-  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
 
   if (!opportunity) notFound()
 
-  const [activityRelMap, taskRelMap, expenseRelMap] = await Promise.all([
-    batchResolveRelatedRecords('activity', activitiesList.map((a) => a.id)),
-    batchResolveRelatedRecords('task',     tasksList.map((t) => t.id)),
-    batchResolveRelatedRecords('expense',  expensesList.map((e) => e.id)),
-  ])
-  const isNotSelf = (r: { object_api: string; record_id: string }) =>
-    !(r.object_api === 'opportunity' && r.record_id === id)
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = t.label
+
   const account   = opportunity.accounts?.id ? opportunity.accounts : null
   const contact   = opportunity.contacts?.id ? opportunity.contacts : null
   const ownerName = opportunity.owner_id ? (allUsers.find((u) => u.id === opportunity.owner_id)?.name ?? null) : null
 
-  const vehicleInfo =
-    activeIndustry === 'auto-body' && opportunity.vehicle_id
-      ? await db.select({
-          id: vehicles.id, maker: vehicles.maker, model: vehicles.model,
-          license_plate: vehicles.license_plate, year: vehicles.year,
-        }).from(vehicles).where(eq(vehicles.id, opportunity.vehicle_id)).then((r) => r[0] ?? null)
-      : null
+  const vehicleInfo = activeIndustry === 'auto-body' && opportunity.vehicle_id
+    ? await db.select({ id: vehicles.id, maker: vehicles.maker, model: vehicles.model, license_plate: vehicles.license_plate, year: vehicles.year })
+        .from(vehicles).where(eq(vehicles.id, opportunity.vehicle_id)).then((r) => r[0] ?? null)
+    : null
 
-  // 商談情報のインライン編集（部分更新・業種/ステージ項目は不変）
-  async function saveOppBasic(formData: FormData) {
-    'use server'
-    await updateOpportunityBasic(id, formData)
-  }
-
-  async function changeStage(stage: string) {
-    'use server'
-    await updateOpportunityStage(id, stage)
-  }
-
-  async function handleDelete() {
-    'use server'
-    await deleteOpportunity(id)
-  }
-
+  async function saveOppBasic(formData: FormData) { 'use server'; await updateOpportunityBasic(id, formData) }
+  async function changeStage(stage: string) { 'use server'; await updateOpportunityStage(id, stage) }
+  async function handleDelete() { 'use server'; await deleteOpportunity(id) }
   async function toggleTask(formData: FormData) {
     'use server'
-    const taskId = formData.get('task_id') as string
-    const done   = formData.get('done') === 'true'
-    await toggleTaskDone(taskId, done, `/opportunities/${id}`)
+    await toggleTaskDone(formData.get('task_id') as string, formData.get('done') === 'true', `/opportunities/${id}`)
   }
-
   async function uploadFile(formData: FormData) {
     'use server'
-    formData.set('opportunity_id', id)
-    formData.set('revalidate', `/opportunities/${id}`)
-    await uploadAttachment(formData)
+    formData.set('opportunity_id', id); formData.set('revalidate', `/opportunities/${id}`); await uploadAttachment(formData)
   }
-
   async function deleteFile(formData: FormData) {
     'use server'
-    const attachId = formData.get('attach_id') as string
-    const path     = formData.get('storage_path') as string
-    await deleteAttachment(attachId, path, `/opportunities/${id}`)
+    await deleteAttachment(formData.get('attach_id') as string, formData.get('storage_path') as string, `/opportunities/${id}`)
   }
+  async function handleSummarize(from: string, to: string) { 'use server'; return summarizeOpportunity(id, from, to) }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  // eslint-disable-next-line react-hooks/purity
+  const NOW = Date.now()
 
-  // ── 概要タブ ─────────────────────────────────────────────────────
-  const overviewContent = (
-    <>
-      <div className="mb-6">
-        <StageBar stages={OPPORTUNITY_STAGES} currentStage={opportunity.stage} updateAction={changeStage} />
+  // ── 財務計算（KPI とカードで共有）────────────────────────────────
+  const isReal = activeIndustry === 'real-estate'
+  const isAutoBody = activeIndustry === 'auto-body'
+  const totalExp = expensesList.reduce((s, e) => s + Number(e.amount), 0)
+  const prob = opportunity.probability != null ? opportunity.probability / 100 : null
+  let weighted: number | null = null
+  let gross: number | null = null
+  if (isReal) {
+    const fee = opportunity.commission_fee != null ? Number(opportunity.commission_fee) : null
+    const oth = opportunity.other_profit != null ? Number(opportunity.other_profit) : 0
+    const profit = fee != null ? calcProfit(fee, opportunity.brokerage_type, oth) : 0
+    weighted = prob != null && fee != null ? Math.round(profit * prob) : (fee != null ? profit : null)
+  } else if (isAutoBody) {
+    const amt = opportunity.amount != null ? Number(opportunity.amount) : null
+    const pc = opportunity.parts_cost != null ? Number(opportunity.parts_cost) : 0
+    const profit = amt != null ? calcAutoBodyProfit(amt, pc) : 0
+    weighted = prob != null && amt != null ? Math.round(profit * prob) : (amt != null ? profit : null)
+  } else {
+    const amount = Number(opportunity.amount ?? 0)
+    weighted = prob != null && amount > 0 ? Math.round(amount * prob) : (amount > 0 ? amount : null)
+  }
+  gross = weighted != null ? weighted - totalExp : null
+  const daysLeft = opportunity.close_date ? Math.ceil((new Date(opportunity.close_date).getTime() - NOW) / 86400000) : null
+
+  const kpis: KpiItem[] = [
+    { icon: <Wallet />, label: '金額', value: opportunity.amount ? `¥${Number(opportunity.amount).toLocaleString()}` : '—', sub: opportunity.transaction_type === '賃貸' ? '月額' : '税抜' },
+    { icon: <Activity />, label: '確度 / 加重', value: opportunity.probability != null ? <>{opportunity.probability}<small>%</small></> : '—', sub: weighted != null ? `加重 ¥${weighted.toLocaleString()}` : '—', subTone: 'up' },
+    { icon: <CalendarDays />, label: '完了予定', value: <span className="text-[17px]">{opportunity.close_date ?? '—'}</span>, sub: daysLeft != null ? (daysLeft < 0 ? `${-daysLeft}日超過` : `残 ${daysLeft}日`) : '—', subTone: daysLeft != null && daysLeft < 0 ? 'down' : 'warn' },
+    { icon: <TrendingUp />, label: '想定粗利', value: gross != null ? `¥${gross.toLocaleString()}` : '—', sub: `経費 ¥${totalExp.toLocaleString()}`, subTone: gross != null && gross < 0 ? 'down' : 'mut' },
+  ]
+
+  // ── activity stream ─────────────────────────────────────────────
+  const dayLabel = (d: Date) => {
+    const t0 = new Date(NOW); t0.setHours(0, 0, 0, 0)
+    const d0 = new Date(d); d0.setHours(0, 0, 0, 0)
+    const diff = Math.round((t0.getTime() - d0.getTime()) / 86400000)
+    if (diff === 0) return '今日'; if (diff === 1) return '昨日'
+    return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
+  }
+  const hm = (d: Date) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  const stream: (StreamEvent & { sort: number })[] = []
+  for (const a of activitiesList) {
+    const d = a.occurred_at ? new Date(a.occurred_at) : a.created_at ? new Date(a.created_at) : null
+    if (!d) continue
+    stream.push({ id: `a-${a.id}`, kind: 'act', typeLabel: ACTIVITY_TYPE_LABELS[a.type] ?? a.type, time: hm(d), day: dayLabel(d), sort: d.getTime(),
+      body: <><Link href={`/activities/${a.id}`} className="font-semibold text-zinc-900 hover:text-brand-700">{a.subject}</Link>{a.body && <span className="block text-zinc-500 text-[12.5px] mt-0.5 line-clamp-2">{a.body}</span>}</> })
+  }
+  for (const t of tasksList) {
+    const d = t.created_at ? new Date(t.created_at) : null
+    if (!d) continue
+    const pr = PRIORITY_BADGE[t.priority] ?? PRIORITY_BADGE.medium
+    const overdueT = !t.done && t.due_date && new Date(t.due_date).getTime() < NOW
+    stream.push({ id: `t-${t.id}`, kind: 'todo', typeLabel: 'ToDo', time: hm(d), day: dayLabel(d), sort: d.getTime(),
+      leading: <AuthGuard minRole="editor"><form action={toggleTask}><input type="hidden" name="task_id" value={t.id} /><input type="hidden" name="done" value={(!t.done).toString()} /><button type="submit" className={`w-4.5 h-4.5 rounded-md border-[1.5px] grid place-items-center ${t.done ? 'bg-brand-600 border-brand-600 text-white' : 'border-zinc-300 hover:border-brand-400'}`}>{t.done && <span className="text-[10px] leading-none">✓</span>}</button></form></AuthGuard>,
+      body: <div className="flex items-center gap-2 flex-wrap"><Link href={`/tasks/${t.id}`} className={`font-semibold hover:text-brand-700 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>{t.title}</Link><Badge tone={pr.tone}>{pr.label}</Badge>{t.due_date && <span className={`text-[12px] ${overdueT ? 'text-rose-600' : 'text-zinc-400'}`}>期限 {new Date(t.due_date).toLocaleDateString('ja-JP')}</span>}</div> })
+  }
+  for (const e of expensesList) {
+    const d = e.expense_date ? new Date(e.expense_date) : e.created_at ? new Date(e.created_at) : null
+    if (!d) continue
+    stream.push({ id: `e-${e.id}`, kind: 'exp', typeLabel: '経費', day: dayLabel(d), sort: d.getTime(),
+      body: <Link href={`/expenses/${e.id}`} className="flex items-center justify-between gap-2"><span className="font-semibold text-zinc-900">{e.title}</span><span className="font-bold text-zinc-900 shrink-0">¥{Number(e.amount).toLocaleString()}</span></Link> })
+  }
+  for (const c of changeLogs) {
+    const d = c.changed_at ? new Date(c.changed_at) : null
+    if (!d) continue
+    stream.push({ id: `c-${c.id}`, kind: 'his', typeLabel: '履歴', time: hm(d), day: dayLabel(d), sort: d.getTime(),
+      body: <span className="text-zinc-600">{c.field_label}を <span className="text-zinc-900 font-medium">{c.old_value ?? '—'}</span> → <span className="text-zinc-900 font-medium">{c.new_value ?? '—'}</span> に変更</span> })
+  }
+  stream.sort((a, b) => b.sort - a.sort)
+  const interactionCount = activitiesList.length + tasksList.length + expensesList.length
+  const aiEnabled = await isAIFeatureEnabled()
+
+  const composer = (
+    <AuthGuard minRole="editor">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-100 bg-zinc-50">
+        <span className="w-7 h-7 rounded-full bg-brand-600 text-white grid place-items-center text-xs font-bold shrink-0">{(ownerName ?? opportunity.name).trim()[0]}</span>
+        <Link href={`/activities/new?opportunity_id=${id}`} className="flex-1 h-9 border border-zinc-300 rounded-md bg-white flex items-center px-3 text-sm text-zinc-400 hover:border-zinc-400 min-w-0">活動・メモを記録…</Link>
+        <div className="flex gap-1 shrink-0">
+          <Link href={`/activities/new?opportunity_id=${id}`} title="活動" className="w-8 h-8 rounded-md border border-zinc-200 grid place-items-center text-zinc-500 hover:bg-brand-50 hover:text-brand-700"><Phone className="w-4 h-4" /></Link>
+          <Link href={`/tasks/new?opportunity_id=${id}`} title="ToDo" className="w-8 h-8 rounded-md border border-zinc-200 grid place-items-center text-zinc-500 hover:bg-brand-50 hover:text-brand-700"><SquareCheckBig className="w-4 h-4" /></Link>
+          <Link href={`/expenses/new?opportunity_id=${id}`} title="経費" className="w-8 h-8 rounded-md border border-zinc-200 grid place-items-center text-zinc-500 hover:bg-brand-50 hover:text-brand-700"><Receipt className="w-4 h-4" /></Link>
+        </div>
       </div>
+    </AuthGuard>
+  )
 
-      <EditableInfoCard
-        title="商談情報"
-        canEdit={editFlag}
-        showEditButton={false}
-        action={saveOppBasic}
-        fields={[
-          { label: 'ステージ', view: STAGE_LABEL[opportunity.stage] ?? opportunity.stage },
-          { label: '完了予定日', name: 'close_date', kind: 'date', value: opportunity.close_date ? String(opportunity.close_date).slice(0, 10) : '', view: opportunity.close_date ?? '—' },
-          { label: activeIndustry === 'real-estate' && opportunity.transaction_type === '賃貸' ? '月額賃料' : '金額', name: 'amount', kind: 'number', value: opportunity.amount != null ? String(opportunity.amount) : '', view: opportunity.amount ? `¥${Number(opportunity.amount).toLocaleString()}` : '—' },
-          { label: '確度', name: 'probability', kind: 'number', value: opportunity.probability != null ? String(opportunity.probability) : '', view: opportunity.probability != null ? `${opportunity.probability}%` : '—' },
-          { label: '担当者', name: 'owner_id', kind: 'select', value: opportunity.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
-          { label: '登録日', view: opportunity.created_at ? new Date(opportunity.created_at).toLocaleDateString('ja-JP') : '—' },
-          { label: '概要・メモ', name: 'description', kind: 'textarea', value: opportunity.description, fullWidth: true, view: opportunity.description ? opportunity.description : <span className="text-zinc-300">—</span> },
-        ]}
-      />
-
-      {/* 財務サマリー（自動計算・閲覧専用） */}
-      {(() => {
-          const isReal     = activeIndustry === 'real-estate'
-          const isAutoBody = activeIndustry === 'auto-body'
-          const totalExp = expensesList.reduce((s, e) => s + Number(e.amount), 0)
-          const prob     = opportunity.probability != null ? opportunity.probability / 100 : null
-
-          let weighted: number | null = null
-          let gross: number | null = null
-          let weightedLabel = ''
-          let showWeighted = false
-          let baseValue = 0
-
-          if (isReal) {
-            const fee    = opportunity.commission_fee != null ? Number(opportunity.commission_fee) : null
-            const oth    = opportunity.other_profit != null ? Number(opportunity.other_profit) : 0
-            const profit = fee != null ? calcProfit(fee, opportunity.brokerage_type, oth) : 0
-            weighted     = prob != null && fee != null ? Math.round(profit * prob) : (fee != null ? profit : null)
-            gross        = weighted != null ? weighted - totalExp : null
-            weightedLabel = `想定売上${prob != null ? '（利益 × 確度）' : '（利益）'}`
-            showWeighted = fee != null
-            baseValue    = fee ?? 0
-          } else if (isAutoBody) {
-            const amt    = opportunity.amount != null ? Number(opportunity.amount) : null
-            const pc     = opportunity.parts_cost != null ? Number(opportunity.parts_cost) : 0
-            const profit = amt != null ? calcAutoBodyProfit(amt, pc) : 0
-            weighted     = prob != null && amt != null ? Math.round(profit * prob) : (amt != null ? profit : null)
-            gross        = weighted != null ? weighted - totalExp : null
-            weightedLabel = `想定売上${prob != null ? '（利益 × 確度）' : '（利益）'}`
-            showWeighted = amt != null
-            baseValue    = amt ?? 0
-          } else {
-            const amount = Number(opportunity.amount ?? 0)
-            weighted     = prob != null && amount > 0 ? Math.round(amount * prob) : null
-            gross        = weighted != null ? weighted - totalExp : null
-            weightedLabel = '想定売上（金額 × 確度）'
-            showWeighted = weighted != null
-            baseValue    = amount
-          }
-
-          if (baseValue === 0 && totalExp === 0) return null
-          return (
-            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">財務サマリー</p>
-              <div className="space-y-2">
-                {showWeighted && weighted != null && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-zinc-500">{weightedLabel}</span>
-                    <span className="font-semibold text-blue-700">¥{weighted.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">経費合計</span>
-                  <span className="font-semibold text-orange-600">− ¥{totalExp.toLocaleString()}</span>
-                </div>
-                {gross != null && (
-                  <div className="flex justify-between text-sm pt-2 border-t border-zinc-100">
-                    <span className="font-semibold text-zinc-700">粗利（想定）</span>
-                    <span className={`font-bold text-base ${gross >= 0 ? 'text-green-700' : 'text-red-600'}`}>¥{gross.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })()}
-
-      {/* 不動産情報 */}
-      {activeIndustry === 'real-estate' && (() => {
-        const tx    = opportunity.transaction_type === '賃貸' ? '賃貸' : '売買'
-        const isRent = tx === '賃貸'
-        const price = opportunity.amount != null ? Number(opportunity.amount) : null
-        const fee   = opportunity.commission_fee != null ? Number(opportunity.commission_fee) : null
-        const oth   = opportunity.other_profit != null ? Number(opportunity.other_profit) : 0
-        const bk    = opportunity.brokerage_type ?? null
-        const hasAny = fee != null || bk != null || oth > 0
-        if (!hasAny) return null
-        const profit = calcProfit(fee, bk, oth)
-        const breakdown = commissionBreakdown(price, tx)
-        const effRate = !isRent ? effectiveCommissionRatePct(price, fee) : null
-        const effMonths = isRent ? effectiveCommissionMonths(price, fee) : null
-        return (
-          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-            <h2 className="text-sm font-bold text-zinc-700 mb-4">不動産情報</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">取引区分</dt>
-                <dd className="text-sm text-zinc-800">{tx}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">仲介種別</dt>
-                <dd className="text-sm text-zinc-800">{bk ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">仲介手数料</dt>
-                <dd className="text-sm text-zinc-800">
-                  {fee != null ? `¥${Math.round(fee).toLocaleString('ja-JP')}` : '—'}
-                  {(breakdown || effRate != null || effMonths != null) && (
-                    <span className="block text-[11px] text-zinc-400 mt-0.5">
-                      {breakdown}
-                      {breakdown && (effRate != null || effMonths != null) && ' ・ '}
-                      {effRate != null && `実効率 ${effRate.toFixed(2)}%`}
-                      {effMonths != null && `${effMonths.toFixed(2)}ヶ月分`}
-                    </span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">その他利益</dt>
-                <dd className="text-sm text-zinc-800">¥{Math.round(oth).toLocaleString('ja-JP')}</dd>
-              </div>
-            </dl>
-            <div className="mt-4 pt-4 border-t border-zinc-200">
-              <div className="flex justify-between items-baseline">
-                <span className="text-sm font-semibold text-zinc-700">利益（自動計算）</span>
-                <span className={`text-xl font-bold ${profit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                  ¥{Math.round(profit).toLocaleString('ja-JP')}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 mt-1">
-                仲介手数料 × {bk === '両手' ? '2（両手）' : '1'} ＋ その他利益（税抜）
-              </p>
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* 自動車整備情報 */}
-      {activeIndustry === 'auto-body' && (() => {
-        const st  = opportunity.service_type
-        const amt = opportunity.amount != null ? Number(opportunity.amount) : 0
-        const pc  = opportunity.parts_cost != null ? Number(opportunity.parts_cost) : 0
-        const profit = calcAutoBodyProfit(amt, pc)
-        const hasAny = st || vehicleInfo || pc > 0
-        if (!hasAny) return null
-        return (
-          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-            <h2 className="text-sm font-bold text-zinc-700 mb-4">自動車整備情報</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">サービス区分</dt>
-                <dd className="text-sm text-zinc-800">{st ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">対象車両</dt>
-                <dd className="text-sm text-zinc-800">
-                  {vehicleInfo ? (
-                    <Link href={`/vehicles/${vehicleInfo.id}`} className="text-blue-600 hover:underline inline-flex items-center gap-1">
-                      <NavIcon icon="🚗" className="w-3.5 h-3.5 shrink-0" /> {vehicleInfo.maker} {vehicleInfo.model}
-                      {vehicleInfo.year && <span className="text-xs text-zinc-400 ml-1">({vehicleInfo.year}年式)</span>}
-                      {vehicleInfo.license_plate && <span className="text-xs text-zinc-400 ml-1">{vehicleInfo.license_plate}</span>}
-                    </Link>
-                  ) : '—'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">売上（金額）</dt>
-                <dd className="text-sm text-zinc-800">{amt > 0 ? `¥${amt.toLocaleString()}` : '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-zinc-400 mb-1">部品仕入原価</dt>
-                <dd className="text-sm text-zinc-800">¥{pc.toLocaleString()}</dd>
-              </div>
-            </dl>
-            <div className="mt-4 pt-4 border-t border-zinc-200">
-              <div className="flex justify-between items-baseline">
-                <span className="text-sm font-semibold text-zinc-700">利益（自動計算）</span>
-                <span className={`text-xl font-bold ${profit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                  ¥{profit.toLocaleString()}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 mt-1">売上 − 部品仕入原価（税抜）</p>
-            </div>
-          </div>
-        )
-      })()}
-
-      {customData.fields.length > 0 && (
-        <div className="mb-6">
-          <CustomFieldsCard fields={customData.fields} values={customData.values} />
+  // ── 不動産情報 / 自動車整備情報（左カラムカード）────────────────
+  const realEstateCard = isReal && (() => {
+    const tx = opportunity.transaction_type === '賃貸' ? '賃貸' : '売買'
+    const isRent = tx === '賃貸'
+    const price = opportunity.amount != null ? Number(opportunity.amount) : null
+    const fee = opportunity.commission_fee != null ? Number(opportunity.commission_fee) : null
+    const oth = opportunity.other_profit != null ? Number(opportunity.other_profit) : 0
+    const bk = opportunity.brokerage_type ?? null
+    if (!(fee != null || bk != null || oth > 0)) return null
+    const profit = calcProfit(fee, bk, oth)
+    const breakdown = commissionBreakdown(price, tx)
+    const effRate = !isRent ? effectiveCommissionRatePct(price, fee) : null
+    const effMonths = isRent ? effectiveCommissionMonths(price, fee) : null
+    return (
+      <RefCard title="不動産情報" icon={<NavIcon icon="🏠" className="w-4 h-4" />}>
+        <dl className="space-y-2 text-[13px]">
+          <Row label="取引区分" value={tx} />
+          <Row label="仲介種別" value={bk ?? '—'} />
+          <Row label="仲介手数料" value={<>{fee != null ? `¥${Math.round(fee).toLocaleString('ja-JP')}` : '—'}{(breakdown || effRate != null || effMonths != null) && <span className="block text-[11px] text-zinc-400 mt-0.5">{breakdown}{breakdown && (effRate != null || effMonths != null) && ' ・ '}{effRate != null && `実効率 ${effRate.toFixed(2)}%`}{effMonths != null && `${effMonths.toFixed(2)}ヶ月分`}</span>}</>} />
+          <Row label="その他利益" value={`¥${Math.round(oth).toLocaleString('ja-JP')}`} />
+        </dl>
+        <div className="mt-3 pt-3 border-t border-zinc-100 flex justify-between items-baseline">
+          <span className="text-[13px] font-semibold text-zinc-700">利益（自動計算）</span>
+          <span className={`text-lg font-bold ${profit >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>¥{Math.round(profit).toLocaleString('ja-JP')}</span>
         </div>
-      )}
+      </RefCard>
+    )
+  })()
 
-      {/* 添付ファイル */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-zinc-800">添付ファイル <span className="text-zinc-400 font-normal text-sm">({attachmentsList.length})</span></h2>
+  const autoBodyCard = isAutoBody && (() => {
+    const st = opportunity.service_type
+    const amt = opportunity.amount != null ? Number(opportunity.amount) : 0
+    const pc = opportunity.parts_cost != null ? Number(opportunity.parts_cost) : 0
+    const profit = calcAutoBodyProfit(amt, pc)
+    if (!(st || vehicleInfo || pc > 0)) return null
+    return (
+      <RefCard title="自動車整備情報" icon={<NavIcon icon="🔧" className="w-4 h-4" />}>
+        <dl className="space-y-2 text-[13px]">
+          <Row label="サービス区分" value={st ?? '—'} />
+          <Row label="対象車両" value={vehicleInfo ? <Link href={`/vehicles/${vehicleInfo.id}`} className="text-brand-700 hover:underline inline-flex items-center gap-1"><NavIcon icon="🚗" className="w-3.5 h-3.5 shrink-0" /> {vehicleInfo.maker} {vehicleInfo.model}{vehicleInfo.license_plate && <span className="text-xs text-zinc-400 ml-1">{vehicleInfo.license_plate}</span>}</Link> : '—'} />
+          <Row label="売上（金額）" value={amt > 0 ? `¥${amt.toLocaleString()}` : '—'} />
+          <Row label="部品仕入原価" value={`¥${pc.toLocaleString()}`} />
+        </dl>
+        <div className="mt-3 pt-3 border-t border-zinc-100 flex justify-between items-baseline">
+          <span className="text-[13px] font-semibold text-zinc-700">利益（自動計算）</span>
+          <span className={`text-lg font-bold ${profit >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>¥{profit.toLocaleString()}</span>
         </div>
-        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-          {attachmentsList.length > 0 && (
-            <div className="divide-y divide-zinc-100">
+      </RefCard>
+    )
+  })()
+
+  const segments: RelatedSegment[] = [
+    {
+      id: 'files', label: '添付', count: attachmentsList.length,
+      content: (
+        <div>
+          {attachmentsList.length > 0 ? (
+            <RecordTable columns={[{ label: 'ファイル' }, { label: 'サイズ' }, { label: '追加日' }, { label: '' }]}>
               {attachmentsList.map((f) => (
-                <div key={f.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
-                  <NavIcon icon="📄" className="w-5 h-5 shrink-0 text-zinc-400" />
-                  <div className="flex-1 min-w-0">
-                    <a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">{f.file_name}</a>
-                    <p className="text-xs text-zinc-400">{formatFileSize(f.file_size)} · {f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</p>
-                  </div>
-                  <AuthGuard minRole="editor">
-                    <form action={deleteFile}>
-                      <input type="hidden" name="attach_id" value={f.id} />
-                      <input type="hidden" name="storage_path" value={f.storage_path} />
-                      <button type="submit" className="text-xs text-red-400 hover:text-red-600 shrink-0">削除</button>
-                    </form>
-                  </AuthGuard>
-                </div>
+                <tr key={f.id} className="hover:bg-zinc-50">
+                  <td className="px-4 py-2.5 border-b border-zinc-100 font-semibold text-zinc-900"><a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">{f.file_name}</a></td>
+                  <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{formatFileSize(f.file_size)}</td>
+                  <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</td>
+                  <td className="px-4 py-2.5 border-b border-zinc-100 text-right"><AuthGuard minRole="editor"><form action={deleteFile}><input type="hidden" name="attach_id" value={f.id} /><input type="hidden" name="storage_path" value={f.storage_path} /><button type="submit" className="text-xs text-rose-400 hover:text-rose-600">削除</button></form></AuthGuard></td>
+                </tr>
               ))}
-            </div>
-          )}
+            </RecordTable>
+          ) : <RecordTableEmpty>添付ファイルがありません</RecordTableEmpty>}
           <AuthGuard minRole="editor">
-            <form action={uploadFile} className="px-4 py-3 border-t border-zinc-100 flex items-center gap-3">
+            <form action={uploadFile} className="flex items-center gap-3 px-4 py-3 border-t border-zinc-100">
               <input type="file" name="file" className="flex-1 text-sm text-zinc-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200" />
-              <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors shrink-0">アップロード</button>
+              <button type="submit" className="px-3 py-1.5 bg-brand-600 text-white text-xs font-medium rounded hover:bg-brand-700 shrink-0">アップロード</button>
             </form>
           </AuthGuard>
         </div>
-      </section>
-
-      {/* 関係性（多対多） */}
-      <section className="mb-6">
-        <h2 className="text-base font-semibold text-zinc-800 mb-3">関連レコード</h2>
-        <RelatedRecordsSection
-          objectType="opportunities"
-          recordId={id}
-          pagePath={`/opportunities/${id}`}
-        />
-      </section>
-    </>
-  )
-
-  // AI 要約用 Server Action（id を closure に閉じ込める）
-  async function handleSummarize(from: string, to: string) {
-    'use server'
-    return summarizeOpportunity(id, from, to)
-  }
-
-  // ── 活動・ToDo・経費タブ ───────────────────────────────────────
-  const interactionCount = activitiesList.length + tasksList.length + expensesList.length
-  const interactionsContent = interactionCount === 0 ? (
-    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-8 text-center">
-      <p className="text-sm text-zinc-400 mb-4">活動・ToDo・経費はまだありません</p>
-      <AuthGuard minRole="editor">
-        <div className="flex flex-wrap justify-center gap-2">
-          <Link href={`/activities/new?opportunity_id=${id}`} className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 活動を記録</Link>
-          <Link href={`/tasks/new?opportunity_id=${id}`}      className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ ToDo を追加</Link>
-          <Link href={`/expenses/new?opportunity_id=${id}`}   className="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 text-sm rounded-md hover:bg-blue-50 transition-colors">＋ 経費を追加</Link>
-        </div>
-      </AuthGuard>
-    </div>
-  ) : (
-    <>
-      {activitiesList.length > 0 && (
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-zinc-800">活動履歴 <span className="text-zinc-400 font-normal text-sm">({activitiesList.length})</span></h2>
-            <AuthGuard minRole="editor">
-              <div className="flex items-center gap-2">
-                <TextImportModal importUrl="/api/import/activities" title="活動履歴インポート" csvFormat="ID,実施日時,種別,件名,内容,担当者名" fieldOptions={{ '種別': ['電話','メール','打ち合わせ','メモ'] }} defaultContext={{ opportunity_id: id }} />
-                <Link href={`/activities/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
-              </div>
-            </AuthGuard>
-          </div>
-          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
-            {activitiesList.map((a) => (
-              <div key={a.id} className="px-4 py-3 hover:bg-zinc-50">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-zinc-400">{ACTIVITY_TYPE_LABELS[a.type] ?? a.type}</span>
-                  <span className="text-xs text-zinc-400">•</span>
-                  <span className="text-xs text-zinc-400">{a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}</span>
-                </div>
-                <Link href={`/activities/${a.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600">{a.subject}</Link>
-                {a.body && <p className="text-xs text-zinc-500 mt-1">{a.body}</p>}
-                <OtherRelationsChips relations={(activityRelMap.get(a.id) ?? []).filter(isNotSelf)} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {tasksList.length > 0 && (
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-zinc-800">ToDo <span className="text-zinc-400 font-normal text-sm">({tasksList.length})</span></h2>
-            <AuthGuard minRole="editor">
-              <div className="flex items-center gap-2">
-                <TextImportModal importUrl="/api/import/tasks" title="ToDoインポート" csvFormat="ID,タイトル,期日,優先度,完了,担当者名" fieldOptions={{ '優先度': ['高','中','低'], '完了': ['完了（済みの場合）','空（未完了の場合）'] }} defaultContext={{ opportunity_id: id }} />
-                <Link href={`/tasks/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
-              </div>
-            </AuthGuard>
-          </div>
-          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
-            {tasksList.map((t) => {
-              const priority  = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
-              const isOverdue = !t.done && t.due_date && new Date(t.due_date) < new Date()
-              return (
-                <div key={t.id} className={`flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 ${t.done ? 'opacity-60' : ''}`}>
-                  <AuthGuard minRole="editor">
-                    <form action={toggleTask} className="shrink-0">
-                      <input type="hidden" name="task_id" value={t.id} />
-                      <input type="hidden" name="done" value={(!t.done).toString()} />
-                      <button type="submit" className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${t.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
-                        {t.done && <span className="text-xs leading-none">✓</span>}
-                      </button>
-                    </form>
-                  </AuthGuard>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Link href={`/tasks/${t.id}`} className={`text-sm hover:text-blue-600 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}`}>{t.title}</Link>
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
-                    </div>
-                    {t.due_date && <p className={`text-xs mt-0.5 inline-flex items-center gap-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{new Date(t.due_date).toLocaleDateString('ja-JP')}{isOverdue && ' (期限超過)'}</p>}
-                    <OtherRelationsChips relations={(taskRelMap.get(t.id) ?? []).filter(isNotSelf)} />
-                  </div>
-                  <AuthGuard minRole="editor">
-                    <Link href={`/tasks/${t.id}/edit`} className="text-xs text-zinc-400 hover:text-zinc-700 shrink-0">編集</Link>
-                  </AuthGuard>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
-
-      {expensesList.length > 0 && (
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold text-zinc-800">経費 <span className="text-zinc-400 font-normal text-sm">({expensesList.length})</span></h2>
-            <AuthGuard minRole="editor">
-              <div className="flex items-center gap-2">
-                <TextImportModal importUrl="/api/import/expenses" title="経費インポート" csvFormat="ID,件名,金額,カテゴリ,日付,備考" fieldOptions={{ 'カテゴリ': ['交通費','接待費','通信費','消耗品費','広告費','外注費','その他'] }} defaultContext={{ opportunity_id: id }} />
-                <Link href={`/expenses/new?opportunity_id=${id}`} className="text-xs text-blue-600 hover:text-blue-800">＋ 追加</Link>
-              </div>
-            </AuthGuard>
-          </div>
-          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100">
-            {expensesList.map((e) => (
-              <div key={e.id} className="px-4 py-3 hover:bg-zinc-50">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <Link href={`/expenses/${e.id}`} className="text-sm font-medium text-zinc-800 hover:text-blue-600 block truncate">{e.title}</Link>
-                    <p className="text-xs text-zinc-400 mt-0.5">{e.category} · {e.expense_date}</p>
-                  </div>
-                  <span className="text-sm font-semibold text-orange-600 shrink-0">¥{Number(e.amount).toLocaleString()}</span>
-                </div>
-                <OtherRelationsChips relations={(expenseRelMap.get(e.id) ?? []).filter(isNotSelf)} />
-              </div>
-            ))}
-            <div className="px-4 py-2 bg-zinc-50 flex justify-between items-center">
-              <span className="text-xs font-semibold text-zinc-500">合計</span>
-              <span className="text-sm font-bold text-orange-700">¥{expensesList.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}</span>
-            </div>
-          </div>
-        </section>
-      )}
-    </>
-  )
-
-  // ── 履歴タブ ─────────────────────────────────────────────────────
-  const changeLogCount = Number(changeLogCountRow[0]?.c ?? 0)
-  const historyContent = (
-    <div className="bg-white border border-zinc-200 rounded-lg px-4 py-2">
-      <ChangeLogSection objectType="opportunity" objectId={id} />
-    </div>
-  )
-
-  const tabsConfig: TabDef[] = [
-    { id: 'overview', label: '概要', content: overviewContent },
+      ),
+    },
+    {
+      id: 'links', label: '関連レコード', icon: <Link2 />,
+      content: <div className="px-4 py-3"><RelatedRecordsSection objectType="opportunities" recordId={id} pagePath={`/opportunities/${id}`} /></div>,
+    },
   ]
-  // AI まとめボタンと活動セクションを束ねる（タブの実コンテンツ）
-  // 注: AI 機能フラグ (AI_FEATURE_ENABLED) が false の場合はボタン自体を出さない。
-  const aiEnabled = await isAIFeatureEnabled()
-  const interactionsWithAI = (
-    <>
-      {aiEnabled && (
-        <AuthGuard minRole="editor">
-          <div className="mb-4 flex justify-end">
-            <AISummaryButton label="AI で活動をまとめる" action={handleSummarize} />
-          </div>
-        </AuthGuard>
-      )}
-      {interactionsContent}
-    </>
-  )
-
-  tabsConfig.push({
-    id: 'interactions',
-    label: '活動・ToDo・経費',
-    badge: interactionCount > 0 ? interactionCount : undefined,
-    content: interactionsWithAI,
-  })
-  if (changeLogCount > 0) {
-    tabsConfig.push({ id: 'history', label: '履歴', badge: changeLogCount, content: historyContent })
-  }
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl">
+    <div className="p-4 md:p-8 max-w-7xl">
       <RecordHeader
-        crumbs={[
-          { label: '商談', href: '/opportunities' },
-          { label: opportunity.name },
-        ]}
+        crumbs={[{ label: '商談', href: '/opportunities' }, { label: opportunity.name }]}
         avatar={<Briefcase className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
         title={opportunity.name}
-        badges={
-          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${({
-            prospecting:   'bg-zinc-100 text-zinc-600',
-            qualification: 'bg-blue-100 text-blue-700',
-            proposal:      'bg-violet-100 text-violet-700',
-            negotiation:   'bg-amber-100 text-amber-700',
-            closed_won:    'bg-green-100 text-green-700',
-            closed_lost:   'bg-red-100 text-red-600',
-          } as Record<string, string>)[opportunity.stage] ?? 'bg-zinc-100 text-zinc-600'}`}>{STAGE_LABEL[opportunity.stage] ?? opportunity.stage}</span>
-        }
+        badges={<Badge tone={STAGE_TONE[opportunity.stage] ?? 'neutral'} dot>{STAGE_LABEL[opportunity.stage] ?? opportunity.stage}</Badge>}
         meta={[
-          ...(account ? [{ icon: <Building2 className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name}</Link> }] : []),
-          ...(opportunity.amount ? [{ icon: <Wallet className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: `¥${Number(opportunity.amount).toLocaleString()}` }] : []),
-          ...(opportunity.probability != null ? [{ icon: <Percent className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '確度', value: `${opportunity.probability}%` }] : []),
-          ...(opportunity.close_date ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '完了予定', value: opportunity.close_date }] : []),
+          ...(account ? [{ icon: <Building2 className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: <Link href={`/accounts/${account.id}`} className="text-brand-700 hover:underline">{account.name}</Link> }] : []),
+          ...(ownerName ? [{ icon: <UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '担当', value: ownerName }] : []),
         ]}
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
+              {aiEnabled && <AISummaryButton label="AIで活動をまとめる" action={handleSummarize} />}
               <InlineEditButton />
               <DeleteButton action={handleDelete} confirmMessage="この商談を削除しますか？" />
             </div>
@@ -618,60 +317,67 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         }
       />
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
-        {/* メイン */}
-        <div className="min-w-0">
-          <RecordTabs defaultTab="overview" tabs={tabsConfig} />
-          <div className="mt-6 text-right">
-            <RecordId id={id} />
-          </div>
-        </div>
-
-        {/* 右レール（design_handoff: Opportunity Detail） */}
-        <aside className="space-y-4 lg:sticky lg:top-20">
-          {ownerName && (
-            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />担当者</h4>
-              <div className="flex items-center gap-2.5">
-                <span className="grid place-items-center w-9 h-9 rounded-full bg-brand-600 text-white text-sm font-bold shrink-0">{ownerName.trim()[0]}</span>
-                <span className="text-sm font-semibold text-zinc-900 truncate">{ownerName}</span>
-              </div>
-            </div>
-          )}
-
-          {(account || contact) && (
-            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Building2 className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />関連先</h4>
-              <div className="space-y-2 text-sm text-zinc-700">
-                {account && <div className="flex items-center gap-2 min-w-0"><Building2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline truncate">{account.name}</Link></div>}
-                {contact && <div className="flex items-center gap-2 min-w-0"><UserRound className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} aria-hidden /><Link href={`/contacts/${contact.id}`} className="text-blue-600 hover:underline truncate">{contact.full_name}</Link></div>}
-              </div>
-            </div>
-          )}
-
-          {(opportunity.amount || opportunity.probability != null || opportunity.close_date) && (
-            <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-              <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Wallet className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />金額サマリー</h4>
-              <div className="space-y-2 text-sm">
-                {opportunity.amount && (
-                  <div className="flex justify-between"><span className="text-zinc-500">金額</span><span className="font-semibold text-zinc-800">¥{Number(opportunity.amount).toLocaleString()}</span></div>
-                )}
-                {opportunity.probability != null && (
-                  <div className="flex justify-between"><span className="text-zinc-500">確度</span><span className="font-semibold text-zinc-800">{opportunity.probability}%</span></div>
-                )}
-                {opportunity.close_date && (
-                  <div className="flex justify-between"><span className="text-zinc-500">完了予定</span><span className="font-semibold text-zinc-800">{opportunity.close_date}</span></div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-            <h4 className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-3"><Tag className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />タグ</h4>
-            <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
-          </div>
-        </aside>
+      <div className="mb-5">
+        <StageBar stages={OPPORTUNITY_STAGES} currentStage={opportunity.stage} updateAction={changeStage} />
       </div>
+
+      <KpiBand items={kpis} />
+
+      <RecordColumns
+        left={
+          <>
+            <EditableInfoCard
+              title="商談情報"
+              dense
+              canEdit={editFlag}
+              showEditButton={false}
+              action={saveOppBasic}
+              fields={[
+                { label: 'ステージ', view: STAGE_LABEL[opportunity.stage] ?? opportunity.stage },
+                { label: '完了予定', name: 'close_date', kind: 'date', value: opportunity.close_date ? String(opportunity.close_date).slice(0, 10) : '', view: opportunity.close_date ?? '—' },
+                { label: isReal && opportunity.transaction_type === '賃貸' ? '月額賃料' : '金額', name: 'amount', kind: 'number', value: opportunity.amount != null ? String(opportunity.amount) : '', view: opportunity.amount ? `¥${Number(opportunity.amount).toLocaleString()}` : '—' },
+                { label: '確度', name: 'probability', kind: 'number', value: opportunity.probability != null ? String(opportunity.probability) : '', view: opportunity.probability != null ? `${opportunity.probability}%` : '—' },
+                { label: '担当者', name: 'owner_id', kind: 'select', value: opportunity.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
+                { label: '登録日', view: opportunity.created_at ? new Date(opportunity.created_at).toLocaleDateString('ja-JP') : '—' },
+                { label: '概要・メモ', name: 'description', kind: 'textarea', value: opportunity.description, fullWidth: true, view: opportunity.description ? opportunity.description : <span className="text-zinc-300">—</span> },
+              ]}
+            />
+
+            {realEstateCard}
+            {autoBodyCard}
+
+            {customData.fields.length > 0 && <CustomFieldsCard fields={customData.fields} values={customData.values} />}
+
+            <RefCard title="取引先・連絡先" icon={<Building2 />}>
+              {account && <MiniItem icon={<Building2 />} iconClass="bg-brand-50 text-brand-700" title={account.name} sub="取引先" href={`/accounts/${account.id}`} right={<NavIcon icon="↗" className="w-3.5 h-3.5" />} />}
+              {contact && <MiniItem icon={<UserRound />} title={contact.full_name} sub="人物" href={`/contacts/${contact.id}`} />}
+              {ownerName && <MiniItem icon={ownerName.trim()[0]} iconClass="bg-brand-600 text-white" title={ownerName} sub="担当" />}
+              {!account && !contact && !ownerName && <p className="text-sm text-zinc-400">—</p>}
+            </RefCard>
+
+            <RefCard title="タグ" icon={<Tag />}>
+              <TagsSection objectType="opportunity" objectId={id} revalidatePath={`/opportunities/${id}`} />
+            </RefCard>
+          </>
+        }
+      >
+        <RecordTabPanel
+          tabs={[
+            { id: 'flow', label: 'アクティビティ', icon: <Activity />, count: interactionCount, content: <ActivityStream events={stream} composer={composer} /> },
+            { id: 'related', label: '関連情報', icon: <Folder />, count: attachmentsList.length, content: <RelatedSegments segments={segments} /> },
+          ]}
+        />
+        <div className="mt-4 text-right"><RecordId id={id} /></div>
+      </RecordColumns>
+    </div>
+  )
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <dt className="text-zinc-500 shrink-0">{label}</dt>
+      <dd className="text-zinc-900 text-right min-w-0">{value}</dd>
     </div>
   )
 }
