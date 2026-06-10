@@ -29,6 +29,7 @@ export async function createSavedView(
     scope,
     user_id:       scope === 'user' ? userId : null,
     is_default:    false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle insert の型を緩める
   } as any)
   revalidatePath(path)
 }

@@ -37,6 +37,8 @@ export default function DynamicForm({
   userOptions,
   defaultOwnerId,
 }: Props) {
+  const formRef = useRef<HTMLFormElement | null>(null)
+  const [isDirty, setIsDirty] = useState(false)
   const [state, dispatch, isPending] = useActionState<CreateState, FormData>(
     async (_prev, fd) => {
       try {
@@ -50,9 +52,6 @@ export default function DynamicForm({
     },
     null,
   )
-
-  const formRef   = useRef<HTMLFormElement | null>(null)
-  const [isDirty, setIsDirty] = useState(false)
 
   const visibleFields = fields.filter((f) => f.is_visible)
 
@@ -98,7 +97,7 @@ export default function DynamicForm({
   // ── ボタン（上下共通） ──────────────────────────────────────
   // 離脱確認はドキュメントレベルのクリックインターセプターで処理するため
   // Link の onClick は不要（二重確認を避ける）
-  const Buttons = () => (
+  const renderButtons = () => (
     <div className="flex gap-3">
       <button
         type="submit"
@@ -128,7 +127,7 @@ export default function DynamicForm({
       <CreateFeedback state={state} formRef={formRef} />
 
       {/* ── 上部ボタン ── */}
-      <Buttons />
+      {renderButtons()}
 
       {visibleFields.map((field) => {
         // ── セクション区切り（取引先スタイル） ──
@@ -240,7 +239,7 @@ export default function DynamicForm({
 
       {/* ── 下部ボタン ── */}
       <div className="pt-2">
-        <Buttons />
+        {renderButtons()}
       </div>
     </form>
   )

@@ -45,8 +45,8 @@ export default async function ReceivablesPage() {
   // ── アジング集計 ─────────────────────────────────────
   const agingTotals = new Map<string, { count: number; total: number }>()
   for (const b of AGING_BUCKETS) agingTotals.set(b.label, { count: 0, total: 0 })
-  let nullBucket = { count: 0, total: 0 }       // 請求日未設定
-  let futureBucket = { count: 0, total: 0 }     // 請求日が未来（請求前）
+  const nullBucket = { count: 0, total: 0 }       // 請求日未設定
+  const futureBucket = { count: 0, total: 0 }     // 請求日が未来（請求前）
   for (const r of rows) {
     if (r.daysOverdue == null) {
       nullBucket.count++

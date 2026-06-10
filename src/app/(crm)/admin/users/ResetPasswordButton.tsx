@@ -25,6 +25,7 @@ export default function ResetPasswordButton({ userId, email, isSelf }: Props) {
   // 成功通知 → 2 秒後にモーダル close
   useEffect(() => {
     if (result === 'success' && !pending) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Server Action 完了後の成功通知
       setJustSucceeded(true)
       const t = setTimeout(() => {
         setOpen(false)

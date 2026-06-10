@@ -58,6 +58,7 @@ export default function RecordTabs({ defaultTab, tabs, paramName = 'tab' }: Prop
   useEffect(() => {
     if (urlTab) {
       const found = tabs.find((x) => x.id === urlTab)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL クエリ変化に追随（soft navigation）
       if (found && found.id !== active) setActive(found.id)
     }
     // urlTab が null（クエリ無し）の場合は明示的に defaultTab に戻さず、

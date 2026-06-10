@@ -53,7 +53,8 @@ async function main() {
   console.log(`\n📋 vehicles テーブル: ${allVehicles.length} 件`)
 
   // 3. custom_records へ INSERT or UPDATE（同一 UUID）
-  let inserted = 0, updated = 0, skipped = 0
+  let inserted = 0, updated = 0
+  const skipped = 0
 
   for (const v of allVehicles) {
     const data = {

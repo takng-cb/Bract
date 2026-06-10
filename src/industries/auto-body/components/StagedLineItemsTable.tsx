@@ -165,6 +165,7 @@ export default function StagedLineItemsTable({
   // ローカル rows にまだ無い DB 行だけマージで追加する。
   // ユーザーの未保存ローカル編集 (edited / new / deleted) は維持する。
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 親の再フェッチで増えた DB 行のみマージ（未保存編集は維持）
     setRows((current) => {
       const knownDbIds = new Set(current.map((r) => r._dbId).filter((id): id is string => !!id))
       const newcomers  = initial.filter((i) => i._dbId && !knownDbIds.has(i._dbId))
