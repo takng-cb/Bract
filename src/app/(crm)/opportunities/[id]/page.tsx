@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { Briefcase, Building2, Wallet, CalendarDays, UserRound, Tag, Activity, Link2, TrendingUp, Folder } from 'lucide-react'
-import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs } from '@/lib/schema'
+import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs, opportunity_products, products, parts } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
 import { eq, and, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
@@ -37,6 +37,7 @@ import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, RecordTable, RecordTa
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
 import RelatedSegments, { type RelatedSegment } from '@/components/record/RelatedSegments'
+import OpportunityProductsEditor, { type ProductOption } from '@/components/opportunity/OpportunityProductsEditor'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -107,6 +108,21 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     ? await db.select({ id: vehicles.id, maker: vehicles.maker, model: vehicles.model, license_plate: vehicles.license_plate, year: vehicles.year })
         .from(vehicles).where(eq(vehicles.id, opportunity.vehicle_id)).then((r) => r[0] ?? null)
     : null
+
+  // ── 商品明細（#5）＋ 紐付け候補（商品マスタ＋部品）──
+  const [productLines, productMaster, partMaster] = await Promise.all([
+    db.select().from(opportunity_products).where(eq(opportunity_products.opportunity_id, id)).orderBy(asc(opportunity_products.sort_order), asc(opportunity_products.created_at)),
+    db.select({ id: products.id, name: products.name, unit_price: products.unit_price }).from(products).orderBy(asc(products.name)),
+    db.select({ id: parts.id, name: parts.name, unit_price: parts.unit_price }).from(parts).orderBy(asc(parts.name)),
+  ])
+  const productOptions: ProductOption[] = [
+    ...productMaster.map((p) => ({ value: `product:${p.id}`, label: `🛍 ${p.name}`, price: p.unit_price != null ? Number(p.unit_price) : null })),
+    ...partMaster.map((p) => ({ value: `part:${p.id}`, label: `🪛 ${p.name}`, price: p.unit_price != null ? Number(p.unit_price) : null })),
+  ]
+  const productLinesForUi = productLines.map((l) => ({
+    id: l.id, product_object_api: l.product_object_api, product_record_id: l.product_record_id,
+    name: l.name, quantity: l.quantity, unit_price: l.unit_price, note: l.note,
+  }))
 
   async function saveOppBasic(formData: FormData) { 'use server'; await updateOpportunityBasic(id, formData) }
   async function changeStage(stage: string) { 'use server'; await updateOpportunityStage(id, stage) }
@@ -364,6 +380,16 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </>
         }
       >
+        {/* 商品セクション（#5） */}
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs mb-4">
+          <div className="px-4 py-2.5 border-b border-zinc-100">
+            <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5"><NavIcon icon="📦" className="w-4 h-4" /><span>商品</span></h2>
+          </div>
+          <div className="p-4">
+            <OpportunityProductsEditor opportunityId={id} lines={productLinesForUi} productOptions={productOptions} canEdit={editFlag} />
+          </div>
+        </section>
+
         <RecordTabPanel
           tabs={[
             { id: 'flow', label: 'アクティビティ', icon: <Activity />, count: interactionCount, content: <ActivityStream events={stream} composer={composer} /> },

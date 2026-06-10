@@ -97,6 +97,25 @@ export const opportunities = pgTable('opportunities', {
 })
 
 // ----------------------------------------------------------------
+// opportunity_products（商談の商品明細）#5
+//   商談に「商品系レコード」（products / parts 等）を明細として紐付ける専用テーブル。
+//   紐付け先は polymorphic（product_object_api + product_record_id）。name はスナップショット。
+// ----------------------------------------------------------------
+export const opportunity_products = pgTable('opportunity_products', {
+  id:                 uuid('id').primaryKey().defaultRandom(),
+  opportunity_id:     uuid('opportunity_id').notNull().references(() => opportunities.id, { onDelete: 'cascade' }),
+  product_object_api: text('product_object_api').notNull().default('product'),
+  product_record_id:  uuid('product_record_id'),
+  name:               text('name').notNull(),
+  quantity:           numeric('quantity').notNull().default('1'),
+  unit_price:         numeric('unit_price'),
+  note:               text('note'),
+  sort_order:         integer('sort_order').notNull().default(0),
+  created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:         timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+// ----------------------------------------------------------------
 // activities（活動履歴）
 // ----------------------------------------------------------------
 export const activities = pgTable('activities', {
