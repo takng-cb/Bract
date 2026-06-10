@@ -7,6 +7,7 @@ import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 import CreateFeedback from '@/components/CreateFeedback'
+import FormSection from '@/components/FormSection'
 import type { CreateAction } from '@/lib/duplicateTypes'
 import {
   TRANSACTION_TYPES,
@@ -174,50 +175,54 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
   const amountHelper = isRent ? '賃貸 - 月額（税抜）' : '物件販売価格・税抜'
   const brokerageOptions = brokerageTypesFor(transactionType)
 
+  const actions = (
+    <div className="flex gap-3">
+      <button
+        type="submit"
+        disabled={pending}
+        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
+        {pending ? '保存中...' : '保存'}
+      </button>
+      <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+        キャンセル
+      </Link>
+    </div>
+  )
+
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-4">
       <CreateFeedback state={state} formRef={formRef} />
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
 
-      <div className="flex items-center gap-3">
-        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
-        <span className="text-sm font-bold text-zinc-700 tracking-wide">基本情報</span>
-        <div className="flex-1 h-px bg-zinc-200" />
-        <FormFillModal
-          formRef={formRef}
-          csvFormat={activeIndustry === 'real-estate'
-            ? "商談名,ステージ,金額,完了予定日,確度(%),説明,取引区分,仲介手数料,仲介種別,その他利益"
-            : "商談名,ステージ,金額,完了予定日,確度(%),説明"}
-          fieldMap={{
-            '商談名': 'name', 'ステージ': 'stage', '金額': 'amount',
-            '完了予定日': 'close_date', '確度(%)': 'probability', '説明': 'description',
-            ...(activeIndustry === 'real-estate' ? {
-              '取引区分': 'transaction_type',
-              '仲介手数料': 'commission_fee', '仲介種別': 'brokerage_type', 'その他利益': 'other_profit',
-            } : {}),
-          }}
-          valueMap={{
-            stage: {
-              '見込み': 'prospecting', '要件確認': 'qualification', '提案': 'proposal',
-              '交渉': 'negotiation', '受注': 'closed_won', '失注': 'closed_lost',
-            },
-          }}
-          customFields={customFields}
-        />
-      </div>
-
+      <FormSection
+        title="基本情報"
+        action={
+          <FormFillModal
+            formRef={formRef}
+            csvFormat={activeIndustry === 'real-estate'
+              ? "商談名,ステージ,金額,完了予定日,確度(%),説明,取引区分,仲介手数料,仲介種別,その他利益"
+              : "商談名,ステージ,金額,完了予定日,確度(%),説明"}
+            fieldMap={{
+              '商談名': 'name', 'ステージ': 'stage', '金額': 'amount',
+              '完了予定日': 'close_date', '確度(%)': 'probability', '説明': 'description',
+              ...(activeIndustry === 'real-estate' ? {
+                '取引区分': 'transaction_type',
+                '仲介手数料': 'commission_fee', '仲介種別': 'brokerage_type', 'その他利益': 'other_profit',
+              } : {}),
+            }}
+            valueMap={{
+              stage: {
+                '見込み': 'prospecting', '要件確認': 'qualification', '提案': 'proposal',
+                '交渉': 'negotiation', '受注': 'closed_won', '失注': 'closed_lost',
+              },
+            }}
+            customFields={customFields}
+          />
+        }
+      >
+        <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">
           商談名 <span className="text-red-500">*</span>
@@ -324,15 +329,13 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
           placeholder="商談の詳細を記入してください..."
         />
       </div>
+        </div>
+      </FormSection>
 
       {/* ── 不動産情報（INDUSTRY=real-estate のみ） ─── */}
-      {activeIndustry === 'real-estate' && (<>
-      <div className="flex items-center gap-3 pt-2">
-        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
-        <span className="text-sm font-bold text-zinc-700 tracking-wide">不動産情報</span>
-        <div className="flex-1 h-px bg-zinc-200" />
-      </div>
-
+      {activeIndustry === 'real-estate' && (
+      <FormSection title="不動産情報">
+        <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-1">取引区分</label>
         <select
@@ -421,17 +424,15 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
           仲介手数料 × {brokerageType === '両手' ? '2（両手）' : '1'} ＋ その他利益
         </p>
       </div>
-      </>)}
+        </div>
+      </FormSection>
+      )}
       {/* ── 不動産情報ここまで ─────────────────────── */}
 
       {/* ── 自動車整備情報（INDUSTRY=auto-body のみ） ─── */}
-      {activeIndustry === 'auto-body' && (<>
-      <div className="flex items-center gap-3 pt-2">
-        <div className="w-1 h-5 rounded-full bg-blue-500 shrink-0" />
-        <span className="text-sm font-bold text-zinc-700 tracking-wide">自動車整備情報</span>
-        <div className="flex-1 h-px bg-zinc-200" />
-      </div>
-
+      {activeIndustry === 'auto-body' && (
+      <FormSection title="自動車整備情報">
+        <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">サービス区分</label>
@@ -496,23 +497,18 @@ export default function OpportunityForm({ action, cancelHref, accounts, contacts
         </div>
         <p className="text-[11px] text-zinc-400 mt-1">売上 − 部品仕入原価</p>
       </div>
-      </>)}
+        </div>
+      </FormSection>
+      )}
       {/* ── 自動車整備情報ここまで ──────────────────── */}
 
-      <CustomFieldsFields fields={customFields} values={customValues} />
+      {customFields.length > 0 && (
+        <FormSection title="カスタム項目">
+          <CustomFieldsFields fields={customFields} values={customValues} />
+        </FormSection>
+      )}
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
     </form>
   )
 }
