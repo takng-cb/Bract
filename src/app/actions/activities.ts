@@ -99,6 +99,13 @@ export async function updateActivity(id: string, formData: FormData) {
   redirect(`/activities/${id}`)
 }
 
+/** 関連レコードのインライン編集用・junction 同期のみ。 */
+export async function updateActivityRelatedRecords(id: string, formData: FormData) {
+  await requireEditor()
+  await syncActivityRelatedRecords(id, parseRelatedRecords(formData))
+  redirect(`/activities/${id}`)
+}
+
 export async function deleteActivity(id: string) {
   await requireEditor()
   await db.delete(activities).where(eq(activities.id, id))

@@ -4,9 +4,11 @@ import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordId from '@/components/RecordId'
-import { deleteTask, toggleTaskDone, updateTaskBasic } from '@/app/actions/tasks'
+import { deleteTask, toggleTaskDone, updateTaskBasic, updateTaskRelatedRecords } from '@/app/actions/tasks'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
+import InlineRelatedRecordsEditor from '@/components/detail/InlineRelatedRecordsEditor'
+import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
@@ -44,7 +46,10 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   if (!task) notFound()
   const ownerName = task.owner_id ? (allUsers.find((u) => u.id === task.owner_id)?.name ?? null) : null
 
-  const allRelated = await resolveRelatedRecords(relatedPairs)
+  const [allRelated, pickerData] = await Promise.all([
+    resolveRelatedRecords(relatedPairs),
+    getRelatedRecordsPickerData('tasks'),
+  ])
   const priority   = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.medium
 
   async function handleDelete() {
@@ -55,6 +60,11 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   async function saveTaskInline(formData: FormData) {
     'use server'
     await updateTaskBasic(id, formData)
+  }
+
+  async function saveTaskRelated(formData: FormData) {
+    'use server'
+    await updateTaskRelatedRecords(id, formData)
   }
   const canEditFlag = await canEdit()
 
@@ -75,7 +85,6 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <InlineEditButton event="bract:edit-task" />
-              <Link href={`/tasks/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">関連</Link>
               <DeleteButton action={handleDelete} confirmMessage="このToDoを削除しますか？" />
             </div>
           </AuthGuard>
@@ -104,10 +113,15 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* 関連レコード（junction 経由で全件表示） */}
-      <div className="mb-4 bg-zinc-50 border border-zinc-200 rounded-md px-4 py-3">
-        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">関連レコード</p>
-        {allRelated.length > 0 ? (
+      {/* 関連レコード（閲覧⇄編集トグル） */}
+      <InlineRelatedRecordsEditor
+        canEdit={canEditFlag}
+        editEvent="bract:edit-task"
+        action={saveTaskRelated}
+        objectTypes={pickerData.objectTypes}
+        recordsByObject={pickerData.recordsByObject}
+        defaultValue={relatedPairs.map((p) => ({ object_api: p.object_api, record_id: p.record_id }))}
+        view={allRelated.length > 0 ? (
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {allRelated.map((r, i) => (
               <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-blue-600 hover:underline">
@@ -118,7 +132,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         ) : (
           <p className="text-sm text-zinc-400">紐づくレコードなし</p>
         )}
-      </div>
+      />
 
       <EditableInfoCard
         title="詳細情報"
