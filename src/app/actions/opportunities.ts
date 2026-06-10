@@ -154,6 +154,41 @@ export async function updateOpportunity(id: string, formData: FormData) {
   redirect(`/opportunities/${id}`)
 }
 
+/**
+ * 商談「商談情報」のインライン編集用・部分更新。
+ * 金額/完了予定日/確度/担当者/メモのみ更新し、ステージや業種別の財務項目
+ * （仲介手数料・部品仕入原価等）には一切触れない（取りこぼしによるデータ消失を防ぐ）。
+ */
+export async function updateOpportunityBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const amount      = formData.get('amount') as string
+  const close_date  = formData.get('close_date') as string
+  const probability = formData.get('probability') as string
+
+  const [before] = await db.select({
+    amount: opportunities.amount, close_date: opportunities.close_date,
+    probability: opportunities.probability, description: opportunities.description,
+  }).from(opportunities).where(eq(opportunities.id, id))
+
+  await db.update(opportunities).set({
+    amount:      amount ? String(Number(amount)) : null,
+    close_date:  close_date || null,
+    probability: probability ? Number(probability) : null,
+    description: (formData.get('description') as string) || null,
+    owner_id:    (formData.get('owner_id') as string) || null,
+    updated_at:  new Date(),
+  }).where(eq(opportunities.id, id))
+
+  if (before) {
+    await logChanges('opportunity', id,
+      { amount: { label: '金額', value: before.amount }, close_date: { label: '完了予定日', value: before.close_date }, probability: { label: '確度', value: before.probability } },
+      { amount: { label: '金額', value: amount ? Number(amount) : null }, close_date: { label: '完了予定日', value: close_date || null }, probability: { label: '確度', value: probability ? Number(probability) : null } },
+    )
+  }
+
+  redirect(`/opportunities/${id}`)
+}
+
 export async function deleteOpportunity(id: string) {
   await requireEditor()
   await cleanupRelatedRecordsForParent('opportunity', id)
