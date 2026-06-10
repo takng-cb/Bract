@@ -81,6 +81,34 @@ export async function updateProduct(id: string, formData: FormData): Promise<voi
   redirect(`/products/${id}`)
 }
 
+/** 商品情報カードのインライン編集用・部分更新（SKU/商品名/カテゴリ/担当には触れない）。 */
+export async function updateProductBasic(id: string, formData: FormData): Promise<void> {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('unit'))                set.unit = s(formData, 'unit')
+  if (formData.has('unit_price'))          set.unit_price = num(formData, 'unit_price')
+  if (formData.has('cost_price'))          set.cost_price = num(formData, 'cost_price')
+  if (formData.has('reorder_level'))       set.reorder_level = int(formData, 'reorder_level') ?? 0
+  if (formData.has('supplier_account_id')) set.supplier_account_id = s(formData, 'supplier_account_id')
+  if (formData.has('description'))         set.description = s(formData, 'description')
+  await db.update(products).set(set).where(eq(products.id, id))
+  revalidatePath('/products')
+  revalidatePath(`/products/${id}`)
+  redirect(`/products/${id}`)
+}
+
+/** 倉庫情報カードのインライン編集用・部分更新（名前/コードには触れない）。 */
+export async function updateWarehouseBasic(id: string, formData: FormData): Promise<void> {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('location')) set.location = s(formData, 'location')
+  if (formData.has('note'))     set.note = s(formData, 'note')
+  await db.update(warehouses).set(set).where(eq(warehouses.id, id))
+  revalidatePath('/warehouses')
+  revalidatePath(`/warehouses/${id}`)
+  redirect(`/warehouses/${id}`)
+}
+
 export async function deleteProduct(id: string): Promise<void> {
   await requireEditor()
   await db.delete(products).where(eq(products.id, id)) // cascade で stock_movements も削除
