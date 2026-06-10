@@ -9,7 +9,16 @@ import { eq, and, asc, desc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
-import { updateAccountStatus, deleteAccount } from '@/app/actions/accounts'
+import { updateAccountStatus, deleteAccount, updateAccount } from '@/app/actions/accounts'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
+
+// 取引先の種別/業種オプション（AccountForm と同期。将来は共有定数へ抽出）
+const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他社', 'その他']
+const ACCOUNT_INDUSTRIES = [
+  'IT・ソフトウェア', '製造業', '商社', '金融・保険', '医療・ヘルスケア',
+  '広告・マーケティング', '小売・EC', '食品・飲料', 'エネルギー', '教育', '不動産',
+  '弁護士', '司法書士', '税理士', '行政書士', 'その他',
+]
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import TagsSection from '@/components/TagsSection'
@@ -106,6 +115,12 @@ export default async function AccountDetailPage({
   // 編集権限ボイラープレートを抑制（hint だけに使う）
   void editFlag
 
+  // 基本情報のインライン編集（更新後 updateAccount が同URLへ redirect ＝閲覧へ戻る）
+  async function saveAccountInline(formData: FormData) {
+    'use server'
+    await updateAccount(id, formData)
+  }
+
   async function changeStatus(status: string) {
     'use server'
     await updateAccountStatus(id, status)
@@ -146,35 +161,27 @@ export default async function AccountDetailPage({
         <StageBar stages={ACCOUNT_STAGES} currentStage={account.status} updateAction={changeStatus} />
       </div>
 
-      {/* 基本情報 */}
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">基本情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[
-            { label: '従業員数', value: account.employee_count ? `${account.employee_count.toLocaleString()} 名` : null },
-            { label: '年間売上', value: account.annual_revenue ? `¥${Number(account.annual_revenue).toLocaleString()}` : null },
-            { label: '業種', value: account.industry },
-            { label: '取引先種別', value: account.type },
-          ].map(({ label, value, isLink }: { label: string; value: string | null; isLink?: boolean }) => (
-            <div key={label}>
-              <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
-              <dd className="text-sm text-zinc-800">
-                {value ? (
-                  isLink ? (
-                    <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{value}</a>
-                  ) : value
-                ) : '—'}
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-4 pt-4 border-t border-zinc-100">
-          <dt className="text-xs text-zinc-400 mb-1">概要・メモ</dt>
-          <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
-            {account.description ?? <span className="text-zinc-300">—</span>}
-          </dd>
-        </div>
-      </div>
+      {/* 基本情報（インライン編集・#112） */}
+      <EditableInfoCard
+        title="基本情報"
+        canEdit={editFlag}
+        action={saveAccountInline}
+        hiddenFields={[
+          { name: 'name', value: account.name },
+          { name: 'status', value: account.status ?? 'active' },
+          { name: 'phone', value: account.phone ?? '' },
+          { name: 'website', value: account.website ?? '' },
+          { name: 'address', value: account.address ?? '' },
+          { name: 'owner_id', value: account.owner_id ?? '' },
+        ]}
+        fields={[
+          { label: '従業員数', name: 'employee_count', kind: 'number', value: account.employee_count != null ? String(account.employee_count) : '', view: account.employee_count ? `${account.employee_count.toLocaleString()} 名` : '—' },
+          { label: '年間売上', name: 'annual_revenue', kind: 'number', value: account.annual_revenue != null ? String(account.annual_revenue) : '', view: account.annual_revenue ? `¥${Number(account.annual_revenue).toLocaleString()}` : '—' },
+          { label: '業種', name: 'industry', kind: 'select', value: account.industry, options: ACCOUNT_INDUSTRIES.map((i) => ({ value: i, label: i })), view: account.industry ?? '—' },
+          { label: '取引先種別', name: 'type', kind: 'select', value: account.type, options: ACCOUNT_TYPES.map((t) => ({ value: t, label: t })), view: account.type ?? '—' },
+          { label: '概要・メモ', name: 'description', kind: 'textarea', value: account.description, fullWidth: true, view: account.description ? account.description : <span className="text-zinc-300">—</span> },
+        ]}
+      />
 
       {/* カスタムフィールド */}
       {customData.fields.length > 0 && (
