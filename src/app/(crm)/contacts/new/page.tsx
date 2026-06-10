@@ -49,16 +49,14 @@ export default async function NewContactPage({
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">
         {contactType === 'consumer' ? '個人顧客を追加' : '法人担当者を追加'}
       </h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <ContactForm
-          action={createContactAction}
-          cancelHref={cancelHref}
-          accounts={accountsList}
-          users={allUsers}
-          defaultValues={{ account_id: account_id ?? '', contact_type: contactType }}
-          customFields={fields}
-        />
-      </div>
+      <ContactForm
+        action={createContactAction}
+        cancelHref={cancelHref}
+        accounts={accountsList}
+        users={allUsers}
+        defaultValues={{ account_id: account_id ?? '', contact_type: contactType }}
+        customFields={fields}
+      />
     </div>
   )
 }

@@ -45,17 +45,15 @@ export default async function EditContactPage({ params }: { params: Promise<{ id
         { label: '編集' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">人物を編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <ContactForm
-          action={updateContactAction}
-          cancelHref={`/contacts/${id}`}
-          accounts={accountsList}
-          users={allUsers}
-          defaultValues={contact}
-          customFields={customData.fields}
-          customValues={customData.values}
-        />
-      </div>
+      <ContactForm
+        action={updateContactAction}
+        cancelHref={`/contacts/${id}`}
+        accounts={accountsList}
+        users={allUsers}
+        defaultValues={contact}
+        customFields={customData.fields}
+        customValues={customData.values}
+      />
     </div>
   )
 }
