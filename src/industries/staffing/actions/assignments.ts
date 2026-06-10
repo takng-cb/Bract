@@ -78,6 +78,20 @@ export async function setAssignmentStatus(id: string, status: string) {
   revalidatePath('/assignments')
 }
 
+/** 業務情報カードのインライン編集用・部分更新（番号/顧客/ステータス/時間には触れない）。 */
+export async function updateAssignmentBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('service_date'))         set.service_date = pick(formData, 'service_date')
+  if (formData.has('service_type'))         set.service_type = pick(formData, 'service_type')
+  if (formData.has('service_location'))     set.service_location = pick(formData, 'service_location')
+  if (formData.has('staff_count_required')) set.staff_count_required = pickInt(formData, 'staff_count_required')
+  if (formData.has('client_total_fee'))     set.client_total_fee = pick(formData, 'client_total_fee')
+  if (formData.has('service_description'))  set.service_description = pick(formData, 'service_description')
+  await db.update(assignments).set(set).where(eq(assignments.id, id))
+  redirect(`/assignments/${id}`)
+}
+
 export async function updateAssignment(id: string, formData: FormData) {
   await requireEditor()
   const client_account_id = pick(formData, 'client_account_id')

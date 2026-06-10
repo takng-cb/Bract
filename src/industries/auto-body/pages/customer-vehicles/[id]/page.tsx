@@ -11,7 +11,9 @@ import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import AttachmentsSection from '@/components/AttachmentsSection'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
-import { deleteCustomerVehicle } from '@/industries/auto-body/actions/customerVehicles'
+import { deleteCustomerVehicle, updateCustomerVehicleBasic } from '@/industries/auto-body/actions/customerVehicles'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { AB_ICONS } from '@/industries/auto-body/lib/icons'
@@ -105,6 +107,13 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
 
   // 消耗品の前回交換集計 (Phase A item 4)
   const consumables = aggregateLatestConsumables(consumableLines as LineWithMaintenance[])
+
+  const editFlag = await canEdit()
+
+  async function saveCustomerVehicleInline(formData: FormData) {
+    'use server'
+    await updateCustomerVehicleBasic(id, formData)
+  }
 
   async function handleDelete() {
     'use server'
@@ -263,21 +272,22 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
             <dt className="text-xs text-zinc-400 mb-1">初年度</dt>
             <dd className="text-sm text-zinc-800">{[v.first_registration_year, v.first_registration_month].filter(Boolean).join(' / ') || '—'}</dd>
           </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">車検満了日</dt>
-            <dd className={`text-sm ${urgent ? 'text-red-600 font-semibold' : 'text-zinc-800'}`}>
-              {v.inspection_due_date ?? '—'}
-              {days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}
-            </dd>
-          </div>
         </dl>
-        {v.memo && (
-          <div className="mt-4 pt-4 border-t border-zinc-100">
-            <dt className="text-xs text-zinc-400 mb-1">メモ</dt>
-            <dd className="text-sm text-zinc-800 whitespace-pre-wrap">{v.memo}</dd>
-          </div>
-        )}
+        <p className="mt-4 pt-3 border-t border-zinc-100 text-xs text-zinc-400">登記情報の編集は右上「編集」から行えます。</p>
       </div>
+
+      {/* 車検・メモ（インライン編集） */}
+      <EditableInfoCard
+        title="車検・メモ"
+        canEdit={editFlag}
+        editEvent="bract:edit-customer-vehicle"
+        action={saveCustomerVehicleInline}
+        fields={[
+          { label: '車検満了日', name: 'inspection_due_date', kind: 'date', value: v.inspection_due_date ? String(v.inspection_due_date).slice(0, 10) : '',
+            view: <span className={urgent ? 'text-red-600 font-semibold' : ''}>{v.inspection_due_date ?? '—'}{days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}</span> },
+          { label: 'メモ', name: 'memo', kind: 'textarea', value: v.memo, fullWidth: true, view: v.memo ? v.memo : <span className="text-zinc-300">—</span> },
+        ]}
+      />
 
       {/* 添付ファイル (画像/PDF/書類など、車両に紐付くもの) */}
       <AttachmentsSection
