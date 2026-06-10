@@ -136,52 +136,41 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
         left={
           <>
             <EditableInfoCard
-              title="顧客・所有者"
+              title="顧客車両（全項目）"
               dense
               canEdit={editFlag}
               showEditButton={false}
               editEvent="bract:edit-customer-vehicle"
               action={saveCustomerVehicleInline}
               fields={[
-                { label: '取引先', name: 'account_id', kind: 'select', value: v.account_id ?? '', options: accountOptions, view: account && !accountIsPersonal ? <Link href={`/accounts/${account.id}`} className="text-brand-700 hover:underline">{AB_ICONS.account} {account.name}</Link> : <span className="text-zinc-300">—</span> },
-                { label: '顧客（人物）', name: 'contact_id', kind: 'select', value: v.contact_id ?? '', options: contactOptions, view: contact ? <Link href={`/contacts/${contact.id}`} className="text-brand-700 hover:underline">{AB_ICONS.contact} {contact.full_name}</Link> : <span className="text-zinc-300">—</span> },
-                { label: '社内担当', name: 'owner_id', kind: 'select', value: v.owner_id ?? '', options: userOptions, view: ownerName ?? <span className="text-zinc-300">—</span> },
-                { label: '連絡先', fullWidth: true, view: (contact?.phone ?? account?.phone) || contact?.email || account?.address ? (
+                { section: '顧客・所有者', label: '取引先', name: 'account_id', kind: 'select', value: v.account_id ?? '', options: accountOptions, view: account && !accountIsPersonal ? <Link href={`/accounts/${account.id}`} className="text-brand-700 hover:underline">{AB_ICONS.account} {account.name}</Link> : <span className="text-zinc-300">—</span> },
+                { section: '顧客・所有者', label: '顧客（人物）', name: 'contact_id', kind: 'select', value: v.contact_id ?? '', options: contactOptions, view: contact ? <Link href={`/contacts/${contact.id}`} className="text-brand-700 hover:underline">{AB_ICONS.contact} {contact.full_name}</Link> : <span className="text-zinc-300">—</span> },
+                { section: '顧客・所有者', label: '社内担当', name: 'owner_id', kind: 'select', value: v.owner_id ?? '', options: userOptions, view: ownerName ?? <span className="text-zinc-300">—</span> },
+                { section: '顧客・所有者', label: '連絡先', fullWidth: true, view: (contact?.phone ?? account?.phone) || contact?.email || account?.address ? (
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700">
                     {(contact?.phone ?? account?.phone) && <span className="inline-flex items-center gap-1"><NavIcon icon="📞" className="w-3.5 h-3.5 shrink-0" /> {contact?.phone ?? account?.phone}</span>}
                     {contact?.email && <span className="inline-flex items-center gap-1"><NavIcon icon="✉️" className="w-3.5 h-3.5 shrink-0" /> {contact.email}</span>}
                     {account?.address && <span className="inline-flex items-center gap-1"><NavIcon icon="📍" className="w-3.5 h-3.5 shrink-0" /> {account.address}</span>}
                   </div>
                 ) : <span className="text-zinc-400">—</span> },
-              ]}
-            />
-
-            <EditableInfoCard
-              title="車両情報（登録情報）"
-              dense
-              canEdit={editFlag}
-              showEditButton={false}
-              editEvent="bract:edit-customer-vehicle"
-              action={saveCustomerVehicleInline}
-              fields={[
-                { label: '運輸支局', name: 'transport_branch', kind: 'text', value: v.transport_branch, view: v.transport_branch ?? '—' },
-                { label: '分類番号', name: 'classification_number', kind: 'text', value: v.classification_number, view: v.classification_number ?? '—' },
-                { label: 'かな', name: 'kana', kind: 'text', value: v.kana, view: v.kana ?? '—' },
-                { label: 'ナンバー', name: 'plate_number', kind: 'text', value: v.plate_number, view: v.plate_number ? <span className="font-medium">{v.plate_number}</span> : '—' },
-                { label: '車名', name: 'car_name', kind: 'text', value: v.car_name, view: v.car_name ?? '—' },
-                { label: '車種', name: 'car_model', kind: 'text', value: v.car_model, view: v.car_model ?? '—' },
-                { label: 'グレード', name: 'grade', kind: 'text', value: v.grade, view: v.grade ?? '—' },
-                { label: '種別', name: 'vehicle_kind', kind: 'text', value: v.vehicle_kind, view: v.vehicle_kind ?? '—' },
-                { label: '用途', name: 'vehicle_usage', kind: 'text', value: v.vehicle_usage, view: v.vehicle_usage ?? '—' },
-                { label: '自家・事業', name: 'private_business', kind: 'text', value: v.private_business, view: v.private_business ?? '—' },
-                { label: '車体の形状', name: 'body_shape', kind: 'text', value: v.body_shape, view: v.body_shape ?? '—' },
-                { label: '車台番号', name: 'vin', kind: 'text', value: v.vin, view: v.vin ? <span className="font-mono">{v.vin}</span> : '—' },
-                { label: '型式', name: 'type_designation', kind: 'text', value: v.type_designation, view: v.type_designation ?? '—' },
-                { label: '類別区分', name: 'class_category', kind: 'text', value: v.class_category, view: v.class_category ?? '—' },
-                { label: '初年度（年）', name: 'first_registration_year', kind: 'number', value: v.first_registration_year != null ? String(v.first_registration_year) : '', view: v.first_registration_year ?? '—' },
-                { label: '初年度（月）', name: 'first_registration_month', kind: 'number', value: v.first_registration_month != null ? String(v.first_registration_month) : '', view: v.first_registration_month ?? '—' },
-                { label: '車検満了日', name: 'inspection_due_date', kind: 'date', value: v.inspection_due_date ? String(v.inspection_due_date).slice(0, 10) : '', view: <span className={urgent ? 'text-rose-600 font-semibold' : ''}>{v.inspection_due_date ?? '—'}{days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}</span> },
-                { label: 'メモ', name: 'memo', kind: 'textarea', value: v.memo, fullWidth: true, view: v.memo ? v.memo : <span className="text-zinc-300">—</span> },
+                { section: '車両登録情報', label: '運輸支局', name: 'transport_branch', kind: 'text', value: v.transport_branch, view: v.transport_branch ?? '—' },
+                { section: '車両登録情報', label: '分類番号', name: 'classification_number', kind: 'text', value: v.classification_number, view: v.classification_number ?? '—' },
+                { section: '車両登録情報', label: 'かな', name: 'kana', kind: 'text', value: v.kana, view: v.kana ?? '—' },
+                { section: '車両登録情報', label: 'ナンバー', name: 'plate_number', kind: 'text', value: v.plate_number, view: v.plate_number ? <span className="font-medium">{v.plate_number}</span> : '—' },
+                { section: '車両登録情報', label: '車名', name: 'car_name', kind: 'text', value: v.car_name, view: v.car_name ?? '—' },
+                { section: '車両登録情報', label: '車種', name: 'car_model', kind: 'text', value: v.car_model, view: v.car_model ?? '—' },
+                { section: '車両登録情報', label: 'グレード', name: 'grade', kind: 'text', value: v.grade, view: v.grade ?? '—' },
+                { section: '車両登録情報', label: '種別', name: 'vehicle_kind', kind: 'text', value: v.vehicle_kind, view: v.vehicle_kind ?? '—' },
+                { section: '車両登録情報', label: '用途', name: 'vehicle_usage', kind: 'text', value: v.vehicle_usage, view: v.vehicle_usage ?? '—' },
+                { section: '車両登録情報', label: '自家・事業', name: 'private_business', kind: 'text', value: v.private_business, view: v.private_business ?? '—' },
+                { section: '車両登録情報', label: '車体の形状', name: 'body_shape', kind: 'text', value: v.body_shape, view: v.body_shape ?? '—' },
+                { section: '車両登録情報', label: '車台番号', name: 'vin', kind: 'text', value: v.vin, view: v.vin ? <span className="font-mono">{v.vin}</span> : '—' },
+                { section: '車両登録情報', label: '型式', name: 'type_designation', kind: 'text', value: v.type_designation, view: v.type_designation ?? '—' },
+                { section: '車両登録情報', label: '類別区分', name: 'class_category', kind: 'text', value: v.class_category, view: v.class_category ?? '—' },
+                { section: '車両登録情報', label: '初年度（年）', name: 'first_registration_year', kind: 'number', value: v.first_registration_year != null ? String(v.first_registration_year) : '', view: v.first_registration_year ?? '—' },
+                { section: '車両登録情報', label: '初年度（月）', name: 'first_registration_month', kind: 'number', value: v.first_registration_month != null ? String(v.first_registration_month) : '', view: v.first_registration_month ?? '—' },
+                { section: '車両登録情報', label: '車検満了日', name: 'inspection_due_date', kind: 'date', value: v.inspection_due_date ? String(v.inspection_due_date).slice(0, 10) : '', view: <span className={urgent ? 'text-rose-600 font-semibold' : ''}>{v.inspection_due_date ?? '—'}{days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}</span> },
+                { section: 'メモ', label: 'メモ', name: 'memo', kind: 'textarea', value: v.memo, fullWidth: true, view: v.memo ? v.memo : <span className="text-zinc-300">—</span> },
               ]}
             />
 
