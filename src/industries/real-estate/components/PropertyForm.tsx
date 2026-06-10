@@ -100,7 +100,7 @@ export default function PropertyForm({
 
   const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
   const lbl   = 'block text-sm font-medium text-zinc-700 mb-1'
-  const sec   = 'border border-zinc-200 rounded-lg p-5 space-y-4 bg-zinc-50'
+  const sec   = 'bg-white border border-zinc-200 rounded-xl shadow-xs p-5 sm:p-6 space-y-4'
   const secH  = 'text-sm font-semibold text-zinc-700'
   const subH  = 'text-xs font-semibold text-zinc-500 border-b border-zinc-200 pb-1 mb-3'
 
