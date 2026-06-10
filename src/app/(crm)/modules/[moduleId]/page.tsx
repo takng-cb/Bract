@@ -4,6 +4,9 @@ import { Sparkles } from 'lucide-react'
 import { MODULE_REGISTRY, isModuleEnabled } from '@/lib/modules/registry'
 import { NavIcon } from '@/lib/navIcon'
 import PageHeader from '@/components/ui/PageHeader'
+import AutoBodyWidgets from '@/components/dashboard/AutoBodyWidgets'
+import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
+import { getCurrentUserId } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,10 +25,18 @@ export default async function ModuleDashboardPage({
   if (!(await isModuleEnabled(moduleId))) notFound()
 
   const headerIcon = mod.navItems?.[0]?.icon
+  const widgetPrefs = moduleId === 'auto-body' ? await getDashboardWidgetPrefs(await getCurrentUserId()) : null
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">
       <PageHeader icon={headerIcon} title={mod.name} description="モジュールのホーム" />
+
+      {/* このモジュールの状況ボード */}
+      {moduleId === 'auto-body' && (
+        <section className="mb-8">
+          <AutoBodyWidgets widgetPrefs={widgetPrefs} />
+        </section>
+      )}
 
       {/* クイック起点 */}
       {mod.quickActions && mod.quickActions.length > 0 && (
