@@ -106,6 +106,18 @@ export async function updateAccount(id: string, formData: FormData) {
   redirect(`/accounts/${id}`)
 }
 
+/** 連絡先のみ部分更新（右レールのインライン編集用） */
+export async function updateAccountContact(id: string, formData: FormData) {
+  await requireEditor()
+  await db.update(accounts).set({
+    phone:      (formData.get('phone') as string) || null,
+    website:    (formData.get('website') as string) || null,
+    address:    (formData.get('address') as string) || null,
+    updated_at: new Date(),
+  }).where(eq(accounts.id, id))
+  redirect(`/accounts/${id}`)
+}
+
 export async function deleteAccount(id: string) {
   await requireEditor()
   // Phase 2: FK 列削除に伴い、DB 側 ON DELETE CASCADE が無くなる。
