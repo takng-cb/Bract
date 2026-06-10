@@ -7,7 +7,8 @@ import { eq, and, asc, desc, inArray, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
-import { deleteContact } from '@/app/actions/contacts'
+import { deleteContact, updateContact } from '@/app/actions/contacts'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import TagsSection from '@/components/TagsSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
@@ -53,7 +54,7 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params
 
-  const [contact, activitiesList, tasksList, expensesList, attachmentsList, customData, , allUsers, activityTypes, changeLogCountRow] = await Promise.all([
+  const [contact, activitiesList, tasksList, expensesList, attachmentsList, customData, canEditFlag, allUsers, activityTypes, changeLogCountRow, accountsList] = await Promise.all([
     db.select({
       id: contacts.id, contact_type: contacts.contact_type, full_name: contacts.full_name, email: contacts.email,
       phone: contacts.phone, title: contacts.title, department: contacts.department,
@@ -81,6 +82,8 @@ export default async function ContactDetailPage({
     getActivityTypes(),
     db.select({ c: count() }).from(change_logs)
       .where(and(eq(change_logs.object_type, 'contact'), eq(change_logs.object_id, id))),
+    db.select({ id: accounts.id, name: accounts.name }).from(accounts)
+      .where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
   ])
 
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
@@ -103,6 +106,12 @@ export default async function ContactDetailPage({
   async function handleDelete() {
     'use server'
     await deleteContact(id)
+  }
+
+  // 基本情報のインライン編集（更新後 updateContact が同URLへ redirect ＝閲覧へ戻る）
+  async function saveContactInline(formData: FormData) {
+    'use server'
+    await updateContact(id, formData)
   }
 
   async function toggleTask(formData: FormData) {
@@ -131,61 +140,31 @@ export default async function ContactDetailPage({
   // ── 概要タブ ─────────────────────────────────────────────────────
   const overviewContent = (
     <>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">基本情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {isBiz && (
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">取引先</dt>
-              <dd className="text-sm text-zinc-800">
-                {account ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name}</Link> : '—'}
-              </dd>
-            </div>
-          )}
-          {isBiz && (
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">役職</dt>
-              <dd className="text-sm text-zinc-800">{contact.title ?? '—'}</dd>
-            </div>
-          )}
-          {isBiz && (
-            <div>
-              <dt className="text-xs text-zinc-400 mb-1">部署</dt>
-              <dd className="text-sm text-zinc-800">{contact.department ?? '—'}</dd>
-            </div>
-          )}
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">誕生日</dt>
-            <dd className="text-sm text-zinc-800">
-              {contact.birthday ? new Date(contact.birthday).toLocaleDateString('ja-JP') : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">メールアドレス</dt>
-            <dd className="text-sm text-zinc-800">
-              {contact.email ? <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">{contact.email}</a> : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">電話番号</dt>
-            <dd className="text-sm text-zinc-800">{contact.phone ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
-            <dd className="text-sm text-zinc-800">{ownerName ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
-            <dd className="text-sm text-zinc-800">{contact.created_at ? new Date(contact.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
-          </div>
-        </dl>
-        <div className="mt-4 pt-4 border-t border-zinc-100">
-          <dt className="text-xs text-zinc-400 mb-1">メモ</dt>
-          <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
-            {contact.description ?? <span className="text-zinc-300">—</span>}
-          </dd>
-        </div>
-      </div>
+      <EditableInfoCard
+        title="基本情報"
+        canEdit={canEditFlag}
+        action={saveContactInline}
+        hiddenFields={[
+          { name: 'full_name', value: contact.full_name },
+          { name: 'contact_type', value: contact.contact_type ?? 'business' },
+        ]}
+        fields={[
+          ...(isBiz ? [{
+            label: '取引先', name: 'account_id', kind: 'select' as const,
+            value: account?.id ?? '',
+            options: accountsList.map((a) => ({ value: a.id, label: a.name })),
+            view: account ? <Link href={`/accounts/${account.id}`} className="text-blue-600 hover:underline">{account.name}</Link> : '—',
+          }] : []),
+          ...(isBiz ? [{ label: '役職', name: 'title', kind: 'text' as const, value: contact.title, view: contact.title ?? '—' }] : []),
+          ...(isBiz ? [{ label: '部署', name: 'department', kind: 'text' as const, value: contact.department, view: contact.department ?? '—' }] : []),
+          { label: '誕生日', name: 'birthday', kind: 'date' as const, value: contact.birthday ? String(contact.birthday).slice(0, 10) : '', view: contact.birthday ? new Date(contact.birthday).toLocaleDateString('ja-JP') : '—' },
+          { label: 'メールアドレス', name: 'email', kind: 'email' as const, value: contact.email, view: contact.email ? <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">{contact.email}</a> : '—' },
+          { label: '電話番号', name: 'phone', kind: 'tel' as const, value: contact.phone, view: contact.phone ?? '—' },
+          { label: '担当者', name: 'owner_id', kind: 'select' as const, value: contact.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
+          { label: '登録日', view: contact.created_at ? new Date(contact.created_at).toLocaleDateString('ja-JP') : '—' },
+          { label: 'メモ', name: 'description', kind: 'textarea' as const, value: contact.description, fullWidth: true, view: contact.description ? contact.description : <span className="text-zinc-300">—</span> },
+        ]}
+      />
 
       {customData.fields.length > 0 && (
         <div className="mb-6">
