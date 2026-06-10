@@ -12,7 +12,9 @@ import RecordHeader from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { computeStockBalance } from '@/lib/inventory'
-import { deleteWarehouse } from '@/app/actions/inventory'
+import { deleteWarehouse, updateWarehouseBasic } from '@/app/actions/inventory'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +37,12 @@ export default async function WarehouseDetailPage({ params }: { params: Promise<
       .orderBy(asc(products.sku)),
   ])
   if (!w) notFound()
+  const editFlag = await canEdit()
+
+  async function saveWarehouseInline(formData: FormData) {
+    'use server'
+    await updateWarehouseBasic(id, formData)
+  }
 
   // 商品ごとに在庫を集計（この倉庫内）
   const byProduct = new Map<string, { name: string; sku: string; movements: { movement_type: string; quantity: number | null }[] }>()
@@ -69,21 +77,16 @@ export default async function WarehouseDetailPage({ params }: { params: Promise<
         }
       />
 
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">倉庫情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">所在地</dt>
-            <dd className="text-sm text-zinc-800">{w.location ?? '—'}</dd>
-          </div>
-        </dl>
-        {w.note && (
-          <div className="mt-4 pt-4 border-t border-zinc-100">
-            <dt className="text-xs text-zinc-400 mb-1">備考</dt>
-            <dd className="text-sm text-zinc-800 whitespace-pre-wrap">{w.note}</dd>
-          </div>
-        )}
-      </div>
+      <EditableInfoCard
+        title="倉庫情報"
+        canEdit={editFlag}
+        editEvent="bract:edit-warehouse"
+        action={saveWarehouseInline}
+        fields={[
+          { label: '所在地', name: 'location', kind: 'text', value: w.location, view: w.location ?? '—' },
+          { label: '備考', name: 'note', kind: 'textarea', value: w.note, fullWidth: true, view: w.note ? w.note : <span className="text-zinc-300">—</span> },
+        ]}
+      />
 
       <section className="mb-6">
         <h2 className="text-base font-semibold text-zinc-800 mb-3">この倉庫の在庫 <span className="text-zinc-400 font-normal text-sm">({stockList.length})</span></h2>
