@@ -60,21 +60,25 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     ],
   },
   'sales': {
-    id: 'sales', name: '営業', category: 'crm', dependsOn: ['crm-core'],
+    id: 'sales', name: '商談管理', category: 'crm', dependsOn: ['crm-core'],
     navItems: [
       { href: '/opportunities', label: '商談',     icon: '💼' },
       { href: '/forecast',      label: '売上予測', icon: '📊' },
     ],
-    books: [{ apiName: 'opportunities', label: '商談' }],
+    books: [
+      { apiName: 'opportunities', label: '商談' },
+      { apiName: 'forecast',      label: '売上予測' },
+    ],
     quickActions: [
       { label: '商談の新規作成', icon: '💼', kind: 'create', href: '/opportunities/new', book: 'opportunities' },
       { label: '商談の一覧',     icon: '💼', kind: 'list',   href: '/opportunities',     book: 'opportunities' },
+      { label: '売上予測を見る', icon: '📊', kind: 'list',   href: '/forecast',          book: 'forecast' },
     ],
   },
   'expenses': {
-    id: 'expenses', name: '経費', category: 'crm', dependsOn: ['crm-core'],
-    navItems: [{ href: '/expenses', label: '経費管理', icon: '💰' }],
-    books: [{ apiName: 'expenses', label: '経費管理' }],
+    id: 'expenses', name: '経費管理', category: 'crm', dependsOn: ['crm-core'],
+    navItems: [{ href: '/expenses', label: '経費', icon: '💰' }],
+    books: [{ apiName: 'expenses', label: '経費' }],
     quickActions: [
       { label: '経費の新規作成', icon: '💰', kind: 'create', href: '/expenses/new', book: 'expenses' },
       { label: '経費の一覧',     icon: '💰', kind: 'list',   href: '/expenses',     book: 'expenses' },
@@ -99,7 +103,7 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     ],
   },
   'real-estate': {
-    id: 'real-estate', name: '不動産', category: 'industry',
+    id: 'real-estate', name: '不動産管理', category: 'industry',
     dependsOn: ['crm-core', 'sales'], industry: 'real-estate',
     navItems: [{ href: '/properties', label: '物件', icon: '🏠' }],
     books: [{ apiName: 'properties', label: '物件' }],
