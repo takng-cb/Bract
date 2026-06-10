@@ -9,7 +9,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Settings, SquareCheckBig, Ticket, Building2, House, Tag, User, Users, Lightbulb,
   Banknote, Briefcase, LayoutDashboard, ClipboardList, NotebookPen, Inbox, Bell,
-  Link2, Library, Bot, Puzzle, Sparkles, Package, Wrench, Car, UserRound, Cog,
+  Link2, Library, Puzzle, Sparkles, Package, Wrench, Car, UserRound, Cog,
   CalendarClock, CarFront, Phone, Mail, Calendar, FileText, MapPin, ShieldCheck,
   AlertTriangle, Handshake, Receipt, Wallet, Contact, Map, Scale, Printer,
   ArrowLeftRight, CheckCircle2, Globe, Lock, LogOut, MessageSquare, Pencil,
@@ -38,7 +38,7 @@ export const EMOJI_TO_LUCIDE: Record<string, LucideIcon> = {
   '🔔': Bell,            // 通知
   '🔗': Link2,           // 関係/リンク
   '🗂️': Library,         // ブック/オブジェクト定義
-  '🤖': Bot,             // AI
+  '🤖': Sparkles,        // AI（アプリ全体で Sparkles に統一）
   '🧩': Puzzle,          // モジュール
   '✨': Sparkles,        // AI/クイック
   '📦': Package,         // モジュール既定/箱
