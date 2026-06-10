@@ -112,7 +112,7 @@ export default function MaintenanceBillingEditForm({ maintenanceId, initial }: P
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-md">{error}</div>
         )}
 
-        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+        <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Cell label="請求先種別" hint="顧客 / 保険会社 / リース会社 等">
               <select value={billingTarget} onChange={(e) => setBillingTarget(e.target.value)} className={`${FIELD_CLS} bg-white`}>
@@ -144,10 +144,10 @@ export default function MaintenanceBillingEditForm({ maintenanceId, initial }: P
               <input type="date" value={paymentDueDate} onChange={(e) => setPaymentDueDate(e.target.value)} className={FIELD_CLS} />
             </Cell>
           </div>
-        </section>
+        </div>
       </div>
 
-      <div className="sticky bottom-0 bg-white border-t border-zinc-200 mt-4 -mx-5 px-5 py-3 flex items-center justify-between">
+      <div className="mt-4 pt-3 border-t border-zinc-200 flex items-center justify-between">
         <p className="text-xs text-zinc-500">
           {dirty
             ? <><span className="text-blue-600 font-semibold">●</span> 未保存の変更があります</>

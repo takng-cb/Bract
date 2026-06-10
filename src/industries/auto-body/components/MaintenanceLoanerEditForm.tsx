@@ -181,7 +181,7 @@ export default function MaintenanceLoanerEditForm({
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-md">{error}</div>
         )}
 
-        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
+        <div>
           {/* 代車車両の選択（最重要） */}
           <Cell label="代車車両" hint="在庫の車両から選択。割り当てると車両ステータスが「代車中」になります。">
             <SearchableSelect
@@ -291,11 +291,11 @@ export default function MaintenanceLoanerEditForm({
               </div>
             </>
           )}
-        </section>
+        </div>
       </div>
 
-      {/* sticky フッタ */}
-      <div className="sticky bottom-0 bg-white border-t border-zinc-200 mt-4 -mx-5 px-5 py-3 flex items-center justify-between">
+      {/* フッタ */}
+      <div className="mt-4 pt-3 border-t border-zinc-200 flex items-center justify-between">
         <p className="text-xs text-zinc-500">
           {dirty
             ? <><span className="text-blue-600 font-semibold">●</span> 未保存の変更があります</>

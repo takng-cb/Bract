@@ -12,11 +12,16 @@
  */
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 
-const ModalContext = createContext<{ close: () => void } | null>(null)
+/**
+ * 編集 UI（フォーム）が「保存/キャンセル後に閲覧へ戻る」ために使う共有コンテキスト。
+ * SectionEditModal（展開パネル）と InlineSection（カード内トグル）の両方が
+ * この Provider を提供するので、各 *EditForm は実装を変えずどちらでも動く。
+ */
+export const SectionModalContext = createContext<{ close: () => void } | null>(null)
 
 /** 編集 UI から呼ぶフック。パネル外では null。 */
 export function useSectionModal(): { close: () => void } | null {
-  return useContext(ModalContext)
+  return useContext(SectionModalContext)
 }
 
 type Props = {
@@ -58,7 +63,7 @@ export default function SectionEditModal({ triggerLabel, title, children }: Prop
   }
 
   return (
-    <ModalContext.Provider value={{ close }}>
+    <SectionModalContext.Provider value={{ close }}>
       <div
         ref={panelRef}
         className="basis-full w-full mt-2 border border-blue-200 rounded-lg bg-white shadow-xs scroll-mt-20"
@@ -78,6 +83,6 @@ export default function SectionEditModal({ triggerLabel, title, children }: Prop
           {children}
         </div>
       </div>
-    </ModalContext.Provider>
+    </SectionModalContext.Provider>
   )
 }

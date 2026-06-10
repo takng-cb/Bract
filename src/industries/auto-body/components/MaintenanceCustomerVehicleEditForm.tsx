@@ -337,8 +337,8 @@ export default function MaintenanceCustomerVehicleEditForm({
         </div>
       </div>
 
-      {/* sticky フッタ */}
-      <div className="sticky bottom-0 bg-white border-t border-zinc-200 mt-4 -mx-5 px-5 py-3 flex items-center justify-between">
+      {/* フッタ */}
+      <div className="mt-4 pt-3 border-t border-zinc-200 flex items-center justify-between">
         <p className="text-xs text-zinc-500">
           {dirty
             ? <><span className="text-amber-700 font-semibold">●</span> 未保存の変更があります</>
