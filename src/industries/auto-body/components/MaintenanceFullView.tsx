@@ -270,7 +270,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         {/* 顧客・車両（統合パネル：顧客が上、車両が下） */}
         <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
           {/* ヘッダー（編集ボタン） */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
+          <div className="flex flex-wrap items-center justify-between gap-y-2 px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
             <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">顧客・車両</h3>
             <SectionEditModal triggerLabel={<><NavIcon icon="✏️" className="w-3.5 h-3.5" /> 編集</>} title="顧客・車両を編集">
               <MaintenanceCustomerVehicleEditForm
@@ -393,7 +393,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
 
         {/* 代車（Issue #45） */}
         <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-          <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
+          <div className="flex flex-wrap items-center justify-between gap-y-2 px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40">
             <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">代車</h3>
             <SectionEditModal triggerLabel={<><NavIcon icon="✏️" className="w-3.5 h-3.5" /> 編集</>} title="代車を編集">
               <MaintenanceLoanerEditForm
@@ -482,7 +482,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
             【整備】基本情報 + メモ
            ============================================================ */}
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-y-2 mb-3">
             <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5">
               <span>{AB_ICONS.maintenance}</span><span>整備</span>
             </h2>
@@ -547,7 +547,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
             【損傷】SVG 5 ビュー + ピン一覧
            ============================================================ */}
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-y-2 mb-3">
             <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-2">
               <NavIcon icon="📍" className="w-4 h-4" /> 損傷箇所（{damagePins.length} 件）
             </h2>
@@ -590,7 +590,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
 
         {/* 作業項目 */}
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-y-2 mb-3">
             <h2 className="text-sm font-bold text-zinc-700">{AB_ICONS.lineItem} 作業項目</h2>
             <SectionEditModal triggerLabel={<><NavIcon icon="✏️" className="w-3.5 h-3.5" /> 編集</>} title="作業項目を編集">
               <MaintenanceLineItemsEditor maintenanceId={maintenanceId} canEdit={editable} leverRate={m.lever_rate} />
@@ -667,7 +667,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* 諸費用 */}
           <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-y-2 mb-3">
               <h2 className="text-sm font-bold text-zinc-700">{AB_ICONS.fee} 諸費用</h2>
               <SectionEditModal triggerLabel={<><NavIcon icon="✏️" className="w-3.5 h-3.5" /> 編集</>} title="諸費用を編集">
                 <MaintenanceFeesEditor maintenanceId={maintenanceId} canEdit={editable} />
@@ -722,7 +722,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
 
           {/* 請求・支払（Issue #48 Phase 2） */}
           <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-y-2 mb-3">
               <h2 className="flex items-center gap-2 text-sm font-bold text-zinc-700"><NavIcon icon="💳" className="w-4 h-4" />請求・支払</h2>
               <SectionEditModal triggerLabel={<><NavIcon icon="✏️" className="w-3.5 h-3.5" /> 編集</>} title="請求・支払情報を編集">
                 <MaintenanceBillingEditForm
@@ -750,7 +750,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
 
           {/* 入金 */}
           <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-y-2 mb-3">
               <h2 className="text-sm font-bold text-zinc-700">{AB_ICONS.payment} 入金・預かり金</h2>
               <SectionEditModal triggerLabel={<><NavIcon icon="✏️" className="w-3.5 h-3.5" /> 編集</>} title="入金を編集">
                 <MaintenancePaymentsEditor maintenanceId={maintenanceId} canEdit={editable} users={users} invoiceTotal={invoiceTotal} />

@@ -1,23 +1,20 @@
 'use client'
 
 /**
- * 全体ビューの各セクションを編集するためのモーダルシェル。
+ * 全体ビューの各セクションを **その場で（インラインで）** 編集するためのトグルシェル。
  *
- * - トリガーボタン + モーダル開閉
- * - 中身の編集 UI は「保存」「キャンセル」ボタンを自前で持つことを想定
- * - 中身からは useSectionModal() で `close()` を呼んでモーダルを閉じる
- *
- * 重要: モーダルは React Portal で document.body に直接マウントする。
- * SectionEditModal が `<aside class="sticky">` のような新しい stacking
- * context の中に置かれていると、`position: fixed; z-50` でも親より上に
- * 出られず、StageBar 等が突き抜けて見える事象が発生するため。
+ * - 以前は React Portal で全画面モーダルを開いていたが、#112（閲覧⇄編集トグル）の
+ *   方針に合わせ、同じ位置に展開するインライン編集パネルへ変更した（ポップアップ廃止）。
+ * - 中身の編集 UI は「保存」「キャンセル」を自前で持つ想定。保存後は
+ *   `useSectionModal().close()` を呼んでパネルを閉じる（フックの API は従来と互換）。
+ * - パネルは flex ヘッダ内で `basis-full` により全幅で折り返す。呼び出し側のヘッダ
+ *   コンテナには `flex-wrap` を付けておくこと（付いていないと横に潰れる）。
  */
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 
 const ModalContext = createContext<{ close: () => void } | null>(null)
 
-/** モーダル内の編集 UI から呼ぶフック。モーダル外では null。 */
+/** 編集 UI から呼ぶフック。パネル外では null。 */
 export function useSectionModal(): { close: () => void } | null {
   return useContext(ModalContext)
 }
@@ -26,26 +23,18 @@ type Props = {
   triggerLabel: ReactNode
   title: string
   children: ReactNode
+  /** 後方互換のため受け取るが、インライン化により未使用。 */
   maxWidthClass?: string
 }
 
-export default function SectionEditModal({
-  triggerLabel,
-  title,
-  children,
-  // ほぼ全画面：左右 16px の余白だけ残してビューポート 100% に近い幅・高さ
-  maxWidthClass = 'max-w-[calc(100vw-2rem)]',
-}: Props) {
+export default function SectionEditModal({ triggerLabel, title, children }: Props) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
+  const panelRef = useRef<HTMLDivElement>(null)
 
-  // モーダル開時は背景スクロール抑止
+  // 開いたらパネルを画面内へスクロール
   useEffect(() => {
-    if (open) {
-      const prev = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      return () => { document.body.style.overflow = prev }
-    }
+    if (open) panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [open])
 
   // ESC で閉じる
@@ -56,47 +45,8 @@ export default function SectionEditModal({
     return () => document.removeEventListener('keydown', handler)
   }, [open])
 
-  // SSR ガード: document が無い環境ではポータルを作らない
-  const portalTarget =
-    typeof document !== 'undefined' ? document.body : null
-
-  const overlay = (
-    <ModalContext.Provider value={{ close }}>
-      <div
-        className="fixed inset-0 z-[100] flex items-stretch justify-center bg-black/40 backdrop-blur-[2px] p-2 sm:p-4 overflow-y-auto"
-        onClick={close}
-      >
-        <div
-          className={`bg-white rounded-lg shadow-xl w-full ${maxWidthClass} h-[calc(100vh-2rem)] sm:h-[calc(100vh-2rem)] flex flex-col`}
-          onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
-        >
-          {/* sticky ヘッダー */}
-          <div className="sticky top-0 bg-white border-b border-zinc-200 px-5 py-3 flex items-center justify-between rounded-t-lg z-10">
-            <h2 className="text-base font-semibold text-zinc-800">{title}</h2>
-            <button
-              type="button"
-              onClick={close}
-              className="w-8 h-8 flex items-center justify-center rounded-md text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 text-2xl leading-none"
-              aria-label="閉じる"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* 本文（中身が自前で 保存/キャンセル のフッタを持つ想定） */}
-          <div className="flex-1 overflow-y-auto p-5">
-            {children}
-          </div>
-        </div>
-      </div>
-    </ModalContext.Provider>
-  )
-
-  return (
-    <>
+  if (!open) {
+    return (
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -104,8 +54,30 @@ export default function SectionEditModal({
       >
         {triggerLabel}
       </button>
+    )
+  }
 
-      {open && portalTarget && createPortal(overlay, portalTarget)}
-    </>
+  return (
+    <ModalContext.Provider value={{ close }}>
+      <div
+        ref={panelRef}
+        className="basis-full w-full mt-2 border border-blue-200 rounded-lg bg-white shadow-xs scroll-mt-20"
+      >
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-blue-200 bg-blue-50/60 rounded-t-lg">
+          <h4 className="text-sm font-semibold text-zinc-800">{title}</h4>
+          <button
+            type="button"
+            onClick={close}
+            className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-800 hover:underline"
+            aria-label="編集を閉じる"
+          >
+            × 閉じる
+          </button>
+        </div>
+        <div className="p-4">
+          {children}
+        </div>
+      </div>
+    </ModalContext.Provider>
   )
 }
