@@ -117,7 +117,6 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
         { label: '編集' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">活動を編集</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <ActivityForm
           action={updateActivityAction}
           cancelHref={`/activities/${id}`}
@@ -136,7 +135,6 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
             related_records: defaultRelated,
           }}
         />
-      </div>
     </div>
   )
 }

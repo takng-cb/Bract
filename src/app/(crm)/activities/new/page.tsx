@@ -152,7 +152,6 @@ export default async function NewActivityPage({
         { label: '新規作成' },
       ]} />
       <h1 className="text-2xl font-bold text-zinc-900 mb-6">活動を記録</h1>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
         <ActivityForm
           action={createActivityAction}
           cancelHref={cancelHref}
@@ -165,7 +164,6 @@ export default async function NewActivityPage({
             owner_id:        currentUserId ?? null,
           }}
         />
-      </div>
     </div>
   )
 }

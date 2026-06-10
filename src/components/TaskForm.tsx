@@ -3,6 +3,7 @@
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
+import FormSection from '@/components/FormSection'
 import SearchableSelect from '@/components/SearchableSelect'
 import RelatedRecordsPicker, {
   type ObjectTypeOption,
@@ -36,34 +37,41 @@ export default function TaskForm({ action, cancelHref, objectTypes, recordsByObj
   const [error, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
+  const actions = (
+    <div className="flex gap-3">
+      <button
+        type="submit"
+        disabled={pending}
+        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
+        {pending ? '保存中...' : '保存'}
+      </button>
+      <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+        キャンセル
+      </Link>
+    </div>
+  )
+
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-4">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">{error}</div>
       )}
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
 
-      <div className="flex justify-end">
-        <FormFillModal
-          formRef={formRef}
-          csvFormat="タイトル,期日,優先度,詳細"
-          fieldMap={{ 'タイトル': 'title', '期日': 'due_date', '優先度': 'priority', '詳細': 'description' }}
-          valueMap={{ priority: { '高': 'high', '中': 'medium', '低': 'low' } }}
-        />
-      </div>
-
+      <FormSection
+        title="ToDo情報"
+        action={
+          <FormFillModal
+            formRef={formRef}
+            csvFormat="タイトル,期日,優先度,詳細"
+            fieldMap={{ 'タイトル': 'title', '期日': 'due_date', '優先度': 'priority', '詳細': 'description' }}
+            valueMap={{ priority: { '高': 'high', '中': 'medium', '低': 'low' } }}
+          />
+        }
+      >
+        <div className="space-y-4">
       {/* ── 関連レコード（画面最上部） ─────────────────────────────── */}
       <div>
         <label className="block text-sm font-medium text-zinc-700 mb-2">
@@ -144,19 +152,10 @@ export default function TaskForm({ action, cancelHref, objectTypes, recordsByObj
           className="w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
         />
       </div>
+        </div>
+      </FormSection>
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {pending ? '保存中...' : '保存'}
-        </button>
-        <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-          キャンセル
-        </Link>
-      </div>
+      {actions}
     </form>
   )
 }
