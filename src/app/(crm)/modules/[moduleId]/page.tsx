@@ -5,6 +5,8 @@ import { MODULE_REGISTRY, isModuleEnabled } from '@/lib/modules/registry'
 import { NavIcon } from '@/lib/navIcon'
 import PageHeader from '@/components/ui/PageHeader'
 import AutoBodyWidgets from '@/components/dashboard/AutoBodyWidgets'
+import CrmCoreWidgets from '@/components/dashboard/CrmCoreWidgets'
+import SalesWidgets from '@/components/dashboard/SalesWidgets'
 import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
 import { getCurrentUserId } from '@/lib/auth'
 
@@ -37,6 +39,8 @@ export default async function ModuleDashboardPage({
           <AutoBodyWidgets widgetPrefs={widgetPrefs} />
         </section>
       )}
+      {moduleId === 'crm-core' && <CrmCoreWidgets />}
+      {moduleId === 'sales' && <SalesWidgets />}
 
       {/* クイック起点 */}
       {mod.quickActions && mod.quickActions.length > 0 && (
