@@ -59,6 +59,16 @@ async function syncActivityRelatedRecords(
   }
 }
 
+/** 内容・担当のインライン編集用・部分更新（件名/種別/実施日時/関連には触れない）。 */
+export async function updateActivityBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const set: Record<string, unknown> = {}
+  if (formData.has('body'))     set.body = (formData.get('body') as string) || null
+  if (formData.has('owner_id')) set.owner_id = (formData.get('owner_id') as string)?.trim() || null
+  await db.update(activities).set(set).where(eq(activities.id, id))
+  redirect(`/activities/${id}`)
+}
+
 export async function updateActivity(id: string, formData: FormData) {
   await requireEditor()
   const subject = formData.get('subject') as string

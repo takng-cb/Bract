@@ -81,6 +81,21 @@ export async function createExpense(formData: FormData) {
   redirect(`/expenses/${row.id}`)
 }
 
+/** 詳細情報カードのインライン編集用・部分更新（件名/関連には触れない）。 */
+export async function updateExpenseBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('amount')) {
+    const a = formData.get('amount') as string
+    if (a && Number(a) > 0) set.amount = String(Number(a))
+  }
+  if (formData.has('category'))     set.category = (formData.get('category') as string) || 'その他'
+  if (formData.has('expense_date')) set.expense_date = (formData.get('expense_date') as string) || new Date().toISOString().slice(0, 10)
+  if (formData.has('notes'))        set.notes = (formData.get('notes') as string) || null
+  await db.update(expenses).set(set).where(eq(expenses.id, id))
+  redirect(`/expenses/${id}`)
+}
+
 export async function updateExpense(id: string, formData: FormData) {
   await requireEditor()
   const title = formData.get('title') as string
