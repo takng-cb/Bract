@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen, Building2, Factory, UserRound, CalendarDays, Phone, Globe, MapPin, Contact, Tag } from 'lucide-react'
+import { Building2, Factory, UserRound, CalendarDays, Phone, Globe, MapPin, Contact, Tag } from 'lucide-react'
 import { accounts, contacts, opportunities, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getActivityTypes } from '@/lib/activityTypes'
@@ -11,6 +11,7 @@ import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
 import { updateAccountStatus, deleteAccount, updateAccount } from '@/app/actions/accounts'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 
 // 取引先の種別/業種オプション（AccountForm と同期。将来は共有定数へ抽出）
 const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他社', 'その他']
@@ -165,6 +166,7 @@ export default async function AccountDetailPage({
       <EditableInfoCard
         title="基本情報"
         canEdit={editFlag}
+        showEditButton={false}
         action={saveAccountInline}
         hiddenFields={[
           { name: 'name', value: account.name },
@@ -529,7 +531,7 @@ export default async function AccountDetailPage({
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/accounts/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton />
               <DeleteButton action={handleDelete} confirmMessage="この取引先を削除しますか？" />
             </div>
           </AuthGuard>

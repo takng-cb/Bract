@@ -7,7 +7,7 @@
  * - 保存は渡された Server Action（更新後に同URLへ redirect 想定）。取消で閲覧へ戻る。
  * - フィールドは config 駆動なので他オブジェクトにも横展開できる。
  */
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { SquarePen, X } from 'lucide-react'
 import SubmitButton from '@/components/SubmitButton'
 
@@ -48,6 +48,8 @@ export default function EditableInfoCard({
   action,
   canEdit,
   hiddenFields,
+  showEditButton = true,
+  editEvent = 'bract:edit-record',
 }: {
   title: string
   fields: EditField[]
@@ -55,69 +57,87 @@ export default function EditableInfoCard({
   canEdit: boolean
   /** 更新アクションに必要だがカードに出さない値（full_name など） */
   hiddenFields?: { name: string; value: string }[]
+  /** カード内に編集ボタンを出すか（トップの編集ボタンに任せるなら false） */
+  showEditButton?: boolean
+  /** この名前のイベントを受けると編集モードに入る（右上の編集ボタン連動） */
+  editEvent?: string
 }) {
   const [editing, setEditing] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
   const grid = fields.filter((f) => !f.fullWidth)
   const full = fields.filter((f) => f.fullWidth)
 
-  if (!editing) {
-    return (
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-zinc-700">{title}</h2>
-          {canEdit && (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-800"
-            >
-              <SquarePen className="w-3.5 h-3.5" strokeWidth={2.25} />編集
-            </button>
-          )}
-        </div>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {grid.map((f, i) => (
-            <div key={i}>
-              <dt className="text-xs text-zinc-400 mb-1">{f.label}</dt>
-              <dd className="text-sm text-zinc-800">{f.view}</dd>
-            </div>
-          ))}
-        </dl>
-        {full.map((f, i) => (
-          <div key={i} className="mt-4 pt-4 border-t border-zinc-100">
-            <dt className="text-xs text-zinc-400 mb-1">{f.label}</dt>
-            <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-10">{f.view}</dd>
-          </div>
-        ))}
-      </div>
-    )
-  }
+  // 右上の編集ボタン等からのイベントで編集モードに入る
+  useEffect(() => {
+    if (!canEdit) return
+    const onEdit = () => setEditing(true)
+    window.addEventListener(editEvent, onEdit)
+    return () => window.removeEventListener(editEvent, onEdit)
+  }, [canEdit, editEvent])
+
+  // 編集モードに入ったらカードへスクロール
+  useEffect(() => {
+    if (editing) rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [editing])
 
   return (
-    <form action={action} className="bg-white border border-brand-300 rounded-lg shadow-xs p-6 mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-zinc-700">{title}<span className="ml-2 text-xs font-normal text-brand-600">編集中</span></h2>
-        <button type="button" onClick={() => setEditing(false)} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-700"><X className="w-4 h-4" /></button>
-      </div>
-      {hiddenFields?.map((h) => <input key={h.name} type="hidden" name={h.name} value={h.value} />)}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {grid.map((f, i) => (
-          <label key={i} className="block">
-            <span className="block text-xs text-zinc-400 mb-1">{f.label}</span>
-            <FieldInput f={f} />
-          </label>
-        ))}
-      </div>
-      {full.map((f, i) => (
-        <label key={i} className="block mt-4 pt-4 border-t border-zinc-100">
-          <span className="block text-xs text-zinc-400 mb-1">{f.label}</span>
-          <FieldInput f={f} />
-        </label>
-      ))}
-      <div className="mt-5 flex items-center gap-2">
-        <SubmitButton>保存</SubmitButton>
-        <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">取消</button>
-      </div>
-    </form>
+    <div ref={rootRef} className="mb-6 scroll-mt-20">
+      {!editing ? (
+        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-zinc-700">{title}</h2>
+            {canEdit && showEditButton && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-800"
+              >
+                <SquarePen className="w-3.5 h-3.5" strokeWidth={2.25} />編集
+              </button>
+            )}
+          </div>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {grid.map((f, i) => (
+              <div key={i}>
+                <dt className="text-xs text-zinc-400 mb-1">{f.label}</dt>
+                <dd className="text-sm text-zinc-800">{f.view}</dd>
+              </div>
+            ))}
+          </dl>
+          {full.map((f, i) => (
+            <div key={i} className="mt-4 pt-4 border-t border-zinc-100">
+              <dt className="text-xs text-zinc-400 mb-1">{f.label}</dt>
+              <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-10">{f.view}</dd>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <form action={action} className="bg-white border border-brand-300 rounded-lg shadow-xs p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-zinc-700">{title}<span className="ml-2 text-xs font-normal text-brand-600">編集中</span></h2>
+            <button type="button" onClick={() => setEditing(false)} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-700"><X className="w-4 h-4" /></button>
+          </div>
+          {hiddenFields?.map((h) => <input key={h.name} type="hidden" name={h.name} value={h.value} />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {grid.map((f, i) => (
+              <label key={i} className="block">
+                <span className="block text-xs text-zinc-400 mb-1">{f.label}</span>
+                <FieldInput f={f} />
+              </label>
+            ))}
+          </div>
+          {full.map((f, i) => (
+            <label key={i} className="block mt-4 pt-4 border-t border-zinc-100">
+              <span className="block text-xs text-zinc-400 mb-1">{f.label}</span>
+              <FieldInput f={f} />
+            </label>
+          ))}
+          <div className="mt-5 flex items-center gap-2">
+            <SubmitButton>保存</SubmitButton>
+            <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">取消</button>
+          </div>
+        </form>
+      )}
+    </div>
   )
 }
