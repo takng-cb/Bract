@@ -160,7 +160,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
                       className={`flex-1 truncate rounded px-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
                         headerActive ? 'text-blue-400' : 'text-zinc-500 hover:text-zinc-200'
                       }`}
-                      title={`${group.name} のダッシュボード`}
+                      title={`${group.name} のホーム`}
                     >
                       {group.name}
                     </Link>

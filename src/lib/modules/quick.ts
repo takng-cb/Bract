@@ -45,6 +45,8 @@ export type QuickBook = {
   aiSearch: boolean
   /** 専用 AI 起票ウィザードがある場合の遷移先（例: staffing → /quick/staffing） */
   aiWizardHref?: string
+  /** 閲覧専用（売上予測など、作成・検索の対象にならないビュー）。閲覧フローでのみ表示 */
+  viewOnly: boolean
 }
 export type QuickModule = {
   id: string
@@ -64,6 +66,9 @@ const AI_TYPED_BOOKS = new Set(['accounts', 'contacts', 'vehicles', 'parts', 'pr
 
 /** AI 検索（自然文→フィルタ）対応ブック（aiSearch.ts の SEARCH_FIELDS と一致） */
 const AI_SEARCH_BOOKS = new Set(['accounts', 'contacts', 'opportunities', 'tasks', 'expenses', 'activities'])
+
+/** 閲覧専用ブック（作成・検索の対象外。閲覧フローでのみ表示） */
+const VIEW_ONLY_BOOKS = new Set(['forecast'])
 
 /**
  * 有効モジュール群 → 「モジュール → ブック」ツリー。
@@ -90,6 +95,7 @@ export function buildModuleBooks(modules: ModuleManifest[]): QuickModule[] {
           aiCreate: custom || AI_TYPED_BOOKS.has(b.apiName),
           aiSearch: AI_SEARCH_BOOKS.has(b.apiName),
           aiWizardHref: AI_WIZARD_HREF[b.apiName],
+          viewOnly: VIEW_ONLY_BOOKS.has(b.apiName),
         }
       })
       return { id: m.id, name: m.name, category: m.category, icon: firstNavIcon, books }

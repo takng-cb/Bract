@@ -25,7 +25,7 @@ export default async function ModuleDashboardPage({
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">
-      <PageHeader icon={headerIcon} title={mod.name} description="モジュールダッシュボード" />
+      <PageHeader icon={headerIcon} title={mod.name} description="モジュールのホーム" />
 
       {/* クイック起点 */}
       {mod.quickActions && mod.quickActions.length > 0 && (

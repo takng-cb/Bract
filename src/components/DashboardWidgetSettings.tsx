@@ -83,7 +83,7 @@ export default function DashboardWidgetSettings({ availableWidgets, currentPrefs
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="flex items-center gap-1.5 text-sm font-bold text-zinc-700"><NavIcon icon="📊" className="w-4 h-4" />ダッシュボード表示設定</h2>
+          <h2 className="flex items-center gap-1.5 text-sm font-bold text-zinc-700"><NavIcon icon="📊" className="w-4 h-4" />ホーム表示設定</h2>
           <p className="text-xs text-zinc-400 mt-1">
             表示するウィジェットの選択と並び替え ({enabledCount} / {availableWidgets.length} 表示中)
           </p>

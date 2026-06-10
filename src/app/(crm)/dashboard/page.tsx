@@ -346,7 +346,7 @@ export default async function DashboardPage({
     <div className="p-4 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">ダッシュボード</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">ホーム</h1>
           <p className="text-sm text-zinc-500 mt-1">{from} 〜 {to}</p>
         </div>
         <PeriodSelector from={from} to={to} />
