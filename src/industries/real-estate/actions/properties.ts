@@ -86,19 +86,43 @@ export async function createProperty(formData: FormData): Promise<string> {
 }
 
 /**
- * 物件情報（概要カード）のインライン編集用・部分更新。
- * 送信された基本項目（物件種別/取引種別/価格/備考）のみ更新し、登記等の詳細項目には
- * 一切触れない。custom_records ミラーは全行で再同期する（関連表示の整合を保つ）。
+ * インライン編集用・部分更新。送信されたフィールドだけを更新する（formData.has 判定）。
+ * 概要カード／登記カード／司法書士カードのどれを保存しても他カードの値を消さない。
+ * custom_records ミラーは全保存で再同期する（関連表示の整合を保つ）。
  */
 export async function updatePropertyBasic(id: string, formData: FormData) {
   await requireEditor()
   const raw    = (k: string) => (formData.get(k) as string | null) ?? ''
   const numStr = (k: string) => { const v = raw(k); return v ? String(Number(v)) : null }
   const set: Record<string, unknown> = { updated_at: new Date() }
+
+  // 文字列（空＝null）
+  const TEXT_FIELDS = [
+    'account_id', 'contact_id',
+    'seller_scrivener_account_id', 'seller_scrivener_contact_id',
+    'buyer_scrivener_account_id', 'buyer_scrivener_contact_id',
+    'land_fudosan_number', 'address', 'land_chiban', 'chimoku', 'land_cause',
+    'land_owner_name', 'land_owner_address', 'land_acquisition_reason',
+    'building_fudosan_number', 'building_location', 'building_kaoku_number',
+    'building_shurui', 'structure',
+    'building_owner_name', 'building_owner_address', 'building_acquisition_reason',
+    'building_lien_type', 'building_lien_holder', 'building_joint_collateral_number',
+    'description',
+  ] as const
+  // 数値（文字列化して保持）
+  const NUM_FIELDS = ['price', 'area', 'building_floor_area_1f', 'building_floor_area_2f', 'building_floor_area_3f', 'building_damage_rate'] as const
+  // 日付（空＝null）
+  const DATE_FIELDS = ['land_acquisition_date', 'land_seizure_release_date', 'building_new_construction_date', 'building_acquisition_date', 'building_seizure_release_date'] as const
+  // 真偽（select で 'on'＝あり）
+  const BOOL_FIELDS = ['land_seizure', 'building_seizure'] as const
+
+  for (const k of TEXT_FIELDS) if (formData.has(k)) set[k] = raw(k) || null
+  for (const k of NUM_FIELDS)  if (formData.has(k)) set[k] = numStr(k)
+  for (const k of DATE_FIELDS) if (formData.has(k)) set[k] = raw(k) || null
+  for (const k of BOOL_FIELDS) if (formData.has(k)) set[k] = raw(k) === 'on'
   if (formData.has('property_type'))    set.property_type    = raw('property_type') || 'その他'
   if (formData.has('transaction_type')) set.transaction_type = raw('transaction_type') || '売買'
-  if (formData.has('price'))            set.price            = numStr('price')
-  if (formData.has('description'))      set.description      = raw('description') || null
+  if (formData.has('building_debt_amount')) set.building_debt_amount = raw('building_debt_amount') ? Number(raw('building_debt_amount')) : null
 
   const [row] = await db.update(properties).set(set).where(eq(properties.id, id)).returning()
   if (row) await syncPropertyToCustomRecord(row)

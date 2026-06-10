@@ -6,6 +6,9 @@
  * - 既定は閲覧モード（dl 表示）。「編集」で同じ並びのまま入力欄に切替。
  * - 保存は渡された Server Action（更新後に同URLへ redirect 想定）。取消で閲覧へ戻る。
  * - フィールドは config 駆動なので他オブジェクトにも横展開できる。
+ * - `section` を付けると見出しでグルーピングできる（登記情報など項目が多い時用）。
+ *   1枚のカード＝1つの form＝1つの保存ボタンに収まるため、複数カードを跨いだ
+ *   同時編集での保存取りこぼしが起きない。
  */
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { SquarePen, X } from 'lucide-react'
@@ -23,6 +26,8 @@ export type EditField = {
   options?: { value: string; label: string }[]
   /** 全幅（メモ等） */
   fullWidth?: boolean
+  /** 見出しグループ名（連続する同名フィールドが 1 セクションにまとまる） */
+  section?: string
 }
 
 const INPUT = 'w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none'
@@ -40,6 +45,17 @@ function FieldInput({ f }: { f: EditField }) {
     )
   const type = f.kind === 'email' ? 'email' : f.kind === 'tel' ? 'tel' : f.kind === 'date' ? 'date' : f.kind === 'number' ? 'number' : 'text'
   return <input type={type} name={f.name} defaultValue={v} className={INPUT} />
+}
+
+/** フィールドを順序を保ったままセクション単位にまとめる（section 未指定は 1 グループ）。 */
+function groupBySection(fields: EditField[]): { section?: string; fields: EditField[] }[] {
+  const groups: { section?: string; fields: EditField[] }[] = []
+  for (const f of fields) {
+    const last = groups[groups.length - 1]
+    if (last && last.section === f.section) last.fields.push(f)
+    else groups.push({ section: f.section, fields: [f] })
+  }
+  return groups
 }
 
 export default function EditableInfoCard({
@@ -64,8 +80,7 @@ export default function EditableInfoCard({
 }) {
   const [editing, setEditing] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
-  const grid = fields.filter((f) => !f.fullWidth)
-  const full = fields.filter((f) => f.fullWidth)
+  const groups = groupBySection(fields)
 
   // 右上の編集ボタン等からのイベントで編集モードに入る
   useEffect(() => {
@@ -96,20 +111,31 @@ export default function EditableInfoCard({
               </button>
             )}
           </div>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {grid.map((f, i) => (
-              <div key={i}>
-                <dt className="text-xs text-zinc-400 mb-1">{f.label}</dt>
-                <dd className="text-sm text-zinc-800">{f.view}</dd>
+          {groups.map((g, gi) => {
+            const grid = g.fields.filter((f) => !f.fullWidth)
+            const full = g.fields.filter((f) => f.fullWidth)
+            return (
+              <div key={gi} className={gi > 0 ? 'mt-5 pt-4 border-t border-zinc-100' : ''}>
+                {g.section && <p className="text-xs font-semibold text-zinc-500 mb-3">{g.section}</p>}
+                {grid.length > 0 && (
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {grid.map((f, i) => (
+                      <div key={i}>
+                        <dt className="text-xs text-zinc-400 mb-1">{f.label}</dt>
+                        <dd className="text-sm text-zinc-800">{f.view}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                {full.map((f, i) => (
+                  <div key={i} className="mt-4 pt-4 border-t border-zinc-100">
+                    <dt className="text-xs text-zinc-400 mb-1">{f.label}</dt>
+                    <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-10">{f.view}</dd>
+                  </div>
+                ))}
               </div>
-            ))}
-          </dl>
-          {full.map((f, i) => (
-            <div key={i} className="mt-4 pt-4 border-t border-zinc-100">
-              <dt className="text-xs text-zinc-400 mb-1">{f.label}</dt>
-              <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-10">{f.view}</dd>
-            </div>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <form action={action} className="bg-white border border-brand-300 rounded-lg shadow-xs p-6">
@@ -118,20 +144,31 @@ export default function EditableInfoCard({
             <button type="button" onClick={() => setEditing(false)} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-700"><X className="w-4 h-4" /></button>
           </div>
           {hiddenFields?.map((h) => <input key={h.name} type="hidden" name={h.name} value={h.value} />)}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {grid.map((f, i) => (
-              <label key={i} className="block">
-                <span className="block text-xs text-zinc-400 mb-1">{f.label}</span>
-                <FieldInput f={f} />
-              </label>
-            ))}
-          </div>
-          {full.map((f, i) => (
-            <label key={i} className="block mt-4 pt-4 border-t border-zinc-100">
-              <span className="block text-xs text-zinc-400 mb-1">{f.label}</span>
-              <FieldInput f={f} />
-            </label>
-          ))}
+          {groups.map((g, gi) => {
+            const grid = g.fields.filter((f) => !f.fullWidth)
+            const full = g.fields.filter((f) => f.fullWidth)
+            return (
+              <div key={gi} className={gi > 0 ? 'mt-5 pt-4 border-t border-zinc-100' : ''}>
+                {g.section && <p className="text-xs font-semibold text-zinc-500 mb-3">{g.section}</p>}
+                {grid.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {grid.map((f, i) => (
+                      <label key={i} className="block">
+                        <span className="block text-xs text-zinc-400 mb-1">{f.label}</span>
+                        <FieldInput f={f} />
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {full.map((f, i) => (
+                  <label key={i} className="block mt-4 pt-4 border-t border-zinc-100">
+                    <span className="block text-xs text-zinc-400 mb-1">{f.label}</span>
+                    <FieldInput f={f} />
+                  </label>
+                ))}
+              </div>
+            )
+          })}
           <div className="mt-5 flex items-center gap-2">
             <SubmitButton>保存</SubmitButton>
             <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">取消</button>
