@@ -112,7 +112,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
 
   return (
     <aside
-      className={`hidden md:flex md:flex-col shrink-0 bg-zinc-900 text-white min-h-screen transition-[width] duration-200 ease-in-out overflow-hidden ${
+      className={`hidden md:flex md:flex-col shrink-0 bg-zinc-900 text-white sticky top-0 h-screen self-start transition-[width] duration-200 ease-in-out overflow-hidden ${
         isCollapsed ? 'w-14' : 'w-56'
       }`}
     >
