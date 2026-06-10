@@ -33,7 +33,6 @@ export function evalFormula(
     // 安全チェック: 数字・演算子・空白・括弧・小数点のみ許可
     if (/[^0-9+\-*/().\s%]/.test(substituted)) return ''
 
-    // eslint-disable-next-line no-new-func
     const result = new Function(`return (${substituted})`)() as unknown
 
     if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) return ''

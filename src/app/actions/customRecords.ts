@@ -1,6 +1,6 @@
 'use server'
 import { db } from '@/lib/db'
-import { custom_records, object_definitions, field_definitions } from '@/lib/schema'
+import { custom_records } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { canEdit } from '@/lib/auth'

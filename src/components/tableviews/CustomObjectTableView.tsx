@@ -82,7 +82,7 @@ export default function CustomObjectTableView({
 function renderCell(
   field: SerializedFieldDef,
   rec: Record<string, unknown>,
-  objectApiName: string,
+  _objectApiName: string,
 ): React.ReactNode {
   // account_id / *_account_id → 取引先リンク
   if (field.api_name === 'account_id' || field.api_name.endsWith('_account_id')) {

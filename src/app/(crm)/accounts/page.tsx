@@ -35,7 +35,7 @@ export default async function AccountsPage({
   // userIdPromise を共有し、.then チェインで Promise.all 内で同時取得する。
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('accounts', uid) : null)
-  const [sp, edit, colConfig, userId, dv] = await Promise.all([
+  const [sp, edit, colConfig, _userId, dv] = await Promise.all([
     searchParams,
     canEdit(),
     getListViewColumns('accounts'),

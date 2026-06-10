@@ -182,7 +182,7 @@ export default function StagedLineItemsTable({
 
   const dirtyCount = rows.filter((r) => r._status !== 'unchanged').length
 
-  function mark(key: string, status: RowStatus) {
+  function _mark(key: string, status: RowStatus) {
     setRows((rs) => rs.map((r) => r._key === key ? { ...r, _status: status } : r))
   }
   function update<K extends keyof StagedRow>(key: string, field: K, value: StagedRow[K]) {

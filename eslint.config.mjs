@@ -10,6 +10,16 @@ const eslintConfig = defineConfig([
     files: ["scripts/**/*.{ts,js}"],
     rules: { "@typescript-eslint/no-explicit-any": "warn" },
   },
+  // `_` 始まりは「意図的に未使用」の慣習（CSV 取込の分割代入など）として無視する。
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

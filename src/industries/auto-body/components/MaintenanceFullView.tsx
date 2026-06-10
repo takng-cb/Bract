@@ -201,13 +201,13 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   }
   const linesTotal = laborSum + partsSum
 
-  let taxableFees = 0, nontaxableFees = 0, taxableFeesCost = 0
+  let taxableFees = 0, nontaxableFees = 0, _taxableFeesCost = 0
   for (const f of fees) {
     const a = Number(f.amount ?? 0)
     const c = Number(f.cost_amount ?? 0)
     if (f.category === '課税') {
       if (Number.isFinite(a)) taxableFees += a
-      if (Number.isFinite(c)) taxableFeesCost += c
+      if (Number.isFinite(c)) _taxableFeesCost += c
     } else if (f.category === '非課税') {
       if (Number.isFinite(a)) nontaxableFees += a
     }
