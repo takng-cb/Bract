@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { deleteProperty, setPropertyStatus, updatePropertyBasic } from '@/industries/real-estate/actions/properties'
 import { canEdit } from '@/lib/auth'
-import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 
 const RE_PROPERTY_TYPES = ['土地・建物', '建物のみ', '土地のみ', 'その他']
@@ -43,36 +43,10 @@ const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   low:    { label: '低', color: 'text-green-700 bg-green-50' },
 }
 
-type DlItem = { label: string; value: string | null | undefined }
-
-function Dl({ items }: { items: DlItem[] }) {
-  return (
-    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {items.map(({ label, value }) => (
-        <div key={label}>
-          <dt className="text-xs text-zinc-400 mb-1">{label}</dt>
-          <dd className="text-sm text-zinc-800">
-            {value ? value : <span className="text-zinc-300">—</span>}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
-
-function Section({ title, children }: { title: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-      <h2 className="text-sm font-bold text-zinc-700 mb-4 flex items-center gap-2">{title}</h2>
-      {children}
-    </div>
-  )
-}
-
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const [row, activitiesList, tasksList, expensesList, activityTypes, changeLogCountRow] = await Promise.all([
+  const [row, activitiesList, tasksList, expensesList, activityTypes, changeLogCountRow, accountsAll, contactsAll] = await Promise.all([
     db.select().from(properties)
       .leftJoin(accounts, eq(properties.account_id, accounts.id))
       .leftJoin(contacts, eq(properties.contact_id, contacts.id))
@@ -90,6 +64,10 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     getActivityTypes(),
     db.select({ c: count() }).from(change_logs)
       .where(and(eq(change_logs.object_type, 'property'), eq(change_logs.object_id, id))),
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select({ id: contacts.id, full_name: contacts.full_name })
+      .from(contacts).orderBy(asc(contacts.full_name)),
   ])
 
   if (!row) notFound()
@@ -171,129 +149,76 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   }
 
   // ── 概要タブ ─────────────────────────────────────────────────────
+  const accountOptions = accountsAll.map((a) => ({ value: a.id, label: a.name }))
+  const contactOptions = contactsAll.map((c) => ({ value: c.id, label: c.full_name }))
+
+  const propertyFields: EditField[] = isRE ? [
+    // 基本情報
+    { section: '基本情報', label: '物件種別', name: 'property_type', kind: 'select', value: p.property_type, options: RE_PROPERTY_TYPES.map((t) => ({ value: t, label: t })), view: p.property_type ?? '—' },
+    { section: '基本情報', label: '取引種別', name: 'transaction_type', kind: 'select', value: p.transaction_type, options: RE_TX_TYPES.map((t) => ({ value: t, label: t })), view: p.transaction_type ?? '—' },
+    { section: '基本情報', label: '価格 / 賃料', name: 'price', kind: 'number', value: p.price != null ? String(p.price) : '', view: fmt.price(p.price) ?? '—' },
+    { section: '基本情報', label: '登録日', view: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : '—' },
+    // 土地の登記（表題部）
+    { section: '土地の登記（表題部）', label: '不動産番号', name: 'land_fudosan_number', kind: 'text', value: p.land_fudosan_number, view: p.land_fudosan_number ?? '—' },
+    { section: '土地の登記（表題部）', label: '所在', name: 'address', kind: 'text', value: p.address, view: p.address ?? '—' },
+    { section: '土地の登記（表題部）', label: '地番', name: 'land_chiban', kind: 'text', value: p.land_chiban, view: p.land_chiban ?? '—' },
+    { section: '土地の登記（表題部）', label: '地目', name: 'chimoku', kind: 'text', value: p.chimoku, view: p.chimoku ?? '—' },
+    { section: '土地の登記（表題部）', label: '地積', name: 'area', kind: 'number', value: p.area != null ? String(p.area) : '', view: fmt.area(p.area) ?? '—' },
+    { section: '土地の登記（表題部）', label: '原因及びその日付', name: 'land_cause', kind: 'text', value: p.land_cause, view: p.land_cause ?? '—' },
+    // 土地の登記（権利部・甲区）
+    { section: '土地の登記（権利部・甲区）', label: '現所有者名', name: 'land_owner_name', kind: 'text', value: p.land_owner_name, view: p.land_owner_name ?? '—' },
+    { section: '土地の登記（権利部・甲区）', label: '所有者住所', name: 'land_owner_address', kind: 'text', value: p.land_owner_address, view: p.land_owner_address ?? '—' },
+    { section: '土地の登記（権利部・甲区）', label: '所有権取得原因', name: 'land_acquisition_reason', kind: 'text', value: p.land_acquisition_reason, view: p.land_acquisition_reason ?? '—' },
+    { section: '土地の登記（権利部・甲区）', label: '所有権取得日', name: 'land_acquisition_date', kind: 'date', value: p.land_acquisition_date ? String(p.land_acquisition_date).slice(0, 10) : '', view: fmt.date(p.land_acquisition_date) ?? '—' },
+    { section: '土地の登記（権利部・甲区）', label: '差押有無', name: 'land_seizure', kind: 'select', value: p.land_seizure ? 'on' : '', options: [{ value: 'on', label: 'あり' }], view: fmt.bool(p.land_seizure) ?? '—' },
+    { section: '土地の登記（権利部・甲区）', label: '直近差押解除日', name: 'land_seizure_release_date', kind: 'date', value: p.land_seizure_release_date ? String(p.land_seizure_release_date).slice(0, 10) : '', view: fmt.date(p.land_seizure_release_date) ?? '—' },
+    // 建物の登記（表題部）
+    { section: '建物の登記（表題部）', label: '不動産番号', name: 'building_fudosan_number', kind: 'text', value: p.building_fudosan_number, view: p.building_fudosan_number ?? '—' },
+    { section: '建物の登記（表題部）', label: '所在', name: 'building_location', kind: 'text', value: p.building_location, view: p.building_location ?? '—' },
+    { section: '建物の登記（表題部）', label: '家屋番号', name: 'building_kaoku_number', kind: 'text', value: p.building_kaoku_number, view: p.building_kaoku_number ?? '—' },
+    { section: '建物の登記（表題部）', label: '種類', name: 'building_shurui', kind: 'text', value: p.building_shurui, view: p.building_shurui ?? '—' },
+    { section: '建物の登記（表題部）', label: '構造', name: 'structure', kind: 'text', value: p.structure, view: p.structure ?? '—' },
+    { section: '建物の登記（表題部）', label: '新築年月日', name: 'building_new_construction_date', kind: 'date', value: p.building_new_construction_date ? String(p.building_new_construction_date).slice(0, 10) : '', view: fmt.date(p.building_new_construction_date) ?? '—' },
+    { section: '建物の登記（表題部）', label: '床面積・1階', name: 'building_floor_area_1f', kind: 'number', value: p.building_floor_area_1f != null ? String(p.building_floor_area_1f) : '', view: fmt.area(p.building_floor_area_1f) ?? '—' },
+    { section: '建物の登記（表題部）', label: '床面積・2階', name: 'building_floor_area_2f', kind: 'number', value: p.building_floor_area_2f != null ? String(p.building_floor_area_2f) : '', view: fmt.area(p.building_floor_area_2f) ?? '—' },
+    { section: '建物の登記（表題部）', label: '床面積・3階', name: 'building_floor_area_3f', kind: 'number', value: p.building_floor_area_3f != null ? String(p.building_floor_area_3f) : '', view: fmt.area(p.building_floor_area_3f) ?? '—' },
+    // 建物の登記（甲区）
+    { section: '建物の登記（甲区）', label: '現所有者名', name: 'building_owner_name', kind: 'text', value: p.building_owner_name, view: p.building_owner_name ?? '—' },
+    { section: '建物の登記（甲区）', label: '所有者住所', name: 'building_owner_address', kind: 'text', value: p.building_owner_address, view: p.building_owner_address ?? '—' },
+    { section: '建物の登記（甲区）', label: '所有権取得原因', name: 'building_acquisition_reason', kind: 'text', value: p.building_acquisition_reason, view: p.building_acquisition_reason ?? '—' },
+    { section: '建物の登記（甲区）', label: '所有権取得日', name: 'building_acquisition_date', kind: 'date', value: p.building_acquisition_date ? String(p.building_acquisition_date).slice(0, 10) : '', view: fmt.date(p.building_acquisition_date) ?? '—' },
+    { section: '建物の登記（甲区）', label: '差押有無', name: 'building_seizure', kind: 'select', value: p.building_seizure ? 'on' : '', options: [{ value: 'on', label: 'あり' }], view: fmt.bool(p.building_seizure) ?? '—' },
+    { section: '建物の登記（甲区）', label: '直近差押解除日', name: 'building_seizure_release_date', kind: 'date', value: p.building_seizure_release_date ? String(p.building_seizure_release_date).slice(0, 10) : '', view: fmt.date(p.building_seizure_release_date) ?? '—' },
+    // 建物の登記（乙区）
+    { section: '建物の登記（乙区）', label: '登記種別', name: 'building_lien_type', kind: 'text', value: p.building_lien_type, view: p.building_lien_type ?? '—' },
+    { section: '建物の登記（乙区）', label: '権利者名', name: 'building_lien_holder', kind: 'text', value: p.building_lien_holder, view: p.building_lien_holder ?? '—' },
+    { section: '建物の登記（乙区）', label: '債権額', name: 'building_debt_amount', kind: 'number', value: p.building_debt_amount != null ? String(p.building_debt_amount) : '', view: fmt.debt(p.building_debt_amount) ?? '—' },
+    { section: '建物の登記（乙区）', label: '損害金率', name: 'building_damage_rate', kind: 'number', value: p.building_damage_rate != null ? String(p.building_damage_rate) : '', view: fmt.rate(p.building_damage_rate) ?? '—' },
+    { section: '建物の登記（乙区）', label: '共同担保目録番号', name: 'building_joint_collateral_number', kind: 'text', value: p.building_joint_collateral_number, view: p.building_joint_collateral_number ?? '—' },
+    // 司法書士情報
+    { section: '司法書士情報', label: '売り方・事務所', name: 'seller_scrivener_account_id', kind: 'select', value: p.seller_scrivener_account_id ?? '', options: accountOptions, view: sellerScrivenerAccount ? <Link href={`/accounts/${sellerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{sellerScrivenerAccount.name}</Link> : <span className="text-zinc-300">—</span> },
+    { section: '司法書士情報', label: '売り方・担当者', name: 'seller_scrivener_contact_id', kind: 'select', value: p.seller_scrivener_contact_id ?? '', options: contactOptions, view: sellerScrivenerContact ? <Link href={`/contacts/${sellerScrivenerContact.id}`} className="text-blue-600 hover:underline">{sellerScrivenerContact.full_name}</Link> : <span className="text-zinc-300">—</span> },
+    { section: '司法書士情報', label: '買い方・事務所', name: 'buyer_scrivener_account_id', kind: 'select', value: p.buyer_scrivener_account_id ?? '', options: accountOptions, view: buyerScrivenerAccount ? <Link href={`/accounts/${buyerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{buyerScrivenerAccount.name}</Link> : <span className="text-zinc-300">—</span> },
+    { section: '司法書士情報', label: '買い方・担当者', name: 'buyer_scrivener_contact_id', kind: 'select', value: p.buyer_scrivener_contact_id ?? '', options: contactOptions, view: buyerScrivenerContact ? <Link href={`/contacts/${buyerScrivenerContact.id}`} className="text-blue-600 hover:underline">{buyerScrivenerContact.full_name}</Link> : <span className="text-zinc-300">—</span> },
+    // 備考
+    { section: '備考', label: '備考', name: 'description', kind: 'textarea', value: p.description, fullWidth: true, view: p.description ? p.description : <span className="text-zinc-300">—</span> },
+  ] : [
+    { label: '取引種別', name: 'transaction_type', kind: 'select', value: p.transaction_type, options: OTHER_TX_TYPES.map((t) => ({ value: t, label: t })), view: p.transaction_type ?? '—' },
+    { label: '金額', name: 'price', kind: 'number', value: p.price != null ? String(p.price) : '', view: fmt.price(p.price) ?? '—' },
+    { label: '登録日', view: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : '—' },
+    { label: '備考', name: 'description', kind: 'textarea', value: p.description, fullWidth: true, view: p.description ? p.description : <span className="text-zinc-300">—</span> },
+  ]
+
   const overviewContent = (
     <>
       <EditableInfoCard
-        title={isRE ? '物件情報' : '商品情報'}
+        title={isRE ? '物件情報（登記など全項目）' : '商品情報'}
         canEdit={editFlag}
         showEditButton={false}
         editEvent="bract:edit-property"
         action={savePropertyInline}
-        fields={[
-          ...(isRE ? [{ label: '物件種別', name: 'property_type', kind: 'select' as const, value: p.property_type, options: RE_PROPERTY_TYPES.map((t) => ({ value: t, label: t })), view: p.property_type ?? '—' }] : []),
-          { label: '取引種別', name: 'transaction_type', kind: 'select', value: p.transaction_type, options: (isRE ? RE_TX_TYPES : OTHER_TX_TYPES).map((t) => ({ value: t, label: t })), view: p.transaction_type ?? '—' },
-          { label: isRE ? '価格 / 賃料' : '金額', name: 'price', kind: 'number', value: p.price != null ? String(p.price) : '', view: fmt.price(p.price) ?? '—' },
-          { label: '登録日', view: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : '—' },
-          { label: '備考', name: 'description', kind: 'textarea', value: p.description, fullWidth: true, view: p.description ? p.description : <span className="text-zinc-300">—</span> },
-        ]}
+        fields={propertyFields}
       />
-
-      {isRE && (
-        <>
-          <Section title={<><NavIcon icon="🗺️" className="w-4 h-4" /> 土地の登記</>}>
-            <p className="text-xs font-semibold text-zinc-500 mb-3">表題部</p>
-            <Dl items={[
-              { label: '不動産番号',     value: p.land_fudosan_number },
-              { label: '所在',           value: p.address },
-              { label: '地番',           value: p.land_chiban },
-              { label: '地目',           value: p.chimoku },
-              { label: '地積',           value: fmt.area(p.area) },
-              { label: '原因及びその日付', value: p.land_cause },
-            ]} />
-            <p className="text-xs font-semibold text-zinc-500 mt-5 mb-3 border-t border-zinc-100 pt-4">権利部（甲区）</p>
-            <Dl items={[
-              { label: '現所有者名',       value: p.land_owner_name },
-              { label: '所有者住所',       value: p.land_owner_address },
-              { label: '所有権取得原因',   value: p.land_acquisition_reason },
-              { label: '所有権取得日',     value: fmt.date(p.land_acquisition_date) },
-              { label: '差押有無',         value: fmt.bool(p.land_seizure) },
-              { label: '直近差押解除日',   value: fmt.date(p.land_seizure_release_date) },
-            ]} />
-          </Section>
-
-          <Section title={<><NavIcon icon="🏠" className="w-4 h-4" /> 建物の登記</>}>
-            <p className="text-xs font-semibold text-zinc-500 mb-3">表題部</p>
-            <Dl items={[
-              { label: '不動産番号', value: p.building_fudosan_number },
-              { label: '所在',       value: p.building_location },
-              { label: '家屋番号',   value: p.building_kaoku_number },
-              { label: '種類',       value: p.building_shurui },
-              { label: '構造',       value: p.structure },
-              { label: '新築年月日', value: fmt.date(p.building_new_construction_date) },
-              { label: '床面積・1階', value: fmt.area(p.building_floor_area_1f) },
-              { label: '床面積・2階', value: fmt.area(p.building_floor_area_2f) },
-              { label: '床面積・3階', value: fmt.area(p.building_floor_area_3f) },
-            ]} />
-            <p className="text-xs font-semibold text-zinc-500 mt-5 mb-3 border-t border-zinc-100 pt-4">所有権・権利状態（甲区）</p>
-            <Dl items={[
-              { label: '現所有者名',     value: p.building_owner_name },
-              { label: '所有者住所',     value: p.building_owner_address },
-              { label: '所有権取得原因', value: p.building_acquisition_reason },
-              { label: '所有権取得日',   value: fmt.date(p.building_acquisition_date) },
-              { label: '差押有無',       value: fmt.bool(p.building_seizure) },
-              { label: '直近差押解除日', value: fmt.date(p.building_seizure_release_date) },
-            ]} />
-            <p className="text-xs font-semibold text-zinc-500 mt-5 mb-3 border-t border-zinc-100 pt-4">担保・権利制限（乙区）</p>
-            <Dl items={[
-              { label: '登記種別',       value: p.building_lien_type },
-              { label: '権利者名',       value: p.building_lien_holder },
-              { label: '債権額',         value: fmt.debt(p.building_debt_amount) },
-              { label: '損害金率',       value: fmt.rate(p.building_damage_rate) },
-              { label: '共同担保目録番号', value: p.building_joint_collateral_number },
-            ]} />
-          </Section>
-
-          <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-            <h2 className="text-sm font-bold text-zinc-700 mb-4 flex items-center gap-1.5"><NavIcon icon="⚖️" className="w-4 h-4" />司法書士情報</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">売り方</p>
-                <div>
-                  <dt className="text-xs text-zinc-400 mb-1">事務所</dt>
-                  <dd className="text-sm text-zinc-800">
-                    {sellerScrivenerAccount
-                      ? <Link href={`/accounts/${sellerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{sellerScrivenerAccount.name}</Link>
-                      : <span className="text-zinc-300">—</span>}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
-                  <dd className="text-sm text-zinc-800">
-                    {sellerScrivenerContact
-                      ? <Link href={`/contacts/${sellerScrivenerContact.id}`} className="text-blue-600 hover:underline">{sellerScrivenerContact.full_name}</Link>
-                      : <span className="text-zinc-300">—</span>}
-                  </dd>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <p className="text-xs font-semibold text-zinc-600 border-b border-zinc-100 pb-1">買い方</p>
-                <div>
-                  <dt className="text-xs text-zinc-400 mb-1">事務所</dt>
-                  <dd className="text-sm text-zinc-800">
-                    {buyerScrivenerAccount
-                      ? <Link href={`/accounts/${buyerScrivenerAccount.id}`} className="text-blue-600 hover:underline">{buyerScrivenerAccount.name}</Link>
-                      : <span className="text-zinc-300">—</span>}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
-                  <dd className="text-sm text-zinc-800">
-                    {buyerScrivenerContact
-                      ? <Link href={`/contacts/${buyerScrivenerContact.id}`} className="text-blue-600 hover:underline">{buyerScrivenerContact.full_name}</Link>
-                      : <span className="text-zinc-300">—</span>}
-                  </dd>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {p.description && (
-            <Section title="備考">
-              <p className="text-sm text-zinc-800 whitespace-pre-wrap">{p.description}</p>
-            </Section>
-          )}
-        </>
-      )}
 
       <div className="mb-6">
         <RelatedRecordsSection
@@ -476,7 +401,6 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
             <div className="flex items-center gap-2">
               <Link href={`/properties/${id}/brokerage-report`} target="_blank" className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors" title="媒介業務処理状況報告書を新タブで印刷プレビュー"><span className="inline-flex items-center gap-1"><NavIcon icon="📄" className="w-3 h-3 shrink-0" />媒介報告書</span></Link>
               <InlineEditButton event="bract:edit-property" />
-              <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">登記など詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
             </div>
           </AuthGuard>
