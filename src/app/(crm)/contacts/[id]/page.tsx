@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen, UserRound, Building2, Briefcase, CalendarDays, Mail, Phone, Contact, Tag } from 'lucide-react'
+import { UserRound, Building2, Briefcase, CalendarDays, Mail, Phone, Contact, Tag } from 'lucide-react'
 import { contacts, accounts, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
 import OtherRelationsChips from '@/components/OtherRelationsChips'
@@ -9,6 +9,7 @@ import { notFound } from 'next/navigation'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
 import { deleteContact, updateContact } from '@/app/actions/contacts'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import { toggleTaskDone } from '@/app/actions/tasks'
 import TagsSection from '@/components/TagsSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
@@ -143,6 +144,7 @@ export default async function ContactDetailPage({
       <EditableInfoCard
         title="基本情報"
         canEdit={canEditFlag}
+        showEditButton={false}
         action={saveContactInline}
         hiddenFields={[
           { name: 'full_name', value: contact.full_name },
@@ -366,7 +368,7 @@ export default async function ContactDetailPage({
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/contacts/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton />
               <DeleteButton action={handleDelete} confirmMessage="この人物を削除しますか？" />
             </div>
           </AuthGuard>
