@@ -4,7 +4,9 @@ import { activities, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { deleteActivity } from '@/app/actions/activities'
+import { deleteActivity, updateActivityBasic } from '@/app/actions/activities'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import { getAllUsers } from '@/lib/userUtils'
@@ -54,9 +56,16 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
 
   const typeConf = TYPE_CONFIG[activityRow.type] ?? { label: activityRow.type, icon: '📋', color: 'bg-zinc-50 text-zinc-600 border-zinc-200' }
 
+  const editFlag = await canEdit()
+
   async function handleDelete() {
     'use server'
     await deleteActivity(id)
+  }
+
+  async function saveActivityInline(formData: FormData) {
+    'use server'
+    await updateActivityBasic(id, formData)
   }
 
   return (
@@ -107,40 +116,26 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
         </p>
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-3">内容</h2>
-        <p className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed min-h-[3rem]">
-          {activityRow.body ?? <span className="text-zinc-300">—</span>}
-        </p>
-      </div>
-
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">メタ情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
-            <dd className="text-sm text-zinc-800">{activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
-            <dd className="text-sm text-zinc-800">{ownerName ?? <span className="text-zinc-300">—</span>}</dd>
-          </div>
-          <div className="col-span-1 sm:col-span-2">
-            <dt className="text-xs text-zinc-400 mb-1">人物（複数選択された場合）</dt>
-            <dd className="text-sm">
-              {linkedContacts.length > 0 ? (
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {linkedContacts.map((c) => (
-                    <Link key={c.record_id} href={c.href} className="inline-flex items-center gap-1 text-blue-600 hover:underline">
-                      <NavIcon icon="👤" className="w-3.5 h-3.5 shrink-0" /> {c.label}
-                    </Link>
-                  ))}
-                </div>
-              ) : <span className="text-zinc-400">—</span>}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      <EditableInfoCard
+        title="内容・メタ情報"
+        canEdit={editFlag}
+        editEvent="bract:edit-activity"
+        action={saveActivityInline}
+        fields={[
+          { label: '内容', name: 'body', kind: 'textarea', value: activityRow.body, fullWidth: true, view: activityRow.body ? activityRow.body : <span className="text-zinc-300">—</span> },
+          { label: '担当者', name: 'owner_id', kind: 'select', value: activityRow.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? <span className="text-zinc-300">—</span> },
+          { label: '登録日', view: activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—' },
+          { label: '人物（複数選択された場合）', fullWidth: true, view: linkedContacts.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {linkedContacts.map((c) => (
+                <Link key={c.record_id} href={c.href} className="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                  <NavIcon icon="👤" className="w-3.5 h-3.5 shrink-0" /> {c.label}
+                </Link>
+              ))}
+            </div>
+          ) : <span className="text-zinc-400">—</span> },
+        ]}
+      />
       <div className="mt-4 text-right">
         <RecordId id={id} />
       </div>
