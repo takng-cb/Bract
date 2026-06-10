@@ -453,8 +453,8 @@ export default async function TasksPage({
         </>
       ) : (
         <div className="space-y-4">
-          <TaskTable rows={pending} label="未完了" />
-          {done.length > 0 && <TaskTable rows={done} label="完了済み" />}
+          {TaskTable({ rows: pending, label: '未完了' })}
+          {done.length > 0 && TaskTable({ rows: done, label: '完了済み' })}
         </div>
       )}
 

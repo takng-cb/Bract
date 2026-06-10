@@ -38,6 +38,7 @@ export function useResizableColumns(storageKey: string, columns: ResizableColumn
       if (raw) {
         const arr = JSON.parse(raw)
         if (Array.isArray(arr) && arr.length === defaults.length && arr.every((v) => typeof v === 'number')) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント後に localStorage から復元（SSR では取得不可）
           setWidths(arr)
         }
       }
