@@ -10,6 +10,9 @@ import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import { updateExpenseBasic } from '@/app/actions/expenses'
 
 const CATEGORY_COLORS: Record<string, string> = {
   交通費:  'bg-blue-50 text-blue-700 border-blue-200',
@@ -45,6 +48,12 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
 
   const allRelated = await resolveRelatedRecords(relatedPairs)
   const catColor   = CATEGORY_COLORS[expense.category] ?? CATEGORY_COLORS['その他']
+  const editFlag   = await canEdit()
+
+  async function saveExpenseInline(formData: FormData) {
+    'use server'
+    await updateExpenseBasic(id, formData)
+  }
 
   async function deleteAction() {
     'use server'
@@ -98,29 +107,19 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
         <p className="text-2xl font-bold text-blue-600 mt-1">¥{Number(expense.amount).toLocaleString()}</p>
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">詳細情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">日付</dt>
-            <dd className="text-sm text-zinc-800">{expense.expense_date}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">カテゴリ</dt>
-            <dd className="text-sm text-zinc-800">{expense.category}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
-            <dd className="text-sm text-zinc-800">{expense.created_at ? new Date(expense.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
-          </div>
-        </dl>
-        <div className="mt-4 pt-4 border-t border-zinc-100">
-          <dt className="text-xs text-zinc-400 mb-1">備考</dt>
-          <dd className="text-sm text-zinc-800 whitespace-pre-wrap min-h-[2.5rem]">
-            {expense.notes ?? <span className="text-zinc-300">—</span>}
-          </dd>
-        </div>
-      </div>
+      <EditableInfoCard
+        title="詳細情報"
+        canEdit={editFlag}
+        editEvent="bract:edit-expense"
+        action={saveExpenseInline}
+        fields={[
+          { label: '日付', name: 'expense_date', kind: 'date', value: expense.expense_date ? String(expense.expense_date).slice(0, 10) : '', view: expense.expense_date ?? '—' },
+          { label: '金額', name: 'amount', kind: 'number', value: expense.amount != null ? String(expense.amount) : '', view: `¥${Number(expense.amount).toLocaleString()}` },
+          { label: 'カテゴリ', name: 'category', kind: 'select', value: expense.category, options: Object.keys(CATEGORY_COLORS).map((c) => ({ value: c, label: c })), view: expense.category },
+          { label: '登録日', view: expense.created_at ? new Date(expense.created_at).toLocaleDateString('ja-JP') : '—' },
+          { label: '備考', name: 'notes', kind: 'textarea', value: expense.notes, fullWidth: true, view: expense.notes ? expense.notes : <span className="text-zinc-300">—</span> },
+        ]}
+      />
       <div className="mt-4 text-right">
         <RecordId id={id} />
       </div>
