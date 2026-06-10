@@ -5,11 +5,13 @@ import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordId from '@/components/RecordId'
-import { deleteTask, toggleTaskDone } from '@/app/actions/tasks'
+import { deleteTask, toggleTaskDone, updateTaskBasic } from '@/app/actions/tasks'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import DeleteButton from '@/components/DeleteButton'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
 import { getAllUsers } from '@/lib/userUtils'
+import { canEdit } from '@/lib/auth'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { NavIcon } from '@/lib/navIcon'
 
@@ -49,6 +51,12 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     'use server'
     await deleteTask(id)
   }
+
+  async function saveTaskInline(formData: FormData) {
+    'use server'
+    await updateTaskBasic(id, formData)
+  }
+  const canEditFlag = await canEdit()
 
   async function toggleDone(formData: FormData) {
     'use server'
@@ -111,40 +119,21 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         )}
       </div>
 
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">詳細情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">期限</dt>
-            <dd className="text-sm text-zinc-800">
-              {task.due_date ? (
-                <span className={!task.done && new Date(task.due_date) < new Date() ? 'text-red-600 font-medium' : ''}>
-                  {new Date(task.due_date).toLocaleDateString('ja-JP')}
-                  {!task.done && new Date(task.due_date) < new Date() && ' (期限超過)'}
-                </span>
-              ) : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">ステータス</dt>
-            <dd className="text-sm text-zinc-800 inline-flex items-center gap-1">{task.done ? <><NavIcon icon="✅" className="w-4 h-4 shrink-0" /> 完了</> : '未完了'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
-            <dd className="text-sm text-zinc-800">{task.created_at ? new Date(task.created_at).toLocaleDateString('ja-JP') : '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">担当者</dt>
-            <dd className="text-sm text-zinc-800">{ownerName ?? <span className="text-zinc-300">—</span>}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-xs text-zinc-400 mb-1">詳細・メモ</dt>
-            <dd className="text-sm text-zinc-800 whitespace-pre-wrap break-words">
-              {task.description ? task.description : <span className="text-zinc-300">—</span>}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      <EditableInfoCard
+        title="詳細情報"
+        canEdit={canEditFlag}
+        editEvent="bract:edit-task"
+        action={saveTaskInline}
+        fields={[
+          { label: '期限', name: 'due_date', kind: 'date', value: task.due_date ? String(task.due_date).slice(0, 10) : '',
+            view: task.due_date ? <span className={!task.done && new Date(task.due_date) < new Date() ? 'text-red-600 font-medium' : ''}>{new Date(task.due_date).toLocaleDateString('ja-JP')}{!task.done && new Date(task.due_date) < new Date() && ' (期限超過)'}</span> : '—' },
+          { label: '優先度', name: 'priority', kind: 'select', value: task.priority, options: [{ value: 'high', label: '高' }, { value: 'medium', label: '中' }, { value: 'low', label: '低' }], view: priority.label },
+          { label: 'ステータス', view: task.done ? <span className="inline-flex items-center gap-1"><NavIcon icon="✅" className="w-4 h-4 shrink-0" /> 完了</span> : '未完了' },
+          { label: '登録日', view: task.created_at ? new Date(task.created_at).toLocaleDateString('ja-JP') : '—' },
+          { label: '担当者', name: 'owner_id', kind: 'select', value: task.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? <span className="text-zinc-300">—</span> },
+          { label: '詳細・メモ', name: 'description', kind: 'textarea', value: task.description, fullWidth: true, view: task.description ? task.description : <span className="text-zinc-300">—</span> },
+        ]}
+      />
       <div className="mt-4 text-right">
         <RecordId id={id} />
       </div>

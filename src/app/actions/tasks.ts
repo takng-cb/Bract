@@ -85,6 +85,18 @@ export async function createTask(formData: FormData) {
   redirect(`/tasks/${row.id}`)
 }
 
+/** 詳細情報カードのインライン編集用・部分更新（タイトル/関連レコードには触れない）。 */
+export async function updateTaskBasic(id: string, formData: FormData) {
+  await requireEditor()
+  const set: Record<string, unknown> = { updated_at: new Date() }
+  if (formData.has('due_date'))    set.due_date    = (formData.get('due_date') as string) || null
+  if (formData.has('priority'))    set.priority    = (formData.get('priority') as string) || 'medium'
+  if (formData.has('description')) set.description  = (formData.get('description') as string)?.trim() || null
+  if (formData.has('owner_id'))    set.owner_id     = (formData.get('owner_id') as string)?.trim() || null
+  await db.update(tasks).set(set).where(eq(tasks.id, id))
+  redirect(`/tasks/${id}`)
+}
+
 export async function updateTask(id: string, formData: FormData) {
   await requireEditor()
   const title = formData.get('title') as string
