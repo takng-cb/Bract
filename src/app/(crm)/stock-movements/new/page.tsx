@@ -9,6 +9,7 @@ import { db } from '@/lib/db'
 import { products, warehouses } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
 import SearchableSelect from '@/components/SearchableSelect'
+import SubmitButton from '@/components/SubmitButton'
 import { createStockMovement } from '@/app/actions/inventory'
 import { MOVEMENT_TYPES } from '@/lib/inventory'
 
@@ -101,7 +102,7 @@ export default async function NewStockMovementPage({
           </div>
 
           <div className="flex items-center gap-2 pt-2">
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">登録</button>
+            <SubmitButton>登録</SubmitButton>
             <Link href="/stock-movements" className="px-4 py-2 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">キャンセル</Link>
           </div>
         </form>

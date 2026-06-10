@@ -17,6 +17,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { deleteAssignment, setAssignmentStatus, updateAssignmentBasic } from '@/industries/staffing/actions/assignments'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import StageBar from '@/components/StageBar'
 import { ASSIGNMENT_STAGES } from '@/lib/statusStages'
 import OutreachSection from '@/industries/staffing/components/OutreachSection'
@@ -121,7 +122,8 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2 shrink-0">
-              <Link href={`/assignments/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">編集</Link>
+              <InlineEditButton event="bract:edit-assignment" />
+              <Link href={`/assignments/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この案件を削除しますか？" />
             </div>
           </AuthGuard>
@@ -137,6 +139,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
       <EditableInfoCard
         title="業務情報"
         canEdit={editFlag}
+        showEditButton={false}
         editEvent="bract:edit-assignment"
         action={saveAssignmentInline}
         fields={[

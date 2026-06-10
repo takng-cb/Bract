@@ -1,5 +1,4 @@
 import { db } from '@/lib/db'
-import { SquarePen } from 'lucide-react'
 import { activities, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
@@ -7,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { deleteActivity, updateActivityBasic } from '@/app/actions/activities'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import { getAllUsers } from '@/lib/userUtils'
@@ -78,7 +78,8 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton event="bract:edit-activity" />
+              <Link href={`/activities/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この活動履歴を削除しますか？" />
             </div>
           </AuthGuard>
@@ -119,6 +120,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
       <EditableInfoCard
         title="内容・メタ情報"
         canEdit={editFlag}
+        showEditButton={false}
         editEvent="bract:edit-activity"
         action={saveActivityInline}
         fields={[

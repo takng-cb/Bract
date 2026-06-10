@@ -4,7 +4,7 @@
  */
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Package, SquarePen } from 'lucide-react'
+import { Package } from 'lucide-react'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
 import { products, warehouses, stock_movements, accounts } from '@/lib/schema'
@@ -16,6 +16,7 @@ import { computeStockBalance, stockBadgeColor, isBelowReorder } from '@/lib/inve
 import { deleteProduct, updateProductBasic } from '@/app/actions/inventory'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import { NavIcon } from '@/lib/navIcon'
 
 export const dynamic = 'force-dynamic'
@@ -102,7 +103,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/products/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton event="bract:edit-product" />
+              <Link href={`/products/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この商品を削除しますか？関連する在庫移動もすべて削除されます。" />
             </div>
           </AuthGuard>
@@ -121,6 +123,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       <EditableInfoCard
         title="商品情報"
         canEdit={editFlag}
+        showEditButton={false}
         editEvent="bract:edit-product"
         action={saveProductInline}
         fields={[

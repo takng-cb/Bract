@@ -1,5 +1,4 @@
 import { db } from '@/lib/db'
-import { SquarePen } from 'lucide-react'
 import { customer_vehicles, accounts, contacts, maintenance_records, maintenance_line_items, attachments } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
@@ -14,6 +13,7 @@ import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
 import { deleteCustomerVehicle, updateCustomerVehicleBasic } from '@/industries/auto-body/actions/customerVehicles'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { AB_ICONS } from '@/industries/auto-body/lib/icons'
@@ -144,7 +144,8 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/customer-vehicles/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton event="bract:edit-customer-vehicle" />
+              <Link href={`/customer-vehicles/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この顧客車両を削除しますか？" />
             </div>
           </AuthGuard>
@@ -280,6 +281,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
       <EditableInfoCard
         title="車検・メモ"
         canEdit={editFlag}
+        showEditButton={false}
         editEvent="bract:edit-customer-vehicle"
         action={saveCustomerVehicleInline}
         fields={[

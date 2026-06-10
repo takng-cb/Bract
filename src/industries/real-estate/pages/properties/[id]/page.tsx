@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { SquarePen, House, Building2, UserRound, Tag } from 'lucide-react'
+import { House, Building2, UserRound, Tag } from 'lucide-react'
 import { accounts, contacts, activities, tasks, expenses, change_logs } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation'
 import { deleteProperty, setPropertyStatus, updatePropertyBasic } from '@/industries/real-estate/actions/properties'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 
 const RE_PROPERTY_TYPES = ['土地・建物', '建物のみ', '土地のみ', 'その他']
 const RE_TX_TYPES = ['売買', '賃貸']
@@ -175,6 +176,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       <EditableInfoCard
         title={isRE ? '物件情報' : '商品情報'}
         canEdit={editFlag}
+        showEditButton={false}
         editEvent="bract:edit-property"
         action={savePropertyInline}
         fields={[
@@ -473,7 +475,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
               <Link href={`/properties/${id}/brokerage-report`} target="_blank" className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 transition-colors" title="媒介業務処理状況報告書を新タブで印刷プレビュー"><span className="inline-flex items-center gap-1"><NavIcon icon="📄" className="w-3 h-3 shrink-0" />媒介報告書</span></Link>
-              <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton event="bract:edit-property" />
+              <Link href={`/properties/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">登記など詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="この物件を削除しますか？" />
             </div>
           </AuthGuard>

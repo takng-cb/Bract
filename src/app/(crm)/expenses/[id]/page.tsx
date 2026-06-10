@@ -2,7 +2,6 @@ import { db } from '@/lib/db'
 import { expenses, expense_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import Link from 'next/link'
-import { SquarePen } from 'lucide-react'
 import { notFound, redirect } from 'next/navigation'
 import RecordId from '@/components/RecordId'
 import { revalidatePath } from 'next/cache'
@@ -12,6 +11,7 @@ import RecordHeader from '@/components/RecordHeader'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import { updateExpenseBasic } from '@/app/actions/expenses'
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -72,9 +72,8 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
-              <Link href={`/expenses/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
-                <SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集
-              </Link>
+              <InlineEditButton event="bract:edit-expense" />
+              <Link href={`/expenses/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">件名・関連</Link>
               <DeleteButton action={deleteAction} confirmMessage="この経費を削除しますか？" />
             </div>
           </AuthGuard>
@@ -110,6 +109,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
       <EditableInfoCard
         title="詳細情報"
         canEdit={editFlag}
+        showEditButton={false}
         editEvent="bract:edit-expense"
         action={saveExpenseInline}
         fields={[

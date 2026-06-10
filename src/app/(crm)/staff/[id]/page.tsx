@@ -2,7 +2,7 @@
  * /staff/[id] — スタッフ詳細 (Issue #69)
  */
 import { notFound } from 'next/navigation'
-import { SquarePen, UserRound } from 'lucide-react'
+import { UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
@@ -15,6 +15,7 @@ import { deleteStaff, setStaffStatus, updateStaffBasic } from '@/industries/staf
 import { assignmentStatusColor } from '@/industries/staffing/lib/staffingService'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
+import InlineEditButton from '@/components/detail/InlineEditButton'
 import StageBar from '@/components/StageBar'
 import { STAFF_STAGES } from '@/lib/statusStages'
 
@@ -86,7 +87,8 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2 shrink-0">
-              <Link href={`/staff/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+              <InlineEditButton event="bract:edit-staff" />
+              <Link href={`/staff/${id}/edit`} className="px-3 py-1.5 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50 transition-colors">詳細</Link>
               <DeleteButton action={handleDelete} confirmMessage="このスタッフを削除しますか？" />
             </div>
           </AuthGuard>
@@ -102,6 +104,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       <EditableInfoCard
         title="プロフィール"
         canEdit={editFlag}
+        showEditButton={false}
         editEvent="bract:edit-staff"
         action={saveStaffInline}
         fields={[
