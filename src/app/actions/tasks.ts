@@ -85,6 +85,25 @@ export async function createTask(formData: FormData) {
   redirect(`/tasks/${row.id}`)
 }
 
+/**
+ * インラインコンポーザ用・その場で ToDo を作成（遷移せず revalidate のみ）。
+ */
+export async function quickCreateTask(formData: FormData) {
+  await requireEditor()
+  const title = (formData.get('title') as string)?.trim()
+  if (!title) throw new Error('タイトルは必須です')
+  const [row] = await db.insert(tasks).values({
+    title,
+    description: (formData.get('description') as string)?.trim() || null,
+    due_date: (formData.get('due_date') as string) || null,
+    priority: (formData.get('priority') as string) || 'medium',
+    owner_id: (formData.get('owner_id') as string)?.trim() || null,
+  }).returning({ id: tasks.id })
+  await syncTaskRelatedRecords(row.id, parseRelatedRecords(formData))
+  const revalidate = formData.get('revalidate') as string
+  if (revalidate) revalidatePath(revalidate)
+}
+
 /** 詳細情報カードのインライン編集用・部分更新（タイトル/関連レコードには触れない）。 */
 export async function updateTaskBasic(id: string, formData: FormData) {
   await requireEditor()
