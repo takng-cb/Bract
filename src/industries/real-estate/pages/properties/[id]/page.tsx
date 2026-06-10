@@ -7,7 +7,13 @@ import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, inArray, desc, asc, count } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { deleteProperty, setPropertyStatus } from '@/industries/real-estate/actions/properties'
+import { deleteProperty, setPropertyStatus, updatePropertyBasic } from '@/industries/real-estate/actions/properties'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
+
+const RE_PROPERTY_TYPES = ['土地・建物', '建物のみ', '土地のみ', 'その他']
+const RE_TX_TYPES = ['売買', '賃貸']
+const OTHER_TX_TYPES = ['売買', '賃貸', 'サービス提供', 'その他']
 import StageBar from '@/components/StageBar'
 import { PROPERTY_STAGES } from '@/lib/statusStages'
 import { toggleTaskDone } from '@/app/actions/tasks'
@@ -99,6 +105,12 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   const account  = row.accounts?.id ? row.accounts : null
   const contact  = row.contacts?.id ? row.contacts : null
   const isRE     = p.product_category !== 'other'
+  const editFlag = await canEdit()
+
+  async function savePropertyInline(formData: FormData) {
+    'use server'
+    await updatePropertyBasic(id, formData)
+  }
   const viewParam = isRE ? 'real_estate' : 'other'
 
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
@@ -160,24 +172,19 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   // ── 概要タブ ─────────────────────────────────────────────────────
   const overviewContent = (
     <>
-      <Section title={isRE ? '物件情報' : '商品情報'}>
-        <Dl items={isRE ? [
-          { label: '物件種別',   value: p.property_type },
-          { label: '取引種別',   value: p.transaction_type },
-          { label: '価格 / 賃料', value: fmt.price(p.price) },
-          { label: '登録日',     value: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : null },
-        ] : [
-          { label: '取引種別',   value: p.transaction_type },
-          { label: '金額',       value: fmt.price(p.price) },
-          { label: '登録日',     value: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : null },
-        ]} />
-        {!isRE && p.description && (
-          <div className="mt-4 pt-4 border-t border-zinc-100">
-            <dt className="text-xs text-zinc-400 mb-1">備考</dt>
-            <dd className="text-sm text-zinc-800 whitespace-pre-wrap">{p.description}</dd>
-          </div>
-        )}
-      </Section>
+      <EditableInfoCard
+        title={isRE ? '物件情報' : '商品情報'}
+        canEdit={editFlag}
+        editEvent="bract:edit-property"
+        action={savePropertyInline}
+        fields={[
+          ...(isRE ? [{ label: '物件種別', name: 'property_type', kind: 'select' as const, value: p.property_type, options: RE_PROPERTY_TYPES.map((t) => ({ value: t, label: t })), view: p.property_type ?? '—' }] : []),
+          { label: '取引種別', name: 'transaction_type', kind: 'select', value: p.transaction_type, options: (isRE ? RE_TX_TYPES : OTHER_TX_TYPES).map((t) => ({ value: t, label: t })), view: p.transaction_type ?? '—' },
+          { label: isRE ? '価格 / 賃料' : '金額', name: 'price', kind: 'number', value: p.price != null ? String(p.price) : '', view: fmt.price(p.price) ?? '—' },
+          { label: '登録日', view: p.created_at ? new Date(p.created_at).toLocaleDateString('ja-JP') : '—' },
+          { label: '備考', name: 'description', kind: 'textarea', value: p.description, fullWidth: true, view: p.description ? p.description : <span className="text-zinc-300">—</span> },
+        ]}
+      />
 
       {isRE && (
         <>
