@@ -15,7 +15,9 @@ import DeleteButton from '@/components/DeleteButton'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import { toggleTaskDone } from '@/app/actions/tasks'
-import { deleteVehicle, setVehicleStatus } from '@/industries/auto-body/actions/vehicles'
+import { deleteVehicle, setVehicleStatus, updateVehicleBasic } from '@/industries/auto-body/actions/vehicles'
+import { canEdit } from '@/lib/auth'
+import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import { NavIcon } from '@/lib/navIcon'
 import StageBar from '@/components/StageBar'
 import { VEHICLE_STAGES } from '@/lib/statusStages'
@@ -111,6 +113,12 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   if (!vRow) notFound()
   const v = vRow
+  const editFlag = await canEdit()
+
+  async function saveVehicleInline(formData: FormData) {
+    'use server'
+    await updateVehicleBasic(id, formData)
+  }
 
   const [activityRelMap, taskRelMap, expenseRelMap] = await Promise.all([
     batchResolveRelatedRecords('activity', activitiesList.map((a) => a.id)),
@@ -159,36 +167,19 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   // ── 概要タブ ─────────────────────────────────────────────────────
   const overviewContent = (
     <>
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">車両情報</h2>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">ナンバー</dt>
-            <dd className="text-sm text-zinc-800">{v.license_plate ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">車台番号</dt>
-            <dd className="text-sm text-zinc-800">{v.vin ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">次回車検</dt>
-            <dd className={`text-sm ${expiringSoon ? 'text-red-600 font-semibold' : 'text-zinc-800'}`}>
-              {v.next_inspection_date ?? '—'}
-              {days != null && (
-                <span className="ml-2 text-xs text-zinc-400">
-                  ({days < 0 ? `${-days}日経過` : `あと${days}日`})
-                </span>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-400 mb-1">登録日</dt>
-            <dd className="text-sm text-zinc-800">
-              {v.created_at ? new Date(v.created_at).toLocaleDateString('ja-JP') : '—'}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      <EditableInfoCard
+        title="車両情報"
+        canEdit={editFlag}
+        editEvent="bract:edit-vehicle"
+        action={saveVehicleInline}
+        fields={[
+          { label: 'ナンバー', name: 'license_plate', kind: 'text', value: v.license_plate, view: v.license_plate ?? '—' },
+          { label: '車台番号', name: 'vin', kind: 'text', value: v.vin, view: v.vin ?? '—' },
+          { label: '次回車検', name: 'next_inspection_date', kind: 'date', value: v.next_inspection_date ? String(v.next_inspection_date).slice(0, 10) : '',
+            view: <span className={expiringSoon ? 'text-red-600 font-semibold' : ''}>{v.next_inspection_date ?? '—'}{days != null && <span className="ml-2 text-xs text-zinc-400">({days < 0 ? `${-days}日経過` : `あと${days}日`})</span>}</span> },
+          { label: '登録日', view: v.created_at ? new Date(v.created_at).toLocaleDateString('ja-JP') : '—' },
+        ]}
+      />
 
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
         <h2 className="text-sm font-bold text-zinc-700 mb-4">仕入・販売</h2>
