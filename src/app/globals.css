@@ -211,6 +211,13 @@
   /* 数字は等幅で桁揃え（金額・件数） */
   .tnum, .tabular { font-variant-numeric: tabular-nums; }
 
+  /* 濃色サイドバー用のスクロールバー（既定の明るいバーが浮くのを防ぐ） */
+  .scrollbar-dark { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+  .scrollbar-dark::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-dark::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-dark::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 9999px; }
+  .scrollbar-dark::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); }
+
   :focus-visible {
     outline: 2px solid var(--color-brand-500);
     outline-offset: 1px;

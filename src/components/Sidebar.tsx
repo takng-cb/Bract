@@ -140,7 +140,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
       </div>
 
       {/* メインナビゲーション（モジュール基準・開閉＋見出しでモジュールDashへ・#22） */}
-      <nav className="flex-1 px-2 py-3 overflow-y-auto">
+      <nav className="flex-1 px-2 py-3 overflow-y-auto scrollbar-dark">
         {dashboardItem && <div className="space-y-0.5">{renderItem(dashboardItem)}</div>}
 
         {navGroups.map((group) => {
