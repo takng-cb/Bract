@@ -171,6 +171,12 @@
 - 状態：実装（feature/quick-access）。3業種ビルド green / 単体143 green / E2E（quick-wizard 2＋industry-routes 14＋mobile-nav 2）green。
 - 関連：REQ-0016（モジュール別クイックアクセス）, REQ-0020（アイコン）, ADR-0016 / 残：typed ブックの AI 作成 apply（在庫等の個別実装）・画像OCR精度調整
 
+### REQ-0023  レコード承認機能（汎用 approval レイヤー）
+- 2026-06-10 / 会話（#85 の論点すり合わせを確定）
+- 内容：各種レコードに「必要に応じた承認」を付けたい（高額経費・商談値引き・整備見積等）。汎用 `approvals` レイヤーで実装し、**全ブックで承認を ON/OFF 可能**・**承認要否/承認者は金額を含む任意フィールドの条件でルーティング**・**多段フロー**・承認待ち中は編集ロック・承認者は指定方式（ロール新設なし）・通知はアプリ内＋Discord・監査は approvals＋change_logs。
+- 状態：合意（設計済 / 実装前）。Phase1＝単一ブックで基盤確立 → Phase2 多段・全ブック設定 UI → Phase3 承認待ち一覧/ウィジェット。
+- 関連：ADR-0022 / #85 / spec: approvals
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
