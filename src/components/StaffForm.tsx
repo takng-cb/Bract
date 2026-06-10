@@ -6,6 +6,7 @@
  */
 import { useTransition, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import FormSection from '@/components/FormSection'
 
 const FIELD_CLS = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
@@ -75,11 +76,12 @@ export default function StaffForm({ action, cancelHref, initial, accounts }: Pro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm px-3 py-2 rounded-md">{error}</div>
       )}
 
+      <FormSection title="スタッフ情報">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Cell label="氏名 *">
           <input name="name" required defaultValue={toStr(initial?.name)} className={FIELD_CLS} />
@@ -137,8 +139,9 @@ export default function StaffForm({ action, cancelHref, initial, accounts }: Pro
           </Cell>
         </div>
       </div>
+      </FormSection>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+      <div className="flex items-center justify-end gap-2">
         <button type="button" onClick={() => router.push(cancelHref)} className="px-4 py-2 text-sm border border-zinc-300 rounded-md hover:bg-zinc-50">
           キャンセル
         </button>

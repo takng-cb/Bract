@@ -6,6 +6,7 @@
  */
 import { useActionState, useRef } from 'react'
 import CreateFeedback from '@/components/CreateFeedback'
+import FormSection from '@/components/FormSection'
 import type { CreateAction } from '@/lib/duplicateTypes'
 
 const FIELD_CLS = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -21,9 +22,10 @@ export default function AssignmentForm({
   const formRef = useRef<HTMLFormElement>(null)
 
   return (
-    <form ref={formRef} action={formAction} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4">
       <CreateFeedback state={state} formRef={formRef} />
 
+      <FormSection title="案件情報">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <label className="block text-xs text-zinc-500 mb-1">派遣先（取引先）*</label>
@@ -84,8 +86,9 @@ export default function AssignmentForm({
           <textarea name="internal_memo" rows={2} className={`${FIELD_CLS} resize-y`} />
         </div>
       </div>
+      </FormSection>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+      <div className="flex items-center justify-end gap-2">
         <button type="submit" disabled={pending} className="px-4 py-2 text-sm bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
           {pending ? '登録中…' : '登録'}
         </button>
