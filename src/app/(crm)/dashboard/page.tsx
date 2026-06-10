@@ -178,6 +178,13 @@ export default async function DashboardPage({
     (t) => t.due_date && t.due_date >= from && t.due_date <= to
   )
 
+  // 直近のやること：期限超過 ＋ 今後7日以内（期間に依存しない・ホームの主役）
+  const weekAhead = (() => { const d = new Date(today); d.setDate(d.getDate() + 7); return formatDateLocal(d) })()
+  const imminentTasks = pendingTasks
+    .filter((t) => t.due_date && t.due_date <= weekAhead)
+    .slice(0, 12)
+  const overdueCount = imminentTasks.filter((t) => t.due_date && t.due_date < today).length
+
   // 期間内の活動（occurred_at で絞る、ローカルタイムの日付で比較）
   const periodActivities = allActivities
     .filter((a) => {
@@ -221,6 +228,44 @@ export default async function DashboardPage({
         <PeriodSelector from={from} to={to} />
       </div>
 
+      {/* 直近のやること（ホームの主役・期間に依存しない） */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+            <NavIcon icon="✅" className="w-5 h-5" /> 直近のやること
+            <span className="text-zinc-400 font-normal text-sm">（期限超過・今後7日）</span>
+            {overdueCount > 0 && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-danger-bg text-danger">超過 {overdueCount}</span>}
+          </h2>
+          <Link href="/tasks" className="text-xs text-blue-600 hover:text-blue-800">ToDo一覧 →</Link>
+        </div>
+        {imminentTasks.length === 0 ? (
+          <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">直近の期限ToDoはありません</div>
+        ) : (
+          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
+            {imminentTasks.map((t) => {
+              const rel = taskById.get(t.id) ?? { accounts: [], opportunities: [] }
+              const priority = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
+              const isOverdue = t.due_date && t.due_date < today
+              return (
+                <Link key={t.id} href={`/tasks/${t.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">
+                  <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${isOverdue ? 'bg-danger' : 'bg-warning'}`} aria-hidden />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-medium text-zinc-900 truncate">{t.title}</span>
+                    {(rel.accounts.length > 0 || rel.opportunities.length > 0) && (
+                      <span className="block text-xs text-zinc-400 truncate">{[...rel.accounts.map((a) => a.name), ...rel.opportunities.map((o) => o.name)].join(' / ')}</span>
+                    )}
+                  </span>
+                  <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${priority.color}`}>{priority.label}</span>
+                  <span className={`shrink-0 text-xs tabular-nums ${isOverdue ? 'text-danger font-semibold' : 'text-zinc-500'}`}>
+                    {t.due_date}{isOverdue && <NavIcon icon="⚠️" className="w-3.5 h-3.5 inline-block ml-1 -mt-0.5" />}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
       {/* KPIカード */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
@@ -258,99 +303,6 @@ export default async function DashboardPage({
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         {/* 左カラム */}
         <div className="col-span-1 md:col-span-3 space-y-6">
-
-          {/* 期限が近いToDo */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-zinc-800">
-                期間内のToDo
-                <span className="ml-2 text-zinc-400 font-normal text-sm">({periodTasks.length})</span>
-              </h2>
-              <Link href="/tasks" className="text-xs text-blue-600 hover:text-blue-800">すべて見る →</Link>
-            </div>
-            {periodTasks.length === 0 ? (
-              <div className="bg-white border border-zinc-200 rounded-lg px-4 py-8 text-center text-sm text-zinc-400">
-                期間内のToDoはありません
-              </div>
-            ) : (
-              <>
-                {/* PC: テーブル */}
-                <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-auto max-h-96">
-                  <table className="w-full text-sm">
-                    <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
-                      <tr>
-                        <th className="text-left px-4 py-3 font-medium text-zinc-600">タイトル</th>
-                        <th className="text-left px-4 py-3 font-medium text-zinc-600">優先度</th>
-                        <th className="text-left px-4 py-3 font-medium text-zinc-600">期限</th>
-                        <th className="text-left px-4 py-3 font-medium text-zinc-600">取引先</th>
-                        <th className="px-4 py-3"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                      {periodTasks.map((t) => {
-                        const rel = taskById.get(t.id) ?? { accounts: [], opportunities: [] }
-                        const priority    = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
-                        const isOverdue   = t.due_date && t.due_date < today
-                        return (
-                          <tr key={t.id} className="hover:bg-zinc-50 transition-colors">
-                            <td className="px-4 py-3 font-medium text-zinc-900">
-                              <Link href={`/tasks/${t.id}`} className="hover:text-blue-600 block truncate max-w-xs">{t.title}</Link>
-                              {rel.opportunities.length > 0 && (
-                                <p className="text-xs text-zinc-400 mt-0.5 truncate">
-                                  <span className="inline-flex items-center gap-1"><NavIcon icon="💼" className="w-3 h-3 shrink-0" /> {rel.opportunities.map((o) => o.name).join(', ')}</span>
-                                </p>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priority.color}`}>{priority.label}</span>
-                            </td>
-                            <td className={`px-4 py-3 whitespace-nowrap text-sm ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-600'}`}>
-                              {t.due_date ?? '—'}{isOverdue && <NavIcon icon="⚠️" className="w-3.5 h-3.5 inline-block ml-1 -mt-0.5" />}
-                            </td>
-                            <td className="px-4 py-3 text-zinc-600 text-sm">
-                              {rel.accounts.length > 0 ? (
-                                <span className="block truncate max-w-48">
-                                  {rel.accounts.map((a, i) => (
-                                    <span key={a.id}>
-                                      <Link href={`/accounts/${a.id}`} className="hover:text-blue-600">{a.name}</Link>
-                                      {i < rel.accounts.length - 1 && ', '}
-                                    </span>
-                                  ))}
-                                </span>
-                              ) : <span className="text-zinc-300">—</span>}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <Link href={`/tasks/${t.id}`} className="text-blue-600 hover:text-blue-800 text-xs">詳細 →</Link>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {/* モバイル: カード */}
-                <div className="md:hidden space-y-2">
-                  {periodTasks.map((t) => {
-                    const rel = taskById.get(t.id) ?? { accounts: [], opportunities: [] }
-                    const priority = PRIORITY_CONFIG[t.priority] ?? PRIORITY_CONFIG.medium
-                    const isOverdue = t.due_date && t.due_date < today
-                    return (
-                      <Link key={t.id} href={`/tasks/${t.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-medium text-zinc-900 text-sm leading-snug">{t.title}</span>
-                          <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${priority.color}`}>{priority.label}</span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
-                          {t.due_date && <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-red-500 font-medium' : ''}`}><NavIcon icon="📅" className="w-3 h-3 shrink-0" />{t.due_date}{isOverdue && <NavIcon icon="⚠️" className="w-3 h-3 inline" />}</span>}
-                          {rel.accounts.length > 0 && <span className="inline-flex items-center gap-1"><NavIcon icon="🏢" className="w-3 h-3 shrink-0" />{rel.accounts.map((a) => a.name).join(', ')}</span>}
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-          </section>
 
           {/* 期間内の商談 */}
           <section>
