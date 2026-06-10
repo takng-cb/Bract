@@ -302,7 +302,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                     <p className="text-xs text-zinc-400">AI作成できないブックは手動入力または専用ウィザードに切り替わります。</p>
                   )}
                   <div className="grid grid-cols-2 gap-2.5">
-                    {mod.books.map((b) => (
+                    {mod.books.filter((b) => mode === 'view' || !b.viewOnly).map((b) => (
                       <button key={b.apiName} onClick={() => pickBook(b)}
                         className="relative flex min-h-23 flex-col items-start gap-1.5 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100">
                         <NavIcon icon={b.icon} className="w-6 h-6 shrink-0 text-zinc-500" />
