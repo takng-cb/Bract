@@ -315,7 +315,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               title="基本情報"
               dense
               canEdit={editFlag}
-              showEditButton={false}
+
               action={saveAccountInline}
               hiddenFields={[
                 { name: 'name', value: account.name },

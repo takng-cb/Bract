@@ -123,7 +123,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               title="商品情報"
               dense
               canEdit={editFlag}
-              showEditButton={false}
+
               editEvent="bract:edit-product"
               action={saveProductInline}
               fields={[

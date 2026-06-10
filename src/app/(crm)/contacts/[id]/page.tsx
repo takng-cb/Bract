@@ -209,7 +209,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               title="基本情報"
               dense
               canEdit={canEditFlag}
-              showEditButton={false}
+
               action={saveContactInline}
               hiddenFields={[
                 { name: 'full_name', value: contact.full_name },

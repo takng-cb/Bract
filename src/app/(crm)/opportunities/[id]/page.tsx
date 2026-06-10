@@ -333,7 +333,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
               title="商談情報"
               dense
               canEdit={editFlag}
-              showEditButton={false}
+
               action={saveOppBasic}
               fields={[
                 { label: 'ステージ', view: STAGE_LABEL[opportunity.stage] ?? opportunity.stage },

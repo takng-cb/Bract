@@ -1,4 +1,6 @@
 import { db } from '@/lib/db'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import { taggables, tags } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { addTagToObject, removeTagFromObject } from '@/app/actions/tags'
@@ -87,9 +89,16 @@ export default async function TagsSection({ objectType, objectId, revalidatePath
         </form>
       )}
 
-      {appliedRows.length === 0 && remaining.length === 0 && (
-        <span className="text-xs text-zinc-400">タグがありません</span>
-      )}
+      {/* 新規タグ作成（タグが未定義でも常に導線を出す） */}
+      <Link
+        href="/tags/new"
+        target="_blank"
+        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-zinc-500 border border-dashed border-zinc-300 rounded-md hover:border-zinc-400 hover:text-zinc-700 transition-colors"
+        title="新しいタグを作成（別タブ）"
+      >
+        <Plus className="w-3 h-3 shrink-0" strokeWidth={2.5} />
+        {allTags.length === 0 ? 'タグを作成' : '新規'}
+      </Link>
     </div>
   )
 }

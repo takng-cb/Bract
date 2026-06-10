@@ -112,7 +112,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       <KpiBand items={kpis} />
 
       <RecordColumns
-        left={<EditableInfoCard title="スタッフ情報（全項目）" dense canEdit={editFlag} showEditButton={false} editEvent="bract:edit-staff" action={saveStaffInline} fields={staffFields} />}
+        left={<EditableInfoCard title="スタッフ情報（全項目）" dense canEdit={editFlag} editEvent="bract:edit-staff" action={saveStaffInline} fields={staffFields} />}
       >
         <RecordTabPanel tabs={[{ id: 'assign', label: 'アサイン履歴', icon: <Briefcase />, count: history.length, content: historyTab }]} />
         <div className="mt-4 text-right"><RecordId id={id} /></div>

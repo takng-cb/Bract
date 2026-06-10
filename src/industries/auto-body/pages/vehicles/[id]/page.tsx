@@ -209,7 +209,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       <RecordColumns
         left={
           <>
-            <EditableInfoCard title="車両情報（全項目）" dense canEdit={editFlag} showEditButton={false} editEvent="bract:edit-vehicle" action={saveVehicleInline} fields={vehicleFields} />
+            <EditableInfoCard title="車両情報（全項目）" dense canEdit={editFlag} editEvent="bract:edit-vehicle" action={saveVehicleInline} fields={vehicleFields} />
 
             {(activeLoan || pastLoans.length > 0) && (
               <RefCard title="代車利用" icon={<NavIcon icon="🚙" className="w-4 h-4" />}>
