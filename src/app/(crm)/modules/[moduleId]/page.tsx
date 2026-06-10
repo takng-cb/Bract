@@ -7,6 +7,9 @@ import PageHeader from '@/components/ui/PageHeader'
 import AutoBodyWidgets from '@/components/dashboard/AutoBodyWidgets'
 import CrmCoreWidgets from '@/components/dashboard/CrmCoreWidgets'
 import SalesWidgets from '@/components/dashboard/SalesWidgets'
+import RealEstateWidgets from '@/components/dashboard/RealEstateWidgets'
+import StaffingWidgets from '@/components/dashboard/StaffingWidgets'
+import InventoryWidgets from '@/components/dashboard/InventoryWidgets'
 import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
 import { getCurrentUserId } from '@/lib/auth'
 
@@ -41,6 +44,9 @@ export default async function ModuleDashboardPage({
       )}
       {moduleId === 'crm-core' && <CrmCoreWidgets />}
       {moduleId === 'sales' && <SalesWidgets />}
+      {moduleId === 'real-estate' && <RealEstateWidgets />}
+      {moduleId === 'staffing' && <StaffingWidgets />}
+      {moduleId === 'inventory' && <InventoryWidgets />}
 
       {/* クイック起点 */}
       {mod.quickActions && mod.quickActions.length > 0 && (
