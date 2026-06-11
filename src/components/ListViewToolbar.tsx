@@ -81,22 +81,25 @@ export default function ListViewToolbar({
           )}
         </button>
 
-        <button
-          type="button"
-          onClick={() => setGroupOpen((v) => !v)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-            groupOpen || activeGroupCount > 0
-              ? 'bg-violet-50 border-violet-300 text-violet-700'
-              : 'bg-white border-zinc-300 text-zinc-600 hover:bg-zinc-50'
-          }`}
-        >
-          ⊞ グルーピング
-          {activeGroupCount > 0 && (
-            <span className="bg-violet-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center leading-none">
-              {activeGroupCount}
-            </span>
-          )}
-        </button>
+        {/* グルーピング非対応のビュー（パイプライン等）では groupableFields を空で渡すと非表示 */}
+        {groupableFields.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setGroupOpen((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+              groupOpen || activeGroupCount > 0
+                ? 'bg-violet-50 border-violet-300 text-violet-700'
+                : 'bg-white border-zinc-300 text-zinc-600 hover:bg-zinc-50'
+            }`}
+          >
+            ⊞ グルーピング
+            {activeGroupCount > 0 && (
+              <span className="bg-violet-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center leading-none">
+                {activeGroupCount}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* ── フィルターパネル ── */}
