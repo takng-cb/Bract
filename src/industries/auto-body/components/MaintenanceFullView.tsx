@@ -1,12 +1,12 @@
 /**
  * 整備の「全体」ビュー。
  *
- * レイアウト（#整備レイアウト改修）:
- *   - 上段に 顧客・車両 / 代車 / 合計 の 3 カードを横並び（旧・左 sticky パネルを上へ移設）
+ * レイアウト（#整備レイアウト改修 / REQ-0038）:
+ *   - 上段に 顧客 / 車両 / 代車 の 3 カードを横並び（請求合計はページ上部の KPI サマリーへ）
  *   - その下に 整備 → 損傷 → 作業項目 → 諸費用/請求支払/入金 を全幅で縦積み
  *
  * 編集 UX:
- *   - フィールド系（整備 / 顧客・車両 / 代車 / 請求・支払 / 損傷）は InlineSection で
+ *   - フィールド系（整備 / 顧客 / 車両 / 代車 / 請求・支払 / 損傷）は InlineSection で
  *     「閲覧⇄編集」をその場トグル（他ブックの EditableInfoCard と同じ作法）。
  *   - 明細系（作業項目 / 諸費用 / 入金）は専用エディタ（ステージング表）を直接表示する。
  */
@@ -35,6 +35,7 @@ import MaintenanceLoanerEditForm from './MaintenanceLoanerEditForm'
 import StageBar, { type StageConfig } from '@/components/StageBar'
 import { requestStatusChange } from '@/app/actions/approvals'
 import ApprovalSection from '@/components/approvals/ApprovalSection'
+import { computeMaintenanceTotals } from '@/industries/auto-body/lib/maintenanceTotals'
 import { NavIcon } from '@/lib/navIcon'
 
 const STATUS_STAGES: StageConfig[] = [
@@ -51,14 +52,6 @@ type Props = {
   users: { id: string; name: string }[]
 }
 
-const TAX_RATES: Record<string, number> = {
-  '税別10%': 10, '税別8%': 8, '税込10%': 10, '税込8%': 8, '非課税': 0,
-}
-
-function yen(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(Number(n))) return '—'
-  return `¥${Math.round(Number(n)).toLocaleString()}`
-}
 
 export default async function MaintenanceFullView({ maintenanceId, users }: Props) {
   // 1 回目のクエリ群: 整備本体 + 関連情報を取得（loaner_vehicle_id を含む）
@@ -187,43 +180,8 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   const receptionName = m.reception_owner_id ? users.find((u) => u.id === m.reception_owner_id)?.name ?? '—' : '—'
   const workerName    = m.worker_owner_id    ? users.find((u) => u.id === m.worker_owner_id)?.name    ?? '—' : '—'
 
-  // ─── 集計 ──────────────────────────────────────
-  let laborSum = 0, partsSum = 0, partsCost = 0
-  for (const l of lines) {
-    if (l.is_excluded) continue
-    const labor = Number(l.labor_amount ?? 0)
-    const qty   = Number(l.parts_qty ?? 0)
-    const unit  = Number(l.parts_unit_price ?? 0)
-    const cost  = Number(l.cost_unit_price ?? 0)
-    if (Number.isFinite(labor)) laborSum += labor
-    if (Number.isFinite(qty) && Number.isFinite(unit)) partsSum += qty * unit
-    if (Number.isFinite(qty) && Number.isFinite(cost)) partsCost += qty * cost
-  }
-  const linesTotal = laborSum + partsSum
-
-  let taxableFees = 0, nontaxableFees = 0
-  for (const f of fees) {
-    const a = Number(f.amount ?? 0)
-    if (f.category === '課税') {
-      if (Number.isFinite(a)) taxableFees += a
-    } else if (f.category === '非課税') {
-      if (Number.isFinite(a)) nontaxableFees += a
-    }
-  }
-
-  const taxRate = TAX_RATES[m.tax_mode ?? '税別10%'] ?? 10
-  const isTaxExternal = m.tax_mode?.startsWith('税別')
-  const consumptionTax = isTaxExternal
-    ? Math.floor((linesTotal + taxableFees) * (taxRate / 100))
-    : 0
-  const grandTotal = linesTotal + taxableFees + consumptionTax + nontaxableFees
-
-  const paidSum = payments.reduce((acc, p) => acc + Number(p.amount ?? 0), 0)
-  const balance = grandTotal - paidSum
-
-  const grossProfit = linesTotal - partsCost
-  // 計算結果を子コンポーネント (payments editor) で参照する用
-  const invoiceTotal = linesTotal + taxableFees + nontaxableFees
+  // ─── 集計（maintenanceTotals.ts に共通化。KPI サマリーと同じ計算）────
+  const { invoiceTotal } = computeMaintenanceTotals({ lines, fees, payments, taxMode: m.tax_mode })
 
   async function changeStatus(status: string) {
     'use server'
@@ -235,10 +193,8 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   //  各セクションの閲覧ビュー
   // ════════════════════════════════════════════════
 
-  const customerVehicleView = (
+  const customerView = (
     <>
-      {/* 顧客 */}
-      <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">顧客</p>
       {(account && !accountIsPersonal) ? (
         <>
           <p className="text-[10px] text-zinc-500 mb-0.5">取引先</p>
@@ -308,32 +264,28 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           </Link>
         </div>
       )}
-
-      {/* 車両 */}
-      <div className="mt-3 pt-3 border-t border-zinc-200">
-        <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">車両</p>
-        {v ? (
-          <>
-            <Link href={`/customer-vehicles/${v.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
-              <NavIcon icon={AB_ICONS.customerVehicle} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{v.plate_number ?? '—'}
-            </Link>
-            <p className="text-xs text-zinc-600 mt-1">{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}</p>
-            <dl className="space-y-1 text-xs mt-2">
-              {v.vin && <KV label="車台番号" value={v.vin} />}
-              {v.type_designation && <KV label="型式" value={v.type_designation} />}
-              {(v.first_registration_year || v.first_registration_month) && (
-                <KV label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/')} />
-              )}
-              {v.inspection_due_date && (
-                <KV label={<span className="inline-flex items-center gap-1"><NavIcon icon={AB_ICONS.warning} className="w-3 h-3" />車検満了</span>} value={v.inspection_due_date} />
-              )}
-            </dl>
-            {v.memo && <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2 flex items-start gap-1"><NavIcon icon="📝" className="w-3 h-3 shrink-0 mt-0.5" /> {v.memo}</p>}
-          </>
-        ) : <p className="text-xs text-zinc-400">—</p>}
-      </div>
     </>
   )
+
+  const vehicleView = v ? (
+    <>
+      <Link href={`/customer-vehicles/${v.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+        <NavIcon icon={AB_ICONS.customerVehicle} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{v.plate_number ?? '—'}
+      </Link>
+      <p className="text-xs text-zinc-600 mt-1">{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}</p>
+      <dl className="space-y-1 text-xs mt-2">
+        {v.vin && <KV label="車台番号" value={v.vin} />}
+        {v.type_designation && <KV label="型式" value={v.type_designation} />}
+        {(v.first_registration_year || v.first_registration_month) && (
+          <KV label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/')} />
+        )}
+        {v.inspection_due_date && (
+          <KV label={<span className="inline-flex items-center gap-1"><NavIcon icon={AB_ICONS.warning} className="w-3 h-3" />車検満了</span>} value={v.inspection_due_date} />
+        )}
+      </dl>
+      {v.memo && <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2 flex items-start gap-1"><NavIcon icon="📝" className="w-3 h-3 shrink-0 mt-0.5" /> {v.memo}</p>}
+    </>
+  ) : <p className="text-xs text-zinc-400">—</p>
 
   const loanerView = currentLoaner ? (
     <>
@@ -470,14 +422,35 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         </div>
       </div>
 
-      {/* ── 上段: 顧客・車両 / 代車 / 合計 を横並び ── */}
+      {/* ── 上段: 顧客 / 車両 / 代車 を横並び（請求合計はページ上部の KPI サマリーへ移設・REQ-0038）── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
         <InlineSection
-          title="顧客・車両"
+          title="顧客"
           icon={<NavIcon icon={AB_ICONS.account} className="w-4 h-4" />}
           canEdit={editable}
-          view={customerVehicleView}
+          view={customerView}
         >
+          <MaintenanceCustomerVehicleEditForm
+            maintenanceId={maintenanceId}
+            initial={{
+              customer_vehicle_id: m.customer_vehicle_id,
+              account_id:          m.account_id,
+              contact_id:          m.contact_id,
+              billing_account_id:  m.billing_account_id,
+            }}
+            vehicles={vehicleOptions}
+            accounts={accountsList}
+            contacts={contactsList}
+          />
+        </InlineSection>
+
+        <InlineSection
+          title="車両"
+          icon={<NavIcon icon={AB_ICONS.customerVehicle} className="w-4 h-4" />}
+          canEdit={editable}
+          view={vehicleView}
+        >
+          {/* 顧客・車両・請求先は1フォームで紐付けを編集（どちらのカードから開いても同じ） */}
           <MaintenanceCustomerVehicleEditForm
             maintenanceId={maintenanceId}
             initial={{
@@ -513,17 +486,6 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
             vehicles={loanerVehicleOptions}
           />
         </InlineSection>
-
-        {/* 合計サマリー（閲覧専用） */}
-        <section className="bg-linear-to-br from-zinc-50 to-zinc-100 border border-zinc-200 rounded-lg p-4 self-stretch">
-          <p className="text-[10px] uppercase tracking-wider text-blue-600 mb-2">請求合計</p>
-          <p className="text-2xl font-bold font-mono text-zinc-700">{yen(grandTotal)}</p>
-          <dl className="mt-3 space-y-1 text-xs">
-            <Row label="入金額" value={yen(paidSum)} />
-            <Row label="残額" value={yen(balance)} valueClass={balance > 0 ? 'text-rose-700 font-bold' : 'text-emerald-700 font-bold'} />
-            <Row label="粗利益" value={yen(grossProfit)} valueClass="text-zinc-600" />
-          </dl>
-        </section>
       </div>
 
       {/* 整備（基本情報 + メモ） */}
@@ -653,11 +615,3 @@ function KV({ label, value }: { label: React.ReactNode; value: React.ReactNode }
   )
 }
 
-function Row({ label, value, valueClass = 'text-zinc-700' }: { label: string; value: string; valueClass?: string }) {
-  return (
-    <div className="flex justify-between">
-      <dt className="text-zinc-600">{label}</dt>
-      <dd className={`font-mono ${valueClass}`}>{value}</dd>
-    </div>
-  )
-}

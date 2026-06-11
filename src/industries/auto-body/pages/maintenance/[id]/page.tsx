@@ -29,8 +29,9 @@ import { inferCaliClass } from '@/industries/auto-body/lib/caliInsurance'
 import WeightTaxButton from '@/industries/auto-body/components/WeightTaxButton'
 import { inferWtType } from '@/industries/auto-body/lib/weightTax'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
+import { getMaintenanceTotals } from '@/industries/auto-body/lib/maintenanceTotals'
 import { NavIcon } from '@/lib/navIcon'
-import { Wrench, CalendarClock, Gauge, Activity, Paperclip, LayoutGrid } from 'lucide-react'
+import { Wrench, CalendarClock, Receipt, Wallet, Activity, Paperclip, LayoutGrid } from 'lucide-react'
 import { KpiBand, Badge, type KpiItem, type BadgeTone } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream from '@/components/record/ActivityStream'
@@ -112,11 +113,19 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
     </div>
   )
 
+  // 請求合計・残額のサマリー（REQ-0038：旧・全体ビューの合計カードから移設）
+  const totals = await getMaintenanceTotals(id)
+  const yen = (n: number) => `¥${Math.round(n).toLocaleString()}`
+
   const kpis: KpiItem[] = [
     { icon: <CalendarClock />, label: '入庫日', value: <span className="text-[17px]">{m.intake_date ?? '—'}</span>, sub: '受付' },
     { icon: <CalendarClock />, label: '納車日', value: <span className="text-[17px]">{m.delivery_date ?? '—'}</span>, sub: m.delivery_date ? '予定/実績' : '未定' },
-    { icon: <Gauge />, label: '走行距離', value: m.mileage != null ? `${Number(m.mileage).toLocaleString()} km` : '—', sub: '入庫時' },
-    { icon: <Activity />, label: '活動', value: <>{interactionCount}<small> 件</small></>, sub: '活動/ToDo/経費' },
+    { icon: <Receipt />, label: '請求合計', value: yen(totals.grandTotal), sub: `税込 · 粗利 ${yen(totals.grossProfit)}` },
+    {
+      icon: <Wallet />, label: '残額',
+      value: <span className={totals.balance > 0 ? 'text-rose-700' : 'text-emerald-700'}>{yen(totals.balance)}</span>,
+      sub: `入金 ${yen(totals.paidSum)}`,
+    },
   ]
 
   return (
