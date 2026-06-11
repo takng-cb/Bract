@@ -19,13 +19,15 @@ import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
-import { deleteStaff, setStaffStatus, updateStaffBasic } from '@/industries/staffing/actions/staff'
+import { deleteStaff, updateStaffBasic } from '@/industries/staffing/actions/staff'
 import { assignmentStatusColor } from '@/industries/staffing/lib/staffingService'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import StageBar from '@/components/StageBar'
 import { STAFF_STAGES } from '@/lib/statusStages'
+import { requestStatusChange } from '@/app/actions/approvals'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
 import { RecordColumns, KpiBand, RecordTable, RecordTableEmpty, type KpiItem } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream from '@/components/record/ActivityStream'
@@ -60,7 +62,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
 
   async function handleDelete() { 'use server'; await deleteStaff(id) }
   async function saveStaffInline(formData: FormData) { 'use server'; await updateStaffBasic(id, formData) }
-  async function changeStatus(status: string) { 'use server'; await setStaffStatus(id, status) }
+  async function changeStatus(status: string) { 'use server'; return await requestStatusChange('staff', id, 'status', status) }
   async function toggleTask(formData: FormData) { 'use server'; await toggleTaskDone(formData.get('task_id') as string, formData.get('done') === 'true', `/staff/${id}`) }
 
   // ── アクティビティ・ストリーム（活動 / ToDo / 経費 / 履歴）──
@@ -143,6 +145,8 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
       <div className="mb-5 max-w-md">
         <StageBar stages={STAFF_STAGES} currentStage={s.status} updateAction={changeStatus} />
       </div>
+
+      <ApprovalSection objectType="staff" objectId={id} />
 
       <KpiBand items={kpis} />
 

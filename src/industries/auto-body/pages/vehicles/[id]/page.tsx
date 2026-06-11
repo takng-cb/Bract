@@ -15,7 +15,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { toggleTaskDone, quickCreateTask } from '@/app/actions/tasks'
 import { quickCreateActivity } from '@/app/actions/activities'
 import { quickCreateExpense } from '@/app/actions/expenses'
-import { deleteVehicle, setVehicleStatus, updateVehicleBasic } from '@/industries/auto-body/actions/vehicles'
+import { deleteVehicle, updateVehicleBasic } from '@/industries/auto-body/actions/vehicles'
 import { canEdit } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
 import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
@@ -23,6 +23,8 @@ import InlineEditButton from '@/components/detail/InlineEditButton'
 import { NavIcon } from '@/lib/navIcon'
 import StageBar from '@/components/StageBar'
 import { VEHICLE_STAGES } from '@/lib/statusStages'
+import { requestStatusChange } from '@/app/actions/approvals'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
 import { daysUntilInspection, calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { RecordColumns, KpiBand, RefCard, Badge, RecordTable, RecordTableEmpty, type KpiItem } from '@/components/record/RecordUI'
@@ -65,7 +67,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   async function saveVehicleInline(formData: FormData) { 'use server'; await updateVehicleBasic(id, formData) }
   async function handleDelete() { 'use server'; await deleteVehicle(id) }
-  async function changeStatus(status: string) { 'use server'; await setVehicleStatus(id, status) }
+  async function changeStatus(status: string) { 'use server'; return await requestStatusChange('vehicles', id, 'status', status) }
   async function toggleTask(formData: FormData) { 'use server'; await toggleTaskDone(formData.get('task_id') as string, formData.get('done') === 'true', `/vehicles/${id}`) }
 
   const accountOptions = accountsList.map((a) => ({ value: a.id, label: a.name }))
@@ -168,6 +170,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       <div className="mb-5">
         <StageBar stages={VEHICLE_STAGES} currentStage={v.status} updateAction={changeStatus} />
       </div>
+
+      <ApprovalSection objectType="vehicles" objectId={id} />
 
       <KpiBand items={kpis} />
 

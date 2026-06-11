@@ -14,7 +14,7 @@ import {
   approverEntryLabel,
   userIdsInRoute,
 } from '@/lib/approvals'
-import { canDecideStep } from '@/lib/approvalRules'
+import { canDecideStep, type ApprovalTransition } from '@/lib/approvalRules'
 import { requestApproval, decideApproval, cancelApproval } from '@/app/actions/approvals'
 import { ShieldCheck, ShieldAlert, ShieldQuestion, Undo2 } from 'lucide-react'
 
@@ -88,6 +88,21 @@ export default async function ApprovalSection({ objectType, objectId }: { object
           <span className="text-xs text-zinc-400">承認待ちの間、このレコードは編集できません</span>
         )}
       </div>
+
+      {/* ステータス遷移トリガーの申請内容（REQ-0037） */}
+      {(() => {
+        const t = approval?.transition as ApprovalTransition | null
+        if (!t?.field) return null
+        const verb = approval!.status === 'approved' ? '承認により適用済み'
+          : approval!.status === 'pending' ? '承認されると適用されます'
+          : '適用されませんでした'
+        return (
+          <p className="mb-3 rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs text-zinc-600">
+            ステータス変更の申請：<b className="text-zinc-800">{t.from || '—'}</b> → <b className="text-zinc-800">{t.to || '—'}</b>
+            <span className="ml-1 text-zinc-400">（{verb}）</span>
+          </p>
+        )
+      })()}
 
       {/* 承認ルート（申請済みはスナップショット、未申請は現在の設定から） */}
       {(snapshotRoute.length > 0 || (canRequest && route)) && (

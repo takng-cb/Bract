@@ -7,7 +7,9 @@ import { eq, and, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
-import { updateAccountStatus, deleteAccount, updateAccount, updateAccountContact } from '@/app/actions/accounts'
+import { deleteAccount, updateAccount, updateAccountContact } from '@/app/actions/accounts'
+import { requestStatusChange } from '@/app/actions/approvals'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
@@ -90,7 +92,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   // ── server actions ──────────────────────────────────────────────
   async function saveAccountInline(formData: FormData) { 'use server'; await updateAccount(id, formData) }
   async function saveAccountContact(formData: FormData) { 'use server'; await updateAccountContact(id, formData) }
-  async function changeStatus(status: string) { 'use server'; await updateAccountStatus(id, status) }
+  async function changeStatus(status: string) { 'use server'; return await requestStatusChange('accounts', id, 'status', status) }
   async function handleDelete() { 'use server'; await deleteAccount(id) }
   async function toggleTask(formData: FormData) {
     'use server'
@@ -307,6 +309,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
       <div className="mb-5 max-w-xs">
         <StageBar stages={ACCOUNT_STAGES} currentStage={account.status} updateAction={changeStatus} />
       </div>
+
+      <ApprovalSection objectType="accounts" objectId={id} />
 
       <KpiBand items={kpis} />
 

@@ -15,7 +15,7 @@ import RecordId from '@/components/RecordId'
 import { Package, Users, Wallet, UserCheck, Send, FileText, Activity } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
-import { deleteAssignment, setAssignmentStatus, updateAssignmentBasic } from '@/industries/staffing/actions/assignments'
+import { deleteAssignment, updateAssignmentBasic } from '@/industries/staffing/actions/assignments'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
@@ -26,6 +26,8 @@ import { quickCreateActivity } from '@/app/actions/activities'
 import { quickCreateExpense } from '@/app/actions/expenses'
 import StageBar from '@/components/StageBar'
 import { ASSIGNMENT_STAGES } from '@/lib/statusStages'
+import { requestStatusChange } from '@/app/actions/approvals'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
 import OutreachSection from '@/industries/staffing/components/OutreachSection'
 import CandidatesSection from '@/industries/staffing/components/CandidatesSection'
 import { RecordColumns, KpiBand, type KpiItem } from '@/components/record/RecordUI'
@@ -69,7 +71,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
 
   async function handleDelete() { 'use server'; await deleteAssignment(id) }
   async function saveAssignmentInline(formData: FormData) { 'use server'; await updateAssignmentBasic(id, formData) }
-  async function changeStatus(status: string) { 'use server'; await setAssignmentStatus(id, status) }
+  async function changeStatus(status: string) { 'use server'; return await requestStatusChange('assignments', id, 'status', status) }
   async function toggleTask(formData: FormData) { 'use server'; await toggleTaskDone(formData.get('task_id') as string, formData.get('done') === 'true', `/assignments/${id}`) }
 
   // ── アクティビティ・ストリーム（活動 / ToDo / 経費 / 履歴）──
@@ -146,6 +148,8 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
       <div className="mb-5">
         <StageBar stages={ASSIGNMENT_STAGES} currentStage={a.status} updateAction={changeStatus} />
       </div>
+
+      <ApprovalSection objectType="assignments" objectId={id} />
 
       <KpiBand items={kpis} />
 

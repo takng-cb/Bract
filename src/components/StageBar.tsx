@@ -15,8 +15,12 @@ export type StageConfig = {
 type StageBarProps = {
   stages: StageConfig[]
   currentStage: string
-  /** Server Action: ステージ値を受け取り更新する */
-  updateAction: (stage: string) => Promise<void>
+  /**
+   * Server Action: ステージ値を受け取り更新する。
+   * 承認ゲート（REQ-0037）に掛かった場合は { approvalRequested: true } を返す
+   * （変更は適用されず、承認完了時に自動反映される）。
+   */
+  updateAction: (stage: string) => Promise<void | { approvalRequested?: boolean }>
 }
 
 const FUTURE_LINE = '#e4e4e7'  // zinc-200
@@ -26,6 +30,8 @@ export default function StageBar({ stages, currentStage, updateAction }: StageBa
   const [isPending, startTransition] = useTransition()
   // クリックでは即保存せず、選択中(pending)にする。「変更」ボタンで確定する。
   const [pending, setPending] = useState<string | null>(null)
+  // 承認ゲートに掛かった時の案内（承認待ちが作られた・エラー）
+  const [notice, setNotice] = useState<string | null>(null)
   const router = useRouter()
 
   // 表示は選択中があればそれをプレビュー（進行も pending に追従）
@@ -48,7 +54,14 @@ export default function StageBar({ stages, currentStage, updateAction }: StageBa
   const apply = () => {
     if (!pending || isPending) return
     startTransition(async () => {
-      await updateAction(pending)
+      try {
+        const res = await updateAction(pending)
+        setNotice(res && 'approvalRequested' in res && res.approvalRequested
+          ? '承認待ちを作成しました。承認されるとステータスが変わります。'
+          : null)
+      } catch (e) {
+        setNotice((e as Error)?.message ?? 'ステータスを変更できませんでした')
+      }
       setPending(null)
       router.refresh()
     })
@@ -111,6 +124,14 @@ export default function StageBar({ stages, currentStage, updateAction }: StageBa
           )
         })}
       </div>
+
+      {/* 承認ゲートの案内（承認待ち作成 / エラー） */}
+      {notice && !hasPending && (
+        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          <span>{notice}</span>
+          <button onClick={() => setNotice(null)} className="ml-auto rounded px-1.5 py-0.5 text-blue-400 hover:bg-blue-100" aria-label="閉じる">✕</button>
+        </div>
+      )}
 
       {/* 未確定の変更：確定/取消（即保存しない） */}
       {hasPending && (

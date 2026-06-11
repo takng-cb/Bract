@@ -7,8 +7,14 @@
  */
 import 'server-only'
 import { db } from '@/lib/db'
-import { approvals, approval_decisions, expenses, system_settings, users, roles, object_definitions, custom_records } from '@/lib/schema'
-import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import {
+  approvals, approval_decisions, system_settings, users, roles, object_definitions, custom_records,
+  accounts, contacts, opportunities, expenses, products, warehouses,
+  vehicles, customer_vehicles, parts, maintenance_records, staff, assignments,
+} from '@/lib/schema'
+import { properties } from '@/industries/real-estate/schema'
+import { and, asc, desc, eq, getTableColumns, inArray, like } from 'drizzle-orm'
+import type { PgTable } from 'drizzle-orm/pg-core'
 import {
   parseApprovalConfig,
   findRoute,
@@ -16,6 +22,22 @@ import {
   type ApprovalStep,
   type RecordValues,
 } from '@/lib/approvalRules'
+import { APPROVAL_BOOK_META } from '@/lib/approvalBookMeta'
+import { logChanges } from '@/lib/changeLog'
+
+/** 承認を設定できる typed ブック → テーブル */
+const TABLE_BY_API: Record<string, PgTable> = {
+  accounts, contacts, opportunities, expenses, products, warehouses,
+  vehicles, customer_vehicles, parts, maintenance_records, staff, assignments, properties,
+}
+
+/** change_logs の object_type（既存の履歴表記に合わせた単数形） */
+const LOG_TYPE_BY_API: Record<string, string> = {
+  accounts: 'account', contacts: 'contact', opportunities: 'opportunity', expenses: 'expense',
+  products: 'product', warehouses: 'warehouse', vehicles: 'vehicle', customer_vehicles: 'customer_vehicle',
+  parts: 'part', maintenance_records: 'maintenance', staff: 'staff', assignments: 'assignment',
+  properties: 'property',
+}
 
 export const APPROVAL_CONFIG_KEY_PREFIX = 'approval_config:'
 
@@ -31,19 +53,20 @@ export async function getApprovalConfig(bookApi: string): Promise<ApprovalConfig
   return parseApprovalConfig(row?.value)
 }
 
+/** typed テーブルの id カラム（全 typed テーブルが uuid 'id' を持つ前提） */
+function idColumn(table: PgTable) {
+  return getTableColumns(table).id
+}
+
 /**
  * 承認のルール評価に使うレコード値を取得する。
- * Phase1 は typed の expenses ＋ 全カスタムブック（custom_records.data）に対応。
- * 他の typed ブックは Phase2 で追加する。
+ * 全 typed ブック（TABLE_BY_API）＋全カスタムブック（custom_records.data）に対応。
  */
 export async function loadRecordValues(objectType: string, objectId: string): Promise<RecordValues | null> {
-  if (objectType === 'expenses') {
-    const r = await db.select({
-      title: expenses.title, amount: expenses.amount,
-      category: expenses.category, expense_date: expenses.expense_date,
-      notes: expenses.notes,
-    }).from(expenses).where(eq(expenses.id, objectId)).then((x) => x[0] ?? null)
-    return r ?? null
+  const table = TABLE_BY_API[objectType]
+  if (table) {
+    const r = await db.select().from(table).where(eq(idColumn(table), objectId)).then((x) => x[0] ?? null)
+    return (r as RecordValues | null) ?? null
   }
   // カスタムブック：data JSON をそのまま条件評価に使う
   const obj = await db.select({ id: object_definitions.id })
@@ -56,6 +79,45 @@ export async function loadRecordValues(objectType: string, objectId: string): Pr
     .where(and(eq(custom_records.id, objectId), eq(custom_records.object_id, obj.id)))
     .then((r) => r[0] ?? null)
   return (rec?.data as RecordValues | null) ?? null
+}
+
+/**
+ * 単一フィールドの変更を適用する（承認完了時の遷移反映／承認不要時の直接変更）。
+ * typed ブック：UPDATE ＋ change_logs。カスタムブック：data JSON を read-modify-write。
+ */
+export async function applyFieldChange(
+  objectType: string,
+  objectId: string,
+  field: string,
+  value: string,
+  beforeValue: string | null,
+): Promise<void> {
+  const fieldLabel = field === 'stage' ? 'ステージ' : field === 'status' ? 'ステータス' : field
+  const table = TABLE_BY_API[objectType]
+  if (table) {
+    const cols = getTableColumns(table)
+    if (!cols[field]) throw new Error(`フィールド ${field} は ${objectType} に存在しません`)
+    const set: Record<string, unknown> = { [field]: value }
+    if (cols.updated_at) set.updated_at = new Date()
+    await db.update(table).set(set).where(eq(idColumn(table), objectId))
+  } else {
+    const obj = await db.select({ id: object_definitions.id })
+      .from(object_definitions).where(eq(object_definitions.api_name, objectType))
+      .then((r) => r[0] ?? null)
+    if (!obj) throw new Error(`ブック ${objectType} が見つかりません`)
+    const rec = await db.select({ data: custom_records.data })
+      .from(custom_records)
+      .where(and(eq(custom_records.id, objectId), eq(custom_records.object_id, obj.id)))
+      .then((r) => r[0] ?? null)
+    if (!rec) throw new Error('レコードが見つかりません')
+    const data = { ...(rec.data as Record<string, unknown> ?? {}), [field]: value }
+    await db.update(custom_records)
+      .set({ data, updated_at: new Date() })
+      .where(eq(custom_records.id, objectId))
+  }
+  await logChanges(LOG_TYPE_BY_API[objectType] ?? objectType, objectId,
+    { [field]: { label: fieldLabel, value: beforeValue } },
+    { [field]: { label: fieldLabel, value } })
 }
 
 /** 最新の承認申請（履歴含む）。無ければ null */
@@ -137,4 +199,37 @@ export async function getApprovalAdminData(): Promise<{
   ])
   const roleNames = roleRows.length ? roleRows.map((r) => r.name) : ['admin', 'editor', 'viewer']
   return { users: userRows, roles: roleNames }
+}
+
+/** 承認設定エディタ用：設定可能な全ブック（typed メタ＋カスタムブック） */
+export async function getApprovalBooks(): Promise<ApprovalBookMetaResolved[]> {
+  const typedApis = new Set(APPROVAL_BOOK_META.map((m) => m.api))
+  const customs = await db.select({
+    api_name: object_definitions.api_name, label_plural: object_definitions.label_plural,
+  }).from(object_definitions)
+    .where(eq(object_definitions.is_builtin, false))
+    .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label_plural))
+  return [
+    ...APPROVAL_BOOK_META,
+    ...customs
+      .filter((c) => !typedApis.has(c.api_name))
+      .map((c) => ({
+        api: c.api_name, label: c.label_plural,
+        statusField: 'status', statusOptions: [], conditionFields: [],
+      })),
+  ]
+}
+export type ApprovalBookMetaResolved = (typeof APPROVAL_BOOK_META)[number]
+
+/** 全ブックの承認設定をまとめて取得（設定エディタ用）。key = book api */
+export async function getApprovalConfigs(): Promise<Record<string, ApprovalConfig>> {
+  const rows = await db.select({ key: system_settings.key, value: system_settings.value })
+    .from(system_settings)
+    .where(like(system_settings.key, `${APPROVAL_CONFIG_KEY_PREFIX}%`))
+  const out: Record<string, ApprovalConfig> = {}
+  for (const r of rows) {
+    const config = parseApprovalConfig(r.value)
+    if (config) out[r.key.slice(APPROVAL_CONFIG_KEY_PREFIX.length)] = config
+  }
+  return out
 }

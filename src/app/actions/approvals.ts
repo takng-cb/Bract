@@ -19,18 +19,18 @@ import {
   hasPendingApproval,
   resolveRoute,
   routeFromSnapshot,
+  getApprovalConfig,
+  loadRecordValues,
+  applyFieldChange,
   APPROVAL_CONFIG_KEY_PREFIX,
 } from '@/lib/approvals'
 import {
   canDecideStep,
   isStepSatisfied,
-  parseApprovalConfig,
-  type ApprovalStep,
-  type ApprovalRule,
-  type ApprovalOp,
+  findTransitionRoute,
+  sanitizeApprovalConfig,
+  type ApprovalTransition,
 } from '@/lib/approvalRules'
-
-const APPROVAL_OPS: ApprovalOp[] = ['=', '!=', '>', '>=', '<', '<=', 'contains']
 
 /** 承認待ち中の編集ロック（各ブックの update/delete action 冒頭で呼ぶ） */
 export async function assertNotPendingApproval(objectType: string, objectId: string): Promise<void> {
@@ -72,6 +72,59 @@ export async function requestApproval(objectType: string, objectId: string, form
     { approval: { label: '承認', value: `承認を申請（${route.length} 段階）` } })
 
   revalidatePath('/', 'layout')
+}
+
+// ----------------------------------------------------------------
+// ステータス変更（承認ゲートつき・REQ-0037）
+//   遷移ルールにマッチ → 変更は適用せず承認申請を作成（承認完了時に自動適用）
+//   マッチ無し → その場で適用（従来挙動）
+//   StageBar の updateAction から呼ぶ。
+// ----------------------------------------------------------------
+export async function requestStatusChange(
+  objectType: string,
+  objectId: string,
+  field: string,
+  toValue: string,
+): Promise<{ approvalRequested: boolean }> {
+  await requirePermission(objectType, 'update')
+  const userId = await getCurrentUserId()
+  if (!userId) throw new Error('Not authenticated')
+
+  if (await hasPendingApproval(objectType, objectId)) {
+    throw new Error('このレコードは承認待ちのため変更できません（承認/差戻し後に変更可）')
+  }
+
+  const record = await loadRecordValues(objectType, objectId)
+  if (!record) throw new Error('レコードが見つかりません')
+  const fromValue = record[field] != null ? String(record[field]) : ''
+  if (fromValue === toValue) return { approvalRequested: false }
+
+  const config = await getApprovalConfig(objectType)
+  const route = findTransitionRoute(config, record, field, fromValue, toValue)
+
+  if (route) {
+    const transition: ApprovalTransition = { field, from: fromValue, to: toValue }
+    await db.insert(approvals).values({
+      object_type:    objectType,
+      object_id:      objectId,
+      status:         'pending',
+      requested_by:   userId,
+      current_step:   1,
+      route_snapshot: route,
+      transition,
+      comment:        null,
+    })
+    await logChanges(objectType, objectId,
+      { approval: { label: '承認', value: null } },
+      { approval: { label: '承認', value: `ステータス変更（${fromValue} → ${toValue}）の承認を申請` } })
+    revalidatePath('/', 'layout')
+    return { approvalRequested: true }
+  }
+
+  // 承認不要：その場で適用（change_logs 記録込み）
+  await applyFieldChange(objectType, objectId, field, toValue, fromValue || null)
+  revalidatePath('/', 'layout')
+  return { approvalRequested: false }
 }
 
 // ----------------------------------------------------------------
@@ -135,6 +188,11 @@ export async function decideApproval(approvalId: string, decision: 'approved' | 
         await logChanges(approval.object_type, approval.object_id,
           { approval: { label: '承認', value: `承認待ち（${stepNo}/${route.length} 段階目）` } },
           { approval: { label: '承認', value: '承認済み' } })
+        // ステータス遷移トリガーの申請なら、承認確定で変更を自動適用（REQ-0037）
+        const t = approval.transition as ApprovalTransition | null
+        if (t?.field && typeof t.to === 'string') {
+          await applyFieldChange(approval.object_type, approval.object_id, t.field, t.to, t.from ?? null)
+        }
       } else {
         await db.update(approvals)
           .set({ current_step: stepNo + 1 })
@@ -180,40 +238,21 @@ export async function cancelApproval(approvalId: string): Promise<void> {
 }
 
 // ----------------------------------------------------------------
-// 承認設定の保存（管理者・ブック単位。Phase1 の最小ルールエディタ用）
-//   formData:
-//     enabled=on|off
-//     cond_field / cond_op / cond_value（cond_value 空 = 無条件＝全件承認）
-//     step_type_N / step_ref_N（N=1..、type=user|role）
+// 承認設定の保存（管理者・ブック単位）
+//   設定エディタが組み立てた ApprovalConfig JSON を受け取り、
+//   sanitizeApprovalConfig で厳格に検証してから保存する。
 // ----------------------------------------------------------------
-export async function saveApprovalConfig(bookApi: string, formData: FormData): Promise<void> {
+export async function saveApprovalConfig(bookApi: string, configJson: string): Promise<void> {
   await requireAdmin()
+  if (!/^[a-z0-9_-]+$/i.test(bookApi)) throw new Error('ブック名が不正です')
 
-  const enabled = formData.get('enabled') === 'on'
-  const condField = ((formData.get('cond_field') as string) ?? '').trim()
-  const condOp    = ((formData.get('cond_op') as string) ?? '>=').trim()
-  const condValue = ((formData.get('cond_value') as string) ?? '').trim()
-
-  const steps: ApprovalStep[] = []
-  for (let i = 1; i <= 10; i++) {
-    const type = formData.get(`step_type_${i}`) as string | null
-    const ref  = ((formData.get(`step_ref_${i}`) as string) ?? '').trim()
-    if (!type || !ref) continue
-    if (type !== 'user' && type !== 'role') continue
-    steps.push({ approvers: [`${type}:${ref}`], mode: 'any' })
+  let raw: unknown
+  try { raw = JSON.parse(configJson) } catch { throw new Error('承認設定の形式が不正です') }
+  const config = sanitizeApprovalConfig(raw)
+  if (!config) throw new Error('承認設定の形式が不正です（ステップ・承認者・条件を確認してください）')
+  if (config.enabled && config.rules.length === 0) {
+    throw new Error('承認を有効にするにはルールを1つ以上設定してください')
   }
-  if (enabled && steps.length === 0) {
-    throw new Error('承認を有効にするには承認ステップを1つ以上設定してください')
-  }
-
-  const op: ApprovalOp = APPROVAL_OPS.includes(condOp as ApprovalOp) ? (condOp as ApprovalOp) : '>='
-  const rule: ApprovalRule = {
-    ...(condField && condValue ? { when: { all: [{ field: condField, op, value: condValue }] } } : {}),
-    steps,
-  }
-  const config = { enabled, rules: enabled ? [rule] : [] }
-  // 保存形式の妥当性を自分で検証（parse が通らない形は保存しない）
-  if (!parseApprovalConfig(JSON.stringify(config))) throw new Error('承認設定の形式が不正です')
 
   const key = `${APPROVAL_CONFIG_KEY_PREFIX}${bookApi}`
   await db.insert(system_settings)

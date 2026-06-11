@@ -1122,6 +1122,9 @@ export const approvals = pgTable('approvals', {
   requested_by:   uuid('requested_by').notNull(),
   current_step:   integer('current_step').notNull().default(1),
   route_snapshot: jsonb('route_snapshot').notNull(), // ApprovalStep[]（申請時点で確定）
+  // ステータス遷移トリガー（REQ-0037）：{ field, from, to }。最終承認時にこの変更を自動適用する。
+  // null = 手動申請（適用すべき変更なし）
+  transition:     jsonb('transition'),
   comment:        text('comment'),
   requested_at:   timestamp('requested_at', { withTimezone: true }).defaultNow(),
   decided_at:     timestamp('decided_at', { withTimezone: true }),
