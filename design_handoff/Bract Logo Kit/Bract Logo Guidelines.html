@@ -81,12 +81,12 @@
   .squircle .m { width: 100%; height: 100%; place-items: center; }
   .s160 { width: 160px; height: 160px; }
   .s120 { width: 120px; height: 120px; } .s88 { width: 88px; height: 88px; } .s60 { width: 60px; height: 60px; } .s40 { width: 40px; height: 40px; }
-  .squircle svg { width: 80%; height: 80%; }
+  .squircle svg { width: 66%; height: 66%; }
   .ic-col { display: flex; flex-direction: column; align-items: center; gap: 9px; }
   .ic-col .l { font-size: 11px; color: var(--n-500); font-family: var(--mono); }
   .fav-strip { display: flex; align-items: flex-end; gap: 18px; }
   .fav { background: linear-gradient(160deg, var(--sage), var(--sage-deep)); border-radius: 22%; display: grid; place-items: center; overflow: hidden; }
-  .fav svg { width: 78%; height: 78%; }
+  .fav svg { width: 64%; height: 64%; }
   .fav .m { width: 100%; height: 100%; place-items: center; }
   .f32 { width: 32px; height: 32px; } .f16 { width: 16px; height: 16px; }
   .browser { width: 280px; border: 1px solid var(--n-200); border-radius: 9px; overflow: hidden; box-shadow: 0 6px 18px oklch(0.5 0.03 140 / 0.10); }
@@ -97,7 +97,7 @@
   .home-mock { width: 150px; padding: 18px; border-radius: 24px; background: linear-gradient(170deg, oklch(0.42 0.03 250), oklch(0.3 0.04 285)); display: grid; grid-template-columns: repeat(4,1fr); gap: 13px 11px; box-shadow: 0 12px 30px oklch(0.3 0.05 260 /.4); }
   .home-mock .a { aspect-ratio:1; border-radius: 12px; background: oklch(1 0 0 /.16); }
   .home-mock .a.real { background: linear-gradient(160deg, var(--sage), var(--sage-deep)); display: grid; place-items: center; overflow: hidden; box-shadow: 0 3px 8px oklch(0 0 0 /.25); }
-  .home-mock .a.real svg { width: 80%; height: 80%; }
+  .home-mock .a.real svg { width: 64%; height: 64%; }
 
   /* color */
   .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
@@ -131,7 +131,7 @@
   <div class="sheet">
     <div class="top">
       <div class="id"><span class="m" data-mk="sage"></span><span class="nm">Bract</span></div>
-      <div class="meta">ロゴセット / Brand Mark Guidelines<br>葉カール（サージュ）· v1.0</div>
+      <div class="meta">ロゴセット / Brand Mark Guidelines<br>葉先シルエット（サージュ）· v1.1</div>
     </div>
     <div class="rule"></div>
 
@@ -141,7 +141,7 @@
       <div class="hero">
         <div class="lk-h"><span class="m" data-mk="sage"></span><span class="w">Bract</span></div>
       </div>
-      <p class="lead" style="margin-top:18px;">基本形は「マーク＋ワードマーク」の横組み。マークは現行アイコンの系譜である<strong style="color:var(--n-800)">葉カール</strong>、色は<strong style="color:var(--n-800)">サージュグリーン</strong>。ワードマークは Geist Bold。</p>
+      <p class="lead" style="margin-top:18px;">基本形は「マーク＋ワードマーク」の横組み。マークは現行アイコンの系譜を継ぐ<strong style="color:var(--n-800)">葉先シルエット</strong>、色は<strong style="color:var(--n-800)">サージュグリーン</strong>。ワードマークは Geist Bold。</p>
     </section>
 
     <!-- 02 LOCKUPS -->
@@ -251,18 +251,18 @@
     </section>
 
     <div class="footer">
-      <span>Bract — ロゴセット v1.0 · 葉カール / サージュ</span>
+      <span>Bract — ロゴセット v1.1 · 葉先シルエット / サージュ</span>
       <span class="mono" style="font-family:var(--mono);">SVG / PNG（1024·180·32·16）書き出し対応</span>
     </div>
   </div>
 
   <script>
-    const BLOB = "M32 5.5 C 46 5.5 56.5 15.5 56.5 29 C 56.5 36 53 41 47.5 43.5 C 53 46 56.5 51.5 56.5 56.5 L56.5 57 C 56 60 54 61.5 50 61.5 C 49 61.5 41 61.5 32 61.5 C 17.5 61.5 7.5 50 7.5 33.5 C 7.5 17.5 18 5.5 32 5.5 Z";
-    const UP = "M18 26 C 27 20 42 20.5 47 26.5 C 39.5 26.8 31 27.8 24 29 C 21 29.5 18.5 28.4 18 26 Z";
-    const LO = "M20 41.5 C 29 35.5 44 36 49 42 C 41.5 42.3 33 43.3 26 44.5 C 23 45 20.5 43.9 20 41.5 Z";
+    const BLOB = "M32 5.5 C 44 5.5 53 11 60 4.5 C 60.5 14 58 22 51 27 C 54.5 31.5 56.5 37 56.5 43 C 56.5 54 46.5 61.5 32 61.5 C 17.5 61.5 7.5 50 7.5 33.5 C 7.5 17.5 18 5.5 32 5.5 Z";
+    const UP = "M18 27.5 C 27 21.5 42 22 47 28 C 39.5 28.3 31 29.3 24 30.5 C 21 31 18.5 29.9 18 27.5 Z";
+    const LO = "M20 43 C 29 37 44 37.5 49 43.5 C 41.5 43.8 33 44.8 26 46 C 23 46.5 20.5 45.4 20 43 Z";
     const C = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
     function mark(fill) {
-      return `<svg viewBox="3 4 58 58" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><path fill="${fill}" fill-rule="evenodd" d="${BLOB} ${UP} ${LO}"/></svg>`;
+      return `<svg viewBox="0 0 64 64" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><path fill="${fill}" fill-rule="evenodd" d="${BLOB} ${UP} ${LO}"/></svg>`;
     }
     const FILLS = {
       sage: C('--sage'), white: '#ffffff', ink: C('--ink'),
