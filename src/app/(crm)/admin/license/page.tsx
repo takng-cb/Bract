@@ -34,6 +34,13 @@ export default async function AdminLicensePage() {
         description="テナントの契約状態と機能フラグを管理します。管理者のみアクセス可能。"
       />
 
+      {/* サービス提供者向けである旨の注意（テナント管理者の誤操作防止） */}
+      <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <b>この画面はサービス提供者（運営）向けです。</b>
+        契約プラン・利用上限・契約モジュール（entitled）はサービス提供者が設定します。
+        モジュールの日常的な ON/OFF は「ブック/モジュール管理」で行ってください。
+      </div>
+
       <LicenseEditForm
         initial={license}
         envOverrides={envOverrides}
