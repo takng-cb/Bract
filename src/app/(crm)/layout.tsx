@@ -6,7 +6,7 @@ import PwaInstallBanner from '@/components/PwaInstallBanner'
 import NavigationProgress from '@/components/NavigationProgress'
 import NavigationOverlay from '@/components/NavigationOverlay'
 import SuspenseRescuer from '@/components/SuspenseRescuer'
-import { ALL_NAV_ITEMS, customObjectsToNavItems, buildExtraNavItems, type NavItem } from '@/lib/navItems'
+import { ALL_NAV_ITEMS, BOTTOM_NAV_ITEMS, customObjectsToNavItems, buildExtraNavItems, type NavItem } from '@/lib/navItems'
 import { buildNavGroups, applyNavOrderToGroups, parseNavOrder } from '@/lib/navOrder'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
@@ -42,7 +42,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
           .where(eq(user_preferences.user_id, user.id))
           .then((r) => r[0] ?? null)
       : Promise.resolve(null),
-    getSystemSettings(['nav_order', 'company_name']),
+    getSystemSettings(['nav_order', 'company_name', 'mobile_bottom_nav']),
     getCustomObjectsForNav(),
     isAdmin(),
   ])
@@ -87,6 +87,31 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   for (const g of navGroups) g.items = await filterNavByRead(g.items)
   const visibleNavGroups = navGroups.filter((g) => g.items.length > 0)
 
+  // ── モバイル下部タブ（システム設定 mobile_bottom_nav。REQ-0041）──
+  // 設定の href を可視ナビ項目から解決。見つからない枠は既定→残り候補で埋めて常に4つにする。
+  const bottomCandidates: NavItem[] = [
+    ...(dashboardItem ? [dashboardItem] : []),
+    ...visibleNavGroups.flatMap((g) => g.items),
+    ...BOTTOM_NAV_ITEMS,
+  ]
+  const candidateByHref = new Map(bottomCandidates.map((i) => [i.href, i]))
+  let configuredBottom: string[] = []
+  try {
+    const p = JSON.parse(sysSettings.mobile_bottom_nav)
+    if (Array.isArray(p)) configuredBottom = p.filter((x): x is string => typeof x === 'string')
+  } catch { /* use defaults */ }
+  const bottomNavItems: NavItem[] = []
+  const pushBottom = (href: string) => {
+    const it = candidateByHref.get(href)
+    if (it && !bottomNavItems.some((r) => r.href === href)) bottomNavItems.push(it)
+  }
+  configuredBottom.forEach(pushBottom)
+  ;['/dashboard', '/accounts', '/tasks', '/activities'].forEach((h) => { if (bottomNavItems.length < 4) pushBottom(h) })
+  for (const it of bottomCandidates) {
+    if (bottomNavItems.length >= 4) break
+    if (!bottomNavItems.some((r) => r.href === it.href)) bottomNavItems.push(it)
+  }
+
   // クイック操作ウィザード（REQ-0021）：モジュール → ブック ツリー
   const quickModules = buildModuleBooks(enabledModules)
 
@@ -126,7 +151,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         {children}
       </main>
       <div className="print:hidden">
-        <BottomNav />
+        <BottomNav items={bottomNavItems.slice(0, 4)} />
         <PwaInstallBanner />
       </div>
       <QuickLauncher modules={quickModules} />

@@ -14,6 +14,8 @@ export const SYSTEM_DEFAULTS = {
   fiscal_year_start:        '4',   // 月（1-12）
   // 商談の「商品」セクションで紐付け先にできるブック（JSON 配列の book api。REQ-0034）
   opportunity_product_books: '["products","parts"]',
+  // モバイル下部タブ（JSON 配列の href ×4。中央 FAB は固定。REQ-0041）
+  mobile_bottom_nav: '["/dashboard","/accounts","/tasks","/activities"]',
 } as const
 
 export type SystemSettingKey = keyof typeof SYSTEM_DEFAULTS
