@@ -1,7 +1,15 @@
 # 仕様：レコード承認（Approvals）
 
 > 生きた仕様。確定済みの内容を反映する。経緯は REQ-0023 / ADR-0022 / #85 を参照。
-> ステータス：**設計確定・実装前**。
+> ステータス：**Phase1 実装済み**（経費ブックで基盤確立。Phase2 多段/全ブック設定 UI・Phase3 承認待ち一覧は未）。
+>
+> Phase1 実装メモ（2026-06-11）:
+> - スキーマ：`approvals` / `approval_decisions`（migration `20260611180000_approvals.sql`）
+> - 設定保存：system_settings `approval_config:<book_api>`（本仕様の ApprovalConfig JSON）
+> - ルール評価：`src/lib/approvalRules.ts`（純関数・unit test 付き）。多段 step / any・all / user・role 承認者はデータモデルとして実装済み
+> - UI：経費詳細の承認セクション（申請/承認/差戻し/取消/履歴）＋ /admin/objects の設定カード（1ルール・各step承認者1名の最小エディタ）
+> - 編集ロック：承認待ち中は expenses の update/delete action が拒否＋詳細ページの編集 UI 非表示
+> - 通知は #25（Discord 基盤）側で対応（本機能では未実装）
 
 ## 目的
 

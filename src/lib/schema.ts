@@ -1107,3 +1107,37 @@ export const ai_rate_log = pgTable('ai_rate_log', {
 }, (t) => [
   index('ai_rate_log_user_idx').on(t.user_id, t.created_at),
 ])
+
+// ----------------------------------------------------------------
+// approvals / approval_decisions（レコード承認 REQ-0023 / ADR-0022 / #85）
+//   汎用 approval レイヤー：polymorphic（object_type, object_id）で任意レコードに付く。
+//   ルート（step 構成・承認者）は申請時に route_snapshot へ固定する。
+//   ルール設定は system_settings の `approval_config:<book_api>`（JSON）。
+// ----------------------------------------------------------------
+export const approvals = pgTable('approvals', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  object_type:    text('object_type').notNull(),   // book api 名（'expenses' 等）
+  object_id:      uuid('object_id').notNull(),
+  status:         text('status').notNull().default('pending'), // pending|approved|rejected|cancelled
+  requested_by:   uuid('requested_by').notNull(),
+  current_step:   integer('current_step').notNull().default(1),
+  route_snapshot: jsonb('route_snapshot').notNull(), // ApprovalStep[]（申請時点で確定）
+  comment:        text('comment'),
+  requested_at:   timestamp('requested_at', { withTimezone: true }).defaultNow(),
+  decided_at:     timestamp('decided_at', { withTimezone: true }),
+}, (t) => [
+  index('approvals_object_idx').on(t.object_type, t.object_id, t.requested_at),
+  index('approvals_status_idx').on(t.status),
+])
+
+export const approval_decisions = pgTable('approval_decisions', {
+  id:          uuid('id').primaryKey().defaultRandom(),
+  approval_id: uuid('approval_id').notNull().references(() => approvals.id, { onDelete: 'cascade' }),
+  step:        integer('step').notNull(),
+  approver_id: uuid('approver_id').notNull(),
+  decision:    text('decision').notNull(), // approved|rejected
+  comment:     text('comment'),
+  decided_at:  timestamp('decided_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('approval_decisions_approval_idx').on(t.approval_id),
+])

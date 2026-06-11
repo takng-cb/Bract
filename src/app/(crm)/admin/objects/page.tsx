@@ -18,6 +18,8 @@ import { getLicense } from '@/lib/license'
 import ModuleToggle from '@/components/ModuleToggle'
 import { getProductBookCandidates, getOpportunityProductBooks } from '@/lib/opportunityProductBooks'
 import { saveOpportunityProductBooks } from '@/app/actions/settings'
+import { getApprovalConfig, getApprovalAdminData } from '@/lib/approvals'
+import ApprovalConfigEditor from '@/components/admin/ApprovalConfigEditor'
 
 // ライセンス/モジュール有効状態を実行時に読むため動的レンダリング
 export const dynamic = 'force-dynamic'
@@ -43,7 +45,7 @@ const CATEGORY_COLOR: Record<ModuleCategory, string> = {
 export default async function AdminObjectsPage() {
   await requireAdmin()
 
-  const [objects, { userOrder, systemOrder }, customObjects, activityTypes, enabledModules, lic, productBookCandidates, productBooks] = await Promise.all([
+  const [objects, { userOrder, systemOrder }, customObjects, activityTypes, enabledModules, lic, productBookCandidates, productBooks, expenseApprovalConfig, approvalAdminData] = await Promise.all([
     getAllObjectDefs(),
     getNavOrderSettings(),
     getCustomObjectsForNav(),
@@ -52,6 +54,8 @@ export default async function AdminObjectsPage() {
     getLicense(),
     getProductBookCandidates(),
     getOpportunityProductBooks(),
+    getApprovalConfig('expenses'),
+    getApprovalAdminData(),
   ])
   const productBookSet = new Set(productBooks)
 
@@ -225,6 +229,29 @@ export default async function AdminObjectsPage() {
           </div>
           <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">保存</button>
         </form>
+      </section>
+
+      {/* レコード承認の設定（REQ-0023 / #85 Phase1：まず経費ブックで提供） */}
+      <section className="bg-white rounded-lg border border-zinc-200 p-5">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-zinc-900">レコード承認（経費）</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            条件に合致する経費レコードに承認フローを必須にします。承認待ちの間、対象レコードは編集できません。
+            申請・承認の操作は経費の詳細ページから行います。（他ブックへの拡張は Phase2）
+          </p>
+        </div>
+        <ApprovalConfigEditor
+          bookApi="expenses"
+          bookLabel="経費"
+          conditionFields={[
+            { name: 'amount',   label: '金額' },
+            { name: 'category', label: 'カテゴリ' },
+            { name: 'title',    label: '件名' },
+          ]}
+          users={approvalAdminData.users}
+          roles={approvalAdminData.roles}
+          initial={expenseApprovalConfig}
+        />
       </section>
 
       <NavOrderEditor groups={navGroups} userOrder={userOrder} systemOrder={systemOrder} />

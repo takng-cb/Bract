@@ -18,6 +18,8 @@ import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import { Receipt, Wallet, CalendarDays } from 'lucide-react'
 import { RecordColumns, Badge, type BadgeTone } from '@/components/record/RecordUI'
 import { requireBookRead } from '@/lib/permissions'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
+import { hasPendingApproval } from '@/lib/approvals'
 
 const CATEGORIES = ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他']
 const CATEGORY_TONE: Record<string, BadgeTone> = {
@@ -40,16 +42,19 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
 
   if (!expense) notFound()
 
-  const [allRelated, pickerData] = await Promise.all([
+  const [allRelated, pickerData, approvalPending] = await Promise.all([
     resolveRelatedRecords(relatedPairs),
     getRelatedRecordsPickerData('expenses'),
+    hasPendingApproval('expenses', id),
   ])
-  const editFlag = await canEdit()
+  // 承認待ち中は編集 UI をロック（Server Action 側でも assertNotPendingApproval で防御。REQ-0023）
+  const editFlag = (await canEdit()) && !approvalPending
 
   async function saveExpenseInline(formData: FormData) { 'use server'; await updateExpenseBasic(id, formData) }
   async function saveExpenseRelated(formData: FormData) { 'use server'; await updateExpenseRelatedRecords(id, formData) }
   async function deleteAction() {
     'use server'
+    if (await hasPendingApproval('expenses', id)) throw new Error('承認待ちのため削除できません')
     await db.delete(expenses).where(eq(expenses.id, id)); revalidatePath('/expenses'); redirect('/expenses')
   }
 
@@ -65,14 +70,18 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           ...(expense.expense_date ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: expense.expense_date }] : []),
         ]}
         actions={
-          <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2">
-              <InlineEditButton event="bract:edit-expense" />
-              <DeleteButton action={deleteAction} confirmMessage="この経費を削除しますか？" />
-            </div>
-          </AuthGuard>
+          !approvalPending && (
+            <AuthGuard minRole="editor">
+              <div className="flex items-center gap-2">
+                <InlineEditButton event="bract:edit-expense" />
+                <DeleteButton action={deleteAction} confirmMessage="この経費を削除しますか？" />
+              </div>
+            </AuthGuard>
+          )
         }
       />
+
+      <ApprovalSection objectType="expenses" objectId={id} />
 
       <RecordColumns
         narrow
