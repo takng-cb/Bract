@@ -1,7 +1,7 @@
 # 本番リリース手順 — Neon 立て直し版（チェックリスト）
 
 > 「Neon を新規に立て直して本番リリースする」ためのチェックリスト。
-> 既存の詳細手順は [`deployment-runbook.md`](./deployment-runbook.md)、判定基準は AGENTS.md「リリース判定 go/no-go」。
+> 既存の詳細手順は [`deployment-runbook.md`](./deployment-runbook.md)、ユーザー登録の運用は [`user-management-guide.md`](./user-management-guide.md)、判定基準は AGENTS.md「リリース判定 go/no-go」。
 > 2026-06-11 時点：main は check:schema ゲートにより、未適用 Neon へのデプロイを自動でブロックする
 > （＝マイグレ適用が終わるまで本番は現行のまま安全）。
 
