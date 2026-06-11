@@ -11,13 +11,12 @@
  */
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import SearchableSelect from '@/components/SearchableSelect'
 import { SearchCombo, useDebouncedSearch } from './SearchCreateCombo'
 import { updateMaintenanceCustomerVehicle } from '@/industries/auto-body/actions/maintenance'
 import { useSectionModal } from './SectionEditModal'
 import {
-  inlineCreateAccount, inlineCreateCustomerVehicle,
-  findAccountCandidates, findCustomerVehicleCandidates,
+  inlineCreateAccount, inlineCreateContact, inlineCreateCustomerVehicle,
+  findAccountCandidates, findContactCandidates, findCustomerVehicleCandidates,
   type VehicleCandidate,
 } from '@/industries/auto-body/actions/maintenanceInline'
 
@@ -34,56 +33,77 @@ type Candidate = { id: string; name: string }
 // 顧客セクション
 // ────────────────────────────────────────────────────────────────
 export function CustomerInlineEditor({
-  maintenanceId, initial, currentAccountName, accounts, contacts,
+  maintenanceId, initial, currentAccountName, currentContactName, currentBillingName,
 }: {
   maintenanceId: string
   initial: LinkInitial
   /** 現在紐付いている取引先名（チップ初期表示用） */
   currentAccountName: string | null
-  accounts: { id: string; name: string }[]
-  contacts: { id: string; full_name: string; account_id: string | null }[]
+  currentContactName: string | null
+  currentBillingName: string | null
 }) {
   const [accountId, setAccountId] = useState(initial.account_id ?? '')
   const [accountLabel, setAccountLabel] = useState<string | null>(initial.account_id ? currentAccountName : null)
   const [accountText, setAccountText] = useState('')
   const [contactId, setContactId] = useState(initial.contact_id ?? '')
-  const [billingAccountId, setBillingAccountId] = useState(initial.billing_account_id ?? '')
+  const [contactLabel, setContactLabel] = useState<string | null>(initial.contact_id ? currentContactName : null)
+  const [contactText, setContactText] = useState('')
+  const [billingId, setBillingId] = useState(initial.billing_account_id ?? '')
+  const [billingLabel, setBillingLabel] = useState<string | null>(initial.billing_account_id ? currentBillingName : null)
+  const [billingText, setBillingText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const modal = useSectionModal()
 
-  const { results: candidates, searching } = useDebouncedSearch<Candidate>(accountText, findAccountCandidates)
+  const { results: accountCands, searching: accountSearching } =
+    useDebouncedSearch<Candidate>(accountText, findAccountCandidates)
+  const { results: contactCands, searching: contactSearching } =
+    useDebouncedSearch<Candidate>(contactText, (q) => findContactCandidates(q, accountId || null))
+  const { results: billingCands, searching: billingSearching } =
+    useDebouncedSearch<Candidate>(billingText, findAccountCandidates)
 
-  const filteredContacts = accountId
-    ? contacts.filter((c) => c.account_id === accountId)
-    : contacts.filter((c) => !c.account_id)
-
-  const willCreate = !accountId && accountText.trim().length > 0
+  const willCreateAccount = !accountId && accountText.trim().length > 0
+  const willCreateContact = !contactId && contactText.trim().length > 0
+  const willCreateBilling = !billingId && billingText.trim().length > 0
+  const willCreate = willCreateAccount || willCreateContact || willCreateBilling
   const dirty =
     accountId !== (initial.account_id ?? '') ||
-    willCreate ||
     contactId !== (initial.contact_id ?? '') ||
-    billingAccountId !== (initial.billing_account_id ?? '')
+    billingId !== (initial.billing_account_id ?? '') ||
+    willCreate
+
+  const clearAccount = () => {
+    setAccountId(''); setAccountLabel(null)
+    // 取引先が変わると担当者の前提（所属）も変わるためクリア
+    setContactId(''); setContactLabel(null); setContactText('')
+  }
 
   const save = () => {
     setError(null)
     startTransition(async () => {
       try {
         let finalAccountId: string | null = accountId || null
-        if (willCreate) {
-          const created = await inlineCreateAccount({ name: accountText.trim() })
-          finalAccountId = created.id
+        if (willCreateAccount) {
+          finalAccountId = (await inlineCreateAccount({ name: accountText.trim() })).id
         }
-        if (!finalAccountId && !contactId) throw new Error('顧客（取引先または人物）は必須です')
+        let finalContactId: string | null = contactId || null
+        if (willCreateContact) {
+          finalContactId = (await inlineCreateContact({ full_name: contactText.trim(), account_id: finalAccountId })).id
+        }
+        let finalBillingId: string | null = billingId || null
+        if (willCreateBilling) {
+          finalBillingId = (await inlineCreateAccount({ name: billingText.trim() })).id
+        }
+        if (!finalAccountId && !finalContactId) throw new Error('顧客（取引先または人物）は必須です')
         if (!initial.customer_vehicle_id) throw new Error('先に車両セクションで顧客車両を設定してください')
         await updateMaintenanceCustomerVehicle(maintenanceId, {
           customer_vehicle_id: initial.customer_vehicle_id,
           account_id:          finalAccountId,
-          contact_id:          contactId || null,
-          billing_account_id:  billingAccountId || null,
+          contact_id:          finalContactId,
+          billing_account_id:  finalBillingId,
         })
-        setAccountText('')
+        setAccountText(''); setContactText(''); setBillingText('')
         router.refresh()
         modal?.close()  // 保存したら閲覧表示に戻る
       } catch (e) {
@@ -101,14 +121,14 @@ export function CustomerInlineEditor({
         <SearchCombo
           placeholder="会社名を入力（空のまま＝個人のお客様）"
           selectedLabel={accountLabel}
-          onClear={() => { setAccountId(''); setAccountLabel(null); setContactId('') }}
+          onClear={clearAccount}
           value={accountText}
           onChange={setAccountText}
-          candidates={candidates.map((c) => ({ id: c.id, label: c.name }))}
-          searching={searching}
-          onPick={(id, label) => { setAccountId(id); setAccountLabel(label); setAccountText(''); setContactId('') }}
+          candidates={accountCands.map((c) => ({ id: c.id, label: c.name }))}
+          searching={accountSearching}
+          onPick={(id, label) => { setAccountId(id); setAccountLabel(label); setAccountText(''); setContactId(''); setContactLabel(null) }}
           createHint={
-            accountText.trim() && !candidates.some((c) => c.name === accountText.trim())
+            accountText.trim() && !accountCands.some((c) => c.name === accountText.trim())
               ? `保存時に「${accountText.trim()}」を新規取引先として登録します`
               : undefined
           }
@@ -116,26 +136,42 @@ export function CustomerInlineEditor({
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-600">{accountId ? '顧客担当者' : '顧客（人物・BtoC）'}</label>
-        <SearchableSelect
-          key={`contact-${accountId}-${contactId}`}
-          name="contact_id"
-          defaultValue={contactId || undefined}
-          options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
-          placeholder="—"
-          onSelect={setContactId}
+        <label className="mb-1 block text-xs font-medium text-zinc-600">
+          {accountId ? '顧客担当者' : '顧客（人物・BtoC）'}（入力で検索・無ければ新規作成）
+        </label>
+        <SearchCombo
+          placeholder={accountId ? '選択中取引先の人物から検索' : '氏名を入力（個人のお客様）'}
+          selectedLabel={contactLabel}
+          onClear={() => { setContactId(''); setContactLabel(null) }}
+          value={contactText}
+          onChange={setContactText}
+          candidates={contactCands.map((c) => ({ id: c.id, label: c.name }))}
+          searching={contactSearching}
+          onPick={(id, label) => { setContactId(id); setContactLabel(label); setContactText('') }}
+          createHint={
+            contactText.trim() && !contactCands.some((c) => c.name === contactText.trim())
+              ? `保存時に「${contactText.trim()}」を新規人物として登録します${accountId ? '（選択中取引先の所属）' : ''}`
+              : undefined
+          }
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-600">請求先別指定（保険会社など）</label>
-        <SearchableSelect
-          key={`billing-${billingAccountId}`}
-          name="billing_account_id"
-          defaultValue={billingAccountId || undefined}
-          options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-          placeholder="—（顧客と同じ）"
-          onSelect={setBillingAccountId}
+        <label className="mb-1 block text-xs font-medium text-zinc-600">請求先別指定（保険会社など・入力で検索・無ければ新規作成）</label>
+        <SearchCombo
+          placeholder="—（顧客と同じ場合は空のまま）"
+          selectedLabel={billingLabel}
+          onClear={() => { setBillingId(''); setBillingLabel(null) }}
+          value={billingText}
+          onChange={setBillingText}
+          candidates={billingCands.map((c) => ({ id: c.id, label: c.name }))}
+          searching={billingSearching}
+          onPick={(id, label) => { setBillingId(id); setBillingLabel(label); setBillingText('') }}
+          createHint={
+            billingText.trim() && !billingCands.some((c) => c.name === billingText.trim())
+              ? `保存時に「${billingText.trim()}」を新規取引先として登録します`
+              : undefined
+          }
         />
       </div>
 

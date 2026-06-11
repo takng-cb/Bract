@@ -16,7 +16,7 @@ import {
   maintenance_line_items, maintenance_fees, maintenance_payments,
   maintenance_damage_pins, vehicles,
 } from '@/lib/schema'
-import { eq, or, asc } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { AB_ICONS, STATUS_PALETTE } from '@/industries/auto-body/lib/icons'
 import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
@@ -55,7 +55,7 @@ type Props = {
 
 export default async function MaintenanceFullView({ maintenanceId, users }: Props) {
   // 1 回目のクエリ群: 整備本体 + 関連情報を取得（loaner_vehicle_id を含む）
-  const [mRow, lines, fees, payments, damagePins, editable, accountsList, contactsList] = await Promise.all([
+  const [mRow, lines, fees, payments, damagePins, editable, accountsList] = await Promise.all([
     db.select({
       m:       maintenance_records,
       vehicle: customer_vehicles,
@@ -94,17 +94,6 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       .from(accounts)
       .where(eq(accounts.status, 'active'))
       .orderBy(asc(accounts.name)),
-    db.select({
-      id:         contacts.id,
-      full_name:  contacts.full_name,
-      account_id: contacts.account_id,
-      email:      contacts.email,
-      phone:      contacts.phone,
-      title:      contacts.title,
-      department: contacts.department,
-    })
-      .from(contacts)
-      .orderBy(asc(contacts.full_name)),
   ])
 
   if (!mRow) return null
@@ -113,25 +102,17 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
   const account = mRow.account?.id ? mRow.account : null
   const contact = mRow.contact?.id ? mRow.contact : null
 
-  // 代車選択肢: 在庫車両 + 現在この整備に割当中の代車（リストから消えないように）
-  const loanerVehicleOptions = await db.select({
-    id:            vehicles.id,
-    maker:         vehicles.maker,
-    model:         vehicles.model,
-    license_plate: vehicles.license_plate,
-    status:        vehicles.status,
-  })
-    .from(vehicles)
-    .where(
-      m.loaner_vehicle_id
-        ? or(eq(vehicles.status, '在庫'), eq(vehicles.id, m.loaner_vehicle_id))
-        : eq(vehicles.status, '在庫'),
-    )
-    .orderBy(asc(vehicles.license_plate))
-
-  // 現在の代車情報（表示用）
+  // 現在の代車情報（表示用）。候補はオンデマンド検索（findLoanerVehicleCandidates）のため事前取得しない
   const currentLoaner = m.loaner_vehicle_id
-    ? loanerVehicleOptions.find((vh) => vh.id === m.loaner_vehicle_id) ?? null
+    ? await db.select({
+        id:            vehicles.id,
+        maker:         vehicles.maker,
+        model:         vehicles.model,
+        license_plate: vehicles.license_plate,
+      })
+        .from(vehicles)
+        .where(eq(vehicles.id, m.loaner_vehicle_id))
+        .then((r) => r[0] ?? null)
     : null
 
   // 取引先が「個人」プレースホルダ or 未設定なら ToC 扱いで顧客名は contact を主とする
@@ -406,8 +387,8 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
               billing_account_id:  m.billing_account_id,
             }}
             currentAccountName={account?.name ?? null}
-            accounts={accountsList.map((a) => ({ id: a.id, name: a.name }))}
-            contacts={contactsList.map((c) => ({ id: c.id, full_name: c.full_name, account_id: c.account_id }))}
+            currentContactName={contact?.full_name ?? null}
+            currentBillingName={billingAccount?.name ?? null}
           />
         </InlineSection>
 
@@ -448,7 +429,9 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
               loaner_fuel_in:     m.loaner_fuel_in,
               loaner_notes:       m.loaner_notes,
             }}
-            vehicles={loanerVehicleOptions}
+            currentLoanerLabel={currentLoaner
+              ? `${currentLoaner.license_plate ?? '—'} / ${[currentLoaner.maker, currentLoaner.model].filter(Boolean).join(' ') || '車両'}`
+              : null}
           />
         </InlineSection>
       </div>
