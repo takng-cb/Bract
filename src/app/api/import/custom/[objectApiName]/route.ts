@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { parseCsvWithHeaders } from '@/lib/csvUtils'
 import { logImport, toUserFriendlyError } from '@/lib/importLogger'
 import { requireApiEditor } from '@/lib/apiAuth'
+import { getCurrentUserId } from '@/lib/auth'
 
 export async function POST(
   req: NextRequest,
@@ -24,6 +25,7 @@ export async function POST(
   // 編集権限確認（viewer の書き込みを拒否）
   const denied = await requireApiEditor()
   if (denied) return denied
+  const userId = (await getCurrentUserId())!  // requireApiEditor 通過後は非 null
 
   const { objectApiName } = await params
   const formData = await req.formData()
@@ -159,7 +161,7 @@ export async function POST(
             id,
             object_id: objectId,
             data,
-            owner_id: user.id,
+            owner_id: userId,
           })
           inserted++
         }
@@ -172,7 +174,7 @@ export async function POST(
         await db.insert(custom_records).values({
           object_id: objectId,
           data,
-          owner_id: user.id,
+          owner_id: userId,
         })
         inserted++
       }
