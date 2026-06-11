@@ -316,6 +316,11 @@
 - 内容：`trash_records`（物理テーブル名・to_jsonb の行スナップショット・削除者・削除日時）を新設（migration `20260612090000`）。主要17ブックの削除 action が実削除前に退避。/trash で一覧（管理者=全件・一般=自分の削除分のみ）・**復元**（jsonb_populate_record で再INSERT、id重複時はエラー）・完全削除。保持期限は system_settings `trash_retention_days`（既定30日）で、一覧表示時に期限切れを自動削除。入口は /settings の「ゴミ箱」カード。子レコード（明細・junction）は v1 では復元対象外（注記表示）。
 - 状態：実装・出荷済み（migration の全 Neon 適用が前提）。
 
+### REQ-0048  承認一覧ページ（#85 Phase3）＋取り下げ
+- 2026-06-12 / 会話（「#85のPhase3は進めておいて。承認の取り下げ機能もほしい」）
+- 内容：/approvals を新設（ワークスペースのナビ「承認」）。「自分が承認すべき」（現在 step の承認者で未判定）はその場で承認/差戻し可、「自分の申請」は状態バッジつきで一覧し、承認待ちは**取り下げ**（cancelApproval）できる。通知ベルのドロップダウンに「承認の一覧を見る →」導線を追加。specs/approvals.md の Phase3 のうちダッシュボードウィジェット化は #105 と合流。
+- 状態：実装・出荷済み。関連：#85 / REQ-0023/0037/0040
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
