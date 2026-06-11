@@ -77,35 +77,35 @@ export default function RecordHeader({ crumbs, actions, title, avatar, badges, m
     )
   }
 
-  // ヒーロー表示
+  // ヒーロー表示：アクションはタイトル行に置かず、パンくずと同じ最上段（右）に分離する。
+  // （タイトルとボタンが同列だとモバイルで詰まって崩れて見えるため）
   return (
     <div className="mb-5">
-      <Breadcrumb crumbs={crumbs} />
-      {/* モバイルでは アクション群が幅を食って崩れるため、flex-wrap でタイトルの下へ回り込ませる */}
-      <div className="flex items-start gap-3 mt-3 flex-wrap">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
-          {avatar && (
-            <div className="grid place-items-center w-12 h-12 rounded-lg bg-brand-50 text-brand-700 shrink-0">{avatar}</div>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 wrap-break-word min-w-0">{title}</h1>
-              {badges}
-            </div>
-            {meta && meta.length > 0 && (
-              <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mt-1.5">
-                {meta.map((m, i) => (
-                  <span key={i} className={`inline-flex items-center gap-1 text-xs text-zinc-500 min-w-0 max-w-full ${m.mono ? 'font-mono' : ''}`}>
-                    {m.icon}
-                    {m.label && <span>{m.label}</span>}
-                    <b className="text-zinc-700 font-semibold truncate">{m.value}</b>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <Breadcrumb crumbs={crumbs} />
         {actions && <div className="flex items-center flex-wrap gap-2 shrink-0">{actions}</div>}
+      </div>
+      <div className="flex items-start gap-3 mt-3">
+        {avatar && (
+          <div className="grid place-items-center w-12 h-12 rounded-lg bg-brand-50 text-brand-700 shrink-0">{avatar}</div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 wrap-break-word min-w-0">{title}</h1>
+            {badges}
+          </div>
+          {meta && meta.length > 0 && (
+            <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mt-1.5">
+              {meta.map((m, i) => (
+                <span key={i} className={`inline-flex items-center gap-1 text-xs text-zinc-500 min-w-0 max-w-full ${m.mono ? 'font-mono' : ''}`}>
+                  {m.icon}
+                  {m.label && <span>{m.label}</span>}
+                  <b className="text-zinc-700 font-semibold truncate">{m.value}</b>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
