@@ -9,10 +9,12 @@ import { db } from '@/lib/db'
 import { warehouses } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { updateWarehouse } from '@/app/actions/inventory'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function EditWarehousePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('warehouses')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   if (!(await isModuleEnabled('inventory'))) notFound()
   await requireEditor()

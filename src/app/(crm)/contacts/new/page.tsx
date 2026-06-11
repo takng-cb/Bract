@@ -10,12 +10,14 @@ import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
 import { runCreate } from '@/lib/duplicateCheck'
 import type { CreateState } from '@/lib/duplicateTypes'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function NewContactPage({
   searchParams,
 }: {
   searchParams: Promise<{ account_id?: string; view?: string }>
 }) {
+  await requireBookRead('contacts')  // RBAC: Read 権限ガード（ADR-0023）
   const { account_id, view } = await searchParams
   const contactType = view === 'consumer' ? 'consumer' : 'business'
   await requireEditor()

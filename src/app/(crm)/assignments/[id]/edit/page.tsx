@@ -12,10 +12,12 @@ import { eq, asc, ne } from 'drizzle-orm'
 import Link from 'next/link'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { updateAssignment, assignStaffToAssignment, unassignStaff } from '@/industries/staffing/actions/assignments'
+import { requireBookRead } from '@/lib/permissions'
 
 const FIELD_CLS = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export default async function EditAssignmentPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('assignments')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('staffing'))) notFound()
   const { id } = await params
   await requireEditor()

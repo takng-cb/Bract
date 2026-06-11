@@ -6,9 +6,9 @@ import {
   maintenance_line_items, maintenance_fees,
 } from '@/lib/schema'
 import { eq, sql } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { requirePermission } from '@/lib/permissions'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -18,7 +18,7 @@ function pick(formData: FormData, key: string): string | null {
 // ─── テンプレ本体の CRUD ───────────────────────────────────
 
 export async function createTemplate(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const name = pick(formData, 'name')
   if (!name) throw new Error('テンプレ名は必須です')
 
@@ -35,7 +35,7 @@ export async function createTemplate(formData: FormData): Promise<string> {
 }
 
 export async function updateTemplate(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   const name = pick(formData, 'name')
   if (!name) throw new Error('テンプレ名は必須です')
 
@@ -54,7 +54,7 @@ export async function updateTemplate(id: string, formData: FormData) {
 }
 
 export async function deleteTemplate(id: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'delete')
   await db.delete(maintenance_templates).where(eq(maintenance_templates.id, id))
   revalidatePath('/maintenance/templates')
   redirect('/maintenance/templates')
@@ -70,7 +70,7 @@ async function nextLineSortOrder(templateId: string): Promise<number> {
 }
 
 export async function createTemplateLine(templateId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const item_name = pick(formData, 'item_name')
   if (!item_name) throw new Error('項目名は必須です')
 
@@ -94,7 +94,7 @@ export async function createTemplateLine(templateId: string, formData: FormData)
 }
 
 export async function updateTemplateLine(templateId: string, lineId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   const item_name = pick(formData, 'item_name')
   if (!item_name) throw new Error('項目名は必須です')
 
@@ -114,7 +114,7 @@ export async function updateTemplateLine(templateId: string, lineId: string, for
 }
 
 export async function deleteTemplateLine(templateId: string, lineId: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'delete')
   await db.delete(maintenance_template_lines).where(eq(maintenance_template_lines.id, lineId))
   revalidatePath(`/maintenance/templates/${templateId}`)
 }
@@ -129,7 +129,7 @@ async function nextFeeSortOrder(templateId: string): Promise<number> {
 }
 
 export async function createTemplateFee(templateId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const item_name = pick(formData, 'item_name')
   if (!item_name) throw new Error('項目名は必須です')
   const category = pick(formData, 'category')
@@ -150,7 +150,7 @@ export async function createTemplateFee(templateId: string, formData: FormData) 
 }
 
 export async function deleteTemplateFee(templateId: string, feeId: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'delete')
   await db.delete(maintenance_template_fees).where(eq(maintenance_template_fees.id, feeId))
   revalidatePath(`/maintenance/templates/${templateId}`)
 }
@@ -158,7 +158,7 @@ export async function deleteTemplateFee(templateId: string, feeId: string) {
 // ─── テンプレ適用：1 クリックで maintenance に投入 ──────────
 
 export async function applyTemplateToMaintenance(templateId: string, maintenanceId: string): Promise<{ lines: number; fees: number }> {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
 
   // テンプレ内容を読む
   const [tLines, tFees] = await Promise.all([
@@ -218,7 +218,7 @@ export async function applyTemplateToMaintenance(templateId: string, maintenance
 // ─── 既存 maintenance からテンプレに保存 ───────────────────
 
 export async function saveMaintenanceAsTemplate(maintenanceId: string, name: string, category: string | null): Promise<string> {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   if (!name.trim()) throw new Error('テンプレ名は必須です')
 
   // 元の整備の行・諸費用を取得

@@ -19,7 +19,7 @@ export async function listUsers() {
   if (!me || !(await isAdminUser(me.id))) throw new Error('管理者権限がありません')
 
   return db
-    .select({ id: users.id, email: users.email, role: users.role, created_at: users.created_at })
+    .select({ id: users.id, email: users.email, role: users.role, role_id: users.role_id, created_at: users.created_at })
     .from(users)
     .orderBy(asc(users.created_at))
 }

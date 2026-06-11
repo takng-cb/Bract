@@ -18,8 +18,10 @@ import { getActivityTypes } from '@/lib/activityTypes'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { Activity, CalendarClock, UserRound } from 'lucide-react'
 import { RecordColumns, Badge } from '@/components/record/RecordUI'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function ActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
 
   const [activityRow, relatedPairs, allUsers] = await Promise.all([

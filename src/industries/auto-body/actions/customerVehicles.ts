@@ -7,9 +7,9 @@
 import { db } from '@/lib/db'
 import { customer_vehicles, maintenance_records } from '@/lib/schema'
 import { eq, count } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/permissions'
 
 function pickField(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -17,7 +17,7 @@ function pickField(formData: FormData, key: string): string | null {
 }
 
 export async function createCustomerVehicle(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('customer_vehicles', 'create')
 
   const account_id = pickField(formData, 'account_id')
   const contact_id = pickField(formData, 'contact_id')
@@ -59,7 +59,7 @@ export async function createCustomerVehicle(formData: FormData): Promise<string>
  * どちらを保存しても他方の値を消さない。
  */
 export async function updateCustomerVehicleBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('customer_vehicles', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   const FIELDS = [
     'account_id', 'contact_id', 'owner_id',
@@ -77,7 +77,7 @@ export async function updateCustomerVehicleBasic(id: string, formData: FormData)
 }
 
 export async function updateCustomerVehicle(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('customer_vehicles', 'update')
 
   const account_id = pickField(formData, 'account_id')
   const contact_id = pickField(formData, 'contact_id')
@@ -114,7 +114,7 @@ export async function updateCustomerVehicle(id: string, formData: FormData) {
 }
 
 export async function deleteCustomerVehicle(id: string) {
-  await requireEditor()
+  await requirePermission('customer_vehicles', 'delete')
 
   // 関連する整備が残っている場合は削除を拒否（FK ON DELETE RESTRICT）
   const [mc] = await db.select({ c: count() }).from(maintenance_records)

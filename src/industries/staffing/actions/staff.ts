@@ -6,9 +6,9 @@
 import { db } from '@/lib/db'
 import { staff } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { requirePermission } from '@/lib/permissions'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -23,7 +23,7 @@ function pickJsonArray(formData: FormData, key: string): string[] | null {
 }
 
 export async function createStaff(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('staff', 'create')
 
   const name = pick(formData, 'name')
   if (!name) throw new Error('氏名は必須です')
@@ -55,7 +55,7 @@ export async function createStaff(formData: FormData): Promise<string> {
  * 氏名(name) は必須のため空送信時は更新しない。スキル/対応エリアはカンマ区切り→配列。
  */
 export async function updateStaffBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('staff', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   for (const k of ['name_kana', 'belong_account_id', 'gender', 'birth_date', 'phone', 'email', 'default_hourly_rate', 'default_cost_per_hour', 'notes', 'owner_id'] as const) {
     if (formData.has(k)) set[k] = pick(formData, k)
@@ -68,7 +68,7 @@ export async function updateStaffBasic(id: string, formData: FormData) {
 }
 
 export async function updateStaff(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('staff', 'update')
 
   const name = pick(formData, 'name')
   if (!name) throw new Error('氏名は必須です')
@@ -97,14 +97,14 @@ export async function updateStaff(id: string, formData: FormData) {
 
 /** ステータスのみ更新（矢羽根 StageBar 用） */
 export async function setStaffStatus(id: string, status: string) {
-  await requireEditor()
+  await requirePermission('staff', 'update')
   await db.update(staff).set({ status, updated_at: new Date() }).where(eq(staff.id, id))
   revalidatePath(`/staff/${id}`)
   revalidatePath('/staff')
 }
 
 export async function deleteStaff(id: string) {
-  await requireEditor()
+  await requirePermission('staff', 'delete')
   await db.delete(staff).where(eq(staff.id, id))
   revalidatePath('/staff')
   redirect('/staff')

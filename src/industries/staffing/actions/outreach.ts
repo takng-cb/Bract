@@ -9,9 +9,9 @@
 import { db } from '@/lib/db'
 import { outreach, assignments } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { ensureModuleEnabled } from '@/lib/modules/registry'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/permissions'
 
 /** 案件ステータスを前進だけさせる（後退・終了状態は触らない） */
 async function advanceAssignmentStatus(assignmentId: string, to: string, from: string[]) {
@@ -22,7 +22,7 @@ async function advanceAssignmentStatus(assignmentId: string, to: string, from: s
 }
 
 export async function createOutreach(assignmentId: string, agencyAccountId: string, notes?: string | null) {
-  await requireEditor()
+  await requirePermission('assignments', 'create')
   await ensureModuleEnabled('staffing')
   if (!assignmentId) throw new Error('案件が指定されていません')
   if (!agencyAccountId) throw new Error('打診先（紹介会社）を選択してください')
@@ -39,14 +39,14 @@ export async function createOutreach(assignmentId: string, agencyAccountId: stri
 }
 
 export async function updateOutreachStatus(id: string, assignmentId: string, status: string) {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   await ensureModuleEnabled('staffing')
   await db.update(outreach).set({ status }).where(eq(outreach.id, id))
   revalidatePath(`/assignments/${assignmentId}`)
 }
 
 export async function deleteOutreach(id: string, assignmentId: string) {
-  await requireEditor()
+  await requirePermission('assignments', 'delete')
   await ensureModuleEnabled('staffing')
   await db.delete(outreach).where(eq(outreach.id, id))
   revalidatePath(`/assignments/${assignmentId}`)

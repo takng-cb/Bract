@@ -1,6 +1,5 @@
 'use server'
 
-import { requireEditor } from '@/lib/auth'
 import { recordHref } from '@/lib/relatedRecords'
 
 import { db } from '@/lib/db'
@@ -8,6 +7,7 @@ import { tasks, task_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/permissions'
 
 /** related_records[] hidden inputs ("<api>:<id>") をパース */
 function parseRelatedRecords(formData: FormData): { object_api: string; record_id: string }[] {
@@ -53,7 +53,7 @@ async function syncTaskRelatedRecords(
 }
 
 export async function createTask(formData: FormData) {
-  await requireEditor()
+  await requirePermission('tasks', 'create')
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('タイトルは必須です')
 
@@ -89,7 +89,7 @@ export async function createTask(formData: FormData) {
  * インラインコンポーザ用・その場で ToDo を作成（遷移せず revalidate のみ）。
  */
 export async function quickCreateTask(formData: FormData) {
-  await requireEditor()
+  await requirePermission('tasks', 'create')
   const title = (formData.get('title') as string)?.trim()
   if (!title) throw new Error('タイトルは必須です')
   const [row] = await db.insert(tasks).values({
@@ -106,7 +106,7 @@ export async function quickCreateTask(formData: FormData) {
 
 /** 詳細情報カードのインライン編集用・部分更新（タイトル/関連レコードには触れない）。 */
 export async function updateTaskBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('tasks', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('title') && (formData.get('title') as string)?.trim()) set.title = (formData.get('title') as string).trim()
   if (formData.has('due_date'))    set.due_date    = (formData.get('due_date') as string) || null
@@ -118,7 +118,7 @@ export async function updateTaskBasic(id: string, formData: FormData) {
 }
 
 export async function updateTask(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('tasks', 'update')
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('タイトルは必須です')
 
@@ -143,19 +143,19 @@ export async function updateTask(id: string, formData: FormData) {
 
 /** 関連レコードのインライン編集用・junction 同期のみ。 */
 export async function updateTaskRelatedRecords(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('tasks', 'update')
   await syncTaskRelatedRecords(id, parseRelatedRecords(formData))
   redirect(`/tasks/${id}`)
 }
 
 export async function deleteTask(id: string) {
-  await requireEditor()
+  await requirePermission('tasks', 'delete')
   await db.delete(tasks).where(eq(tasks.id, id))
   redirect('/tasks')
 }
 
 export async function toggleTaskDone(id: string, done: boolean, revalidate: string) {
-  await requireEditor()
+  await requirePermission('tasks', 'update')
   await db.update(tasks)
     .set({ done, updated_at: new Date() })
     .where(eq(tasks.id, id))

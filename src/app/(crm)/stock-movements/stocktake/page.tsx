@@ -13,6 +13,7 @@ import { products, warehouses } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
 import SearchableSelect from '@/components/SearchableSelect'
 import { applyStocktake } from '@/app/actions/inventory'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +22,7 @@ export default async function StocktakePage({
 }: {
   searchParams: Promise<{ product_id?: string }>
 }) {
+  await requireBookRead('stock_movements')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('inventory'))) notFound()
   await requireEditor()
 

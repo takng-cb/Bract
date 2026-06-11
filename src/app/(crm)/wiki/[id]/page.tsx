@@ -16,10 +16,12 @@ import MarkdownView from '@/components/MarkdownView'
 import { resolveWikiLinks } from '@/lib/wiki'
 import { deleteWikiPage } from '@/app/actions/wiki'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function WikiDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('wiki_pages')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   if (!(await isModuleEnabled('workspace'))) notFound()
 

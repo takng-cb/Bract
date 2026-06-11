@@ -13,6 +13,7 @@ import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import DocumentLayout from '@/industries/auto-body/components/documents/DocumentLayout'
 import { TEMPLATES, type DocumentData } from '@/industries/auto-body/components/documents/templates'
 import type { CustomerInfo } from '@/industries/auto-body/components/documents/DocumentPieces'
+import { requireBookRead } from '@/lib/permissions'
 
 const TAX_RATES: Record<string, number> = {
   '税別10%': 10, '税別8%': 8, '税込10%': 10, '税込8%': 8, '非課税': 0,
@@ -23,6 +24,7 @@ export default async function DocumentPage({
 }: {
   params: Promise<{ id: string; type: string }>
 }) {
+  await requireBookRead('maintenance_records')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('auto-body'))) notFound()
   const { id, type } = await params
   if (!isDocumentType(type)) notFound()

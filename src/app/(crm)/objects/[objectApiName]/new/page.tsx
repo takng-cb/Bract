@@ -10,6 +10,7 @@ import { db } from '@/lib/db'
 import { accounts, contacts } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
 import { getAllUsers } from '@/lib/userUtils'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function NewCustomRecordPage({
   params,
@@ -17,6 +18,7 @@ export default async function NewCustomRecordPage({
   params: Promise<{ objectApiName: string }>
 }) {
   const { objectApiName } = await params
+  await requireBookRead(objectApiName)  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await canEdit())) redirect(`/objects/${objectApiName}`)
 
   const obj = await getObjectDef(objectApiName)

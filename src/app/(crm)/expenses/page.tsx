@@ -18,6 +18,7 @@ import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { lastOfMonth } from '@/lib/dateUtils'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -66,6 +67,7 @@ export default async function ExpensesPage({
 }: {
   searchParams: Promise<{ from_year?: string; from_month?: string; to_year?: string; to_month?: string; f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
+  await requireBookRead('expenses')  // RBAC: Read 権限ガード（ADR-0023）
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('expenses', uid) : null)
   const [sp, edit, colConfig, , dv] = await Promise.all([

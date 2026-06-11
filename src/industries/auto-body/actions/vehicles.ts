@@ -1,6 +1,6 @@
 'use server'
 
-import { requireEditor } from '@/lib/auth'
+import { requirePermission } from '@/lib/permissions'
 import { db } from '@/lib/db'
 import { vehicles } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
@@ -30,7 +30,7 @@ function i(formData: FormData, key: string): number | null {
 }
 
 export async function createVehicle(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('vehicles', 'create')
   const maker = s(formData, 'maker')
   const model = s(formData, 'model')
   if (!maker) throw new Error('メーカーは必須です')
@@ -75,7 +75,7 @@ export async function createVehicle(formData: FormData): Promise<string> {
 }
 
 export async function updateVehicle(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('vehicles', 'update')
   const maker = s(formData, 'maker')
   const model = s(formData, 'model')
   if (!maker) throw new Error('メーカーは必須です')
@@ -152,7 +152,7 @@ export async function updateVehicle(id: string, formData: FormData) {
  * custom_records ミラーは保存ごとに全行から再同期する。
  */
 export async function updateVehicleBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('vehicles', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   // 文字列
   for (const k of ['color', 'license_plate', 'vin', 'purchase_date', 'supplier_account_id', 'sold_date', 'buyer_account_id', 'next_inspection_date', 'description', 'owner_id'] as const) {
@@ -183,7 +183,7 @@ export async function updateVehicleBasic(id: string, formData: FormData) {
 
 /** ステータスのみ更新（矢羽根 StageBar 用）。custom_records ミラーも同期 */
 export async function setVehicleStatus(id: string, status: string) {
-  await requireEditor()
+  await requirePermission('vehicles', 'update')
   await db.update(vehicles).set({ status, updated_at: new Date() }).where(eq(vehicles.id, id))
   const [v] = await db.select({
     id: vehicles.id, maker: vehicles.maker, model: vehicles.model, year: vehicles.year,
@@ -196,7 +196,7 @@ export async function setVehicleStatus(id: string, status: string) {
 }
 
 export async function deleteVehicle(id: string) {
-  await requireEditor()
+  await requirePermission('vehicles', 'delete')
   await db.delete(vehicles).where(eq(vehicles.id, id))
   // custom_records ミラー側も削除（cascade ではないので明示的に）
   await deleteVehicleCustomRecord(id)

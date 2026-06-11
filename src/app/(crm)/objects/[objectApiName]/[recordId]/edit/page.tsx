@@ -8,6 +8,7 @@ import { canEdit } from '@/lib/auth'
 import { updateCustomRecord } from '@/app/actions/customRecords'
 import DynamicForm from '@/components/DynamicForm'
 import { getAllUsers } from '@/lib/userUtils'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function EditCustomRecordPage({
   params,
@@ -15,6 +16,7 @@ export default async function EditCustomRecordPage({
   params: Promise<{ objectApiName: string; recordId: string }>
 }) {
   const { objectApiName, recordId } = await params
+  await requireBookRead(objectApiName)  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await canEdit())) redirect(`/objects/${objectApiName}/${recordId}`)
 
   const obj = await getObjectDef(objectApiName)

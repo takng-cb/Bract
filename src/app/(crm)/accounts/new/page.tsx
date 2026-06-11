@@ -7,8 +7,10 @@ import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
 import { runCreate } from '@/lib/duplicateCheck'
 import type { CreateState } from '@/lib/duplicateTypes'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function NewAccountPage() {
+  await requireBookRead('accounts')  // RBAC: Read 権限ガード（ADR-0023）
   await requireEditor()
   const [{ fields }, allUsers] = await Promise.all([
     getCustomFieldsWithValues('accounts', ''),

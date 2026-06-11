@@ -17,6 +17,7 @@ import { updateExpenseBasic, updateExpenseRelatedRecords } from '@/app/actions/e
 import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import { Receipt, Wallet, CalendarDays } from 'lucide-react'
 import { RecordColumns, Badge, type BadgeTone } from '@/components/record/RecordUI'
+import { requireBookRead } from '@/lib/permissions'
 
 const CATEGORIES = ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他']
 const CATEGORY_TONE: Record<string, BadgeTone> = {
@@ -24,6 +25,7 @@ const CATEGORY_TONE: Record<string, BadgeTone> = {
 }
 
 export default async function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('expenses')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
 
   const [expense, relatedPairs] = await Promise.all([

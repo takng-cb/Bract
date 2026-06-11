@@ -20,12 +20,14 @@ import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { RecordColumns, KpiBand, RefCard, Badge, RecordTable, RecordTableEmpty, type KpiItem, type BadgeTone } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 const MOVE_TONE: Record<string, BadgeTone> = { 入庫: 'info', 出庫: 'warn', 調整: 'ai' }
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('products')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   if (!(await isModuleEnabled('inventory'))) notFound()
 

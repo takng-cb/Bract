@@ -8,6 +8,7 @@ import { updateExpense } from '@/app/actions/expenses'
 import { requireEditor } from '@/lib/auth'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
+import { requireBookRead } from '@/lib/permissions'
 
 function customRecordTitle(
   data: Record<string, unknown> | null | undefined,
@@ -21,6 +22,7 @@ function customRecordTitle(
 }
 
 export default async function EditExpensePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('expenses')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   await requireEditor()
   const [expense, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, industryPicker] = await Promise.all([

@@ -1,3 +1,4 @@
+import { requireBookRead } from '@/lib/permissions'
 import { db } from '@/lib/db'
 import { opportunities, expenses, accounts } from '@/lib/schema'
 import { eq, asc, ne } from 'drizzle-orm'
@@ -80,6 +81,7 @@ export default async function ForecastPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; year?: string; month?: string }>
 }) {
+  await requireBookRead('opportunities')  // RBAC: Read 権限ガード（ADR-0023）
   const sp = await searchParams
   const now = new Date()
 

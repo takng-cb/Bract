@@ -12,6 +12,7 @@ import SearchableSelect from '@/components/SearchableSelect'
 import SubmitButton from '@/components/SubmitButton'
 import { createStockMovement } from '@/app/actions/inventory'
 import { MOVEMENT_TYPES } from '@/lib/inventory'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,7 @@ export default async function NewStockMovementPage({
 }: {
   searchParams: Promise<{ product_id?: string }>
 }) {
+  await requireBookRead('stock_movements')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('inventory'))) notFound()
   await requireEditor()
 

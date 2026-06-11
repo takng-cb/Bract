@@ -11,12 +11,14 @@ import { requireEditor } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
 import { runCreate } from '@/lib/duplicateCheck'
 import type { CreateState } from '@/lib/duplicateTypes'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function NewOpportunityPage({
   searchParams,
 }: {
   searchParams: Promise<{ account_id?: string; vehicle_id?: string }>
 }) {
+  await requireBookRead('opportunities')  // RBAC: Read 権限ガード（ADR-0023）
   const { account_id, vehicle_id } = await searchParams
   await requireEditor()
   const isAutoBody = activeIndustry === 'auto-body'

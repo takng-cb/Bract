@@ -3,10 +3,10 @@
 import { db } from '@/lib/db'
 import { maintenance_records, vehicles, activities, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { generateMaintenanceNo } from '@/industries/auto-body/lib/maintenanceNo'
+import { requirePermission } from '@/lib/permissions'
 
 // 代車運用 (Issue #45):
 //   vehicles.status は '在庫' / '販売済' / '整備中' などを取り得るが、
@@ -51,7 +51,7 @@ function pickInt(formData: FormData, key: string): number | null {
 }
 
 export async function createMaintenance(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
 
   const customer_vehicle_id = pick(formData, 'customer_vehicle_id')
   if (!customer_vehicle_id) throw new Error('顧客車両は必須です')
@@ -106,7 +106,7 @@ export async function createMaintenance(formData: FormData): Promise<string> {
 }
 
 export async function updateMaintenance(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
 
   const customer_vehicle_id = pick(formData, 'customer_vehicle_id')
   if (!customer_vehicle_id) throw new Error('顧客車両は必須です')
@@ -148,7 +148,7 @@ export async function updateMaintenance(id: string, formData: FormData) {
 }
 
 export async function deleteMaintenance(id: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'delete')
 
   // 代車が割り当てられたままなら、削除前に '在庫' に戻す
   const before = await db.select({
@@ -182,7 +182,7 @@ export async function updateMaintenanceLoaner(
     loaner_notes:        string | null
   },
 ) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
 
   // 旧 loaner_vehicle_id を取得
   const before = await db.select({
@@ -229,7 +229,7 @@ export async function updateMaintenanceCustomerVehicle(
     billing_account_id:  string | null
   },
 ) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   if (!data.customer_vehicle_id) throw new Error('顧客車両は必須です')
   // BtoB は取引先（会社）、BtoC は contact（人物）のみで成立。いずれか必須。
   if (!data.account_id && !data.contact_id) {
@@ -273,7 +273,7 @@ export async function updateMaintenanceBasicAndMemo(
     lever_rate:           string | null
   },
 ) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
 
   await db.update(maintenance_records).set({
     intake_date:          data.intake_date,
@@ -312,7 +312,7 @@ const AUTO_ACTIVITY_BY_STATUS: Record<string, { type: string; subject: string; b
 }
 
 export async function updateMaintenanceStatus(id: string, status: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
 
   // 旧ステータスを取得して、変更があれば活動を自動生成
   const before = await db.select({
@@ -390,7 +390,7 @@ export async function updateMaintenanceBilling(
     payment_terms:     string | null
   },
 ) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
 
   await db.update(maintenance_records).set({
     billing_target:    data.billing_target,

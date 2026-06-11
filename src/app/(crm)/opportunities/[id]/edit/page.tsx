@@ -11,8 +11,10 @@ import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
 import type { CreateState } from '@/lib/duplicateTypes'
 import { activeIndustry } from '@/lib/industry'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function EditOpportunityPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('opportunities')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   await requireEditor()
   const isAutoBody = activeIndustry === 'auto-body'

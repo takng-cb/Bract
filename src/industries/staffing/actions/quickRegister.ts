@@ -8,16 +8,17 @@
  */
 import { db } from '@/lib/db'
 import { assignments, accounts, contacts, activities, activity_related_records } from '@/lib/schema'
-import { requireEditor, getCurrentUserId } from '@/lib/auth'
+import { getCurrentUserId } from '@/lib/auth'
 import { ensureModuleEnabled } from '@/lib/modules/registry'
 import { callAI } from '@/lib/ai/client'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
 import { revalidatePath } from 'next/cache'
 import { eq, and, or, isNull, asc, sql } from 'drizzle-orm'
+import { requirePermission } from '@/lib/permissions'
 
 /** 取引先（クライアント）選択肢を返す（既存指定用） */
 export async function listClientAccounts(): Promise<{ id: string; name: string }[]> {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   await ensureModuleEnabled('staffing')
   const rows = await db
     .select({ id: accounts.id, name: accounts.name })
@@ -29,7 +30,7 @@ export async function listClientAccounts(): Promise<{ id: string; name: string }
 
 /** 指定取引先の人物(担当者)一覧（既存取引先に担当者を選ぶ/追加するため） */
 export async function listContactsForAccount(accountId: string): Promise<{ id: string; full_name: string }[]> {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   await ensureModuleEnabled('staffing')
   if (!accountId) return []
   return db
@@ -41,7 +42,7 @@ export async function listContactsForAccount(accountId: string): Promise<{ id: s
 
 /** 同名の取引先候補を返す（新規入力時の重複確認用・大文字小文字無視） */
 export async function findClientAccountsByName(name: string): Promise<{ id: string; name: string }[]> {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   await ensureModuleEnabled('staffing')
   const q = (name ?? '').trim()
   if (!q) return []
@@ -95,7 +96,7 @@ function todayISO(): string {
 
 /** 貼付テキストを AI で構造化（DBは触らない） */
 export async function parseQuickText(rawText: string): Promise<StaffingDraft> {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   await ensureModuleEnabled('staffing')
 
   const text = (rawText ?? '').trim()
@@ -156,7 +157,7 @@ function buildAssignmentTitle(clientName: string, draft: StaffingDraft): string 
  * client: 既存(取引先ID) or 新規(取引先情報) を**先に**指定する（REQ-0017）。
  */
 export async function applyQuickDraft(client: ClientChoice, draft: StaffingDraft, rawText: string): Promise<string> {
-  await requireEditor()
+  await requirePermission('assignments', 'create')
   await ensureModuleEnabled('staffing')
   const ownerId = await getCurrentUserId()
 

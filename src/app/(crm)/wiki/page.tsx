@@ -10,6 +10,7 @@ import { wiki_pages } from '@/lib/schema'
 import { asc, or, ilike } from 'drizzle-orm'
 import { canEdit } from '@/lib/auth'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +21,7 @@ export default async function WikiListPage({
 }: {
   searchParams: Promise<{ q?: string }>
 }) {
+  await requireBookRead('wiki_pages')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('workspace'))) notFound()
   const { q } = await searchParams
   const query = (q ?? '').trim()

@@ -9,6 +9,7 @@ import { getActivityTypes } from '@/lib/activityTypes'
 import { getAllUsers } from '@/lib/userUtils'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
+import { requireBookRead } from '@/lib/permissions'
 
 /**
  * カスタムレコードの表示名を導出する。
@@ -30,6 +31,7 @@ export default async function NewActivityPage({
 }: {
   searchParams: Promise<{ account_id?: string; contact_id?: string; opportunity_id?: string; custom_record_id?: string; maintenance_id?: string; customer_vehicle_id?: string; return_to?: string }>
 }) {
+  await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const { account_id, contact_id, opportunity_id, custom_record_id, maintenance_id, customer_vehicle_id, return_to } = await searchParams
 
   async function createActivityAction(_: string | null, formData: FormData): Promise<string | null> {

@@ -9,6 +9,7 @@ import { requireEditor } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
+import { requireBookRead } from '@/lib/permissions'
 
 function customRecordTitle(
   data: Record<string, unknown> | null | undefined,
@@ -22,6 +23,7 @@ function customRecordTitle(
 }
 
 export default async function EditTaskPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('tasks')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   await requireEditor()
   const [task, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, industryPicker, users] = await Promise.all([

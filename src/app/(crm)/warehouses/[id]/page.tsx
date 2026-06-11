@@ -19,10 +19,12 @@ import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { RecordColumns, KpiBand, Badge, RecordTable, RecordTableEmpty, type KpiItem } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function WarehouseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('warehouses')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   if (!(await isModuleEnabled('inventory'))) notFound()
 

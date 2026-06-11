@@ -1,6 +1,5 @@
 'use server'
 
-import { requireEditor } from '@/lib/auth'
 
 import { db } from '@/lib/db'
 import { contacts } from '@/lib/schema'
@@ -8,9 +7,10 @@ import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
+import { requirePermission } from '@/lib/permissions'
 
 export async function createContact(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('contacts', 'create')
   const full_name    = formData.get('full_name') as string
   const contact_type = (formData.get('contact_type') as string) || 'business'
   if (!full_name?.trim()) throw new Error('氏名は必須です')
@@ -32,7 +32,7 @@ export async function createContact(formData: FormData): Promise<string> {
 }
 
 export async function updateContact(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('contacts', 'update')
   const full_name    = formData.get('full_name') as string
   const contact_type = (formData.get('contact_type') as string) || 'business'
   if (!full_name?.trim()) throw new Error('氏名は必須です')
@@ -79,7 +79,7 @@ export async function updateContact(id: string, formData: FormData) {
 }
 
 export async function deleteContact(id: string) {
-  await requireEditor()
+  await requirePermission('contacts', 'delete')
   await cleanupRelatedRecordsForParent('contact', id)
   await db.delete(contacts).where(eq(contacts.id, id))
   redirect('/contacts')

@@ -1,6 +1,5 @@
 'use server'
 
-import { requireEditor } from '@/lib/auth'
 import { recordHref } from '@/lib/relatedRecords'
 
 import { db } from '@/lib/db'
@@ -13,6 +12,7 @@ import {
 import { eq, inArray, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/permissions'
 
 /** related_records[] hidden inputs（"<api>:<id>"）をパース */
 function parseRelatedRecords(formData: FormData): { object_api: string; record_id: string }[] {
@@ -62,7 +62,7 @@ async function syncActivityRelatedRecords(
 
 /** 内容・担当のインライン編集用・部分更新（件名/種別/実施日時/関連には触れない）。 */
 export async function updateActivityBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('activities', 'update')
   const set: Record<string, unknown> = {}
   if (formData.has('subject') && (formData.get('subject') as string)?.trim()) set.subject = (formData.get('subject') as string).trim()
   if (formData.has('type') && (formData.get('type') as string)?.trim())       set.type = (formData.get('type') as string).trim()
@@ -74,7 +74,7 @@ export async function updateActivityBasic(id: string, formData: FormData) {
 }
 
 export async function updateActivity(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('activities', 'update')
   const subject = formData.get('subject') as string
   if (!subject?.trim()) throw new Error('件名は必須です')
 
@@ -102,19 +102,19 @@ export async function updateActivity(id: string, formData: FormData) {
 
 /** 関連レコードのインライン編集用・junction 同期のみ。 */
 export async function updateActivityRelatedRecords(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('activities', 'update')
   await syncActivityRelatedRecords(id, parseRelatedRecords(formData))
   redirect(`/activities/${id}`)
 }
 
 export async function deleteActivity(id: string) {
-  await requireEditor()
+  await requirePermission('activities', 'delete')
   await db.delete(activities).where(eq(activities.id, id))
   redirect('/activities')
 }
 
 export async function createActivity(formData: FormData) {
-  await requireEditor()
+  await requirePermission('activities', 'create')
   const subject = formData.get('subject') as string
   if (!subject?.trim()) throw new Error('件名は必須です')
 
@@ -157,7 +157,7 @@ export async function createActivity(formData: FormData) {
  * related_records で紐づくレコードを受け取り、junction を同期する。
  */
 export async function quickCreateActivity(formData: FormData) {
-  await requireEditor()
+  await requirePermission('activities', 'create')
   const subject = (formData.get('subject') as string)?.trim()
   if (!subject) throw new Error('件名は必須です')
   const type = (formData.get('type') as string) || 'note'

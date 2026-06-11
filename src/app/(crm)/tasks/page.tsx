@@ -19,6 +19,7 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -69,6 +70,7 @@ export default async function TasksPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
+  await requireBookRead('tasks')  // RBAC: Read 権限ガード（ADR-0023）
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('tasks', uid) : null)
   const [sp, edit, colConfig, , dv] = await Promise.all([

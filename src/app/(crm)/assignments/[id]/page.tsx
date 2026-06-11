@@ -31,12 +31,14 @@ import { RecordColumns, KpiBand, Badge, type KpiItem, type BadgeTone } from '@/c
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
 import InlineComposer from '@/components/record/InlineComposer'
+import { requireBookRead } from '@/lib/permissions'
 
 const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
   high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
 }
 
 export default async function AssignmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('assignments')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('staffing'))) notFound()
   const { id } = await params
 
