@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import GroupedTable, { type ColDef } from '@/components/GroupedTable'
 import type { FieldDef } from '@/components/FilterBuilder'
+import { NavIcon } from '@/lib/navIcon'
 
 type Activity = {
   id: string
@@ -13,8 +14,9 @@ type Activity = {
   accounts: { id: string; name: string } | null
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  call: '📞 電話', email: '✉️ メール', meeting: '🤝 打合せ', note: '📝 メモ',
+const TYPE_LABEL: Record<string, { icon: string; label: string }> = {
+  call: { icon: '📞', label: '電話' }, email: { icon: '✉️', label: 'メール' },
+  meeting: { icon: '🤝', label: '打合せ' }, note: { icon: '📝', label: 'メモ' },
 }
 
 const ALL_COLS: ColDef[] = [
@@ -29,7 +31,10 @@ const ALL_COLS: ColDef[] = [
     key: 'type', label: '種別',
     render: (r) => {
       const t = (r as unknown as Activity).type
-      return <span className="text-sm">{TYPE_LABEL[t] ?? t}</span>
+      const def = TYPE_LABEL[t]
+      return def
+        ? <span className="inline-flex items-center gap-1.5 text-sm"><NavIcon icon={def.icon} className="w-3.5 h-3.5 text-zinc-400" />{def.label}</span>
+        : <span className="text-sm">{t}</span>
     },
   },
   {

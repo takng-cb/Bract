@@ -8,6 +8,7 @@ import { DOCUMENT_TYPES } from '@/industries/auto-body/lib/documents'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { requireBookRead } from '@/lib/permissions'
+import { NavIcon } from '@/lib/navIcon'
 
 export default async function DocumentsIndexPage({
   params,
@@ -56,7 +57,9 @@ export default async function DocumentsIndexPage({
             className="block bg-white border border-zinc-200 rounded-lg shadow-xs p-4 hover:border-blue-400 hover:shadow-sm transition-all group"
           >
             <div className="flex items-start gap-3">
-              <div className="text-2xl">{d.icon ?? '📄'}</div>
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+                <NavIcon icon={d.icon ?? '📄'} className="h-5 w-5" />
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-zinc-800 group-hover:text-blue-700">{d.label}</p>
                 <p className="text-xs text-zinc-500 mt-0.5">{d.description}</p>

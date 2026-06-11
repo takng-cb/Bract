@@ -8,7 +8,7 @@ const FIELD_TYPES = [
   { value: 'date',     label: '日付' },
   { value: 'boolean',  label: 'チェックボックス' },
   { value: 'select',   label: '選択肢' },
-  { value: 'formula',  label: '🔢 数式（計算フィールド）' },
+  { value: 'formula',  label: '数式（計算フィールド）' },
   { value: 'section',  label: '─── セクション区切り' },
 ]
 
