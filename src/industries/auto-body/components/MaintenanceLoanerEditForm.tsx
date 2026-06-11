@@ -59,8 +59,11 @@ function toStr(v: string | number | null | undefined): string {
 
 // 入力欄の共通スタイル。コンポーネント外で定義することで、再レンダー時に
 // 同じ参照が使い回されてフォーカスが外れない。
-const FIELD_CLS =
-  'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+// 変更箇所の強調は EditableInfoCard と同じ amber（border-amber-400 + bg-amber-50）
+const FIELD_BASE =
+  'w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors'
+const CLEAN = 'border-zinc-300 bg-white'
+const DIRTY = 'border-amber-400 bg-amber-50'
 
 /**
  * 入力 1 セル分のラベル付きラッパー。
@@ -124,6 +127,10 @@ export default function MaintenanceLoanerEditForm({
 
   const dirty = (Object.keys(initialState) as (keyof State)[]).some((k) => state[k] !== initialState[k])
 
+  // フィールド単位の変更強調（EditableInfoCard と同じ作法）
+  const fieldCls = (k: keyof State) => `${FIELD_BASE} ${state[k] !== initialState[k] ? DIRTY : CLEAN}`
+  const dirtyRing = (k: keyof State) => (state[k] !== initialState[k] ? 'rounded-md ring-2 ring-amber-300' : '')
+
   function parseIntOrNull(s: string): number | null {
     const t = s.trim()
     if (t === '') return null
@@ -184,6 +191,7 @@ export default function MaintenanceLoanerEditForm({
         <div>
           {/* 代車車両の選択（最重要） */}
           <Cell label="代車車両" hint="在庫の車両から選択。割り当てると車両ステータスが「代車中」になります。">
+            <div className={dirtyRing('loaner_vehicle_id')}>
             <SearchableSelect
               key={`loaner-${state.loaner_vehicle_id}`}
               name="loaner_vehicle_id"
@@ -192,6 +200,7 @@ export default function MaintenanceLoanerEditForm({
               placeholder="貸出可能な車両から選択"
               onSelect={(id) => set('loaner_vehicle_id', id)}
             />
+            </div>
           </Cell>
 
           {hasVehicleSelected && (
@@ -205,7 +214,7 @@ export default function MaintenanceLoanerEditForm({
                       type="datetime-local"
                       value={state.loaner_handover_at}
                       onChange={onInput('loaner_handover_at')}
-                      className={FIELD_CLS}
+                      className={fieldCls('loaner_handover_at')}
                     />
                   </Cell>
                   <Cell label="返却日時" hint="完了/キャンセル時は自動で現在時刻が入ります（手動上書き可）">
@@ -213,7 +222,7 @@ export default function MaintenanceLoanerEditForm({
                       type="datetime-local"
                       value={state.loaner_return_at}
                       onChange={onInput('loaner_return_at')}
-                      className={FIELD_CLS}
+                      className={fieldCls('loaner_return_at')}
                     />
                   </Cell>
                 </div>
@@ -229,7 +238,7 @@ export default function MaintenanceLoanerEditForm({
                       value={state.loaner_mileage_out}
                       onChange={onInput('loaner_mileage_out')}
                       min="0"
-                      className={FIELD_CLS}
+                      className={fieldCls('loaner_mileage_out')}
                     />
                   </Cell>
                   <Cell label="返却時メーター">
@@ -238,7 +247,7 @@ export default function MaintenanceLoanerEditForm({
                       value={state.loaner_mileage_in}
                       onChange={onInput('loaner_mileage_in')}
                       min="0"
-                      className={FIELD_CLS}
+                      className={fieldCls('loaner_mileage_in')}
                     />
                   </Cell>
                 </div>
@@ -253,7 +262,7 @@ export default function MaintenanceLoanerEditForm({
                       value={state.loaner_fuel_out}
                       onChange={onInput('loaner_fuel_out')}
                       placeholder="満タン"
-                      className={FIELD_CLS}
+                      className={fieldCls('loaner_fuel_out')}
                     />
                   </Cell>
                   <Cell label="返却時燃料量">
@@ -261,7 +270,7 @@ export default function MaintenanceLoanerEditForm({
                       value={state.loaner_fuel_in}
                       onChange={onInput('loaner_fuel_in')}
                       placeholder="満タン"
-                      className={FIELD_CLS}
+                      className={fieldCls('loaner_fuel_in')}
                     />
                   </Cell>
                 </div>
@@ -274,7 +283,7 @@ export default function MaintenanceLoanerEditForm({
                     value={state.loaner_notes}
                     onChange={onInput('loaner_notes')}
                     rows={3}
-                    className={`${FIELD_CLS} resize-y`}
+                    className={`${fieldCls('loaner_notes')} resize-y`}
                   />
                 </Cell>
               </div>

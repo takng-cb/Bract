@@ -77,8 +77,11 @@ function toStr(v: string | number | null | undefined): string {
 
 // 入力欄の共通スタイル。コンポーネント外で定義することで、再レンダー時に
 // 同じ参照が使い回されてフォーカスが外れない。
-const FIELD_CLS =
-  'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+// 変更箇所の強調は EditableInfoCard と同じ amber（border-amber-400 + bg-amber-50）。
+const FIELD_BASE =
+  'w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors'
+const CLEAN = 'border-zinc-300 bg-white'
+const DIRTY = 'border-amber-400 bg-amber-50'
 
 /**
  * 1 セル分の入力ラッパー。
@@ -136,6 +139,10 @@ export default function MaintenanceBasicInfoEditForm({
 
   const dirty = (Object.keys(initialState) as (keyof State)[]).some((k) => state[k] !== initialState[k])
 
+  // フィールド単位の変更強調（EditableInfoCard と同じ作法。REQ: 変更フィールドの色付け）
+  const fieldCls = (k: keyof State) => `${FIELD_BASE} ${state[k] !== initialState[k] ? DIRTY : CLEAN}`
+  const dirtyRing = (k: keyof State) => (state[k] !== initialState[k] ? 'rounded-md ring-2 ring-amber-300' : '')
+
   function handleSave() {
     setError(null)
     const mileageNum = state.mileage.trim() === '' ? null
@@ -190,73 +197,77 @@ export default function MaintenanceBasicInfoEditForm({
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-3">
             {/* Row 1: 拠点 / 入庫区分 / 入庫日 / 入庫時間 */}
             <Cell label="拠点">
-              <input value={state.branch_id} onChange={onInput('branch_id')} placeholder="例: 本店" className={FIELD_CLS} />
+              <input value={state.branch_id} onChange={onInput('branch_id')} placeholder="例: 本店" className={fieldCls('branch_id')} />
             </Cell>
             <Cell label="入庫区分">
-              <input value={state.intake_category} onChange={onInput('intake_category')} placeholder="例: 車検 / 一般整備 / 板金" className={FIELD_CLS} />
+              <input value={state.intake_category} onChange={onInput('intake_category')} placeholder="例: 車検 / 一般整備 / 板金" className={fieldCls('intake_category')} />
             </Cell>
             <Cell label="入庫日">
-              <input type="date" value={state.intake_date} onChange={onInput('intake_date')} className={FIELD_CLS} />
+              <input type="date" value={state.intake_date} onChange={onInput('intake_date')} className={fieldCls('intake_date')} />
             </Cell>
             <Cell label="入庫時間">
-              <input type="time" value={state.intake_time} onChange={onInput('intake_time')} className={FIELD_CLS} />
+              <input type="time" value={state.intake_time} onChange={onInput('intake_time')} className={fieldCls('intake_time')} />
             </Cell>
 
             {/* Row 2: 納車日 / 納車時間 / 走行距離 / 売上計上日 */}
             <Cell label="納車日">
-              <input type="date" value={state.delivery_date} onChange={onInput('delivery_date')} className={FIELD_CLS} />
+              <input type="date" value={state.delivery_date} onChange={onInput('delivery_date')} className={fieldCls('delivery_date')} />
             </Cell>
             <Cell label="納車時間">
-              <input type="time" value={state.delivery_time} onChange={onInput('delivery_time')} className={FIELD_CLS} />
+              <input type="time" value={state.delivery_time} onChange={onInput('delivery_time')} className={fieldCls('delivery_time')} />
             </Cell>
             <Cell label="走行距離 (km)">
-              <input type="number" value={state.mileage} onChange={onInput('mileage')} min="0" className={FIELD_CLS} />
+              <input type="number" value={state.mileage} onChange={onInput('mileage')} min="0" className={fieldCls('mileage')} />
             </Cell>
             <Cell label="売上計上日">
-              <input type="date" value={state.sales_recording_date} onChange={onInput('sales_recording_date')} className={FIELD_CLS} />
+              <input type="date" value={state.sales_recording_date} onChange={onInput('sales_recording_date')} className={fieldCls('sales_recording_date')} />
             </Cell>
 
             {/* Row 3: 引取場所 / 引渡場所 / 受付担当 / 作業担当 */}
             <Cell label="引取場所">
-              <input value={state.pickup_location} onChange={onInput('pickup_location')} className={FIELD_CLS} />
+              <input value={state.pickup_location} onChange={onInput('pickup_location')} className={fieldCls('pickup_location')} />
             </Cell>
             <Cell label="引渡場所">
-              <input value={state.delivery_location} onChange={onInput('delivery_location')} className={FIELD_CLS} />
+              <input value={state.delivery_location} onChange={onInput('delivery_location')} className={fieldCls('delivery_location')} />
             </Cell>
             <Cell label="受付担当">
-              <SearchableSelect
-                key={`reception-${state.reception_owner_id}`}
-                name="reception_owner_id"
-                defaultValue={state.reception_owner_id || undefined}
-                options={users.map((u) => ({ value: u.id, label: u.name }))}
-                placeholder="—"
-                onSelect={(id) => set('reception_owner_id', id)}
-              />
+              <div className={dirtyRing('reception_owner_id')}>
+                <SearchableSelect
+                  key={`reception-${state.reception_owner_id}`}
+                  name="reception_owner_id"
+                  defaultValue={state.reception_owner_id || undefined}
+                  options={users.map((u) => ({ value: u.id, label: u.name }))}
+                  placeholder="—"
+                  onSelect={(id) => set('reception_owner_id', id)}
+                />
+              </div>
             </Cell>
             <Cell label="作業担当">
-              <SearchableSelect
-                key={`worker-${state.worker_owner_id}`}
-                name="worker_owner_id"
-                defaultValue={state.worker_owner_id || undefined}
-                options={users.map((u) => ({ value: u.id, label: u.name }))}
-                placeholder="—"
-                onSelect={(id) => set('worker_owner_id', id)}
-              />
+              <div className={dirtyRing('worker_owner_id')}>
+                <SearchableSelect
+                  key={`worker-${state.worker_owner_id}`}
+                  name="worker_owner_id"
+                  defaultValue={state.worker_owner_id || undefined}
+                  options={users.map((u) => ({ value: u.id, label: u.name }))}
+                  placeholder="—"
+                  onSelect={(id) => set('worker_owner_id', id)}
+                />
+              </div>
             </Cell>
 
             {/* Row 4: 消費税区分 / 消費税端数 / レバーレート / （空） */}
             <Cell label="消費税区分">
-              <select value={state.tax_mode} onChange={onInput('tax_mode')} className={`${FIELD_CLS} bg-white`}>
+              <select value={state.tax_mode} onChange={onInput('tax_mode')} className={fieldCls('tax_mode')}>
                 {TAX_MODES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </Cell>
             <Cell label="消費税端数">
-              <select value={state.tax_rounding} onChange={onInput('tax_rounding')} className={`${FIELD_CLS} bg-white`}>
+              <select value={state.tax_rounding} onChange={onInput('tax_rounding')} className={fieldCls('tax_rounding')}>
                 {TAX_ROUNDINGS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </Cell>
             <Cell label="レバーレート（税別）">
-              <input type="number" value={state.lever_rate} onChange={onInput('lever_rate')} min="0" className={FIELD_CLS} />
+              <input type="number" value={state.lever_rate} onChange={onInput('lever_rate')} min="0" className={fieldCls('lever_rate')} />
             </Cell>
             <div className="hidden lg:block" />{/* 4 列目を埋めるダミー */}
           </div>
@@ -266,13 +277,13 @@ export default function MaintenanceBasicInfoEditForm({
             <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">メモ</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Cell label="整備メモ（印字なし）">
-                <textarea value={state.internal_memo} onChange={onInput('internal_memo')} rows={3} className={`${FIELD_CLS} resize-y`} />
+                <textarea value={state.internal_memo} onChange={onInput('internal_memo')} rows={3} className={`${fieldCls('internal_memo')} resize-y`} />
               </Cell>
               <Cell label="作業指示備考（作業指示書に印字）">
-                <textarea value={state.work_order_note} onChange={onInput('work_order_note')} rows={3} className={`${FIELD_CLS} resize-y`} />
+                <textarea value={state.work_order_note} onChange={onInput('work_order_note')} rows={3} className={`${fieldCls('work_order_note')} resize-y`} />
               </Cell>
               <Cell label="備考（見積書等に印字）">
-                <textarea value={state.general_note} onChange={onInput('general_note')} rows={3} className={`${FIELD_CLS} resize-y`} />
+                <textarea value={state.general_note} onChange={onInput('general_note')} rows={3} className={`${fieldCls('general_note')} resize-y`} />
               </Cell>
             </div>
           </div>
