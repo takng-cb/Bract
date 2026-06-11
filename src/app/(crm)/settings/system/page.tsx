@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isAdminUser } from '@/lib/userRole'
+import { isProvider } from '@/lib/auth'
 import { listUsers } from '@/app/actions/userManagement'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { ADMIN_LINKS } from '@/lib/navItems'
@@ -23,10 +24,11 @@ export default async function SystemSettingsPage() {
   const adminFlag = user ? await isAdminUser(user.id) : false
   if (!adminFlag) redirect('/settings')
 
-  const [userList, aiEnabled] = await Promise.all([listUsers(), isAIFeatureEnabled()])
+  const [userList, aiEnabled, providerFlag] = await Promise.all([listUsers(), isAIFeatureEnabled(), isProvider()])
   const visibleLinks = ADMIN_LINKS.filter((l) => !l.aiGated || aiEnabled)
   const tenantLinks   = visibleLinks.filter((l) => !l.provider)
-  const providerLinks = visibleLinks.filter((l) => l.provider)
+  // コンテナ（契約・プラン）設定は運営者にのみ表示（REQ-0046）
+  const providerLinks = providerFlag ? visibleLinks.filter((l) => l.provider) : []
 
   const linkCard = (l: (typeof visibleLinks)[number]) => (
     <Link
