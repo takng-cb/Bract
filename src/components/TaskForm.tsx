@@ -15,7 +15,8 @@ type TaskFormProps = {
   action:          (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref:      string
   objectTypes:     ObjectTypeOption[]
-  recordsByObject: Record<string, RecordOption[]>
+  /** @deprecated オンデマンド検索化により未使用 */
+  recordsByObject?: Record<string, RecordOption[]>
   users:           { id: string; name: string }[]
   defaultValues?: {
     title?:           string

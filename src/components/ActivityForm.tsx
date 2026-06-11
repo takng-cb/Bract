@@ -19,7 +19,8 @@ type ActivityFormProps = {
   /** 選択可能なオブジェクト種別（標準 + 有効カスタム） */
   objectTypes:     ObjectTypeOption[]
   /** オブジェクト api_name → そのレコード一覧 */
-  recordsByObject: Record<string, RecordOption[]>
+  /** @deprecated オンデマンド検索化により未使用 */
+  recordsByObject?: Record<string, RecordOption[]>
   /** /admin/objects で編集される活動種別。サーバ側から流す。 */
   activityTypes:   ActivityType[]
   /** 担当者ピッカー用ユーザー一覧 */
