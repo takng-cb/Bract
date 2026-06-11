@@ -1,0 +1,73 @@
+# 日次 DB バックアップ（リリース判定 go/no-go の必須項目 #24）
+#
+# 各テナント Neon を pg_dump し、GitHub Actions の artifact として保存（30日保持）。
+# - Secrets は schema-check と同じ DATABASE_URL_* を使用（未設定のターゲットはスキップ）
+# - Neon 立て直し時は Secrets を新 Neon の接続文字列に更新すること
+# - 月1回のリストア・リハーサルは手動（docs/release-neon-rebuild.md §7）：
+#   artifact をダウンロード → 空 DB に `gunzip -c dump.sql.gz | psql <url>` → check:schema
+name: DB Backup
+
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 毎日 JST 03:00（UTC 18:00）
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    name: Dump (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: real-estate
+            secret: DATABASE_URL_REAL_ESTATE
+          - target: auto-body
+            secret: DATABASE_URL_AUTO_BODY
+          - target: base
+            secret: DATABASE_URL_BASE
+    steps:
+      - name: Check secret configured
+        id: check
+        env:
+          DB_URL: ${{ secrets[matrix.secret] }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${{ matrix.secret }} 未設定のためスキップ"
+          fi
+
+      # Neon の PostgreSQL バージョン（17 系）に合わせ pgdg から最新クライアントを入れる
+      - name: Install postgresql-client 17
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: pg_dump
+        if: steps.check.outputs.skip != 'true'
+        env:
+          DB_URL: ${{ secrets[matrix.secret] }}
+        run: |
+          ts=$(date -u +%Y%m%dT%H%M%SZ)
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --no-owner --no-privileges \
+            | gzip > "bract-${{ matrix.target }}-$ts.sql.gz"
+          ls -la ./*.sql.gz
+
+      - name: Upload artifact (30日保持)
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ matrix.target }}-${{ github.run_id }}
+          path: '*.sql.gz'
+          retention-days: 30
+          if-no-files-found: error
