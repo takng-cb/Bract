@@ -19,18 +19,8 @@ type StageBarProps = {
   updateAction: (stage: string) => Promise<void>
 }
 
-const ARROW = 13 // 矢羽の突き出しサイズ(px)
-const FUTURE_BG = '#e4e4e7'  // zinc-200
-const FUTURE_TEXT = '#71717a' // zinc-500
-const PAST_TEXT = '#fff'
-
-function getClipPath(pos: 'first' | 'middle' | 'last') {
-  if (pos === 'first')
-    return `polygon(0 0, calc(100% - ${ARROW}px) 0, 100% 50%, calc(100% - ${ARROW}px) 100%, 0 100%)`
-  if (pos === 'last')
-    return `polygon(${ARROW}px 0, 100% 0, 100% 100%, ${ARROW}px 100%, 0 50%)`
-  return `polygon(${ARROW}px 0, calc(100% - ${ARROW}px) 0, 100% 50%, calc(100% - ${ARROW}px) 100%, ${ARROW}px 100%, 0 50%)`
-}
+const FUTURE_LINE = '#e4e4e7'  // zinc-200
+const FUTURE_RING = '#d4d4d8'  // zinc-300（未来の丸の枠）
 
 export default function StageBar({ stages, currentStage, updateAction }: StageBarProps) {
   const [isPending, startTransition] = useTransition()
@@ -38,13 +28,16 @@ export default function StageBar({ stages, currentStage, updateAction }: StageBa
   const [pending, setPending] = useState<string | null>(null)
   const router = useRouter()
 
-  // 表示は選択中があればそれをプレビュー（矢羽の進行も pending に追従）
+  // 表示は選択中があればそれをプレビュー（進行も pending に追従）
   const displayStage = pending ?? currentStage
   const currentIndex = stages.findIndex(s => s.value === displayStage)
   const hasPending = pending !== null && pending !== currentStage
 
   const currentLabel = stages.find(s => s.value === currentStage)?.label ?? currentStage
   const pendingLabel = stages.find(s => s.value === pending)?.label ?? pending
+
+  // 完了トラックの色＝現在ステージの active 色（進捗ラインを現ステータス色で表現）
+  const doneLine = stages[currentIndex]?.activeColor ?? '#2563eb'
 
   const select = (value: string) => {
     if (isPending) return
@@ -63,28 +56,23 @@ export default function StageBar({ stages, currentStage, updateAction }: StageBa
 
   return (
     <div className="space-y-2">
-      <div
-        className={`flex w-full select-none transition-opacity ${isPending ? 'opacity-50 pointer-events-none' : ''}`}
-        style={{ height: '40px' }}
-      >
+      <div className={`flex w-full select-none transition-opacity ${isPending ? 'opacity-50 pointer-events-none' : ''}`}>
         {stages.map((stage, index) => {
-          const pos = index === 0 ? 'first' : index === stages.length - 1 ? 'last' : 'middle'
-          const isCurrent = stage.value === displayStage
-          const isPast = index < currentIndex
+          const isCurrent = index === currentIndex
+          const isPast    = index < currentIndex
+          const isPendingNode = stage.value === pending && pending !== currentStage
 
-          const bgColor = isCurrent
-            ? stage.activeColor
-            : isPast
-            ? (stage.pastColor ?? '#93c5fd') // blue-300 をデフォルト
-            : FUTURE_BG
+          // 丸のスタイル
+          const circleStyle: React.CSSProperties = isPast
+            ? { backgroundColor: stage.pastColor ?? '#93c5fd', color: '#fff', borderColor: 'transparent' }
+            : isCurrent
+            ? { backgroundColor: stage.activeColor, color: '#fff', borderColor: 'transparent', boxShadow: `0 0 0 3px ${stage.activeColor}33` }
+            : { backgroundColor: '#fff', color: '#a1a1aa', borderColor: FUTURE_RING }
 
-          const textColor = isCurrent ? '#fff' : isPast ? PAST_TEXT : FUTURE_TEXT
+          // 未確定（pending）はアンバーのリングで強調
+          if (isPendingNode) circleStyle.boxShadow = '0 0 0 3px rgba(245,158,11,0.45)'
 
-          const pl = pos === 'first' ? 10 : ARROW + 8
-          const pr = pos === 'last'  ? 10 : ARROW + 8
-
-          // 選択中（未確定）のステージは破線リングっぽさを内側シャドウで表現
-          const pendingRing = stage.value === pending ? 'inset 0 0 0 2px rgba(255,255,255,0.9), inset 0 0 0 4px rgba(0,0,0,0.15)' : undefined
+          const labelColor = isCurrent ? 'text-zinc-900 font-semibold' : isPast ? 'text-zinc-600' : 'text-zinc-400'
 
           return (
             <button
@@ -92,26 +80,33 @@ export default function StageBar({ stages, currentStage, updateAction }: StageBa
               onClick={() => select(stage.value)}
               disabled={isPending}
               title={stage.value === currentStage ? `現在: ${stage.label}` : `${stage.label} に変更（「変更」ボタンで確定）`}
-              style={{
-                clipPath: getClipPath(pos),
-                marginLeft: index > 0 ? `${-ARROW}px` : 0,
-                zIndex: stages.length - index,
-                backgroundColor: bgColor,
-                color: textColor,
-                paddingLeft: `${pl}px`,
-                paddingRight: `${pr}px`,
-                position: 'relative',
-                boxShadow: pendingRing,
-              }}
-              className={`
-                flex-1 flex items-center justify-center gap-1
-                text-xs font-medium whitespace-nowrap overflow-hidden
-                transition-[filter]
-                ${stage.value === currentStage ? 'cursor-default' : 'cursor-pointer hover:brightness-90'}
-              `}
+              className={`flex-1 flex flex-col items-center min-w-0 ${stage.value === currentStage ? 'cursor-default' : 'cursor-pointer group'}`}
             >
-              {isCurrent && <span className="shrink-0">✓</span>}
-              <span className="truncate">{stage.label}</span>
+              {/* 丸＋接続線 */}
+              <div className="relative flex items-center justify-center w-full h-7">
+                {index > 0 && (
+                  <span
+                    className="absolute left-0 top-1/2 -translate-y-1/2 h-0.75 w-1/2 rounded-full"
+                    style={{ backgroundColor: index <= currentIndex ? doneLine : FUTURE_LINE }}
+                  />
+                )}
+                {index < stages.length - 1 && (
+                  <span
+                    className="absolute right-0 top-1/2 -translate-y-1/2 h-0.75 w-1/2 rounded-full"
+                    style={{ backgroundColor: index < currentIndex ? doneLine : FUTURE_LINE }}
+                  />
+                )}
+                <span
+                  className="relative z-10 grid place-items-center w-7 h-7 rounded-full border-2 text-[12px] font-bold transition-transform group-hover:scale-105"
+                  style={circleStyle}
+                >
+                  {isPast ? '✓' : isCurrent ? '✓' : ''}
+                </span>
+              </div>
+              {/* ラベル */}
+              <span className={`mt-1.5 text-[11px] leading-tight text-center truncate w-full px-0.5 ${labelColor}`}>
+                {stage.label}
+              </span>
             </button>
           )
         })}
