@@ -3,7 +3,7 @@
 /**
  * 整備詳細の顧客／車両セクション用「検索→なければ新規」インラインエディタ（REQ-0042）。
  *
- * - 各セクションに入力欄が常時表示されるのがデフォルト（編集トグル無し）。
+ * - InlineSection の編集フォームとして使う（編集ボタンで開き、保存すると閲覧表示へ戻る）。
  * - 入力すると候補がデバウンス検索で出る。候補を選べば既存レコードに紐付け、
  *   候補に無いテキストのままなら保存時に新規レコードを作成して紐付ける。
  * - 顧客: 取引先（検索 or 新規）＋顧客担当者＋請求先別指定
@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2, Plus, X } from 'lucide-react'
 import SearchableSelect from '@/components/SearchableSelect'
 import { updateMaintenanceCustomerVehicle } from '@/industries/auto-body/actions/maintenance'
+import { useSectionModal } from './SectionEditModal'
 import {
   inlineCreateAccount, inlineCreateCustomerVehicle,
   findAccountCandidates, findCustomerVehicleCandidates,
@@ -137,6 +138,7 @@ export function CustomerInlineEditor({
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+  const modal = useSectionModal()
 
   const { results: candidates, searching } = useDebouncedSearch<Candidate>(accountText, findAccountCandidates)
 
@@ -170,6 +172,7 @@ export function CustomerInlineEditor({
         })
         setAccountText('')
         router.refresh()
+        modal?.close()  // 保存したら閲覧表示に戻る
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
       }
@@ -223,18 +226,7 @@ export function CustomerInlineEditor({
         />
       </div>
 
-      {dirty && (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={save}
-            disabled={pending}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {pending ? '保存中…' : willCreate ? '新規登録して保存' : '保存'}
-          </button>
-        </div>
-      )}
+      <EditorFooter dirty={dirty} pending={pending} willCreate={willCreate} onSave={save} onCancel={() => modal?.close()} />
     </div>
   )
 }
@@ -257,6 +249,7 @@ export function VehicleInlineEditor({
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+  const modal = useSectionModal()
 
   const { results: candidates, searching } = useDebouncedSearch<VehicleCandidate>(text, findCustomerVehicleCandidates)
 
@@ -296,6 +289,7 @@ export function VehicleInlineEditor({
         })
         setText(''); setNewCarName(''); setPicked(null)
         router.refresh()
+        modal?.close()  // 保存したら閲覧表示に戻る
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
       }
@@ -340,18 +334,38 @@ export function VehicleInlineEditor({
         </div>
       )}
 
-      {dirty && (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={save}
-            disabled={pending}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {pending ? '保存中…' : willCreate ? '新規登録して保存' : '保存'}
-          </button>
-        </div>
-      )}
+      <EditorFooter dirty={dirty} pending={pending} willCreate={willCreate} onSave={save} onCancel={() => modal?.close()} />
+    </div>
+  )
+}
+
+/** キャンセル / 保存 フッタ（代車フォームと同じ作法） */
+function EditorFooter({ dirty, pending, willCreate, onSave, onCancel }: {
+  dirty: boolean; pending: boolean; willCreate: boolean
+  onSave: () => void; onCancel: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 border-t border-zinc-100 pt-3">
+      <p className="text-xs text-zinc-400">
+        {dirty ? <><span className="text-amber-700 font-semibold">●</span> 未保存の変更があります</> : '変更なし'}
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50"
+        >
+          キャンセル
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={pending || !dirty}
+          className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {pending ? '保存中…' : willCreate ? '新規登録して保存' : '保存'}
+        </button>
+      </div>
     </div>
   )
 }
