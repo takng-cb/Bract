@@ -164,6 +164,12 @@ export default async function ActivitiesPage({
         href: `/activities/${a.id}`,
         label: a.subject,
         className: TYPE_CONFIG[a.type]?.color ?? 'bg-zinc-50 text-zinc-700',
+        details: [
+          { label: '種別', value: TYPE_CONFIG[a.type]?.label ?? a.type },
+          { label: '日時', value: new Date(a.occurred_at!).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+          ...(a.accounts ? [{ label: '取引先', value: a.accounts.name }] : []),
+          ...(a.body ? [{ label: '内容', value: a.body.length > 60 ? `${a.body.slice(0, 60)}…` : a.body }] : []),
+        ],
       }))
 
     const toggleHref = (v: string) => {

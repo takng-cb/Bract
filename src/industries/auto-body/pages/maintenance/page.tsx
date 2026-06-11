@@ -238,14 +238,22 @@ export default async function MaintenanceListPage({
 
     const nameOf = (m: typeof rows[number]) =>
       m.vehicle?.plate_number ?? m.vehicle?.car_name ?? m.vehicle?.car_model ?? m.maintenance_no
+    const detailsOf = (m: typeof rows[number], kind: '入庫' | '納車') => [
+      { label: '種別', value: `${kind}（${kind === '入庫' ? m.intake_date : m.delivery_date}）` },
+      { label: '状態', value: m.status },
+      { label: '顧客', value: m.account?.name ?? m.contact?.full_name ?? '—' },
+      { label: '車両', value: [m.vehicle?.plate_number, m.vehicle?.car_name ?? m.vehicle?.car_model].filter(Boolean).join(' / ') || '—' },
+      { label: '整備No', value: m.maintenance_no },
+      ...(m.intake_category ? [{ label: '入庫区分', value: m.intake_category }] : []),
+    ]
     const events: CalendarEvent[] = []
     for (const m of rows) {
       if (m.status === 'キャンセル') continue
       if (m.intake_date) {
-        events.push({ date: String(m.intake_date), href: `/maintenance/${m.id}`, label: `入庫 ${nameOf(m)}`, className: statusClass(m.status) })
+        events.push({ date: String(m.intake_date), href: `/maintenance/${m.id}`, label: `入庫 ${nameOf(m)}`, className: statusClass(m.status), details: detailsOf(m, '入庫') })
       }
       if (m.delivery_date) {
-        events.push({ date: String(m.delivery_date), href: `/maintenance/${m.id}`, label: `納車 ${nameOf(m)}`, className: 'bg-emerald-50 text-emerald-700' })
+        events.push({ date: String(m.delivery_date), href: `/maintenance/${m.id}`, label: `納車 ${nameOf(m)}`, className: 'bg-emerald-50 text-emerald-700', details: detailsOf(m, '納車') })
       }
     }
 
