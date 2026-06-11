@@ -429,7 +429,9 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           icon={<NavIcon icon={AB_ICONS.account} className="w-4 h-4" />}
           canEdit={editable}
           view={customerView}
+          editClassName="md:col-span-2 lg:col-span-3"
         >
+          {/* 顧客・車両・請求先の紐付けは1フォームで編集（編集中はカードが全幅に広がる） */}
           <MaintenanceCustomerVehicleEditForm
             maintenanceId={maintenanceId}
             initial={{
@@ -444,32 +446,20 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           />
         </InlineSection>
 
+        {/* 車両カードは閲覧専用（紐付けの変更は顧客カードの編集に集約。フォーム重複を避ける） */}
         <InlineSection
           title="車両"
           icon={<NavIcon icon={AB_ICONS.customerVehicle} className="w-4 h-4" />}
-          canEdit={editable}
+          canEdit={false}
           view={vehicleView}
-        >
-          {/* 顧客・車両・請求先は1フォームで紐付けを編集（どちらのカードから開いても同じ） */}
-          <MaintenanceCustomerVehicleEditForm
-            maintenanceId={maintenanceId}
-            initial={{
-              customer_vehicle_id: m.customer_vehicle_id,
-              account_id:          m.account_id,
-              contact_id:          m.contact_id,
-              billing_account_id:  m.billing_account_id,
-            }}
-            vehicles={vehicleOptions}
-            accounts={accountsList}
-            contacts={contactsList}
-          />
-        </InlineSection>
+        />
 
         <InlineSection
           title="代車"
           icon={<NavIcon icon="🚙" className="w-4 h-4" />}
           canEdit={editable}
           view={loanerView}
+          editClassName="md:col-span-2 lg:col-span-3"
         >
           <MaintenanceLoanerEditForm
             maintenanceId={maintenanceId}

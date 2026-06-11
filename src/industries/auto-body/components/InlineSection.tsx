@@ -21,6 +21,7 @@ export default function InlineSection({
   view,
   children,
   className = '',
+  editClassName = '',
 }: {
   title: ReactNode
   icon?: ReactNode
@@ -30,6 +31,8 @@ export default function InlineSection({
   /** 編集フォーム（保存/キャンセルを自前で持つ）。未指定なら編集不可 */
   children?: ReactNode
   className?: string
+  /** 編集中のみ付与するクラス（例: 3カラムグリッド内で全幅に広げる 'lg:col-span-3'） */
+  editClassName?: string
 }) {
   const [editing, setEditing] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -51,7 +54,7 @@ export default function InlineSection({
   return (
     <section
       ref={ref}
-      className={`bg-white border ${editing ? 'border-brand-300' : 'border-zinc-200'} rounded-lg shadow-xs scroll-mt-20 ${className}`}
+      className={`bg-white border ${editing ? `border-brand-300 ${editClassName}` : 'border-zinc-200'} rounded-lg shadow-xs scroll-mt-20 ${className}`}
     >
       <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-zinc-100">
         <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5 min-w-0">
