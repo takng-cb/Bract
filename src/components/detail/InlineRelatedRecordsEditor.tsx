@@ -26,7 +26,8 @@ export default function InlineRelatedRecordsEditor({
   editEvent: string
   action: (formData: FormData) => void | Promise<void>
   objectTypes: ObjectTypeOption[]
-  recordsByObject: Record<string, RecordOption[]>
+  /** @deprecated オンデマンド検索化により未使用 */
+  recordsByObject?: Record<string, RecordOption[]>
   defaultValue: RelatedRecordSelection[]
   /** 閲覧モードでのチップ表示 */
   view: ReactNode

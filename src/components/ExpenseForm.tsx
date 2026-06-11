@@ -14,7 +14,8 @@ type ExpenseFormProps = {
   action:          (prevState: string | null, formData: FormData) => Promise<string | null>
   cancelHref:      string
   objectTypes:     ObjectTypeOption[]
-  recordsByObject: Record<string, RecordOption[]>
+  /** @deprecated オンデマンド検索化により未使用 */
+  recordsByObject?: Record<string, RecordOption[]>
   defaultValues?: {
     title?:           string
     amount?:          number | null
