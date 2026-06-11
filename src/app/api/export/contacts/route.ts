@@ -3,8 +3,13 @@ import { contacts, accounts } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
+import { requireApiUser } from '@/lib/apiAuth'
 
 export async function GET() {
+  // 認証確認（未ログインは 401）
+  const denied = await requireApiUser()
+  if (denied) return denied
+
   try {
     const data = await db.select({
       id:          contacts.id,

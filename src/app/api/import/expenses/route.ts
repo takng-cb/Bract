@@ -3,10 +3,15 @@ import { expenses, accounts, opportunities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { parseCsvWithHeaders } from '@/lib/csvUtils'
+import { requireApiEditor } from '@/lib/apiAuth'
 
 const VALID_CATEGORIES = ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他']
 
 export async function POST(req: NextRequest) {
+  // 編集権限確認（viewer の書き込みを拒否）
+  const denied = await requireApiEditor()
+  if (denied) return denied
+
   const formData  = await req.formData()
   const file      = formData.get('file') as File | null
   const textInput = formData.get('text') as string | null

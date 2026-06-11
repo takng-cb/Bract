@@ -15,16 +15,15 @@ import { eq, asc } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { parseCsvWithHeaders } from '@/lib/csvUtils'
 import { logImport, toUserFriendlyError } from '@/lib/importLogger'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireApiEditor } from '@/lib/apiAuth'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ objectApiName: string }> },
 ) {
-  // 認証確認
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // 編集権限確認（viewer の書き込みを拒否）
+  const denied = await requireApiEditor()
+  if (denied) return denied
 
   const { objectApiName } = await params
   const formData = await req.formData()

@@ -3,6 +3,7 @@ import { opportunities, accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { parseCsvWithHeaders } from '@/lib/csvUtils'
+import { requireApiEditor } from '@/lib/apiAuth'
 
 const STAGE_REVERSE: Record<string, string> = {
   '見込み': 'prospecting', '要件確認': 'qualification', '提案': 'proposal',
@@ -13,6 +14,10 @@ const BROKERAGE_TYPES = new Set(['両手', '売り', '買い', '貸主', '借主
 const TRANSACTION_TYPES = new Set(['売買', '賃貸'])
 
 export async function POST(req: NextRequest) {
+  // 編集権限確認（viewer の書き込みを拒否）
+  const denied = await requireApiEditor()
+  if (denied) return denied
+
   const formData  = await req.formData()
   const file      = formData.get('file') as File | null
   const textInput = formData.get('text') as string | null
