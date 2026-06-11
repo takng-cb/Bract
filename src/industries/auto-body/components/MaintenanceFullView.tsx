@@ -29,7 +29,7 @@ import MaintenancePaymentsEditor from './MaintenancePaymentsEditor'
 import MaintenanceBillingEditForm from './MaintenanceBillingEditForm'
 import MaintenanceDamageMap from './MaintenanceDamageMap'
 import MaintenanceDamageMapPreview from './MaintenanceDamageMapPreview'
-import MaintenanceCustomerVehicleEditForm from './MaintenanceCustomerVehicleEditForm'
+import { CustomerInlineEditor, VehicleInlineEditor } from './MaintenanceCustomerVehicleInline'
 import MaintenanceBasicInfoEditForm from './MaintenanceBasicInfoEditForm'
 import MaintenanceLoanerEditForm from './MaintenanceLoanerEditForm'
 import StageBar, { type StageConfig } from '@/components/StageBar'
@@ -55,7 +55,7 @@ type Props = {
 
 export default async function MaintenanceFullView({ maintenanceId, users }: Props) {
   // 1 回目のクエリ群: 整備本体 + 関連情報を取得（loaner_vehicle_id を含む）
-  const [mRow, lines, fees, payments, damagePins, editable, vehiclesList, accountsList, contactsList] = await Promise.all([
+  const [mRow, lines, fees, payments, damagePins, editable, accountsList, contactsList] = await Promise.all([
     db.select({
       m:       maintenance_records,
       vehicle: customer_vehicles,
@@ -81,25 +81,8 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       .where(eq(maintenance_damage_pins.maintenance_id, maintenanceId))
       .orderBy(asc(maintenance_damage_pins.view), asc(maintenance_damage_pins.sort_order)),
     canEdit(),
-    // 顧客・車両 編集モーダル用ピッカーデータ
-    // プレビュー表示で詳細を出すため、選択用フィールドだけでなく
-    // 連絡先・住所・車検満了など主要フィールドも合わせて取得
-    db.select({
-      id:                  customer_vehicles.id,
-      plate_number:        customer_vehicles.plate_number,
-      car_name:            customer_vehicles.car_name,
-      car_model:           customer_vehicles.car_model,
-      grade:               customer_vehicles.grade,
-      vehicle_kind:        customer_vehicles.vehicle_kind,
-      body_shape:          customer_vehicles.body_shape,
-      vin:                 customer_vehicles.vin,
-      type_designation:    customer_vehicles.type_designation,
-      inspection_due_date: customer_vehicles.inspection_due_date,
-      account_id:          customer_vehicles.account_id,
-      contact_id:          customer_vehicles.contact_id,
-    })
-      .from(customer_vehicles)
-      .orderBy(asc(customer_vehicles.plate_number)),
+    // 顧客セクションのインライン編集用（請求先別指定・担当者の選択肢）
+    // 車両はオンデマンド検索（findCustomerVehicleCandidates）のため事前取得しない（REQ-0042）
     db.select({
       id:       accounts.id,
       name:     accounts.name,
@@ -123,23 +106,6 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       .from(contacts)
       .orderBy(asc(contacts.full_name)),
   ])
-
-  // 顧客車両ピッカー用ラベル整形（追加詳細は別途渡す）
-  const vehicleOptions = vehiclesList.map((v) => ({
-    id:                  v.id,
-    label:               [v.plate_number ?? '—', v.car_model].filter(Boolean).join(' / ') || '車両',
-    account_id:          v.account_id,
-    contact_id:          v.contact_id,
-    plate_number:        v.plate_number,
-    car_name:            v.car_name,
-    car_model:           v.car_model,
-    grade:               v.grade,
-    vehicle_kind:        v.vehicle_kind,
-    body_shape:          v.body_shape,
-    vin:                 v.vin,
-    type_designation:    v.type_designation,
-    inspection_due_date: v.inspection_due_date,
-  }))
 
   if (!mRow) return null
   const m = mRow.m
@@ -422,37 +388,58 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         </div>
       </div>
 
-      {/* ── 上段: 顧客 / 車両 / 代車 を横並び（請求合計はページ上部の KPI サマリーへ移設・REQ-0038）── */}
+      {/* ── 上段: 顧客 / 車両 / 代車 を横並び（請求合計はページ上部の KPI サマリーへ移設・REQ-0038）──
+           顧客・車両は「入力欄が常時表示・検索→なければ新規」のインライン編集（REQ-0042） */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-        <InlineSection
-          title="顧客"
-          icon={<NavIcon icon={AB_ICONS.account} className="w-4 h-4" />}
-          canEdit={editable}
-          view={customerView}
-          editClassName="md:col-span-2 lg:col-span-3"
-        >
-          {/* 顧客・車両・請求先の紐付けは1フォームで編集（編集中はカードが全幅に広がる） */}
-          <MaintenanceCustomerVehicleEditForm
-            maintenanceId={maintenanceId}
-            initial={{
-              customer_vehicle_id: m.customer_vehicle_id,
-              account_id:          m.account_id,
-              contact_id:          m.contact_id,
-              billing_account_id:  m.billing_account_id,
-            }}
-            vehicles={vehicleOptions}
-            accounts={accountsList}
-            contacts={contactsList}
-          />
-        </InlineSection>
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs">
+          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-zinc-100">
+            <NavIcon icon={AB_ICONS.account} className="w-4 h-4" />
+            <h2 className="text-sm font-bold text-zinc-700">顧客</h2>
+          </div>
+          <div className="p-4 space-y-4">
+            {editable && (
+              <CustomerInlineEditor
+                maintenanceId={maintenanceId}
+                initial={{
+                  customer_vehicle_id: m.customer_vehicle_id,
+                  account_id:          m.account_id,
+                  contact_id:          m.contact_id,
+                  billing_account_id:  m.billing_account_id,
+                }}
+                currentAccountName={account?.name ?? null}
+                accounts={accountsList.map((a) => ({ id: a.id, name: a.name }))}
+                contacts={contactsList.map((c) => ({ id: c.id, full_name: c.full_name, account_id: c.account_id }))}
+              />
+            )}
+            <div className={editable ? 'border-t border-zinc-100 pt-3' : ''}>
+              {customerView}
+            </div>
+          </div>
+        </section>
 
-        {/* 車両カードは閲覧専用（紐付けの変更は顧客カードの編集に集約。フォーム重複を避ける） */}
-        <InlineSection
-          title="車両"
-          icon={<NavIcon icon={AB_ICONS.customerVehicle} className="w-4 h-4" />}
-          canEdit={false}
-          view={vehicleView}
-        />
+        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs">
+          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-zinc-100">
+            <NavIcon icon={AB_ICONS.customerVehicle} className="w-4 h-4" />
+            <h2 className="text-sm font-bold text-zinc-700">車両</h2>
+          </div>
+          <div className="p-4 space-y-4">
+            {editable && (
+              <VehicleInlineEditor
+                maintenanceId={maintenanceId}
+                initial={{
+                  customer_vehicle_id: m.customer_vehicle_id,
+                  account_id:          m.account_id,
+                  contact_id:          m.contact_id,
+                  billing_account_id:  m.billing_account_id,
+                }}
+                currentVehicleLabel={v ? ([v.plate_number, v.car_name ?? v.car_model].filter(Boolean).join(' / ') || '（無名車両）') : null}
+              />
+            )}
+            <div className={editable ? 'border-t border-zinc-100 pt-3' : ''}>
+              {vehicleView}
+            </div>
+          </div>
+        </section>
 
         <InlineSection
           title="代車"
