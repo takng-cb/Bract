@@ -7,23 +7,15 @@
  * セット/解除すると、サーバー側で vehicles.status を '代車中' / '在庫'
  * に自動同期する（actions/maintenance.ts: updateMaintenanceLoaner）。
  *
- * 候補車両:
- *   - status='在庫' の車両（貸出可能）
- *   - 現在この整備に割り当て中の車両（リストから消えないようにする）
+ * 車両の選択は「検索コンボ」（REQ-0042 と同 UX）。在庫車両を
+ * ナンバー / メーカー / 車種でオンデマンド検索する。
  */
 import { useState, useTransition, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import SearchableSelect from '@/components/SearchableSelect'
+import { SearchCombo, useDebouncedSearch } from './SearchCreateCombo'
+import { findLoanerVehicleCandidates } from '@/industries/auto-body/actions/maintenanceInline'
 import { updateMaintenanceLoaner } from '@/industries/auto-body/actions/maintenance'
 import { useSectionModal } from './SectionEditModal'
-
-export type LoanerVehicleOption = {
-  id:            string
-  maker:         string
-  model:         string
-  license_plate: string | null
-  status:        string
-}
 
 type State = {
   loaner_vehicle_id:   string
@@ -50,7 +42,8 @@ export type MaintenanceLoanerInitial = {
 type Props = {
   maintenanceId: string
   initial:       MaintenanceLoanerInitial
-  vehicles:      LoanerVehicleOption[]
+  /** 現在割り当て中の代車のラベル（チップ初期表示用） */
+  currentLoanerLabel: string | null
 }
 
 function toStr(v: string | number | null | undefined): string {
@@ -90,14 +83,8 @@ function toLocalDT(v: Date | string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function formatVehicleLabel(v: LoanerVehicleOption): string {
-  const plate = v.license_plate ?? '—'
-  const name  = [v.maker, v.model].filter(Boolean).join(' ') || '車両'
-  return `${plate} / ${name}`
-}
-
 export default function MaintenanceLoanerEditForm({
-  maintenanceId, initial, vehicles,
+  maintenanceId, initial, currentLoanerLabel,
 }: Props) {
   const initialState: State = {
     loaner_vehicle_id:   toStr(initial.loaner_vehicle_id),
@@ -111,10 +98,15 @@ export default function MaintenanceLoanerEditForm({
   }
 
   const [state, setState] = useState<State>(initialState)
+  const [loanerLabel, setLoanerLabel] = useState<string | null>(initial.loaner_vehicle_id ? currentLoanerLabel : null)
+  const [loanerText, setLoanerText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const modal = useSectionModal()
+
+  const { results: loanerCands, searching: loanerSearching } =
+    useDebouncedSearch(loanerText, findLoanerVehicleCandidates)
 
   function set<K extends keyof State>(k: K, v: State[K]) {
     setState((s) => ({ ...s, [k]: v }))
@@ -167,6 +159,8 @@ export default function MaintenanceLoanerEditForm({
 
   function handleClear() {
     if (!confirm('代車の割り当てを解除します。よろしいですか？\n（車両ステータスは「在庫」に戻ります）')) return
+    setLoanerLabel(null)
+    setLoanerText('')
     setState({
       loaner_vehicle_id:   '',
       loaner_handover_at:  '',
@@ -189,17 +183,19 @@ export default function MaintenanceLoanerEditForm({
         )}
 
         <div>
-          {/* 代車車両の選択（最重要） */}
-          <Cell label="代車車両" hint="在庫の車両から選択。割り当てると車両ステータスが「代車中」になります。">
+          {/* 代車車両の選択（最重要・在庫車両をオンデマンド検索） */}
+          <Cell label="代車車両" hint="ナンバー / メーカー / 車種で在庫の車両を検索。割り当てると車両ステータスが「代車中」になります。">
             <div className={dirtyRing('loaner_vehicle_id')}>
-            <SearchableSelect
-              key={`loaner-${state.loaner_vehicle_id}`}
-              name="loaner_vehicle_id"
-              defaultValue={state.loaner_vehicle_id || undefined}
-              options={vehicles.map((v) => ({ value: v.id, label: formatVehicleLabel(v) }))}
-              placeholder="貸出可能な車両から選択"
-              onSelect={(id) => set('loaner_vehicle_id', id)}
-            />
+              <SearchCombo
+                placeholder="例: 35-89、トヨタ、アクア"
+                selectedLabel={loanerLabel}
+                onClear={() => { set('loaner_vehicle_id', ''); setLoanerLabel(null) }}
+                value={loanerText}
+                onChange={setLoanerText}
+                candidates={loanerCands}
+                searching={loanerSearching}
+                onPick={(id, label) => { set('loaner_vehicle_id', id); setLoanerLabel(label); setLoanerText('') }}
+              />
             </div>
           </Cell>
 

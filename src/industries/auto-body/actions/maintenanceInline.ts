@@ -6,8 +6,8 @@
  * 取引先は同名の既存があればそれを返す（REQ-0018 軽量版＝重複作成を避ける）。
  */
 import { db } from '@/lib/db'
-import { accounts, customer_vehicles } from '@/lib/schema'
-import { eq, ilike, or } from 'drizzle-orm'
+import { accounts, contacts, customer_vehicles, vehicles } from '@/lib/schema'
+import { and, eq, ilike, isNull, or } from 'drizzle-orm'
 import { canDo } from '@/lib/permissions'
 
 /** 整備の作成 or 更新のどちらかができれば、付随する取引先/車両のインライン作成を許可 */
@@ -70,6 +70,69 @@ export async function findAccountCandidates(name: string): Promise<{ id: string;
   if (q.length < 1) return []
   return db.select({ id: accounts.id, name: accounts.name })
     .from(accounts).where(ilike(accounts.name, `%${q}%`)).limit(5)
+}
+
+/**
+ * 人物（顧客担当者 / BtoC 顧客）の部分一致候補。
+ * accountId 指定時はその会社の人物のみ、未指定時は親を持たない人物（ToC 顧客）のみ。
+ */
+export async function findContactCandidates(
+  qRaw: string,
+  accountId?: string | null,
+): Promise<{ id: string; name: string }[]> {
+  const q = qRaw.trim()
+  if (q.length < 1) return []
+  const rows = await db.select({ id: contacts.id, name: contacts.full_name })
+    .from(contacts)
+    .where(and(
+      ilike(contacts.full_name, `%${q}%`),
+      accountId ? eq(contacts.account_id, accountId) : isNull(contacts.account_id),
+    ))
+    .limit(5)
+  return rows
+}
+
+export type InlineContactResult = { id: string; name: string; existed: boolean }
+
+/** 人物のインライン作成（同名・同所属の既存があれば再利用） */
+export async function inlineCreateContact(input: { full_name: string; account_id?: string | null }): Promise<InlineContactResult> {
+  await requireMaintenanceWrite()
+  const full_name = input.full_name?.trim()
+  if (!full_name) throw new Error('氏名は必須です')
+  const accountId = input.account_id || null
+
+  const existing = await db.select({ id: contacts.id, name: contacts.full_name })
+    .from(contacts)
+    .where(and(
+      eq(contacts.full_name, full_name),
+      accountId ? eq(contacts.account_id, accountId) : isNull(contacts.account_id),
+    ))
+    .limit(1)
+  if (existing[0]) return { id: existing[0].id, name: existing[0].name, existed: true }
+
+  const [row] = await db.insert(contacts)
+    .values({ full_name, account_id: accountId, contact_type: accountId ? 'business' : 'consumer' })
+    .returning({ id: contacts.id, name: contacts.full_name })
+  return { id: row.id, name: row.name, existed: false }
+}
+
+/** 代車にできる車両（在庫）の部分一致候補（ナンバー / メーカー / 車種） */
+export async function findLoanerVehicleCandidates(qRaw: string): Promise<{ id: string; label: string }[]> {
+  const q = qRaw.trim()
+  if (q.length < 1) return []
+  const p = `%${q}%`
+  const rows = await db.select({
+    id: vehicles.id, license_plate: vehicles.license_plate, maker: vehicles.maker, model: vehicles.model,
+  }).from(vehicles)
+    .where(and(
+      eq(vehicles.status, '在庫'),
+      or(ilike(vehicles.license_plate, p), ilike(vehicles.maker, p), ilike(vehicles.model, p)),
+    ))
+    .limit(6)
+  return rows.map((r) => ({
+    id: r.id,
+    label: `${r.license_plate ?? '—'} / ${[r.maker, r.model].filter(Boolean).join(' ') || '車両'}`,
+  }))
 }
 
 export type VehicleCandidate = {
