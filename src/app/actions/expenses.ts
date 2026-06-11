@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 function parseRelatedRecords(formData: FormData): { object_api: string; record_id: string }[] {
   const raw = formData.getAll('related_records') as string[]
@@ -87,6 +88,7 @@ export async function createExpense(formData: FormData) {
  */
 export async function updateExpenseBasic(id: string, formData: FormData) {
   await requirePermission('expenses', 'update')
+  await assertNotPendingApproval('expenses', id)  // 承認待ち中は編集ロック（REQ-0023）
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('title') && (formData.get('title') as string)?.trim()) set.title = (formData.get('title') as string).trim()
   if (formData.has('amount')) {
@@ -102,6 +104,7 @@ export async function updateExpenseBasic(id: string, formData: FormData) {
 
 export async function updateExpense(id: string, formData: FormData) {
   await requirePermission('expenses', 'update')
+  await assertNotPendingApproval('expenses', id)  // 承認待ち中は編集ロック（REQ-0023）
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('件名は必須です')
   const amount = formData.get('amount') as string
@@ -147,12 +150,14 @@ export async function quickCreateExpense(formData: FormData) {
 /** 関連レコードのインライン編集用・junction 同期のみ。 */
 export async function updateExpenseRelatedRecords(id: string, formData: FormData) {
   await requirePermission('expenses', 'update')
+  await assertNotPendingApproval('expenses', id)  // 承認待ち中は編集ロック（REQ-0023）
   await syncExpenseRelatedRecords(id, parseRelatedRecords(formData))
   redirect(`/expenses/${id}`)
 }
 
 export async function deleteExpense(id: string, revalidate: string) {
   await requirePermission('expenses', 'delete')
+  await assertNotPendingApproval('expenses', id)  // 承認待ち中は削除も不可（REQ-0023）
   await db.delete(expenses).where(eq(expenses.id, id))
   revalidatePath(revalidate)
   revalidatePath('/expenses')
