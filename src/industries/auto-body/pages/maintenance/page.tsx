@@ -14,22 +14,32 @@ import { isPersonalAccount } from '@/industries/auto-body/lib/customerDisplay'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import { NavIcon } from '@/lib/navIcon'
 import MaintenanceBoard, { type BoardColumn } from '@/industries/auto-body/components/MaintenanceBoard'
-import { Wrench, Package, CheckCheck, ClipboardList, LayoutList, Kanban } from 'lucide-react'
+import { Wrench, Package, CheckCheck, ClipboardList, LayoutList, Kanban, CalendarDays } from 'lucide-react'
+import MonthCalendar, { type CalendarEvent } from '@/components/MonthCalendar'
 
 const STATUSES = ['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了', 'キャンセル']
 /** カンバン列に出すステータス（キャンセルは除外） */
 const BOARD_STATUSES = ['予約', '受付', '作業中', '部品待ち', '納車待ち', '完了']
 
-/** ビュー切替トグル（ボード / リスト） */
-function ViewToggle({ view }: { view: 'board' | 'list' }) {
-  const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition-colors'
+/** ビュー切替トグル（ボード / リスト / カレンダー）。f パラメータは保持 */
+function ViewToggle({ view, filterRaw }: { view: 'board' | 'list' | 'calendar'; filterRaw: string[] }) {
+  const href = (v: 'board' | 'list' | 'calendar') => {
+    const params = new URLSearchParams()
+    params.set('view', v)
+    filterRaw.forEach((f) => params.append('f', f))
+    return `/maintenance?${params.toString()}`
+  }
+  const base = 'inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-semibold rounded-md transition-colors whitespace-nowrap'
   return (
     <div className="inline-flex items-center gap-0.5 rounded-md border border-zinc-200 bg-zinc-100 p-0.5">
-      <Link href="/maintenance?view=board" className={`${base} ${view === 'board' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
-        <Kanban className="w-4 h-4" strokeWidth={2.25} aria-hidden />ボード
+      <Link href={href('board')} title="ボード" className={`${base} ${view === 'board' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+        <Kanban className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">ボード</span>
       </Link>
-      <Link href="/maintenance?view=list" className={`${base} ${view === 'list' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
-        <LayoutList className="w-4 h-4" strokeWidth={2.25} aria-hidden />リスト
+      <Link href={href('list')} title="リスト" className={`${base} ${view === 'list' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+        <LayoutList className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">リスト</span>
+      </Link>
+      <Link href={href('calendar')} title="カレンダー" className={`${base} ${view === 'calendar' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+        <CalendarDays className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">カレンダー</span>
       </Link>
     </div>
   )
@@ -44,14 +54,17 @@ function statusClass(status: string): string {
 export default async function MaintenanceListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; group?: string; view?: string }>
+  searchParams: Promise<{ f?: string | string[]; group?: string; view?: string; month?: string }>
 }) {
   const sp = await searchParams
   const filterRaw = [sp.f].flat().filter(Boolean) as string[]
   const groupBy   = (sp.group ?? '').split(',').filter(Boolean)
   const isGrouped = groupBy.length > 0
-  // 既定はボード（カンバン）。view=list か、一覧操作（フィルタ/グループ）時はリスト。
-  const view: 'board' | 'list' = sp.view === 'list' || (sp.view !== 'board' && (filterRaw.length > 0 || isGrouped)) ? 'list' : 'board'
+  // 既定はボード（カンバン）。view 指定が無く一覧操作（フィルタ/グループ）時はリスト。
+  const view: 'board' | 'list' | 'calendar' =
+    sp.view === 'calendar' ? 'calendar'
+    : sp.view === 'list' || (sp.view !== 'board' && (filterRaw.length > 0 || isGrouped)) ? 'list'
+    : 'board'
 
   // フィルター解決マップ
   const resolver: FilterColumnResolver = {
@@ -175,7 +188,7 @@ export default async function MaintenanceListPage({
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <h1 className="text-2xl font-bold text-zinc-900">整備</h1>
           <div className="flex items-center gap-2">
-            <ViewToggle view="board" />
+            <ViewToggle view="board" filterRaw={filterRaw} />
             {edit && (
               <Link href="/maintenance/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm">
                 <NavIcon icon="🔧" className="w-4 h-4" />受付を作成
@@ -203,6 +216,64 @@ export default async function MaintenanceListPage({
         ) : (
           <MaintenanceBoard columns={columns} />
         )}
+      </div>
+    )
+  }
+
+  // ── カレンダービュー（入庫日・納車日。REQ-0039）─────────────────
+  if (view === 'calendar') {
+    const now = new Date()
+    const monthMatch = /^(\d{4})-(\d{2})$/.exec(sp.month ?? '')
+    const calYear  = monthMatch ? Number(monthMatch[1]) : now.getFullYear()
+    const calMonth = monthMatch ? Number(monthMatch[2]) : now.getMonth() + 1
+
+    const nameOf = (m: typeof rows[number]) =>
+      m.vehicle?.plate_number ?? m.vehicle?.car_name ?? m.vehicle?.car_model ?? m.maintenance_no
+    const events: CalendarEvent[] = []
+    for (const m of rows) {
+      if (m.status === 'キャンセル') continue
+      if (m.intake_date) {
+        events.push({ date: String(m.intake_date), href: `/maintenance/${m.id}`, label: `入庫 ${nameOf(m)}`, className: statusClass(m.status) })
+      }
+      if (m.delivery_date) {
+        events.push({ date: String(m.delivery_date), href: `/maintenance/${m.id}`, label: `納車 ${nameOf(m)}`, className: 'bg-emerald-50 text-emerald-700' })
+      }
+    }
+
+    return (
+      <div className="p-4 md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-zinc-900">整備</h1>
+            <p className="text-sm text-zinc-500 mt-1">
+              {calYear}年{calMonth}月の入庫・納車
+              {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <ViewToggle view="calendar" filterRaw={filterRaw} />
+            {edit && (
+              <Link href="/maintenance/new" className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
+                <NavIcon icon="🔧" className="w-4 h-4" /><span className="hidden sm:inline">受付を作成</span><span className="sm:hidden">作成</span>
+              </Link>
+            )}
+          </div>
+        </div>
+        <ListViewToolbar
+          fields={FIELDS}
+          initialFilters={filterRaw}
+          basePath="/maintenance"
+          groupableFields={[]}
+          initialGroup=""
+          persistParams={{ view: 'calendar', ...(sp.month ? { month: sp.month } : {}) }}
+        />
+        <MonthCalendar
+          year={calYear}
+          month={calMonth}
+          events={events}
+          basePath="/maintenance"
+          persistParams={{ view: 'calendar', f: filterRaw }}
+        />
       </div>
     )
   }
@@ -250,7 +321,7 @@ export default async function MaintenanceListPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ViewToggle view="list" />
+          <ViewToggle view="list" filterRaw={filterRaw} />
           {edit && (
             <Link href="/maintenance/new"
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm">
