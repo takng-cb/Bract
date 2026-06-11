@@ -236,6 +236,12 @@
 - 状態：実装・出荷済み。
 - 関連：#44 / REQ-0031（RBAC）/ docs/release-neon-rebuild.md §3
 
+### REQ-0034  商談の「商品」候補ブックを設定で選択可能に
+- 2026-06-11 / 会話（「商談ブックにおいて、商品として指定できるブックを設定で選べるようにしたい」）
+- 内容：商談詳細「商品」セクションの紐付け先ブックを管理者が設定できるようにする。system_settings の `opportunity_product_books`（JSON 配列）で管理し、/admin/objects（ブック/モジュール管理）の設定カードでチェック選択。候補は typed（商品/部品/車両/物件）＋全カスタムブック。選択ブックのレコードが商品ピッカーに「ブック名 / レコード名」で表示され、単価系フィールド（unit_price/price/sale_price、カスタムは data.unit_price/price）があれば自動補完。既定は ['products','parts']（従来挙動）。
+- 状態：実装・出荷済み。
+- 関連：REQ-0030（opportunity_products）/ #5
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

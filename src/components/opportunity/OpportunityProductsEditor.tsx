@@ -31,9 +31,13 @@ const INPUT = 'w-full border border-zinc-300 rounded-md px-2.5 py-1.5 text-sm fo
 
 function hrefForLine(l: ProductLine): string | null {
   if (!l.product_record_id) return null
-  if (l.product_object_api === 'product') return `/products/${l.product_record_id}`
-  if (l.product_object_api === 'part') return `/parts/${l.product_record_id}`
-  return null
+  const api = l.product_object_api
+  // 旧データ互換（単数形）
+  if (api === 'product' || api === 'products') return `/products/${l.product_record_id}`
+  if (api === 'part' || api === 'parts') return `/parts/${l.product_record_id}`
+  if (api === 'vehicles') return `/vehicles/${l.product_record_id}`
+  if (api === 'properties') return `/properties/${l.product_record_id}`
+  return `/objects/${api}/${l.product_record_id}`
 }
 
 export default function OpportunityProductsEditor({

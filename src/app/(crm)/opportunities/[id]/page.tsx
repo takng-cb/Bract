@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { Briefcase, Building2, Wallet, CalendarDays, UserRound, Tag, Activity, Link2, TrendingUp, Folder } from 'lucide-react'
-import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs, opportunity_products, products, parts } from '@/lib/schema'
+import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs, opportunity_products } from '@/lib/schema'
+import { getProductPickerOptions } from '@/lib/opportunityProductBooks'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
 import { eq, and, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
@@ -111,16 +112,11 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         .from(vehicles).where(eq(vehicles.id, opportunity.vehicle_id)).then((r) => r[0] ?? null)
     : null
 
-  // ── 商品明細（#5）＋ 紐付け候補（商品マスタ＋部品）──
-  const [productLines, productMaster, partMaster] = await Promise.all([
+  // ── 商品明細（#5）＋ 紐付け候補（設定されたブックから構築。REQ-0034）──
+  const [productLines, productOptions] = await Promise.all([
     db.select().from(opportunity_products).where(eq(opportunity_products.opportunity_id, id)).orderBy(asc(opportunity_products.sort_order), asc(opportunity_products.created_at)),
-    db.select({ id: products.id, name: products.name, unit_price: products.unit_price }).from(products).orderBy(asc(products.name)),
-    db.select({ id: parts.id, name: parts.name, unit_price: parts.unit_price }).from(parts).orderBy(asc(parts.name)),
+    getProductPickerOptions() as Promise<ProductOption[]>,
   ])
-  const productOptions: ProductOption[] = [
-    ...productMaster.map((p) => ({ value: `product:${p.id}`, label: `🛍 ${p.name}`, price: p.unit_price != null ? Number(p.unit_price) : null })),
-    ...partMaster.map((p) => ({ value: `part:${p.id}`, label: `🪛 ${p.name}`, price: p.unit_price != null ? Number(p.unit_price) : null })),
-  ]
   const productLinesForUi = productLines.map((l) => ({
     id: l.id, product_object_api: l.product_object_api, product_record_id: l.product_record_id,
     name: l.name, quantity: l.quantity, unit_price: l.unit_price, note: l.note,
