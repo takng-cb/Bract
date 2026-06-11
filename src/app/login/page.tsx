@@ -48,6 +48,13 @@ function LoginForm() {
           </div>
         )}
 
+        {/* 未登録アカウント（招待制: REQ-0033） */}
+        {reason === 'not_registered' && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-md mb-4 text-center">
+            このアカウントは登録されていません。<br />システム管理者にユーザー追加を依頼してください。
+          </div>
+        )}
+
         <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm space-y-4">
           {/* Google ログイン */}
           <button
