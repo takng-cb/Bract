@@ -13,7 +13,7 @@
  */
 import { db } from '@/lib/db'
 import { maintenance_records, customer_vehicles, accounts, contacts, opportunities, custom_records, object_definitions } from '@/lib/schema'
-import { desc, asc, eq, and } from 'drizzle-orm'
+import { desc, asc, eq } from 'drizzle-orm'
 import { activeIndustry } from '@/lib/industry'
 import type { ObjectTypeOption, RecordOption } from '@/components/RelatedRecordsPicker'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
@@ -108,15 +108,13 @@ export type PickerKind = 'activities' | 'tasks' | 'expenses'
  * の objectTypes / recordsByObject を組み立てて返す。標準（取引先/人物/商談）＋
  * 当該機能を有効化したカスタムオブジェクト＋業種固有オブジェクトを含む。
  */
-export async function getRelatedRecordsPickerData(kind: PickerKind): Promise<{
+export async function getRelatedRecordsPickerData(_kind: PickerKind): Promise<{
   objectTypes: ObjectTypeOption[]
   recordsByObject: Record<string, RecordOption[]>
 }> {
-  const enableCol =
-    kind === 'activities' ? object_definitions.enable_activities :
-    kind === 'tasks'      ? object_definitions.enable_tasks :
-                            object_definitions.enable_expenses
-
+  // 関連レコードの「紐付け先」としては全カスタムオブジェクトを選べるようにする
+  // （enable_activities/tasks/expenses は詳細ページのセクション表示用であり、
+  //   ここで紐付け候補を絞る用途ではない）。
   const [accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, industryPicker] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name })
       .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
@@ -126,7 +124,7 @@ export async function getRelatedRecordsPickerData(kind: PickerKind): Promise<{
       .from(opportunities).orderBy(asc(opportunities.name)),
     db.select({ id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label, icon: object_definitions.icon })
       .from(object_definitions)
-      .where(and(eq(object_definitions.is_builtin, false), eq(enableCol, true)))
+      .where(eq(object_definitions.is_builtin, false))
       .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label)),
     db.select({ id: custom_records.id, object_id: custom_records.object_id, data: custom_records.data }).from(custom_records),
     getIndustryPickerData(),
