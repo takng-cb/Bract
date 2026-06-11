@@ -18,7 +18,10 @@ import { useSectionModal } from './SectionEditModal'
 const BILLING_TARGETS = ['顧客', '保険会社', 'リース会社', '代理店', 'その他']
 const PAYMENT_STATUSES = ['未請求', '請求済', '一部入金', '入金済', '貸倒']
 
-const FIELD_CLS = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+// 変更箇所の強調は EditableInfoCard と同じ amber（border-amber-400 + bg-amber-50）
+const FIELD_BASE = 'w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors'
+const CLEAN = 'border-zinc-300 bg-white'
+const DIRTY = 'border-amber-400 bg-amber-50'
 
 export type MaintenanceBillingInitial = {
   billing_target:    string | null
@@ -80,6 +83,10 @@ export default function MaintenanceBillingEditForm({ maintenanceId, initial }: P
   const dirty = (Object.keys(initialState) as (keyof typeof initialState)[])
     .some((k) => initialState[k] !== currentState[k])
 
+  // フィールド単位の変更強調（EditableInfoCard と同じ作法）
+  const fieldCls = (k: keyof typeof initialState) =>
+    `${FIELD_BASE} ${currentState[k] !== initialState[k] ? DIRTY : CLEAN}`
+
   function handleSave() {
     setError(null)
     startTransition(async () => {
@@ -115,33 +122,33 @@ export default function MaintenanceBillingEditForm({ maintenanceId, initial }: P
         <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Cell label="請求先種別" hint="顧客 / 保険会社 / リース会社 等">
-              <select value={billingTarget} onChange={(e) => setBillingTarget(e.target.value)} className={`${FIELD_CLS} bg-white`}>
+              <select value={billingTarget} onChange={(e) => setBillingTarget(e.target.value)} className={fieldCls('billing_target')}>
                 <option value="">—</option>
                 {BILLING_TARGETS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </Cell>
 
             <Cell label="支払状況">
-              <select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} className={`${FIELD_CLS} bg-white`}>
+              <select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} className={fieldCls('payment_status')}>
                 <option value="">—（自動判定）</option>
                 {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </Cell>
 
             <Cell label="請求書番号" hint="自由入力（例: INV-2026-001）">
-              <input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} className={FIELD_CLS} />
+              <input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} className={fieldCls('invoice_no')} />
             </Cell>
 
             <Cell label="支払条件" hint="例: 月末締め翌月末払い">
-              <input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} className={FIELD_CLS} />
+              <input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} className={fieldCls('payment_terms')} />
             </Cell>
 
             <Cell label="請求書発行日">
-              <input type="date" value={invoiceIssuedAt} onChange={(e) => setInvoiceIssuedAt(e.target.value)} className={FIELD_CLS} />
+              <input type="date" value={invoiceIssuedAt} onChange={(e) => setInvoiceIssuedAt(e.target.value)} className={fieldCls('invoice_issued_at')} />
             </Cell>
 
             <Cell label="支払期限">
-              <input type="date" value={paymentDueDate} onChange={(e) => setPaymentDueDate(e.target.value)} className={FIELD_CLS} />
+              <input type="date" value={paymentDueDate} onChange={(e) => setPaymentDueDate(e.target.value)} className={fieldCls('payment_due_date')} />
             </Cell>
           </div>
         </div>
