@@ -215,13 +215,13 @@
 ### REQ-0030  商談の商品明細（opportunity_products）
 - 2026-06-11 / 会話（「商談に商品系のレコードを紐付け。商品セクションを置いて紐づけ先を選ぶ」）
 - 内容：専用テーブル opportunity_products（polymorphic: product_object_api+record_id、数量・単価・name スナップショット）を新設。商談詳細に「商品」セクション＋エディタ（商品マスタ/部品を検索選択し数量・単価で明細追加、削除、合計）。
-- 状態：feature/opportunity-products に実装・push 済み。全 Neon への migration 適用後に main マージ予定（dev は適用保留中）。
+- 状態：実装・main マージ済み（dev Neon 適用済み。本番 Neon は立て直し時に migration 適用＝それまで本番デプロイは check:schema ゲートで保留）。
 - 関連：ADR（専用明細テーブル採用）/ migration 20260611120000_opportunity_products
 
 ### REQ-0031  ロール×ブック別 CRUD 権限（RBAC）
 - 2026-06-11 / 会話（「オブジェクトごとのCRUDをユーザーに設定できるように。ロールという概念を作成して、ユーザーごとにロール割り当て、ロールごとのCRUDが望ましい」）
 - 内容：ロール（役割）を定義し、ロールごとに「ブック単位の CRUD（作成/閲覧/更新/削除）」を設定できるようにする。ユーザーには既存の admin/editor/viewer に代わり（または加えて）ロールを割り当てる。
-- 状態：**設計すり合わせ中（実装前）**。ADR-0023（方針案）参照。
+- 状態：Phase1+2 実装・main マージ済み（ADR-0023 採用。dev Neon 適用済み。本番 Neon は立て直し時に適用）。/admin/roles でロール作成・マトリクス設定・割当が可能。
 - 関連：ADR-0023 / 既存 users.role（admin/editor/viewer）/ #85 承認（approver 指定と関係）
 
 ### REQ-0032  管理画面の整理（ブック/モジュール管理への統合・提供者設定の分離）
