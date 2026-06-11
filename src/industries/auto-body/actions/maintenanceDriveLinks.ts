@@ -7,9 +7,9 @@
 import { db } from '@/lib/db'
 import { maintenance_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import type { DriveLink } from '@/industries/auto-body/lib/driveEmbed'
+import { requirePermission } from '@/lib/permissions'
 
 async function getLinks(id: string): Promise<DriveLink[]> {
   const [r] = await db.select({ drive_links: maintenance_records.drive_links })
@@ -19,7 +19,7 @@ async function getLinks(id: string): Promise<DriveLink[]> {
 }
 
 export async function addMaintenanceDriveLink(maintenanceId: string, label: string, url: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const u = url.trim()
   if (!u) throw new Error('URL を入力してください')
   if (!/^https?:\/\//.test(u)) throw new Error('http(s) の URL を入力してください')
@@ -32,7 +32,7 @@ export async function addMaintenanceDriveLink(maintenanceId: string, label: stri
 }
 
 export async function removeMaintenanceDriveLink(maintenanceId: string, index: number) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'delete')
   const links = await getLinks(maintenanceId)
   if (index >= 0 && index < links.length) {
     links.splice(index, 1)

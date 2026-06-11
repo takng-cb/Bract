@@ -6,10 +6,12 @@ import Link from 'next/link'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { requireEditor } from '@/lib/auth'
 import { createWarehouse } from '@/app/actions/inventory'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function NewWarehousePage() {
+  await requireBookRead('warehouses')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('inventory'))) notFound()
   await requireEditor()
 

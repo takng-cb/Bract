@@ -1,7 +1,7 @@
 'use server'
 
-import { requireEditor } from '@/lib/auth'
 
+import { requirePermission } from '@/lib/permissions'
 import { db } from '@/lib/db'
 import { properties } from '@/industries/real-estate/schema'
 import { eq } from 'drizzle-orm'
@@ -75,7 +75,7 @@ function parseForm(formData: FormData) {
 }
 
 export async function createProperty(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('properties', 'create')
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
   const [row] = await db.insert(properties).values(data).returning()
@@ -91,7 +91,7 @@ export async function createProperty(formData: FormData): Promise<string> {
  * custom_records ミラーは全保存で再同期する（関連表示の整合を保つ）。
  */
 export async function updatePropertyBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('properties', 'update')
   const raw    = (k: string) => (formData.get(k) as string | null) ?? ''
   const numStr = (k: string) => { const v = raw(k); return v ? String(Number(v)) : null }
   const set: Record<string, unknown> = { updated_at: new Date() }
@@ -132,7 +132,7 @@ export async function updatePropertyBasic(id: string, formData: FormData) {
 }
 
 export async function updateProperty(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('properties', 'update')
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
   const [row] = await db.update(properties)
@@ -148,7 +148,7 @@ export async function updateProperty(id: string, formData: FormData) {
 
 /** ステータスのみ更新（矢羽根 StageBar 用）。custom_records ミラーも同期 */
 export async function setPropertyStatus(id: string, status: string) {
-  await requireEditor()
+  await requirePermission('properties', 'update')
   const [row] = await db.update(properties)
     .set({ status, updated_at: new Date() })
     .where(eq(properties.id, id))
@@ -159,7 +159,7 @@ export async function setPropertyStatus(id: string, status: string) {
 }
 
 export async function deleteProperty(id: string) {
-  await requireEditor()
+  await requirePermission('properties', 'delete')
   await db.delete(properties).where(eq(properties.id, id))
   // custom_records ミラー側も削除
   await deletePropertyCustomRecord(id)

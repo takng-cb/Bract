@@ -7,12 +7,14 @@ import { isModuleEnabled } from '@/lib/modules/registry'
 import { DOCUMENT_TYPES } from '@/industries/auto-body/lib/documents'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import Breadcrumbs from '@/components/Breadcrumbs'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function DocumentsIndexPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireBookRead('maintenance_records')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('auto-body'))) notFound()
   const { id } = await params
 

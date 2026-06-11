@@ -11,10 +11,12 @@ import { canEdit } from '@/lib/auth'
 import { computeStockBalance, stockBadgeColor, isBelowReorder } from '@/lib/inventory'
 import { NavIcon } from '@/lib/navIcon'
 import CsvToolbar from '@/components/CsvToolbar'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ProductsListPage() {
+  await requireBookRead('products')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('inventory'))) notFound()
 
   const [rows, movements, edit] = await Promise.all([

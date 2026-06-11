@@ -10,10 +10,12 @@ import { eq, asc } from 'drizzle-orm'
 import { canEdit } from '@/lib/auth'
 import { staffStatusColor, STAFF_STATUSES } from '@/industries/staffing/lib/staffingService'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function StaffListPage() {
+  await requireBookRead('staff')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('staffing'))) notFound()
 
   const [staffList, edit] = await Promise.all([

@@ -19,6 +19,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getReceivables, sumReceivables, type ReceivableRow } from '@/industries/auto-body/lib/maintenanceReceivables'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 const AGING_BUCKETS = [
   { label: '0–30日',  min: 0,   max: 30,    color: 'bg-zinc-50  text-zinc-700  border-zinc-200' },
@@ -37,6 +38,7 @@ function bucketOf(daysOverdue: number | null): typeof AGING_BUCKETS[number] | nu
 }
 
 export default async function ReceivablesPage() {
+  await requireBookRead('maintenance_records')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('auto-body'))) notFound()
 
   const rows = await getReceivables()

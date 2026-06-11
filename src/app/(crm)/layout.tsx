@@ -17,6 +17,7 @@ import { isAdmin, getSupabaseUser } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { getEnabledModules } from '@/lib/modules/registry'
+import { filterNavByRead } from '@/lib/permissions'
 import { buildModuleBooks } from '@/lib/modules/quick'
 import QuickLauncher from '@/components/QuickLauncher'
 import Topbar from '@/components/Topbar'
@@ -121,6 +122,10 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     navGroups.push({ id: '__all', name: 'メニュー', items: mainItems.filter((i) => i.href !== '/dashboard') })
   }
 
+  // ── RBAC: Read 権限が無いブックをナビから除外（ADR-0023）──
+  for (const g of navGroups) g.items = await filterNavByRead(g.items)
+  const visibleNavGroups = navGroups.filter((g) => g.items.length > 0)
+
   // クイック操作ウィザード（REQ-0021）：モジュール → ブック ツリー
   const quickModules = buildModuleBooks(enabledModules)
 
@@ -148,10 +153,10 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <SuspenseRescuer />
       </div>
       <div className="print:hidden">
-        <Sidebar navGroups={navGroups} dashboardItem={dashboardItem} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
+        <Sidebar navGroups={visibleNavGroups} dashboardItem={dashboardItem} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
       </div>
       <div className="print:hidden">
-        <MobileNav navGroups={navGroups} dashboardItem={dashboardItem} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
+        <MobileNav navGroups={visibleNavGroups} dashboardItem={dashboardItem} companyName={companyName} displayName={displayName} isAdmin={adminFlag} aiEnabled={aiEnabled} />
       </div>
       <main className={`flex-1 min-w-0 overflow-auto pt-14 md:pt-0 print:pt-0 ${impersonation ? 'pb-16' : 'pb-16 md:pb-0'} print:pb-0`}>
         <div className="sticky top-0 z-20">

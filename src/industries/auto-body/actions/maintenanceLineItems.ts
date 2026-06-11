@@ -3,8 +3,8 @@
 import { db } from '@/lib/db'
 import { maintenance_line_items, part_movements } from '@/lib/schema'
 import { eq, sql } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/permissions'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -30,7 +30,7 @@ async function nextSortOrder(maintenanceId: string): Promise<number> {
 }
 
 export async function createLineItem(maintenanceId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const item_name = pick(formData, 'item_name')
   if (!item_name) throw new Error('作業項目名は必須です')
 
@@ -76,7 +76,7 @@ export async function createLineItem(maintenanceId: string, formData: FormData) 
 }
 
 export async function updateLineItem(maintenanceId: string, lineId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   const item_name = pick(formData, 'item_name')
   if (!item_name) throw new Error('作業項目名は必須です')
 
@@ -102,7 +102,7 @@ export async function updateLineItem(maintenanceId: string, lineId: string, form
 }
 
 export async function deleteLineItem(maintenanceId: string, lineId: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'delete')
 
   // この行に紐づく自動生成された part_movement があれば併せて削除
   // (Issue #47 Phase 2)
@@ -114,7 +114,7 @@ export async function deleteLineItem(maintenanceId: string, lineId: string) {
 }
 
 export async function toggleLineWorkStatus(maintenanceId: string, lineId: string, completed: boolean) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   await db.update(maintenance_line_items)
     .set({ work_status: completed ? '完了' : '未完了' })
     .where(eq(maintenance_line_items.id, lineId))

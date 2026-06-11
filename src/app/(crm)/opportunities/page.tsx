@@ -26,6 +26,7 @@ import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
 import OpportunityBoard, { type BoardColumn } from '@/components/OpportunityBoard'
 import { List as ListIcon, Kanban as KanbanIcon, BarChart3 } from 'lucide-react'
+import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -73,6 +74,7 @@ export default async function OpportunitiesPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string; view?: string }>
 }) {
+  await requireBookRead('opportunities')  // RBAC: Read 権限ガード（ADR-0023）
   const sp0 = await searchParams
   const hasListParams = Boolean(sp0.f || sp0.group || sp0.sort || sp0.page)
   // 既定はパイプライン（カンバン）。view=list か、一覧操作（フィルタ等）時はリスト。

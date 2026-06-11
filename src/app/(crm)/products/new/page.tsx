@@ -10,10 +10,12 @@ import { accounts } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import SearchableSelect from '@/components/SearchableSelect'
 import { createProduct } from '@/app/actions/inventory'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function NewProductPage() {
+  await requireBookRead('products')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('inventory'))) notFound()
   await requireEditor()
 

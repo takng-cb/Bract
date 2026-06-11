@@ -10,8 +10,10 @@ import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
 import { requireEditor } from '@/lib/auth'
 import type { CreateState } from '@/lib/duplicateTypes'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function EditContactPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('contacts')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   await requireEditor()
   const [contact, accountsList, customData, allUsers] = await Promise.all([

@@ -17,12 +17,14 @@ import { canEdit } from '@/lib/auth'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { SquareCheckBig, CalendarClock, UserRound, Check } from 'lucide-react'
 import { RecordColumns, Badge, type BadgeTone } from '@/components/record/RecordUI'
+import { requireBookRead } from '@/lib/permissions'
 
 const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
   high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
 }
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('tasks')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
 
   const [task, relatedPairs, allUsers] = await Promise.all([

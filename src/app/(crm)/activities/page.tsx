@@ -18,6 +18,7 @@ import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -36,6 +37,7 @@ export default async function ActivitiesPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
+  await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('activities', uid) : null)
   const [sp, edit, colConfig, , activityTypes, dv] = await Promise.all([

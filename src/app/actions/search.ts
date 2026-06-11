@@ -20,6 +20,7 @@ import {
 import { properties } from '@/industries/real-estate/schema'
 import { ilike, or, desc } from 'drizzle-orm'
 import { isModuleEnabled } from '@/lib/modules/registry'
+import { canDo } from '@/lib/permissions'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 const PER_GROUP = 6
@@ -125,5 +126,17 @@ export async function globalSearch(qRaw: string): Promise<SearchGroup[]> {
       hits: asgRows.map((r) => ({ id: r.id, label: r.title ?? r.assignment_no, sub: r.title ? r.assignment_no : undefined, href: `/assignments/${r.id}` })) })
   }
 
-  return groups
+  // RBAC: Read 権限が無いブックの結果を除外（ADR-0023）
+  const TYPE_BOOK: Record<string, string> = {
+    accounts: 'accounts', contacts: 'contacts', opportunities: 'opportunities', wiki: 'wiki_pages',
+    products: 'products', warehouses: 'warehouses', properties: 'properties', vehicles: 'vehicles',
+    'customer-vehicles': 'customer_vehicles', parts: 'parts', maintenance: 'maintenance_records',
+    staff: 'staff', assignments: 'assignments',
+  }
+  const visible: SearchGroup[] = []
+  for (const g of groups) {
+    const book = TYPE_BOOK[g.type]
+    if (!book || (await canDo(book, 'read'))) visible.push(g)
+  }
+  return visible
 }

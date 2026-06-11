@@ -6,11 +6,11 @@
 import { db } from '@/lib/db'
 import { assignments, assignment_staff, accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
 import { buildAssignmentTitle } from '@/industries/staffing/lib/assignmentTitle'
+import { requirePermission } from '@/lib/permissions'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -25,7 +25,7 @@ function pickInt(formData: FormData, key: string): number | null {
 }
 
 export async function createAssignment(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('assignments', 'create')
 
   const client_account_id = pick(formData, 'client_account_id')
   if (!client_account_id) throw new Error('派遣先（取引先）は必須です')
@@ -72,7 +72,7 @@ export async function createAssignment(formData: FormData): Promise<string> {
 
 /** 案件ステータスを直接変更（詳細画面の進行操作用） */
 export async function setAssignmentStatus(id: string, status: string) {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   await db.update(assignments).set({ status, updated_at: new Date() }).where(eq(assignments.id, id))
   revalidatePath(`/assignments/${id}`)
   revalidatePath('/assignments')
@@ -83,7 +83,7 @@ export async function setAssignmentStatus(id: string, status: string) {
  * 派遣先(client_account_id) は必須のため空送信時は更新しない。
  */
 export async function updateAssignmentBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   for (const k of ['client_contact_id', 'owner_id', 'service_date', 'service_start_time', 'service_end_time', 'service_type', 'service_location', 'client_total_fee', 'service_description', 'internal_memo'] as const) {
     if (formData.has(k)) set[k] = pick(formData, k)
@@ -95,7 +95,7 @@ export async function updateAssignmentBasic(id: string, formData: FormData) {
 }
 
 export async function updateAssignment(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   const client_account_id = pick(formData, 'client_account_id')
   if (!client_account_id) throw new Error('派遣先は必須です')
 
@@ -120,7 +120,7 @@ export async function updateAssignment(id: string, formData: FormData) {
 }
 
 export async function deleteAssignment(id: string) {
-  await requireEditor()
+  await requirePermission('assignments', 'delete')
   await db.delete(assignments).where(eq(assignments.id, id))
   revalidatePath('/assignments')
   redirect('/assignments')
@@ -139,7 +139,7 @@ export async function assignStaffToAssignment(
     notes?:          string | null
   },
 ) {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   if (!data.staff_id) throw new Error('スタッフは必須です')
 
   await db.insert(assignment_staff).values({
@@ -156,7 +156,7 @@ export async function assignStaffToAssignment(
 }
 
 export async function unassignStaff(assignmentStaffId: string, assignmentId: string) {
-  await requireEditor()
+  await requirePermission('assignments', 'update')
   await db.delete(assignment_staff).where(eq(assignment_staff.id, assignmentStaffId))
   revalidatePath(`/assignments/${assignmentId}`)
 }

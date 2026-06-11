@@ -13,6 +13,7 @@ import SearchableSelect from '@/components/SearchableSelect'
 import MarkdownEditor from '@/components/MarkdownEditor'
 import SubmitButton from '@/components/SubmitButton'
 import { createWikiPage } from '@/app/actions/wiki'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +22,7 @@ export default async function NewWikiPage({
 }: {
   searchParams: Promise<{ title?: string; parent?: string }>
 }) {
+  await requireBookRead('wiki_pages')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('workspace'))) notFound()
   await requireEditor()
   const { title, parent } = await searchParams

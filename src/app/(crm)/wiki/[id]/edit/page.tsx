@@ -13,10 +13,12 @@ import SearchableSelect from '@/components/SearchableSelect'
 import MarkdownEditor from '@/components/MarkdownEditor'
 import SubmitButton from '@/components/SubmitButton'
 import { updateWikiPage } from '@/app/actions/wiki'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function EditWikiPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('wiki_pages')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   if (!(await isModuleEnabled('workspace'))) notFound()
   await requireEditor()

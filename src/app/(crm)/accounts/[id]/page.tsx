@@ -29,6 +29,7 @@ import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, RecordTable, RecordTa
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
 import RelatedSegments, { type RelatedSegment } from '@/components/record/RelatedSegments'
+import { requireBookRead } from '@/lib/permissions'
 
 const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他社', 'その他']
 const ACCOUNT_INDUSTRIES = [
@@ -63,6 +64,7 @@ function formatFileSize(bytes: number | null) {
 }
 
 export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('accounts')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
 
   const [account, contactsList, opportunitiesList, activitiesList, tasksList, expensesList, attachmentsList, customData, editFlag, allUsers, activityTypes, changeLogs] = await Promise.all([

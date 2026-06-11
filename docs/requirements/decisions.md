@@ -217,8 +217,8 @@
 - 段階：Phase1＝単一ブック（例：経費）で単純条件＋単段相当のルートを通し基盤確立 → Phase2＝多段・複数条件・全ブック設定 UI → Phase3＝承認待ちウィジェット/一覧の高度化。
 - 影響：新規 `approvals` / `approval_configs`（or object_definitions メタ）, 各詳細ページ（承認バッジ＋ボタン）, ダッシュボード/ナビ, 通知, 権限チェック。#85。モジュール化(#10/#11)とは独立に進行可。
 
-### ADR-0023  RBAC は「roles＋role_permissions（ブック×CRUD）＋既存3ロールの system role 化」で段階導入（方針案）
-- 2026-06-11 / **方針案・詳細確定待ち**（REQ-0031）
+### ADR-0023  RBAC は「roles＋role_permissions（ブック×CRUD）＋既存3ロールの system role 化」で段階導入
+- 2026-06-11 / **採用**（REQ-0031。論点①②③確定：①Read もブック別制御 ②既存3ロールは system ロールとして維持しカスタム追加 ③Phase1+2（基盤＋CRUD 強制）まで実装）
 - 文脈：ロールごとにブック単位の CRUD 権限を設定したい。現状は users.role の固定3値（admin/editor/viewer）で全ブック一律。
 - 方針案：
   1. **`roles` テーブル新設**（id, name, description, is_system）。既存 admin/editor/viewer は **system ロール**として行を持たせ後方互換（admin=全権・editor=全ブックCRUD・viewer=全ブックRead）。

@@ -24,6 +24,7 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -32,6 +33,7 @@ export default async function ContactsPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string; sort?: string }>
 }) {
+  await requireBookRead('contacts')  // RBAC: Read 権限ガード（ADR-0023）
   // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('contacts', uid) : null)

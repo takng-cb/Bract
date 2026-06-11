@@ -1,6 +1,5 @@
 'use server'
 
-import { requireEditor } from '@/lib/auth'
 import { recordHref } from '@/lib/relatedRecords'
 
 import { db } from '@/lib/db'
@@ -8,6 +7,7 @@ import { expenses, expense_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/permissions'
 
 function parseRelatedRecords(formData: FormData): { object_api: string; record_id: string }[] {
   const raw = formData.getAll('related_records') as string[]
@@ -49,7 +49,7 @@ async function syncExpenseRelatedRecords(
 }
 
 export async function createExpense(formData: FormData) {
-  await requireEditor()
+  await requirePermission('expenses', 'create')
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('件名は必須です')
   const amount = formData.get('amount') as string
@@ -86,7 +86,7 @@ export async function createExpense(formData: FormData) {
  * 件名(title) は必須のため空送信時は更新しない。
  */
 export async function updateExpenseBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('expenses', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('title') && (formData.get('title') as string)?.trim()) set.title = (formData.get('title') as string).trim()
   if (formData.has('amount')) {
@@ -101,7 +101,7 @@ export async function updateExpenseBasic(id: string, formData: FormData) {
 }
 
 export async function updateExpense(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('expenses', 'update')
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('件名は必須です')
   const amount = formData.get('amount') as string
@@ -127,7 +127,7 @@ export async function updateExpense(id: string, formData: FormData) {
  * インラインコンポーザ用・その場で経費を作成（遷移せず revalidate のみ）。
  */
 export async function quickCreateExpense(formData: FormData) {
-  await requireEditor()
+  await requirePermission('expenses', 'create')
   const title = (formData.get('title') as string)?.trim()
   if (!title) throw new Error('件名は必須です')
   const amount = formData.get('amount') as string
@@ -146,13 +146,13 @@ export async function quickCreateExpense(formData: FormData) {
 
 /** 関連レコードのインライン編集用・junction 同期のみ。 */
 export async function updateExpenseRelatedRecords(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('expenses', 'update')
   await syncExpenseRelatedRecords(id, parseRelatedRecords(formData))
   redirect(`/expenses/${id}`)
 }
 
 export async function deleteExpense(id: string, revalidate: string) {
-  await requireEditor()
+  await requirePermission('expenses', 'delete')
   await db.delete(expenses).where(eq(expenses.id, id))
   revalidatePath(revalidate)
   revalidatePath('/expenses')

@@ -20,6 +20,7 @@ import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import { evalFormula } from '@/lib/formulaEval'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -33,6 +34,7 @@ export default async function CustomRecordDetailPage({
   params: Promise<{ objectApiName: string; recordId: string }>
 }) {
   const { objectApiName, recordId } = await params
+  await requireBookRead(objectApiName)  // RBAC: Read 権限ガード（ADR-0023）
 
   const [obj, edit, allUsers] = await Promise.all([
     getObjectDef(objectApiName),

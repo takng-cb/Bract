@@ -1,12 +1,12 @@
 'use server'
 
-import { requireEditor } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { parts, part_movements } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { MOVEMENT_TYPES } from '@/industries/auto-body/lib/partsHelpers'
+import { requirePermission } from '@/lib/permissions'
 
 function s(formData: FormData, key: string): string | null {
   const v = formData.get(key)
@@ -26,7 +26,7 @@ function i(formData: FormData, key: string): number | null {
 }
 
 export async function createPart(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('parts', 'create')
   const partNumber = s(formData, 'part_number')
   const name       = s(formData, 'name')
   if (!partNumber) throw new Error('品番は必須です')
@@ -48,7 +48,7 @@ export async function createPart(formData: FormData): Promise<string> {
 }
 
 export async function updatePart(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('parts', 'update')
   const partNumber = s(formData, 'part_number')
   const name       = s(formData, 'name')
   if (!partNumber) throw new Error('品番は必須です')
@@ -76,7 +76,7 @@ export async function updatePart(id: string, formData: FormData) {
  * 品番(part_number)/部品名(name) は必須のため空送信時は更新しない。
  */
 export async function updatePartBasic(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('parts', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('category'))            set.category = s(formData, 'category')
   if (formData.has('supplier_account_id')) set.supplier_account_id = s(formData, 'supplier_account_id')
@@ -92,7 +92,7 @@ export async function updatePartBasic(id: string, formData: FormData) {
 }
 
 export async function deletePart(id: string) {
-  await requireEditor()
+  await requirePermission('parts', 'delete')
   await db.delete(parts).where(eq(parts.id, id))  // cascade で part_movements も削除
   revalidatePath('/parts')
   redirect('/parts')
@@ -100,7 +100,7 @@ export async function deletePart(id: string) {
 
 // ── 入出庫 ───────────────────────────────────────────────
 export async function createPartMovement(formData: FormData): Promise<void> {
-  await requireEditor()
+  await requirePermission('parts', 'create')
   const partId       = s(formData, 'part_id')
   const movementType = s(formData, 'movement_type')
   const quantityRaw  = i(formData, 'quantity')
@@ -127,7 +127,7 @@ export async function createPartMovement(formData: FormData): Promise<void> {
 }
 
 export async function deletePartMovement(id: string, partId: string): Promise<void> {
-  await requireEditor()
+  await requirePermission('parts', 'delete')
   await db.delete(part_movements).where(eq(part_movements.id, id))
   revalidatePath(`/parts/${partId}`)
 }

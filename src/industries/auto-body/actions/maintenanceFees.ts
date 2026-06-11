@@ -1,9 +1,9 @@
 'use server'
 
+import { requirePermission } from '@/lib/permissions'
 import { db } from '@/lib/db'
 import { maintenance_fees } from '@/lib/schema'
 import { eq, sql } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { calcCaliPremium, CALI_CLASS_LABEL, type CaliVehicleClass } from '@/industries/auto-body/lib/caliInsurance'
 import {
@@ -24,7 +24,7 @@ async function nextSortOrder(maintenanceId: string): Promise<number> {
 }
 
 export async function createFee(maintenanceId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const item_name = pick(formData, 'item_name')
   if (!item_name) throw new Error('項目名は必須です')
   const category = pick(formData, 'category') ?? '課税'
@@ -45,7 +45,7 @@ export async function createFee(maintenanceId: string, formData: FormData) {
 }
 
 export async function updateFee(maintenanceId: string, feeId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   const item_name = pick(formData, 'item_name')
   if (!item_name) throw new Error('項目名は必須です')
   const category = pick(formData, 'category') ?? '課税'
@@ -66,7 +66,7 @@ export async function updateFee(maintenanceId: string, feeId: string, formData: 
  * 料率は公定（calcCaliPremium）。期間は 12/13/24/25/36/37 ヶ月。
  */
 export async function addCaliInsuranceFee(maintenanceId: string, vehicleClass: CaliVehicleClass, months: number) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const r = calcCaliPremium({ vehicleClass, months })
   if (!r) throw new Error('該当する自賠責料率がありません（期間は 12/13/24/25/36/37 ヶ月から選択）')
   const sort_order = await nextSortOrder(maintenanceId)
@@ -85,7 +85,7 @@ export async function addWeightTaxFee(
   maintenanceId: string,
   input: { vehicleType: WtVehicleType; ageCategory: WtAgeCategory; years: WtYears; weightKg?: number | null },
 ) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const r = calcWeightTax(input)
   if (!r) throw new Error('重量税を計算できません（普通車は車両重量が必要です）')
   const sort_order = await nextSortOrder(maintenanceId)
@@ -102,7 +102,7 @@ export async function addWeightTaxFee(
 }
 
 export async function deleteFee(maintenanceId: string, feeId: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'delete')
   await db.delete(maintenance_fees).where(eq(maintenance_fees.id, feeId))
   revalidatePath(`/maintenance/${maintenanceId}`)
 }

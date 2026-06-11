@@ -9,10 +9,12 @@ import { stock_movements, products, warehouses } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import { canEdit } from '@/lib/auth'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function StockMovementsListPage() {
+  await requireBookRead('stock_movements')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('inventory'))) notFound()
 
   const [rows, edit] = await Promise.all([

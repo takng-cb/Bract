@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { custom_records } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { canEdit } from '@/lib/auth'
+import { requirePermission } from '@/lib/permissions'
 import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { redirect } from 'next/navigation'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
@@ -17,7 +17,7 @@ export async function createCustomRecord(
   objectApiName: string,
   formData: FormData,
 ): Promise<void> {
-  if (!(await canEdit())) throw new Error('権限がありません')
+  await requirePermission(objectApiName, 'create')
 
   const obj = await getObjectDef(objectApiName)
   if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
@@ -45,7 +45,7 @@ export async function updateCustomRecord(
   recordId: string,
   formData: FormData,
 ): Promise<void> {
-  if (!(await canEdit())) throw new Error('権限がありません')
+  await requirePermission(objectApiName, 'update')
 
   const obj = await getObjectDef(objectApiName)
   if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
@@ -72,7 +72,7 @@ export async function deleteCustomRecord(
   objectApiName: string,
   recordId: string,
 ): Promise<void> {
-  if (!(await canEdit())) throw new Error('権限がありません')
+  await requirePermission(objectApiName, 'delete')
 
   const obj = await getObjectDef(objectApiName)
   if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)

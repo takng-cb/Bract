@@ -5,13 +5,13 @@
  * products / warehouses / stock_movements の CRUD。
  * lot/serial は #71 へ先送り。
  */
-import { requireEditor } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { products, warehouses, stock_movements } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { MOVEMENT_TYPES, computeStockBalance } from '@/lib/inventory'
+import { requirePermission } from '@/lib/permissions'
 
 function s(formData: FormData, key: string): string | null {
   const v = formData.get(key)
@@ -32,7 +32,7 @@ function int(formData: FormData, key: string): number | null {
 
 // ── products ────────────────────────────────────────────
 export async function createProduct(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('products', 'create')
   const sku  = s(formData, 'sku')
   const name = s(formData, 'name')
   if (!sku)  throw new Error('SKU は必須です')
@@ -56,7 +56,7 @@ export async function createProduct(formData: FormData): Promise<string> {
 }
 
 export async function updateProduct(id: string, formData: FormData): Promise<void> {
-  await requireEditor()
+  await requirePermission('products', 'update')
   const sku  = s(formData, 'sku')
   const name = s(formData, 'name')
   if (!sku)  throw new Error('SKU は必須です')
@@ -86,7 +86,7 @@ export async function updateProduct(id: string, formData: FormData): Promise<voi
  * SKU/商品名は必須のため空送信時は更新しない。
  */
 export async function updateProductBasic(id: string, formData: FormData): Promise<void> {
-  await requireEditor()
+  await requirePermission('products', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('category'))            set.category = s(formData, 'category')
   if (formData.has('unit'))                set.unit = s(formData, 'unit')
@@ -109,7 +109,7 @@ export async function updateProductBasic(id: string, formData: FormData): Promis
  * 倉庫名(name)/コード(code) は必須のため空送信時は更新しない。
  */
 export async function updateWarehouseBasic(id: string, formData: FormData): Promise<void> {
-  await requireEditor()
+  await requirePermission('warehouses', 'update')
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('location')) set.location = s(formData, 'location')
   if (formData.has('note'))     set.note = s(formData, 'note')
@@ -122,7 +122,7 @@ export async function updateWarehouseBasic(id: string, formData: FormData): Prom
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  await requireEditor()
+  await requirePermission('products', 'delete')
   await db.delete(products).where(eq(products.id, id)) // cascade で stock_movements も削除
   revalidatePath('/products')
   redirect('/products')
@@ -130,7 +130,7 @@ export async function deleteProduct(id: string): Promise<void> {
 
 // ── warehouses ──────────────────────────────────────────
 export async function createWarehouse(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('warehouses', 'create')
   const code = s(formData, 'code')
   const name = s(formData, 'name')
   if (!code) throw new Error('倉庫コードは必須です')
@@ -148,7 +148,7 @@ export async function createWarehouse(formData: FormData): Promise<string> {
 }
 
 export async function updateWarehouse(id: string, formData: FormData): Promise<void> {
-  await requireEditor()
+  await requirePermission('warehouses', 'update')
   const code = s(formData, 'code')
   const name = s(formData, 'name')
   if (!code) throw new Error('倉庫コードは必須です')
@@ -168,7 +168,7 @@ export async function updateWarehouse(id: string, formData: FormData): Promise<v
 }
 
 export async function deleteWarehouse(id: string): Promise<void> {
-  await requireEditor()
+  await requirePermission('warehouses', 'delete')
   // 移動の warehouse_id は ON DELETE SET NULL（移動履歴自体は残る）
   await db.delete(warehouses).where(eq(warehouses.id, id))
   revalidatePath('/warehouses')
@@ -177,7 +177,7 @@ export async function deleteWarehouse(id: string): Promise<void> {
 
 // ── stock_movements ─────────────────────────────────────
 export async function createStockMovement(formData: FormData): Promise<void> {
-  await requireEditor()
+  await requirePermission('stock_movements', 'create')
   const productId    = s(formData, 'product_id')
   const movementType = s(formData, 'movement_type')
   const quantity     = int(formData, 'quantity')
@@ -217,7 +217,7 @@ export async function createStockMovement(formData: FormData): Promise<void> {
  * 差分が 0（実在庫 == 現在庫）の場合は何も記録しない。
  */
 export async function applyStocktake(formData: FormData): Promise<void> {
-  await requireEditor()
+  await requirePermission('stock_movements', 'create')
   const productId = s(formData, 'product_id')
   const warehouseId = s(formData, 'warehouse_id') // null 可（倉庫未指定）
   const actual = int(formData, 'actual_qty')
@@ -253,7 +253,7 @@ export async function applyStocktake(formData: FormData): Promise<void> {
 }
 
 export async function deleteStockMovement(id: string): Promise<void> {
-  await requireEditor()
+  await requirePermission('stock_movements', 'delete')
   const [row] = await db.delete(stock_movements)
     .where(eq(stock_movements.id, id))
     .returning({ product_id: stock_movements.product_id })

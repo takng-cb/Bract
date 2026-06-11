@@ -17,6 +17,7 @@ import type { FieldDef } from '@/components/FilterBuilder'
 import { parseFieldOptions } from '@/lib/objectMetadata'
 import { getDefaultView } from '@/lib/savedViews'
 import { buildJsonbWhere, buildJsonbOrderBy } from '@/lib/jsonbFilterUtils'
+import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -36,6 +37,7 @@ export default async function CustomObjectListPage({
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
   const [{ objectApiName }, sp] = await Promise.all([params, searchParams])
+  await requireBookRead(objectApiName)  // RBAC: Read 権限ガード（ADR-0023）
 
   // ── Round 1: オブジェクト定義・フィールド定義・デフォルトビューを並列取得 ──
   // パフォーマンス最適化: getDefaultView を Round 1 に含めて RTT 削減

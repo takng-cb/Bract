@@ -10,8 +10,10 @@ import { eq, asc } from 'drizzle-orm'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import StaffForm from '@/components/StaffForm'
 import { createStaff } from '@/industries/staffing/actions/staff'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function NewStaffPage() {
+  await requireBookRead('staff')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('staffing'))) notFound()
   await requireEditor()
 

@@ -754,9 +754,35 @@ export const customRecordsRelations = relations(custom_records, ({ one }) => ({
 export const users = pgTable('users', {
   id:         uuid('id').primaryKey(),           // Supabase Auth UID
   email:      text('email').notNull(),
-  role:       text('role').notNull().default('viewer'), // 'admin' | 'editor' | 'viewer'
+  role:       text('role').notNull().default('viewer'), // 'admin' | 'editor' | 'viewer'（RBAC 移行中のフォールバック）
+  role_id:    uuid('role_id').references(() => roles.id, { onDelete: 'set null' }), // RBAC ロール割当（ADR-0023）
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
+
+// ----------------------------------------------------------------
+// roles / role_permissions（RBAC: ロール × ブック別 CRUD。REQ-0031 / ADR-0023）
+//   admin/editor/viewer は is_system=true の system ロール（削除・改名不可）。
+//   role_permissions.book_api='*' はワイルドカード既定。ブック個別行が優先。
+// ----------------------------------------------------------------
+export const roles = pgTable('roles', {
+  id:          uuid('id').primaryKey().defaultRandom(),
+  name:        text('name').notNull().unique(),
+  description: text('description'),
+  is_system:   boolean('is_system').notNull().default(false),
+  created_at:  timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:  timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
+export const role_permissions = pgTable('role_permissions', {
+  role_id:    uuid('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  book_api:   text('book_api').notNull(),
+  can_create: boolean('can_create').notNull().default(false),
+  can_read:   boolean('can_read').notNull().default(false),
+  can_update: boolean('can_update').notNull().default(false),
+  can_delete: boolean('can_delete').notNull().default(false),
+}, (t) => [
+  primaryKey({ columns: [t.role_id, t.book_api] }),
+])
 
 // ----------------------------------------------------------------
 // user_preferences（ユーザー個別設定）

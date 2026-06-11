@@ -38,6 +38,7 @@ import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
 import RelatedSegments, { type RelatedSegment } from '@/components/record/RelatedSegments'
 import OpportunityProductsEditor, { type ProductOption } from '@/components/opportunity/OpportunityProductsEditor'
+import { requireBookRead } from '@/lib/permissions'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -66,6 +67,7 @@ function formatFileSize(bytes: number | null) {
 }
 
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('opportunities')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
 
   const [opportunity, activitiesList, tasksList, attachmentsList, expensesList, customData, editFlag, allUsers, activityTypes, changeLogs] = await Promise.all([

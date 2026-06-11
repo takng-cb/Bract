@@ -18,6 +18,7 @@ import { getActivityTypes } from '@/lib/activityTypes'
 import { getAllUsers } from '@/lib/userUtils'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
+import { requireBookRead } from '@/lib/permissions'
 
 function customRecordTitle(
   data: Record<string, unknown> | null | undefined,
@@ -31,6 +32,7 @@ function customRecordTitle(
 }
 
 export default async function EditActivityPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
   await requireEditor()
   const [activity, accountsList, contactsList, opportunitiesList, enabledCustomObjects, allCustomRecords, relatedRows, activityTypes, industryPicker, users] = await Promise.all([

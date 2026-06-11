@@ -7,6 +7,7 @@ import { createExpense } from '@/app/actions/expenses'
 import { requireEditor } from '@/lib/auth'
 import { getIndustryPickerData } from '@/lib/relatedRecordsPicker'
 import type { ObjectTypeOption, RecordOption, RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
+import { requireBookRead } from '@/lib/permissions'
 
 function customRecordTitle(
   data: Record<string, unknown> | null | undefined,
@@ -24,6 +25,7 @@ export default async function NewExpensePage({
 }: {
   searchParams: Promise<{ account_id?: string; opportunity_id?: string; contact_id?: string; custom_record_id?: string; maintenance_id?: string; customer_vehicle_id?: string; return_to?: string }>
 }) {
+  await requireBookRead('expenses')  // RBAC: Read 権限ガード（ADR-0023）
   const { account_id, opportunity_id, contact_id, custom_record_id, maintenance_id, customer_vehicle_id, return_to } = await searchParams
 
   async function createExpenseAction(_: string | null, formData: FormData): Promise<string | null> {

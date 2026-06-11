@@ -26,6 +26,7 @@ import { getActivityTypes } from '@/lib/activityTypes'
 import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, RecordTable, RecordTableEmpty, type KpiItem, type BadgeTone } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
+import { requireBookRead } from '@/lib/permissions'
 
 const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
   high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
@@ -39,6 +40,7 @@ function formatFileSize(bytes: number | null) {
 }
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireBookRead('contacts')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
 
   const [contact, activitiesList, tasksList, expensesList, attachmentsList, customData, canEditFlag, allUsers, activityTypes, changeLogs, accountsList] = await Promise.all([

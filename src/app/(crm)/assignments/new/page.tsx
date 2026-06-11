@@ -14,8 +14,10 @@ import { createAssignment } from '@/industries/staffing/actions/assignments'
 import AssignmentForm from '@/industries/staffing/components/AssignmentForm'
 import { runCreate } from '@/lib/duplicateCheck'
 import type { CreateState } from '@/lib/duplicateTypes'
+import { requireBookRead } from '@/lib/permissions'
 
 export default async function NewAssignmentPage() {
+  await requireBookRead('assignments')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('staffing'))) notFound()
   await requireEditor()
 

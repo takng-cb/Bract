@@ -7,13 +7,13 @@
  */
 import { db } from '@/lib/db'
 import { accounts, customer_vehicles } from '@/lib/schema'
-import { requireEditor } from '@/lib/auth'
 import { eq, ilike } from 'drizzle-orm'
+import { requirePermission } from '@/lib/permissions'
 
 export type InlineAccountResult = { id: string; name: string; existed: boolean }
 
 export async function inlineCreateAccount(input: { name: string; phone?: string }): Promise<InlineAccountResult> {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   const name = input.name?.trim()
   if (!name) throw new Error('取引先名は必須です')
 
@@ -37,7 +37,7 @@ export async function inlineCreateCustomerVehicle(input: {
   account_id?: string
   contact_id?: string
 }): Promise<InlineVehicleResult> {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   if (!input.account_id && !input.contact_id) {
     throw new Error('先に顧客（取引先）を指定してください')
   }

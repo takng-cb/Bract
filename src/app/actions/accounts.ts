@@ -1,6 +1,5 @@
 'use server'
 
-import { requireEditor } from '@/lib/auth'
 
 import { db } from '@/lib/db'
 import { accounts } from '@/lib/schema'
@@ -9,9 +8,10 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
+import { requirePermission } from '@/lib/permissions'
 
 export async function updateAccountStatus(id: string, status: string) {
-  await requireEditor()
+  await requirePermission('accounts', 'update')
   const [before] = await db.select({ status: accounts.status })
     .from(accounts).where(eq(accounts.id, id))
 
@@ -27,7 +27,7 @@ export async function updateAccountStatus(id: string, status: string) {
 }
 
 export async function createAccount(formData: FormData): Promise<string> {
-  await requireEditor()
+  await requirePermission('accounts', 'create')
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('会社名は必須です')
 
@@ -52,7 +52,7 @@ export async function createAccount(formData: FormData): Promise<string> {
 }
 
 export async function updateAccount(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('accounts', 'update')
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('会社名は必須です')
 
@@ -108,7 +108,7 @@ export async function updateAccount(id: string, formData: FormData) {
 
 /** 連絡先のみ部分更新（右レールのインライン編集用） */
 export async function updateAccountContact(id: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('accounts', 'update')
   await db.update(accounts).set({
     phone:      (formData.get('phone') as string) || null,
     website:    (formData.get('website') as string) || null,
@@ -119,7 +119,7 @@ export async function updateAccountContact(id: string, formData: FormData) {
 }
 
 export async function deleteAccount(id: string) {
-  await requireEditor()
+  await requirePermission('accounts', 'delete')
   // Phase 2: FK 列削除に伴い、DB 側 ON DELETE CASCADE が無くなる。
   // 関連活動・ToDo・経費の junction 行を明示削除する（活動・ToDo・経費の
   // 本体は他の関連先があれば残存する新仕様）。

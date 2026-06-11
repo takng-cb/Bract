@@ -3,8 +3,8 @@
 import { db } from '@/lib/db'
 import { maintenance_payments } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { requireEditor } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/permissions'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -12,7 +12,7 @@ function pick(formData: FormData, key: string): string | null {
 }
 
 export async function createPayment(maintenanceId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'create')
   const payment_method = pick(formData, 'payment_method')
   if (!payment_method) throw new Error('支払方法は必須です')
   const amount = pick(formData, 'amount')
@@ -34,7 +34,7 @@ export async function createPayment(maintenanceId: string, formData: FormData) {
 }
 
 export async function updatePayment(maintenanceId: string, paymentId: string, formData: FormData) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'update')
   const payment_method = pick(formData, 'payment_method')
   if (!payment_method) throw new Error('支払方法は必須です')
   const amount = pick(formData, 'amount')
@@ -55,7 +55,7 @@ export async function updatePayment(maintenanceId: string, paymentId: string, fo
 }
 
 export async function deletePayment(maintenanceId: string, paymentId: string) {
-  await requireEditor()
+  await requirePermission('maintenance_records', 'delete')
   await db.delete(maintenance_payments).where(eq(maintenance_payments.id, paymentId))
   revalidatePath(`/maintenance/${maintenanceId}`)
 }

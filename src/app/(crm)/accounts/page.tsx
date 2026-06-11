@@ -23,6 +23,7 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
+import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -31,6 +32,7 @@ export default async function AccountsPage({
 }: {
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
+  await requireBookRead('accounts')  // RBAC: Read 権限ガード（ADR-0023）
   // パフォーマンス最適化 (#40 Sprint 3+): getDefaultView を Round 1 と並列化。
   // userIdPromise を共有し、.then チェインで Promise.all 内で同時取得する。
   const userIdPromise = getCurrentUserId()
