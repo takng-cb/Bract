@@ -236,6 +236,13 @@ export default async function TasksPage({
           : String(t.due_date) < today
           ? 'bg-red-50 text-red-600'
           : PRIORITY_CONFIG[t.priority]?.color ?? 'bg-blue-50 text-blue-700',
+        details: [
+          { label: '状態', value: t.done ? '完了' : String(t.due_date) < today ? '未完了（期限超過）' : '未完了' },
+          { label: '期限', value: String(t.due_date) },
+          { label: '優先度', value: PRIORITY_CONFIG[t.priority]?.label ?? t.priority },
+          ...(t.owner_name ? [{ label: '担当', value: t.owner_name }] : []),
+          ...(t.accounts ? [{ label: '取引先', value: t.accounts.name }] : []),
+        ],
       }))
 
     const calToggleHref = (v: string) => {

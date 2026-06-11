@@ -208,6 +208,13 @@ export default async function OpportunitiesPage({
             href: `/opportunities/${r.id}`,
             label: `${r.name}${r.amount != null ? `（¥${Number(r.amount).toLocaleString()}）` : ''}`,
             className: STAGE_LABELS[r.stage]?.color ?? 'bg-zinc-100 text-zinc-600',
+            details: [
+              { label: 'ステージ', value: STAGE_LABELS[r.stage]?.label ?? r.stage },
+              { label: '取引先', value: r.accounts?.name ?? '—' },
+              { label: '金額', value: r.amount != null ? `¥${Number(r.amount).toLocaleString()}` : '—' },
+              { label: '確度', value: r.probability != null ? `${r.probability}%` : '—' },
+              { label: '完了予定', value: String(r.close_date) },
+            ],
           }))
       : []
 

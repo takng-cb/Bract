@@ -146,6 +146,14 @@ export default async function AssignmentsListPage({
       href: `/assignments/${r.id}`,
       label: `${r.title ?? r.assignment_no}（${r.assigned_count}/${r.staff_count_required ?? '—'}）`,
       className: assignmentStatusColor(r.status),
+      details: [
+        { label: '状態', value: r.status },
+        { label: '派遣先', value: r.client?.name ?? '—' },
+        { label: '業務日', value: String(r.service_date) },
+        { label: 'アサイン', value: `${r.assigned_count} / ${r.staff_count_required ?? '—'} 名` },
+        ...(r.service_location ? [{ label: '場所', value: r.service_location }] : []),
+        ...(r.client_total_fee ? [{ label: '請求総額', value: `¥${Number(r.client_total_fee).toLocaleString()}` }] : []),
+      ],
     }))
 
   return (
