@@ -26,7 +26,7 @@ export default function UserManagement({ users, currentUserId }: Props) {
       if (!err) {
         // 追加したユーザーをローカルリストに反映（簡易）
         const email = fd.get('email') as string
-        const role  = (fd.get('role') as string) === 'admin' ? 'admin' : 'member'
+        const role  = (fd.get('role') as string) || 'viewer'
         setLocalUsers((prev) => [...prev, { id: crypto.randomUUID(), email, role, created_at: new Date() }])
         setShowForm(false)
       }
@@ -36,7 +36,7 @@ export default function UserManagement({ users, currentUserId }: Props) {
   )
   const [isPending, startTransition] = useTransition()
 
-  function handleRoleChange(userId: string, newRole: 'admin' | 'member') {
+  function handleRoleChange(userId: string, newRole: 'admin' | 'editor' | 'viewer') {
     startTransition(async () => {
       const { error } = await updateUserRole(userId, newRole)
       if (!error) {
@@ -109,8 +109,9 @@ export default function UserManagement({ users, currentUserId }: Props) {
               name="role"
               className="border border-zinc-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="member">メンバー</option>
-              <option value="admin">管理者</option>
+              <option value="viewer">閲覧者（viewer）</option>
+              <option value="editor">編集者（editor）</option>
+              <option value="admin">管理者（admin）</option>
             </select>
           </div>
           <div className="flex gap-2">
@@ -148,18 +149,19 @@ export default function UserManagement({ users, currentUserId }: Props) {
                 {u.id !== currentUserId ? (
                   <select
                     value={u.role}
-                    onChange={(e) => handleRoleChange(u.id, e.target.value as 'admin' | 'member')}
+                    onChange={(e) => handleRoleChange(u.id, e.target.value as 'admin' | 'editor' | 'viewer')}
                     disabled={isPending}
                     className="border border-zinc-300 rounded-md px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   >
-                    <option value="member">メンバー</option>
+                    <option value="viewer">閲覧者</option>
+                    <option value="editor">編集者</option>
                     <option value="admin">管理者</option>
                   </select>
                 ) : (
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                     u.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-600'
                   }`}>
-                    {u.role === 'admin' ? '管理者' : 'メンバー'}（自分）
+                    {u.role === 'admin' ? '管理者' : u.role === 'editor' ? '編集者' : '閲覧者'}（自分）
                   </span>
                 )}
 
