@@ -5,6 +5,7 @@
  * 既存 vehicles（在庫車両・売り物）と別物。整備対象として顧客が持ち込む車。
  */
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { customer_vehicles, maintenance_records } from '@/lib/schema'
 import { eq, count } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -115,6 +116,7 @@ export async function updateCustomerVehicle(id: string, formData: FormData) {
 
 export async function deleteCustomerVehicle(id: string) {
   await requirePermission('customer_vehicles', 'delete')
+  await trashRecord('customer_vehicles', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
 
   // 関連する整備が残っている場合は削除を拒否（FK ON DELETE RESTRICT）
   const [mc] = await db.select({ c: count() }).from(maintenance_records)

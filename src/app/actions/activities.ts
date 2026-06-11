@@ -1,6 +1,7 @@
 'use server'
 
 import { recordHref } from '@/lib/relatedRecords'
+import { trashRecord } from '@/lib/trash'
 
 import { db } from '@/lib/db'
 import {
@@ -109,6 +110,7 @@ export async function updateActivityRelatedRecords(id: string, formData: FormDat
 
 export async function deleteActivity(id: string) {
   await requirePermission('activities', 'delete')
+  await trashRecord('activities', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(activities).where(eq(activities.id, id))
   redirect('/activities')
 }

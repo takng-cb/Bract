@@ -2,6 +2,7 @@
 
 
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { opportunities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -191,6 +192,7 @@ export async function updateOpportunityBasic(id: string, formData: FormData) {
 
 export async function deleteOpportunity(id: string) {
   await requirePermission('opportunities', 'delete')
+  await trashRecord('opportunities', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('opportunity', id)
   await db.delete(opportunities).where(eq(opportunities.id, id))
   redirect('/opportunities')

@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { Trash2, ChevronRight } from 'lucide-react'
 import PasswordForm from '@/components/PasswordForm'
 import ProfileForm from '@/components/ProfileForm'
 import DashboardWidgetSettings from '@/components/DashboardWidgetSettings'
@@ -99,6 +101,23 @@ export default async function SettingsPage() {
           currentPrefs={await getDashboardWidgetPrefs(user.id)}
         />
       )}
+
+      {/* ゴミ箱（削除したレコードの復元。REQ-0047） */}
+      <Link
+        href="/trash"
+        className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-3 shadow-xs hover:border-brand-300 hover:bg-brand-50 transition-colors group"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 group-hover:bg-white">
+            <Trash2 className="w-5 h-5" strokeWidth={2.25} aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-zinc-800">ゴミ箱</p>
+            <p className="text-xs text-zinc-400">削除したレコードの確認・復元（一定期間で自動削除）</p>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 shrink-0 text-zinc-300 group-hover:text-brand-600" />
+      </Link>
     </div>
   )
 }

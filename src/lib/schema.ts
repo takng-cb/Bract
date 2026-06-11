@@ -1135,6 +1135,25 @@ export const approvals = pgTable('approvals', {
   index('approvals_status_idx').on(t.status),
 ])
 
+// ----------------------------------------------------------------
+// trash_records（レコードのゴミ箱 REQ-0047）
+//   削除時に to_jsonb で全列を退避。復元は jsonb_populate_record で再INSERT。
+//   保持期限（system_settings trash_retention_days、既定30日）を過ぎたら自動削除。
+// ----------------------------------------------------------------
+export const trash_records = pgTable('trash_records', {
+  id:           uuid('id').primaryKey().defaultRandom(),
+  object_type:  text('object_type').notNull(),   // 物理テーブル名（restore whitelist と一致）
+  object_label: text('object_label').notNull(),  // 表示用ブック名
+  record_id:    uuid('record_id').notNull(),
+  label:        text('label').notNull(),         // レコード表示名
+  payload:      jsonb('payload').notNull(),      // to_jsonb(row)
+  deleted_by:   uuid('deleted_by'),
+  deleted_at:   timestamp('deleted_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('trash_records_deleted_at_idx').on(t.deleted_at),
+  index('trash_records_deleted_by_idx').on(t.deleted_by, t.deleted_at),
+])
+
 export const approval_decisions = pgTable('approval_decisions', {
   id:          uuid('id').primaryKey().defaultRandom(),
   approval_id: uuid('approval_id').notNull().references(() => approvals.id, { onDelete: 'cascade' }),

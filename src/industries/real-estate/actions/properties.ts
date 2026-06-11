@@ -2,6 +2,7 @@
 
 
 import { requirePermission } from '@/lib/permissions'
+import { trashRecord } from '@/lib/trash'
 import { db } from '@/lib/db'
 import { properties } from '@/industries/real-estate/schema'
 import { eq } from 'drizzle-orm'
@@ -160,6 +161,7 @@ export async function setPropertyStatus(id: string, status: string) {
 
 export async function deleteProperty(id: string) {
   await requirePermission('properties', 'delete')
+  await trashRecord('properties', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(properties).where(eq(properties.id, id))
   // custom_records ミラー側も削除
   await deletePropertyCustomRecord(id)

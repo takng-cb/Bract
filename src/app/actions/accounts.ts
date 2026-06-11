@@ -2,6 +2,7 @@
 
 
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -120,6 +121,7 @@ export async function updateAccountContact(id: string, formData: FormData) {
 
 export async function deleteAccount(id: string) {
   await requirePermission('accounts', 'delete')
+  await trashRecord('accounts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   // Phase 2: FK 列削除に伴い、DB 側 ON DELETE CASCADE が無くなる。
   // 関連活動・ToDo・経費の junction 行を明示削除する（活動・ToDo・経費の
   // 本体は他の関連先があれば残存する新仕様）。

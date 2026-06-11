@@ -6,6 +6,7 @@
  * lot/serial は #71 へ先送り。
  */
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { products, warehouses, stock_movements } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -123,6 +124,7 @@ export async function updateWarehouseBasic(id: string, formData: FormData): Prom
 
 export async function deleteProduct(id: string): Promise<void> {
   await requirePermission('products', 'delete')
+  await trashRecord('products', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(products).where(eq(products.id, id)) // cascade で stock_movements も削除
   revalidatePath('/products')
   redirect('/products')
@@ -169,6 +171,7 @@ export async function updateWarehouse(id: string, formData: FormData): Promise<v
 
 export async function deleteWarehouse(id: string): Promise<void> {
   await requirePermission('warehouses', 'delete')
+  await trashRecord('warehouses', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   // 移動の warehouse_id は ON DELETE SET NULL（移動履歴自体は残る）
   await db.delete(warehouses).where(eq(warehouses.id, id))
   revalidatePath('/warehouses')

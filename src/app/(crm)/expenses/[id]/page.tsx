@@ -55,6 +55,8 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
   async function deleteAction() {
     'use server'
     if (await hasPendingApproval('expenses', id)) throw new Error('承認待ちのため削除できません')
+    const { trashRecord } = await import('@/lib/trash')
+    await trashRecord('expenses', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
     await db.delete(expenses).where(eq(expenses.id, id)); revalidatePath('/expenses'); redirect('/expenses')
   }
 

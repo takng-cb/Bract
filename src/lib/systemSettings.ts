@@ -18,6 +18,8 @@ export const SYSTEM_DEFAULTS = {
   mobile_bottom_nav: '["/dashboard","/accounts","/tasks","/activities"]',
   // ボードの終端ステータス列（受注/失注/完了）を直近Nヶ月に絞る。'0' = 無制限（REQ-0044）
   board_closed_window_months: '3',
+  // ゴミ箱の保持日数（過ぎると自動で完全削除。REQ-0047）
+  trash_retention_days: '30',
 } as const
 
 export type SystemSettingKey = keyof typeof SYSTEM_DEFAULTS

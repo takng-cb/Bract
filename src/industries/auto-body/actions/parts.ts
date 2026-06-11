@@ -1,6 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { parts, part_movements } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -93,6 +94,7 @@ export async function updatePartBasic(id: string, formData: FormData) {
 
 export async function deletePart(id: string) {
   await requirePermission('parts', 'delete')
+  await trashRecord('parts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(parts).where(eq(parts.id, id))  // cascade で part_movements も削除
   revalidatePath('/parts')
   redirect('/parts')

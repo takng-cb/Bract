@@ -1,6 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { maintenance_records, vehicles, activities, activity_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -165,6 +166,7 @@ export async function updateMaintenance(id: string, formData: FormData) {
 
 export async function deleteMaintenance(id: string) {
   await requirePermission('maintenance_records', 'delete')
+  await trashRecord('maintenance_records', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
 
   // 代車が割り当てられたままなら、削除前に '在庫' に戻す
   const before = await db.select({
