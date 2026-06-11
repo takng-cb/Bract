@@ -389,57 +389,45 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       </div>
 
       {/* ── 上段: 顧客 / 車両 / 代車 を横並び（請求合計はページ上部の KPI サマリーへ移設・REQ-0038）──
-           顧客・車両は「入力欄が常時表示・検索→なければ新規」のインライン編集（REQ-0042） */}
+           顧客・車両は編集ボタンで「検索→なければ新規」エディタを開き、保存で閲覧表示へ戻る（REQ-0042） */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs">
-          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-zinc-100">
-            <NavIcon icon={AB_ICONS.account} className="w-4 h-4" />
-            <h2 className="text-sm font-bold text-zinc-700">顧客</h2>
-          </div>
-          <div className="p-4 space-y-4">
-            {editable && (
-              <CustomerInlineEditor
-                maintenanceId={maintenanceId}
-                initial={{
-                  customer_vehicle_id: m.customer_vehicle_id,
-                  account_id:          m.account_id,
-                  contact_id:          m.contact_id,
-                  billing_account_id:  m.billing_account_id,
-                }}
-                currentAccountName={account?.name ?? null}
-                accounts={accountsList.map((a) => ({ id: a.id, name: a.name }))}
-                contacts={contactsList.map((c) => ({ id: c.id, full_name: c.full_name, account_id: c.account_id }))}
-              />
-            )}
-            <div className={editable ? 'border-t border-zinc-100 pt-3' : ''}>
-              {customerView}
-            </div>
-          </div>
-        </section>
+        <InlineSection
+          title="顧客"
+          icon={<NavIcon icon={AB_ICONS.account} className="w-4 h-4" />}
+          canEdit={editable}
+          view={customerView}
+        >
+          <CustomerInlineEditor
+            maintenanceId={maintenanceId}
+            initial={{
+              customer_vehicle_id: m.customer_vehicle_id,
+              account_id:          m.account_id,
+              contact_id:          m.contact_id,
+              billing_account_id:  m.billing_account_id,
+            }}
+            currentAccountName={account?.name ?? null}
+            accounts={accountsList.map((a) => ({ id: a.id, name: a.name }))}
+            contacts={contactsList.map((c) => ({ id: c.id, full_name: c.full_name, account_id: c.account_id }))}
+          />
+        </InlineSection>
 
-        <section className="bg-white border border-zinc-200 rounded-lg shadow-xs">
-          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-zinc-100">
-            <NavIcon icon={AB_ICONS.customerVehicle} className="w-4 h-4" />
-            <h2 className="text-sm font-bold text-zinc-700">車両</h2>
-          </div>
-          <div className="p-4 space-y-4">
-            {editable && (
-              <VehicleInlineEditor
-                maintenanceId={maintenanceId}
-                initial={{
-                  customer_vehicle_id: m.customer_vehicle_id,
-                  account_id:          m.account_id,
-                  contact_id:          m.contact_id,
-                  billing_account_id:  m.billing_account_id,
-                }}
-                currentVehicleLabel={v ? ([v.plate_number, v.car_name ?? v.car_model].filter(Boolean).join(' / ') || '（無名車両）') : null}
-              />
-            )}
-            <div className={editable ? 'border-t border-zinc-100 pt-3' : ''}>
-              {vehicleView}
-            </div>
-          </div>
-        </section>
+        <InlineSection
+          title="車両"
+          icon={<NavIcon icon={AB_ICONS.customerVehicle} className="w-4 h-4" />}
+          canEdit={editable}
+          view={vehicleView}
+        >
+          <VehicleInlineEditor
+            maintenanceId={maintenanceId}
+            initial={{
+              customer_vehicle_id: m.customer_vehicle_id,
+              account_id:          m.account_id,
+              contact_id:          m.contact_id,
+              billing_account_id:  m.billing_account_id,
+            }}
+            currentVehicleLabel={v ? ([v.plate_number, v.car_name ?? v.car_model].filter(Boolean).join(' / ') || '（無名車両）') : null}
+          />
+        </InlineSection>
 
         {/* 代車のフォームは1カラムで収まるため、その場（カード内）で編集する（全幅化しない） */}
         <InlineSection
