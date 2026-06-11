@@ -114,3 +114,18 @@ export async function saveSystemSettings(
   revalidatePath('/', 'layout')
   return 'success'
 }
+
+// ────────────────────────────────────────────────────────────────
+// 商談の商品候補ブック設定（REQ-0034・管理者のみ）
+// ────────────────────────────────────────────────────────────────
+export async function saveOpportunityProductBooks(formData: FormData): Promise<void> {
+  const { requireAdmin } = await import('@/lib/auth')
+  await requireAdmin()
+  const books = (formData.getAll('books') as string[]).map((b) => b.trim()).filter(Boolean)
+  const value = JSON.stringify(books.length > 0 ? books : ['products', 'parts'])
+  await db.insert(system_settings)
+    .values({ key: 'opportunity_product_books', value })
+    .onConflictDoUpdate({ target: system_settings.key, set: { value } })
+  const { revalidatePath } = await import('next/cache')
+  revalidatePath('/admin/objects')
+}

@@ -15,6 +15,8 @@ import { MODULE_REGISTRY, ALWAYS_ON, getEnabledModules } from '@/lib/modules/reg
 import type { ModuleCategory } from '@/lib/modules/types'
 import { getLicense } from '@/lib/license'
 import ModuleToggle from '@/components/ModuleToggle'
+import { getProductBookCandidates, getOpportunityProductBooks } from '@/lib/opportunityProductBooks'
+import { saveOpportunityProductBooks } from '@/app/actions/settings'
 
 // ライセンス/モジュール有効状態を実行時に読むため動的レンダリング
 export const dynamic = 'force-dynamic'
@@ -40,14 +42,17 @@ const CATEGORY_COLOR: Record<ModuleCategory, string> = {
 export default async function AdminObjectsPage() {
   await requireAdmin()
 
-  const [objects, { userOrder, systemOrder }, customObjects, activityTypes, enabledModules, lic] = await Promise.all([
+  const [objects, { userOrder, systemOrder }, customObjects, activityTypes, enabledModules, lic, productBookCandidates, productBooks] = await Promise.all([
     getAllObjectDefs(),
     getNavOrderSettings(),
     getCustomObjectsForNav(),
     getActivityTypes(),
     getEnabledModules(),
     getLicense(),
+    getProductBookCandidates(),
+    getOpportunityProductBooks(),
   ])
+  const productBookSet = new Set(productBooks)
 
   const enabledIds = new Set(enabledModules.map((m) => m.id))
   const entitled = (lic?.features as { entitled_modules?: string[] } | undefined)?.entitled_modules
@@ -195,6 +200,30 @@ export default async function AdminObjectsPage() {
           )}
         </section>
       </div>
+
+      {/* 商談の商品候補ブック（REQ-0034） */}
+      <section className="bg-white rounded-lg border border-zinc-200 p-5">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-zinc-900">商談の「商品」候補ブック</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            商談詳細の「商品」セクションで紐付け先として選べるブックを設定します。
+            チェックしたブックのレコードが商品ピッカーに表示されます（単価フィールドがあれば自動補完）。
+          </p>
+        </div>
+        <form action={saveOpportunityProductBooks} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {productBookCandidates.map((b) => (
+              <label key={b.api} className="flex items-center gap-2 px-3 py-2 rounded-md border border-zinc-200 hover:bg-zinc-50 cursor-pointer">
+                <input type="checkbox" name="books" value={b.api} defaultChecked={productBookSet.has(b.api)} className="accent-blue-600 w-4 h-4" />
+                <span className="text-sm text-zinc-800">{b.label}</span>
+                <span className="text-[11px] text-zinc-400 font-mono ml-auto">{b.api}</span>
+                {!b.builtin && <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] bg-violet-100 text-violet-700">カスタム</span>}
+              </label>
+            ))}
+          </div>
+          <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">保存</button>
+        </form>
+      </section>
 
       <NavOrderEditor userOrder={userOrder} systemOrder={systemOrder} customItems={customNavItems} />
 

@@ -12,6 +12,8 @@ export const SYSTEM_DEFAULTS = {
   session_timeout_minutes:  '0',   // 0 = タイムアウトなし
   allow_self_registration:  'false',
   fiscal_year_start:        '4',   // 月（1-12）
+  // 商談の「商品」セクションで紐付け先にできるブック（JSON 配列の book api。REQ-0034）
+  opportunity_product_books: '["products","parts"]',
 } as const
 
 export type SystemSettingKey = keyof typeof SYSTEM_DEFAULTS
