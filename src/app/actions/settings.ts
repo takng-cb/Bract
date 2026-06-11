@@ -129,3 +129,21 @@ export async function saveOpportunityProductBooks(formData: FormData): Promise<v
   const { revalidatePath } = await import('next/cache')
   revalidatePath('/admin/objects')
 }
+
+// ────────────────────────────────────────────────────────────────
+// モバイル下部タブの設定（REQ-0041・管理者のみ）
+//   formData: slot_1..slot_4 = href（中央 FAB は固定のため4枠）
+// ────────────────────────────────────────────────────────────────
+export async function saveMobileBottomNav(formData: FormData): Promise<void> {
+  await requireAdmin()
+  const slots = [1, 2, 3, 4]
+    .map((i) => ((formData.get(`slot_${i}`) as string) ?? '').trim())
+    .filter((h) => /^\/[a-z0-9/_-]*$/i.test(h))
+  if (slots.length !== 4 || new Set(slots).size !== 4) {
+    throw new Error('下部タブは重複なしの4つを選択してください')
+  }
+  await db.insert(system_settings)
+    .values({ key: 'mobile_bottom_nav', value: JSON.stringify(slots) })
+    .onConflictDoUpdate({ target: system_settings.key, set: { value: JSON.stringify(slots), updated_at: new Date() } })
+  revalidatePath('/', 'layout')
+}

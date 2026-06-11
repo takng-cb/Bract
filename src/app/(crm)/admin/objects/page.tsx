@@ -5,7 +5,7 @@ import { deleteObjectDef } from '@/app/actions/objectDefinitions'
 import DeleteButton from '@/components/DeleteButton'
 import NavOrderEditor from '@/components/NavOrderEditor'
 import { getNavOrderSettings } from '@/app/actions/navSettings'
-import { customObjectsToNavItems, buildExtraNavItems } from '@/lib/navItems'
+import { ALL_NAV_ITEMS, BOTTOM_NAV_ITEMS, customObjectsToNavItems, buildExtraNavItems } from '@/lib/navItems'
 import { buildNavGroups } from '@/lib/navOrder'
 import { activeIndustry } from '@/lib/industry'
 import ActivityTypesEditor from '@/components/ActivityTypesEditor'
@@ -17,7 +17,8 @@ import type { ModuleCategory } from '@/lib/modules/types'
 import { getLicense } from '@/lib/license'
 import ModuleToggle from '@/components/ModuleToggle'
 import { getProductBookCandidates, getOpportunityProductBooks } from '@/lib/opportunityProductBooks'
-import { saveOpportunityProductBooks } from '@/app/actions/settings'
+import { saveOpportunityProductBooks, saveMobileBottomNav } from '@/app/actions/settings'
+import { getSystemSettings } from '@/lib/systemSettings'
 import { getApprovalConfigs, getApprovalAdminData, getApprovalBooks } from '@/lib/approvals'
 import ApprovalRulesEditor from '@/components/admin/ApprovalRulesEditor'
 
@@ -45,7 +46,7 @@ const CATEGORY_COLOR: Record<ModuleCategory, string> = {
 export default async function AdminObjectsPage() {
   await requireAdmin()
 
-  const [objects, { userOrder, systemOrder }, customObjects, activityTypes, enabledModules, lic, productBookCandidates, productBooks, approvalConfigs, approvalAdminData, approvalBooks] = await Promise.all([
+  const [objects, { userOrder, systemOrder }, customObjects, activityTypes, enabledModules, lic, productBookCandidates, productBooks, approvalConfigs, approvalAdminData, approvalBooks, mobileNavSettings] = await Promise.all([
     getAllObjectDefs(),
     getNavOrderSettings(),
     getCustomObjectsForNav(),
@@ -57,6 +58,7 @@ export default async function AdminObjectsPage() {
     getApprovalConfigs(),
     getApprovalAdminData(),
     getApprovalBooks(),
+    getSystemSettings(['mobile_bottom_nav']),
   ])
   const productBookSet = new Set(productBooks)
 
@@ -83,6 +85,18 @@ export default async function AdminObjectsPage() {
     activeIndustry,
   )
   const navGroups = buildNavGroups(enabledModules, buildExtraNavItems(customNavItems, activeIndustry))
+
+  // モバイル下部タブの候補と現在値（REQ-0041）
+  const bottomNavOptions = [
+    ...ALL_NAV_ITEMS.filter((i) => i.href === '/dashboard'),
+    ...navGroups.flatMap((g) => g.items),
+    ...BOTTOM_NAV_ITEMS,
+  ].filter((i, idx, arr) => arr.findIndex((x) => x.href === i.href) === idx)
+  let bottomNavCurrent: string[] = ['/dashboard', '/accounts', '/tasks', '/activities']
+  try {
+    const p = JSON.parse(mobileNavSettings.mobile_bottom_nav)
+    if (Array.isArray(p) && p.length === 4) bottomNavCurrent = p
+  } catch { /* use defaults */ }
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8 space-y-8">
@@ -248,6 +262,38 @@ export default async function AdminObjectsPage() {
           users={approvalAdminData.users}
           roles={approvalAdminData.roles}
         />
+      </section>
+
+      {/* モバイル下部タブの設定（REQ-0041） */}
+      <section className="bg-white rounded-lg border border-zinc-200 p-5">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-zinc-900">モバイル下部タブ</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            スマホ画面の下部に表示する4つのタブを選びます（中央のクイック操作ボタンは固定）。
+            左側2つ・右側2つの並びで表示されます。
+          </p>
+        </div>
+        <form action={saveMobileBottomNav} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {[0, 1, 2, 3].map((i) => (
+              <label key={i} className="block">
+                <span className="mb-1 block text-xs font-semibold text-zinc-500">
+                  {i < 2 ? `左${i + 1}` : `右${i - 1}`}
+                </span>
+                <select
+                  name={`slot_${i + 1}`}
+                  defaultValue={bottomNavCurrent[i]}
+                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                >
+                  {bottomNavOptions.map((o) => (
+                    <option key={o.href} value={o.href}>{o.label}</option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+          <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">保存</button>
+        </form>
       </section>
 
       <NavOrderEditor groups={navGroups} userOrder={userOrder} systemOrder={systemOrder} />
