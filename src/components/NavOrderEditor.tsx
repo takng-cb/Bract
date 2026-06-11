@@ -7,51 +7,68 @@ import {
   saveSystemNavOrder,
   resetSystemNavOrder,
 } from '@/app/actions/navSettings'
-import { type NavItem, ALL_NAV_ITEMS } from '@/lib/navItems'
+import {
+  applyNavOrderToGroups,
+  OTHER_GROUP_ID,
+  type NavGroup,
+  type NavOrderV2,
+} from '@/lib/navOrder'
 import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
+  /** 既定順のナビグループ（buildNavGroups で構築。dashboard は含めない） */
+  groups: NavGroup[]
   /** 現在のユーザー設定順序（null = 設定なし） */
-  userOrder:    string[] | null
+  userOrder:   NavOrderV2 | string[] | null
   /** 現在のシステム設定順序（null = 設定なし） */
-  systemOrder:  string[] | null
-  /** カスタムオブジェクトのナビアイテム */
-  customItems?: NavItem[]
+  systemOrder: NavOrderV2 | string[] | null
 }
 
-function buildItems(order: string[] | null, extraItems: NavItem[]): NavItem[] {
-  const allItems       = [...ALL_NAV_ITEMS, ...extraItems]
-  const map            = new Map(allItems.map((i) => [i.href, i]))
-  const effectiveOrder = order ?? allItems.map((i) => i.href)
-  const ordered        = effectiveOrder.filter((h) => map.has(h)).map((h) => map.get(h)!)
-  const missing        = allItems.filter((i) => !effectiveOrder.includes(i.href))
-  return [...ordered, ...missing]
+/** 編集中のグループ配列 → 保存形式 v2 */
+function toOrderV2(groups: NavGroup[]): NavOrderV2 {
+  return {
+    v: 2,
+    modules: groups.map((g) => g.id),
+    books: Object.fromEntries(groups.map((g) => [g.id, g.items.map((i) => i.href)])),
+  }
 }
 
-export default function NavOrderEditor({ userOrder, systemOrder, customItems = [] }: Props) {
-  const [items, setItems]     = useState<NavItem[]>(() => buildItems(userOrder ?? systemOrder, customItems))
-  const [saved, setSaved]     = useState<'user' | 'system' | null>(null)
+export default function NavOrderEditor({ groups: defaultGroups, userOrder, systemOrder }: Props) {
+  const [groups, setGroups] = useState<NavGroup[]>(
+    () => applyNavOrderToGroups(defaultGroups, userOrder ?? systemOrder),
+  )
+  const [saved, setSaved]   = useState<'user' | 'system' | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  function move(index: number, dir: -1 | 1) {
-    const next = [...items]
+  function moveGroup(index: number, dir: -1 | 1) {
+    const next = [...groups]
     const swap = index + dir
     if (swap < 0 || swap >= next.length) return
     ;[next[index], next[swap]] = [next[swap], next[index]]
-    setItems(next)
+    setGroups(next)
+    setSaved(null)
+  }
+
+  function moveItem(groupIndex: number, index: number, dir: -1 | 1) {
+    const next = groups.map((g) => ({ ...g, items: [...g.items] }))
+    const items = next[groupIndex].items
+    const swap = index + dir
+    if (swap < 0 || swap >= items.length) return
+    ;[items[index], items[swap]] = [items[swap], items[index]]
+    setGroups(next)
     setSaved(null)
   }
 
   function handleSaveUser() {
     startTransition(async () => {
-      await saveUserNavOrder(items.map((i) => i.href))
+      await saveUserNavOrder(toOrderV2(groups))
       setSaved('user')
     })
   }
 
   function handleSaveSystem() {
     startTransition(async () => {
-      await saveSystemNavOrder(items.map((i) => i.href))
+      await saveSystemNavOrder(toOrderV2(groups))
       setSaved('system')
     })
   }
@@ -59,7 +76,7 @@ export default function NavOrderEditor({ userOrder, systemOrder, customItems = [
   function handleResetUser() {
     startTransition(async () => {
       await resetUserNavOrder()
-      setItems(buildItems(systemOrder, customItems))
+      setGroups(applyNavOrderToGroups(defaultGroups, systemOrder))
       setSaved(null)
     })
   }
@@ -67,10 +84,12 @@ export default function NavOrderEditor({ userOrder, systemOrder, customItems = [
   function handleResetSystem() {
     startTransition(async () => {
       await resetSystemNavOrder()
-      setItems(buildItems(null, customItems))
+      setGroups(defaultGroups)
       setSaved(null)
     })
   }
+
+  const arrowBtn = 'w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-500 transition-colors'
 
   return (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
@@ -78,47 +97,74 @@ export default function NavOrderEditor({ userOrder, systemOrder, customItems = [
         ナビゲーション順序
       </h2>
       <p className="text-xs text-zinc-400 mb-4">
-        ↑↓ で項目を並び替えて保存してください。
+        ↑↓ でモジュールの並びと、各モジュール内のブックの並びを変えて保存してください。
       </p>
 
-      {/* 並び替えリスト */}
-      <ul className="space-y-2 mb-6">
-        {items.map((item, i) => {
-          const isCustom = item.href.startsWith('/objects/')
-          return (
-            <li
-              key={item.href}
-              className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2.5"
-            >
-              <span className="w-6 flex items-center justify-center shrink-0 text-zinc-500"><NavIcon icon={item.icon} className="w-4.5 h-4.5" /></span>
-              <span className="flex-1 text-sm font-medium text-zinc-800">{item.label}</span>
-              {isCustom && (
-                <span className="text-xs text-violet-500 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5 shrink-0">
-                  カスタム
-                </span>
+      {/* モジュール（グループ）ごとの並び替え */}
+      <div className="space-y-3 mb-6">
+        {groups.map((g, gi) => (
+          <section key={g.id} className="border border-zinc-200 rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 bg-zinc-100/80 px-4 py-2.5 border-b border-zinc-200">
+              <span className="flex-1 text-sm font-semibold text-zinc-800">{g.name}</span>
+              {g.id !== OTHER_GROUP_ID && (
+                <span className="text-[11px] text-zinc-400 font-mono shrink-0">{g.id}</span>
               )}
               <div className="flex gap-1 shrink-0">
                 <button
-                  onClick={() => move(i, -1)}
-                  disabled={i === 0 || isPending}
-                  className="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-500 transition-colors"
-                  aria-label="上に移動"
+                  onClick={() => moveGroup(gi, -1)}
+                  disabled={gi === 0 || isPending}
+                  className={arrowBtn}
+                  aria-label={`${g.name}を上に移動`}
                 >
                   ▲
                 </button>
                 <button
-                  onClick={() => move(i, 1)}
-                  disabled={i === items.length - 1 || isPending}
-                  className="w-7 h-7 flex items-center justify-center rounded hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-500 transition-colors"
-                  aria-label="下に移動"
+                  onClick={() => moveGroup(gi, 1)}
+                  disabled={gi === groups.length - 1 || isPending}
+                  className={arrowBtn}
+                  aria-label={`${g.name}を下に移動`}
                 >
                   ▼
                 </button>
               </div>
-            </li>
-          )
-        })}
-      </ul>
+            </div>
+            <ul className="divide-y divide-zinc-100">
+              {g.items.map((item, i) => {
+                const isCustom = item.href.startsWith('/objects/')
+                return (
+                  <li key={item.href} className="flex items-center gap-3 px-4 py-2 bg-white">
+                    <span className="w-6 flex items-center justify-center shrink-0 text-zinc-500"><NavIcon icon={item.icon} className="w-4.5 h-4.5" /></span>
+                    <span className="flex-1 text-sm font-medium text-zinc-800">{item.label}</span>
+                    {isCustom && (
+                      <span className="text-xs text-violet-500 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5 shrink-0">
+                        カスタム
+                      </span>
+                    )}
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => moveItem(gi, i, -1)}
+                        disabled={i === 0 || isPending}
+                        className={arrowBtn}
+                        aria-label={`${item.label}を上に移動`}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => moveItem(gi, i, 1)}
+                        disabled={i === g.items.length - 1 || isPending}
+                        className={arrowBtn}
+                        aria-label={`${item.label}を下に移動`}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
 
       {/* 保存完了メッセージ */}
       {saved && (

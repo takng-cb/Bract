@@ -5,62 +5,35 @@ import { user_preferences, system_settings } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
-import { DEFAULT_NAV_ORDER } from '@/lib/navItems'
 import { requireAdmin } from '@/lib/auth'
-
-// ----------------------------------------------------------------
-// 現在の有効なナビ順序を取得（ユーザー設定 → システム設定 → デフォルト）
-// ----------------------------------------------------------------
-export async function getEffectiveNavOrder(): Promise<string[]> {
-  try {
-    const supabase = await createSupabaseServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (user) {
-      const row = await db.select({ nav_order: user_preferences.nav_order })
-        .from(user_preferences)
-        .where(eq(user_preferences.user_id, user.id))
-        .then((r) => r[0] ?? null)
-      if (row?.nav_order) return JSON.parse(row.nav_order) as string[]
-    }
-
-    const sys = await db.select({ value: system_settings.value })
-      .from(system_settings)
-      .where(eq(system_settings.key, 'nav_order'))
-      .then((r) => r[0] ?? null)
-    if (sys?.value) return JSON.parse(sys.value) as string[]
-  } catch {
-    // DB 接続エラー等はデフォルトで継続
-  }
-
-  return DEFAULT_NAV_ORDER
-}
+import { parseNavOrder, type NavOrderV2 } from '@/lib/navOrder'
 
 // ----------------------------------------------------------------
 // 設定ページ用：ユーザー設定とシステム設定の両方を返す
+// v2（モジュール＋ブックの2階層）/ 旧フラット配列の両方をパース済みで返す
 // ----------------------------------------------------------------
 export async function getNavOrderSettings(): Promise<{
-  userOrder:   string[] | null
-  systemOrder: string[] | null
+  userOrder:   NavOrderV2 | string[] | null
+  systemOrder: NavOrderV2 | string[] | null
 }> {
   try {
     const supabase = await createSupabaseServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    let userOrder: string[] | null = null
+    let userOrder: NavOrderV2 | string[] | null = null
     if (user) {
       const row = await db.select({ nav_order: user_preferences.nav_order })
         .from(user_preferences)
         .where(eq(user_preferences.user_id, user.id))
         .then((r) => r[0] ?? null)
-      if (row?.nav_order) userOrder = JSON.parse(row.nav_order) as string[]
+      userOrder = parseNavOrder(row?.nav_order)
     }
 
     const sys = await db.select({ value: system_settings.value })
       .from(system_settings)
       .where(eq(system_settings.key, 'nav_order'))
       .then((r) => r[0] ?? null)
-    const systemOrder = sys?.value ? (JSON.parse(sys.value) as string[]) : null
+    const systemOrder = parseNavOrder(sys?.value)
 
     return { userOrder, systemOrder }
   } catch {
@@ -69,9 +42,9 @@ export async function getNavOrderSettings(): Promise<{
 }
 
 // ----------------------------------------------------------------
-// ユーザー個人のナビ順序を保存
+// ユーザー個人のナビ順序を保存（v2 オブジェクト / 旧フラット配列の両対応）
 // ----------------------------------------------------------------
-export async function saveUserNavOrder(order: string[]): Promise<void> {
+export async function saveUserNavOrder(order: NavOrderV2 | string[]): Promise<void> {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -103,7 +76,7 @@ export async function resetUserNavOrder(): Promise<void> {
 // ----------------------------------------------------------------
 // システム全体のデフォルト順序を保存
 // ----------------------------------------------------------------
-export async function saveSystemNavOrder(order: string[]): Promise<void> {
+export async function saveSystemNavOrder(order: NavOrderV2 | string[]): Promise<void> {
   await requireAdmin()
   await db.insert(system_settings)
     .values({ key: 'nav_order', value: JSON.stringify(order) })

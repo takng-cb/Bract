@@ -242,6 +242,12 @@
 - 状態：実装・出荷済み。
 - 関連：REQ-0030（opportunity_products）/ #5
 
+### REQ-0035  ナビゲーション順序のモジュール対応（2階層並び替え）
+- 2026-06-11 / 会話（「ナビゲーション順序にモジュールの情報がありません。モジュールの並び替えとその中でのブックの並び替えができるようにしてください」）
+- 内容：サイドバーのナビ順序設定を「モジュールの並び」＋「各モジュール内のブックの並び」の2階層にする。保存形式は v2 `{ v:2, modules:[moduleId…], books:{ moduleId:[href…] } }`（user_preferences.nav_order / system_settings.nav_order、旧フラット配列も後方互換で読める＝グループ内のみ並び替え）。グループ構築は `src/lib/navOrder.ts` の buildNavGroups に共通化し、サイドバー（layout.tsx）と並び替え画面（NavOrderEditor）のドリフトを防止。モジュールに属さない項目は「その他」グループ。dashboard は固定（グループ外）。
+- 状態：実装・出荷済み。
+- 関連：REQ-0015（モジュール基準ナビ）/ REQ-0020（NavIcon）
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
