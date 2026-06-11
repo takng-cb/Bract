@@ -176,9 +176,7 @@ export default function RelatedRecordsPicker({
               >
                 {!row.object_api && <option value="">— オブジェクトを選択 —</option>}
                 {availableForThisRow.map((t) => (
-                  <option key={t.api} value={t.api}>
-                    {t.icon ? `${t.icon} ` : ''}{t.label}
-                  </option>
+                  <option key={t.api} value={t.api}>{t.label}</option>
                 ))}
               </select>
 
