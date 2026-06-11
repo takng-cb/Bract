@@ -86,7 +86,9 @@ $env:SUPABASE_ACCESS_TOKEN="sbp_xxx"; npx tsx scripts/apply-auth-redirect-urls.t
 
 ## 7. 運用の付け替え（リリース直前）
 
-- [ ] **バックアップ**：日次 dump（GitHub Actions）が新 Neon を向くよう secrets 更新＋手動1回実行で確認（#24）。
+- [ ] **バックアップ**：`.github/workflows/backup.yml`（日次 pg_dump→artifact 30日保持）の Secrets
+      `DATABASE_URL_REAL_ESTATE / DATABASE_URL_AUTO_BODY / DATABASE_URL_BASE` を新 Neon に更新し、
+      workflow_dispatch で手動1回実行して成功を確認（#24）。月1リストア・リハーサルは手動。
 - [ ] **デプロイ失敗通知**：Vercel webhook（`/api/webhooks/vercel`）の宛先と secret を本番 project に設定（#25）。
 - [ ] **障害連絡経路**：SLA・通報窓口の合意（#23）。
 - [ ] **法務**：docs/legal/ のレビュー完了確認。
