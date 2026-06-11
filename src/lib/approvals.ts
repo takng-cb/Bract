@@ -188,6 +188,113 @@ export function userIdsInRoute(steps: ApprovalStep[]): string[] {
   return steps.flatMap((s) => s.approvers.filter((a) => a.startsWith('user:')).map((a) => a.slice(5)))
 }
 
+/** book api → 詳細ページ URL（承認一覧・通知ベルで共用） */
+const BOOK_HREF: Record<string, string> = {
+  accounts: '/accounts/', contacts: '/contacts/', opportunities: '/opportunities/',
+  expenses: '/expenses/', products: '/products/', warehouses: '/warehouses/',
+  vehicles: '/vehicles/', customer_vehicles: '/customer-vehicles/', parts: '/parts/',
+  maintenance_records: '/maintenance/', staff: '/staff/', assignments: '/assignments/',
+  properties: '/properties/',
+}
+export function bookRecordHref(api: string, id: string): string {
+  return `${BOOK_HREF[api] ?? `/objects/${api}/`}${id}`
+}
+
+const BOOK_LABEL = new Map(APPROVAL_BOOK_META.map((m) => [m.api, m.label]))
+export function bookLabelOf(api: string): string {
+  return BOOK_LABEL.get(api) ?? api
+}
+
+/** レコード値から人が読める名前を推定（承認の表示用） */
+export function recordDisplayName(values: RecordValues | null): string | null {
+  if (!values) return null
+  for (const key of ['name', 'title', 'maintenance_no', 'assignment_no', 'plate_number', 'full_name']) {
+    const v = values[key]
+    if (typeof v === 'string' && v.trim()) return v
+  }
+  return null
+}
+
+export type ApprovalListItem = {
+  approvalId: string
+  objectType: string
+  bookLabel: string
+  recordLabel: string
+  href: string
+  status: string
+  currentStep: number
+  totalSteps: number
+  requestedBy: string
+  requestedAt: string  // ISO
+  transition: { from?: string; to?: string } | null
+}
+
+/**
+ * 承認一覧（#85 Phase3）:
+ *   toDecide … 自分が現在 step の承認者で未判定の承認待ち
+ *   mine     … 自分が申請したもの（承認待ち＋直近の処理済み）
+ */
+export async function listApprovalsForUser(userId: string, roleName: string): Promise<{
+  toDecide: ApprovalListItem[]
+  mine: ApprovalListItem[]
+}> {
+  const { canDecideStep } = await import('@/lib/approvalRules')
+  const rows = await db.select().from(approvals)
+    .orderBy(desc(approvals.requested_at))
+    .limit(200)
+
+  const pendingIds = rows.filter((r) => r.status === 'pending').map((r) => r.id)
+  const decRows = pendingIds.length
+    ? await db.select({
+        approval_id: approval_decisions.approval_id,
+        step: approval_decisions.step,
+        approver_id: approval_decisions.approver_id,
+        decision: approval_decisions.decision,
+      }).from(approval_decisions).where(inArray(approval_decisions.approval_id, pendingIds))
+    : []
+  const decByApproval = new Map<string, { step: number; approver_id: string; decision: string }[]>()
+  for (const d of decRows) {
+    if (!decByApproval.has(d.approval_id)) decByApproval.set(d.approval_id, [])
+    decByApproval.get(d.approval_id)!.push(d)
+  }
+
+  const toItem = async (a: typeof rows[number]): Promise<ApprovalListItem> => {
+    const route = routeFromSnapshot(a.route_snapshot)
+    const values = await loadRecordValues(a.object_type, a.object_id)
+    const t = a.transition as { from?: string; to?: string } | null
+    return {
+      approvalId: a.id,
+      objectType: a.object_type,
+      bookLabel: bookLabelOf(a.object_type),
+      recordLabel: recordDisplayName(values) ?? `#${a.object_id.slice(0, 8)}`,
+      href: bookRecordHref(a.object_type, a.object_id),
+      status: a.status,
+      currentStep: a.current_step,
+      totalSteps: route.length,
+      requestedBy: a.requested_by,
+      requestedAt: (a.requested_at ?? new Date()).toISOString(),
+      transition: t?.to !== undefined || t?.from !== undefined ? { from: t?.from, to: t?.to } : null,
+    }
+  }
+
+  const toDecide: ApprovalListItem[] = []
+  for (const a of rows) {
+    if (a.status !== 'pending') continue
+    const route = routeFromSnapshot(a.route_snapshot)
+    const step = route[a.current_step - 1]
+    if (!step) continue
+    if (canDecideStep(step, a.current_step, decByApproval.get(a.id) ?? [], userId, roleName)) {
+      toDecide.push(await toItem(a))
+    }
+  }
+
+  const mineRows = rows.filter((a) => a.requested_by === userId)
+  const mine: ApprovalListItem[] = []
+  for (const a of mineRows.slice(0, 30)) mine.push(await toItem(a))
+
+  return { toDecide, mine }
+}
+
 /** 承認設定エディタ用：承認者に指定できるユーザー/ロールの一覧 */
 export async function getApprovalAdminData(): Promise<{
   users: { id: string; email: string }[]

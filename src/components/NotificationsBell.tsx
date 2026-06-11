@@ -73,6 +73,7 @@ export default function NotificationsBell() {
       {open && (
         <div className="absolute right-0 top-full mt-1.5 w-88 max-h-[60vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg z-50 py-1.5">
           <p className="px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">通知</p>
+          {/* 承認の一覧ページへの導線（#85 Phase3） */}
           {pending && items.length === 0 ? (
             <p className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-zinc-400">
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> 読み込み中…
@@ -99,6 +100,15 @@ export default function NotificationsBell() {
               </button>
             ))
           )}
+          <div className="mt-1 border-t border-zinc-100 px-3.5 py-2">
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); go('/approvals') }}
+              className="text-xs font-medium text-blue-600 hover:underline"
+            >
+              承認の一覧を見る →
+            </button>
+          </div>
         </div>
       )}
     </div>

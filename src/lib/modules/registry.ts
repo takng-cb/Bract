@@ -45,6 +45,7 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     navItems: [
       { href: '/activities', label: '活動履歴', icon: '🗓️' },
       { href: '/tasks',      label: 'ToDo',   icon: '✅' },
+      { href: '/approvals',  label: '承認',   icon: '🛡️' },
       { href: '/wiki',       label: 'Wiki',   icon: '📖' },
     ],
     books: [
