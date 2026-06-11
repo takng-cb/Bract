@@ -25,7 +25,8 @@ import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
 import OpportunityBoard, { type BoardColumn } from '@/components/OpportunityBoard'
-import { List as ListIcon, Kanban as KanbanIcon, BarChart3 } from 'lucide-react'
+import MonthCalendar, { type CalendarEvent } from '@/components/MonthCalendar'
+import { List as ListIcon, Kanban as KanbanIcon, BarChart3, CalendarDays } from 'lucide-react'
 import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
@@ -53,7 +54,7 @@ const BOARD_STAGES: { id: string; label: string; dot: string }[] = [
  * ビュー切替トグル（パイプライン / リスト）＋予実リンク。
  * モバイルではラベルを隠してアイコンのみ（横幅あふれによるボタン崩れ防止）。
  */
-function ViewToggle({ view }: { view: 'board' | 'list' }) {
+function ViewToggle({ view }: { view: 'board' | 'list' | 'calendar' }) {
   const base = 'inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-semibold rounded-md transition-colors whitespace-nowrap'
   return (
     <div className="flex items-center gap-2">
@@ -66,6 +67,9 @@ function ViewToggle({ view }: { view: 'board' | 'list' }) {
         </Link>
         <Link href="/opportunities?view=list" title="リスト" className={`${base} ${view === 'list' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
           <ListIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">リスト</span>
+        </Link>
+        <Link href="/opportunities?view=calendar" title="カレンダー" className={`${base} ${view === 'calendar' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+          <CalendarDays className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">カレンダー</span>
         </Link>
       </div>
     </div>
@@ -116,15 +120,18 @@ function buildFilterFields(
 export default async function OpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string; view?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string; view?: string; month?: string }>
 }) {
   await requireBookRead('opportunities')  // RBAC: Read 権限ガード（ADR-0023）
   const sp0 = await searchParams
   const hasListParams = Boolean(sp0.f || sp0.group || sp0.sort || sp0.page)
-  // 既定はパイプライン（カンバン）。view=list か、一覧操作（フィルタ等）時はリスト。
-  const view: 'board' | 'list' = sp0.view === 'list' || (sp0.view !== 'board' && hasListParams) ? 'list' : 'board'
+  // 既定はパイプライン（カンバン）。view 指定が無く一覧操作（フィルタ等）時はリスト。
+  const view: 'board' | 'list' | 'calendar' =
+    sp0.view === 'calendar' ? 'calendar'
+    : sp0.view === 'list' || (sp0.view !== 'board' && hasListParams) ? 'list'
+    : 'board'
 
-  if (view === 'board') {
+  if (view === 'board' || view === 'calendar') {
     // ── パイプラインのフィルタ（リストと同じ f パラメータ・SQL pushdown。view=board は persistParams で保持）──
     const filterRaw = [sp0.f].flat().filter(Boolean) as string[]
     const conditions = parseFilterParams(filterRaw)
@@ -188,16 +195,32 @@ export default async function OpportunitiesPage({
     const weighted = rows.reduce((acc, r) => acc + (r.amount != null && r.probability != null ? Number(r.amount) * Number(r.probability) / 100 : 0), 0)
     const hasFilter = conditions.length > 0
 
+    // カレンダービュー（完了予定日ベース。REQ-0039）
+    const now = new Date()
+    const monthMatch = /^(\d{4})-(\d{2})$/.exec(sp0.month ?? '')
+    const calYear  = monthMatch ? Number(monthMatch[1]) : now.getFullYear()
+    const calMonth = monthMatch ? Number(monthMatch[2]) : now.getMonth() + 1
+    const calendarEvents: CalendarEvent[] = view === 'calendar'
+      ? rows
+          .filter((r) => r.close_date)
+          .map((r) => ({
+            date: String(r.close_date),
+            href: `/opportunities/${r.id}`,
+            label: `${r.name}${r.amount != null ? `（¥${Number(r.amount).toLocaleString()}）` : ''}`,
+            className: STAGE_LABELS[r.stage]?.color ?? 'bg-zinc-100 text-zinc-600',
+          }))
+      : []
+
     return (
       <div className="flex flex-col h-full p-4 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-zinc-900">商談 <span className="ml-1 text-base font-semibold text-zinc-400 tabular-nums">{total}件 · 加重 ¥{Math.round(weighted).toLocaleString()}</span>
+            <h1 className="text-2xl font-bold text-zinc-900">商談 <span className="ml-1 text-base font-semibold text-zinc-400 tabular-nums">{view === 'calendar' ? `${calYear}年${calMonth}月（完了予定日）` : `${total}件 · 加重 ¥${Math.round(weighted).toLocaleString()}`}</span>
               {hasFilter && <span className="ml-1 text-sm font-semibold text-blue-600">（絞り込み中）</span>}
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <ViewToggle view="board" />
+            <ViewToggle view={view} />
             {edit && (
               <Link href="/opportunities/new" title="商談を作成" className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap">
                 <NavIcon icon="💼" className="w-4 h-4" /><span className="hidden sm:inline">商談を作成</span><span className="sm:hidden">作成</span>
@@ -211,9 +234,19 @@ export default async function OpportunitiesPage({
           basePath="/opportunities"
           groupableFields={[]}
           initialGroup=""
-          persistParams={{ view: 'board' }}
+          persistParams={{ view, ...(view === 'calendar' && sp0.month ? { month: sp0.month } : {}) }}
         />
-        <OpportunityBoard columns={columns} canEdit={edit} />
+        {view === 'calendar' ? (
+          <MonthCalendar
+            year={calYear}
+            month={calMonth}
+            events={calendarEvents}
+            basePath="/opportunities"
+            persistParams={{ view: 'calendar', f: filterRaw }}
+          />
+        ) : (
+          <OpportunityBoard columns={columns} canEdit={edit} />
+        )}
       </div>
     )
   }

@@ -18,6 +18,8 @@ import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { NavIcon } from '@/lib/navIcon'
+import MonthCalendar, { type CalendarEvent } from '@/components/MonthCalendar'
+import { List as ListIcon, CalendarDays } from 'lucide-react'
 import { requireBookRead } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
@@ -35,7 +37,7 @@ type SelectRow = {
 export default async function ActivitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string; view?: string; month?: string }>
 }) {
   await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const userIdPromise = getCurrentUserId()
@@ -67,7 +69,7 @@ export default async function ActivitiesPage({
   const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
   const isGrouped  = groupBy.length > 0
 
-  if (filterRaw.length === 0 && groupBy.length === 0) {
+  if (filterRaw.length === 0 && groupBy.length === 0 && !sp.view) {
     if (dv && (dv.filter_params.length > 0 || dv.group_params)) {
       const p = new URLSearchParams()
       dv.filter_params.forEach((f) => p.append('f', f))
@@ -146,6 +148,77 @@ export default async function ActivitiesPage({
 
   const groupableFields = FIELDS.map((f) => ({ key: f.value, label: f.label }))
 
+  // ── カレンダービュー（実施日ベース。REQ-0039）─────────────────────
+  if (sp.view === 'calendar') {
+    const now = new Date()
+    const monthMatch = /^(\d{4})-(\d{2})$/.exec(sp.month ?? '')
+    const calYear  = monthMatch ? Number(monthMatch[1]) : now.getFullYear()
+    const calMonth = monthMatch ? Number(monthMatch[2]) : now.getMonth() + 1
+
+    // occurred_at は timestamptz。日本時間の日付に丸めてカレンダーに割り当てる
+    const jstDate = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+    const events: CalendarEvent[] = sorted
+      .filter((a) => a.occurred_at)
+      .map((a) => ({
+        date: jstDate(new Date(a.occurred_at!)),
+        href: `/activities/${a.id}`,
+        label: a.subject,
+        className: TYPE_CONFIG[a.type]?.color ?? 'bg-zinc-50 text-zinc-700',
+      }))
+
+    const toggleHref = (v: string) => {
+      const p = new URLSearchParams()
+      if (v === 'calendar') p.set('view', 'calendar')
+      filterRaw.forEach((f) => p.append('f', f))
+      const qs = p.toString()
+      return qs ? `/activities?${qs}` : '/activities'
+    }
+
+    return (
+      <div className="p-4 md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-zinc-900">活動履歴</h1>
+            <p className="text-sm text-zinc-500 mt-1">
+              {calYear}年{calMonth}月（実施日ベース）
+              {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-0.5 rounded-md border border-zinc-200 bg-zinc-100 p-0.5">
+              <Link href={toggleHref('list')} title="リスト" className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-semibold rounded-md text-zinc-600 whitespace-nowrap">
+                <ListIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">リスト</span>
+              </Link>
+              <Link href={toggleHref('calendar')} title="カレンダー" className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-semibold rounded-md bg-white text-zinc-900 shadow-xs whitespace-nowrap">
+                <CalendarDays className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">カレンダー</span>
+              </Link>
+            </div>
+            {edit && (
+              <Link href="/activities/new" className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap">
+                ＋ 新規作成
+              </Link>
+            )}
+          </div>
+        </div>
+        <ListViewToolbar
+          fields={FIELDS}
+          initialFilters={filterRaw}
+          basePath="/activities"
+          groupableFields={[]}
+          initialGroup=""
+          persistParams={{ view: 'calendar', ...(sp.month ? { month: sp.month } : {}) }}
+        />
+        <MonthCalendar
+          year={calYear}
+          month={calMonth}
+          events={events}
+          basePath="/activities"
+          persistParams={{ view: 'calendar', f: filterRaw }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4">
@@ -156,7 +229,19 @@ export default async function ActivitiesPage({
             {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="inline-flex items-center gap-0.5 rounded-md border border-zinc-200 bg-zinc-100 p-0.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-semibold rounded-md bg-white text-zinc-900 shadow-xs whitespace-nowrap">
+              <ListIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">リスト</span>
+            </span>
+            <Link
+              href={`/activities?view=calendar${filterRaw.map((f) => `&f=${encodeURIComponent(f)}`).join('')}`}
+              title="カレンダー"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-semibold rounded-md text-zinc-600 whitespace-nowrap"
+            >
+              <CalendarDays className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">カレンダー</span>
+            </Link>
+          </div>
           <CsvToolbar
             exportUrl="/api/export/activities"
             importUrl="/api/import/activities"
