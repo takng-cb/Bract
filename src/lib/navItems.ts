@@ -75,19 +75,23 @@ export const SYSTEM_SETTINGS_ITEM: NavItem = { href: '/settings/system', label: 
  * 設定ハブ（/settings）から遷移する管理画面の一覧。
  * すべて管理者専用ページ。AI 設定は AI 機能が有効な場合のみ表示。
  */
-export type AdminLink = { href: string; label: string; icon: string; desc: string; aiGated?: boolean }
+export type AdminLink = {
+  href: string; label: string; icon: string; desc: string; aiGated?: boolean
+  /** true = サービス提供者（運営）向けの設定。テナント管理者の日常設定とはハブで分けて表示する */
+  provider?: boolean
+}
 export const ADMIN_LINKS: AdminLink[] = [
-  { href: '/admin/modules',       label: 'モジュール構成',   icon: '🧩',  desc: '機能モジュールの有効/無効' },
-  { href: '/admin/objects',       label: 'オブジェクト管理', icon: '🗂️', desc: 'オブジェクト・フィールド・並び順' },
-  { href: '/admin/relationships', label: '関係性管理',       icon: '🔗',  desc: 'オブジェクト間のリレーション' },
+  { href: '/admin/objects',       label: 'ブック/モジュール管理', icon: '🗂️', desc: 'モジュールの有効/無効・ブック・フィールド・並び順' },
+  { href: '/admin/relationships', label: '関係性管理',       icon: '🔗',  desc: 'ブック間のリレーション' },
   { href: '/admin/users',         label: 'ユーザー管理',     icon: '👥',  desc: '権限・パスワード・削除' },
   { href: '/tags',                label: 'タグ管理',         icon: '🏷️', desc: 'タグの作成・整理' },
   { href: '/admin/ai',            label: 'AI 設定',          icon: '🤖',  desc: 'プロバイダ・APIキー・プロンプト', aiGated: true },
   { href: '/admin/notifications', label: '通知設定',         icon: '🔔',  desc: '外部通知チャンネル' },
-  { href: '/admin/license',       label: 'ライセンス',       icon: '🎫',  desc: '契約状態・機能フラグ' },
   { href: '/admin/system',        label: '全般設定',         icon: '🛠️', desc: '会社情報・パスワード・危険操作' },
   { href: '/admin/import-logs',   label: 'インポートログ',   icon: '📥',  desc: 'CSV取込の実行履歴' },
   { href: '/admin/audit-log',     label: '監査ログ',         icon: '📝',  desc: '全社の変更履歴' },
+  // ── サービス提供者（運営）向け：契約・プラン・利用上限はテナント側で触らない ──
+  { href: '/admin/license',       label: 'ライセンス',       icon: '🎫',  desc: '契約状態・プラン・機能フラグ（提供者が設定）', provider: true },
 ]
 
 /** デフォルト順序（hrefs配列） */
