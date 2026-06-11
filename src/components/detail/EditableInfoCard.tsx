@@ -30,21 +30,28 @@ export type EditField = {
   section?: string
 }
 
-const INPUT = 'w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none'
+const INPUT = 'w-full rounded-md border px-2 py-1.5 text-sm focus:outline-none transition-colors'
+// 初期値から変わっていない時 / 変わった時 のボーダー＆背景（PC・モバイル共通）
+const CLEAN = 'border-zinc-300 bg-white focus:border-blue-400'
+const DIRTY = 'border-amber-400 bg-amber-50 focus:border-amber-500'
 
 function FieldInput({ f }: { f: EditField }) {
+  const initial = f.value ?? ''
+  const [val, setVal] = useState(initial)
   if (!f.name) return <div className="text-sm text-zinc-700">{f.view}</div>
-  const v = f.value ?? ''
-  if (f.kind === 'textarea') return <textarea name={f.name} defaultValue={v} rows={3} className={INPUT} />
+  const dirty = val !== initial
+  const cls = `${INPUT} ${dirty ? DIRTY : CLEAN}`
+  if (f.kind === 'textarea')
+    return <textarea name={f.name} value={val} onChange={(e) => setVal(e.target.value)} rows={3} className={cls} />
   if (f.kind === 'select')
     return (
-      <select name={f.name} defaultValue={v} className={INPUT}>
+      <select name={f.name} value={val} onChange={(e) => setVal(e.target.value)} className={cls}>
         <option value="">—</option>
         {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     )
   const type = f.kind === 'email' ? 'email' : f.kind === 'tel' ? 'tel' : f.kind === 'date' ? 'date' : f.kind === 'datetime' ? 'datetime-local' : f.kind === 'number' ? 'number' : 'text'
-  return <input type={type} name={f.name} defaultValue={v} className={INPUT} />
+  return <input type={type} name={f.name} value={val} onChange={(e) => setVal(e.target.value)} className={cls} />
 }
 
 /** フィールドを順序を保ったままセクション単位にまとめる（section 未指定は 1 グループ）。 */
