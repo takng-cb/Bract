@@ -40,7 +40,7 @@ const BOOK_HREF: Record<string, string> = {
   maintenance_records: '/maintenance/', staff: '/staff/', assignments: '/assignments/',
   properties: '/properties/',
 }
-const bookHref = (api: string, id: string) => `${BOOK_HREF[api] ?? `/objects/${api}/`}${id}`
+const bookHref = (api: string, id: string) => `${BOOK_HREF[api] ?? `/books/${api}/`}${id}`
 const BOOK_LABEL = new Map(APPROVAL_BOOK_META.map((m) => [m.api, m.label]))
 
 /** レコード値から人が読める名前を推定（承認通知のラベル用） */

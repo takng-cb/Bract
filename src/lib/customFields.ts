@@ -2,7 +2,7 @@
  * 組み込みオブジェクト用カスタムフィールド値の読み書きユーティリティ
  */
 import { db } from '@/lib/db'
-import { custom_field_values, field_definitions, object_definitions } from '@/lib/schema'
+import { custom_field_values, book_fields, book_definitions } from '@/lib/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import type { FieldDef } from '@/lib/objectMetadata'
 
@@ -29,7 +29,7 @@ export async function getCustomFieldValues(
 }
 
 /**
- * object_api_name から field_definitions を取得し、
+ * object_api_name から book_fields を取得し、
  * record_id に紐づくカスタムフィールド値を合わせて返す
  */
 export async function getCustomFieldsWithValues(
@@ -37,19 +37,19 @@ export async function getCustomFieldsWithValues(
   recordId: string,
 ): Promise<{ fields: FieldDef[]; values: Record<string, string | null> }> {
   // object_definition を api_name で取得（1クエリ目のみ必要）
-  const objRows = await db.select({ id: object_definitions.id })
-    .from(object_definitions)
-    .where(eq(object_definitions.api_name, objectApiName))
+  const objRows = await db.select({ id: book_definitions.id })
+    .from(book_definitions)
+    .where(eq(book_definitions.api_name, objectApiName))
   const obj = objRows[0]
   if (!obj) return { fields: [], values: {} }
 
-  // field_definitions と custom_field_values を並列取得
+  // book_fields と custom_field_values を並列取得
   // recordId が空（新規作成画面など）なら値クエリは省略
   const [fields, valueRows] = await Promise.all([
     db.select()
-      .from(field_definitions)
-      .where(eq(field_definitions.object_id, obj.id))
-      .orderBy(field_definitions.sort_order, field_definitions.created_at),
+      .from(book_fields)
+      .where(eq(book_fields.object_id, obj.id))
+      .orderBy(book_fields.sort_order, book_fields.created_at),
     recordId
       ? db.select({
           field_id: custom_field_values.field_id,

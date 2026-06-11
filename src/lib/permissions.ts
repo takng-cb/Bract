@@ -110,7 +110,7 @@ export async function requireBookRead(bookApi: string): Promise<void> {
 
 /**
  * ナビ href → book_api の対応（Read 権限によるサイドバー/検索のフィルタに使用）。
- * カスタムブックは /objects/<api> 形式なので動的に解決する。
+ * カスタムブックは /books/<api> 形式なので動的に解決する。
  */
 export const HREF_BOOK: Record<string, string> = {
   '/accounts': 'accounts',
@@ -135,7 +135,7 @@ export const HREF_BOOK: Record<string, string> = {
   '/invoices': 'assignments',  // 売上・請求は案件の付帯（RBAC は assignments に従う）
 }
 
-/** href から book_api を解決（カスタムは /objects/<api>） */
+/** href から book_api を解決（カスタムは /books/<api>） */
 export function bookForHref(href: string): string | null {
   if (HREF_BOOK[href]) return HREF_BOOK[href]
   const m = href.match(/^\/objects\/([^/]+)/)

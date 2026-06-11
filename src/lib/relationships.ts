@@ -5,11 +5,11 @@
  * サーバー側 (Server Component / Server Action) でのみ使用。
  *
  * 組み込みオブジェクト（accounts / contacts / opportunities）は専用テーブルを参照。
- * それ以外はカスタムオブジェクト（custom_records + object_definitions）を参照。
+ * それ以外はカスタムオブジェクト（book_records + book_definitions）を参照。
  */
 
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, object_definitions, custom_records } from '@/lib/schema'
+import { accounts, contacts, opportunities, book_definitions, book_records } from '@/lib/schema'
 import { inArray, eq, and } from 'drizzle-orm'
 
 export type ResolvedRecord = {
@@ -49,11 +49,11 @@ export async function resolveRecords(
     }
 
     default: {
-      // カスタムオブジェクト（properties など）→ custom_records を参照
+      // カスタムオブジェクト（properties など）→ book_records を参照
       const objRows = await db
-        .select({ id: object_definitions.id })
-        .from(object_definitions)
-        .where(eq(object_definitions.api_name, objectType))
+        .select({ id: book_definitions.id })
+        .from(book_definitions)
+        .where(eq(book_definitions.api_name, objectType))
         .limit(1)
 
       if (objRows.length === 0) {
@@ -63,18 +63,18 @@ export async function resolveRecords(
 
       const objectId = objRows[0].id
       const rows = await db
-        .select({ id: custom_records.id, data: custom_records.data })
-        .from(custom_records)
+        .select({ id: book_records.id, data: book_records.data })
+        .from(book_records)
         .where(and(
-          eq(custom_records.object_id, objectId),
-          inArray(custom_records.id, ids),
+          eq(book_records.object_id, objectId),
+          inArray(book_records.id, ids),
         ))
 
       return rows.map((r) => ({
         id:    r.id,
         label: String(r.data.name ?? r.data.title ?? r.id),
         sub:   r.data.status ? String(r.data.status) : undefined,
-        href:  `/objects/${objectType}/${r.id}`,
+        href:  `/books/${objectType}/${r.id}`,
       }))
     }
   }
@@ -96,9 +96,9 @@ export async function getSelectableObjectTypes(): Promise<{ value: string; label
   const builtin = Object.entries(OBJECT_TYPE_LABELS).map(([value, label]) => ({ value, label }))
 
   const customObjs = await db
-    .select({ api_name: object_definitions.api_name, label: object_definitions.label })
-    .from(object_definitions)
-    .where(eq(object_definitions.is_builtin, false))
+    .select({ api_name: book_definitions.api_name, label: book_definitions.label })
+    .from(book_definitions)
+    .where(eq(book_definitions.is_builtin, false))
 
   const custom = customObjs.map((o) => ({ value: o.api_name, label: o.label }))
 

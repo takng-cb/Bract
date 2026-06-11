@@ -10,7 +10,7 @@
  *   （例: auto-body デプロイでは properties は検索されない）。
  * - **全テキスト項目**の ILIKE 部分一致（住所・電話・備考なども対象。textColumnsWhere が
  *   テーブルのテキストカラムを自動収集するため、カラム追加にも自動追従）。各グループ最大 6 件。
- * - カスタムブックは custom_records.data（JSON）全体を ::text で部分一致検索する。
+ * - カスタムブックは book_records.data（JSON）全体を ::text で部分一致検索する。
  * - typed テーブルの id をそのまま詳細 URL に使うため、リンク先は確実に解決する。
  */
 import { db } from '@/lib/db'
@@ -18,7 +18,7 @@ import {
   accounts, contacts, opportunities, expenses,
   vehicles, customer_vehicles, parts, maintenance_records,
   products, warehouses, staff, assignments, wiki_pages,
-  object_definitions, custom_records,
+  book_definitions, book_records,
 } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
@@ -149,16 +149,16 @@ export async function globalSearch(qRaw: string): Promise<SearchGroup[]> {
   // ── カスタムブック（data JSON 全体を部分一致） ───────────
   // typed テーブルで検索済みの api（ミラー行）は除外して重複ヒットを防ぐ。
   const customDefs = await db.select({
-    id: object_definitions.id, api_name: object_definitions.api_name,
-    label_plural: object_definitions.label_plural, icon: object_definitions.icon,
-  }).from(object_definitions).where(eq(object_definitions.is_builtin, false))
+    id: book_definitions.id, api_name: book_definitions.api_name,
+    label_plural: book_definitions.label_plural, icon: book_definitions.icon,
+  }).from(book_definitions).where(eq(book_definitions.is_builtin, false))
   const searchableDefs = customDefs.filter((o) => !TYPED_APIS.has(o.api_name))
   if (searchableDefs.length > 0) {
-    const rows = await db.select({ id: custom_records.id, object_id: custom_records.object_id, data: custom_records.data })
-      .from(custom_records)
+    const rows = await db.select({ id: book_records.id, object_id: book_records.object_id, data: book_records.data })
+      .from(book_records)
       .where(and(
-        inArray(custom_records.object_id, searchableDefs.map((o) => o.id)),
-        sql`${custom_records.data}::text ILIKE ${p}`,
+        inArray(book_records.object_id, searchableDefs.map((o) => o.id)),
+        sql`${book_records.data}::text ILIKE ${p}`,
       ))
       .limit(PER_GROUP * 4)
     for (const obj of searchableDefs) {
@@ -168,7 +168,7 @@ export async function globalSearch(qRaw: string): Promise<SearchGroup[]> {
         .map((r) => {
           const d = (r.data ?? {}) as Record<string, unknown>
           const label = (typeof d.name === 'string' && d.name) || (typeof d.title === 'string' && d.title) || `#${r.id.slice(0, 8)}`
-          return { id: r.id, label, href: `/objects/${obj.api_name}/${r.id}` }
+          return { id: r.id, label, href: `/books/${obj.api_name}/${r.id}` }
         })
       if (hits.length) groups.push({ type: `objects:${obj.api_name}`, label: obj.label_plural, icon: obj.icon, hits })
     }

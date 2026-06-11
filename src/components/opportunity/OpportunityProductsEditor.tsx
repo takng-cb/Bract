@@ -37,7 +37,7 @@ function hrefForLine(l: ProductLine): string | null {
   if (api === 'part' || api === 'parts') return `/parts/${l.product_record_id}`
   if (api === 'vehicles') return `/vehicles/${l.product_record_id}`
   if (api === 'properties') return `/properties/${l.product_record_id}`
-  return `/objects/${api}/${l.product_record_id}`
+  return `/books/${api}/${l.product_record_id}`
 }
 
 export default function OpportunityProductsEditor({

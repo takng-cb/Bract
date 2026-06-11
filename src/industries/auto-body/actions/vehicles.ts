@@ -60,7 +60,7 @@ export async function createVehicle(formData: FormData): Promise<string> {
     owner_id:             ownerId,
   }).returning({ id: vehicles.id })
 
-  // custom_records ミラー（activities/tasks/expenses 等の関連先表示用）
+  // book_records ミラー（activities/tasks/expenses 等の関連先表示用）
   await syncVehicleToCustomRecord({
     id: row.id, maker, model,
     year: i(formData, 'year'),
@@ -107,7 +107,7 @@ export async function updateVehicle(id: string, formData: FormData) {
   }
   await db.update(vehicles).set(next).where(eq(vehicles.id, id))
 
-  // custom_records ミラーを更新
+  // book_records ミラーを更新
   await syncVehicleToCustomRecord({
     id,
     maker:         next.maker,
@@ -150,7 +150,7 @@ export async function updateVehicle(id: string, formData: FormData) {
 /**
  * インライン編集用・部分更新。送信されたフィールドだけを更新する（formData.has 判定）。
  * maker/model は必須のため、空送信時は更新しない（NOT NULL を壊さない）。
- * custom_records ミラーは保存ごとに全行から再同期する。
+ * book_records ミラーは保存ごとに全行から再同期する。
  */
 export async function updateVehicleBasic(id: string, formData: FormData) {
   await requirePermission('vehicles', 'update')
@@ -182,7 +182,7 @@ export async function updateVehicleBasic(id: string, formData: FormData) {
   redirect(`/vehicles/${id}`)
 }
 
-/** ステータスのみ更新（矢羽根 StageBar 用）。custom_records ミラーも同期 */
+/** ステータスのみ更新（矢羽根 StageBar 用）。book_records ミラーも同期 */
 export async function setVehicleStatus(id: string, status: string) {
   await requirePermission('vehicles', 'update')
   await db.update(vehicles).set({ status, updated_at: new Date() }).where(eq(vehicles.id, id))
@@ -200,7 +200,7 @@ export async function deleteVehicle(id: string) {
   await requirePermission('vehicles', 'delete')
   await trashRecord('vehicles', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(vehicles).where(eq(vehicles.id, id))
-  // custom_records ミラー側も削除（cascade ではないので明示的に）
+  // book_records ミラー側も削除（cascade ではないので明示的に）
   await deleteVehicleCustomRecord(id)
   redirect('/vehicles')
 }

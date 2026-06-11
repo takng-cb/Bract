@@ -8,7 +8,7 @@
 import 'server-only'
 import { db } from '@/lib/db'
 import {
-  approvals, approval_decisions, system_settings, users, roles, object_definitions, custom_records,
+  approvals, approval_decisions, system_settings, users, roles, book_definitions, book_records,
   accounts, contacts, opportunities, expenses, products, warehouses,
   vehicles, customer_vehicles, parts, maintenance_records, staff, assignments,
 } from '@/lib/schema'
@@ -60,7 +60,7 @@ function idColumn(table: PgTable) {
 
 /**
  * 承認のルール評価に使うレコード値を取得する。
- * 全 typed ブック（TABLE_BY_API）＋全カスタムブック（custom_records.data）に対応。
+ * 全 typed ブック（TABLE_BY_API）＋全カスタムブック（book_records.data）に対応。
  */
 export async function loadRecordValues(objectType: string, objectId: string): Promise<RecordValues | null> {
   const table = TABLE_BY_API[objectType]
@@ -69,14 +69,14 @@ export async function loadRecordValues(objectType: string, objectId: string): Pr
     return (r as RecordValues | null) ?? null
   }
   // カスタムブック：data JSON をそのまま条件評価に使う
-  const obj = await db.select({ id: object_definitions.id })
-    .from(object_definitions)
-    .where(eq(object_definitions.api_name, objectType))
+  const obj = await db.select({ id: book_definitions.id })
+    .from(book_definitions)
+    .where(eq(book_definitions.api_name, objectType))
     .then((r) => r[0] ?? null)
   if (!obj) return null
-  const rec = await db.select({ data: custom_records.data })
-    .from(custom_records)
-    .where(and(eq(custom_records.id, objectId), eq(custom_records.object_id, obj.id)))
+  const rec = await db.select({ data: book_records.data })
+    .from(book_records)
+    .where(and(eq(book_records.id, objectId), eq(book_records.object_id, obj.id)))
     .then((r) => r[0] ?? null)
   return (rec?.data as RecordValues | null) ?? null
 }
@@ -101,19 +101,19 @@ export async function applyFieldChange(
     if (cols.updated_at) set.updated_at = new Date()
     await db.update(table).set(set).where(eq(idColumn(table), objectId))
   } else {
-    const obj = await db.select({ id: object_definitions.id })
-      .from(object_definitions).where(eq(object_definitions.api_name, objectType))
+    const obj = await db.select({ id: book_definitions.id })
+      .from(book_definitions).where(eq(book_definitions.api_name, objectType))
       .then((r) => r[0] ?? null)
     if (!obj) throw new Error(`ブック ${objectType} が見つかりません`)
-    const rec = await db.select({ data: custom_records.data })
-      .from(custom_records)
-      .where(and(eq(custom_records.id, objectId), eq(custom_records.object_id, obj.id)))
+    const rec = await db.select({ data: book_records.data })
+      .from(book_records)
+      .where(and(eq(book_records.id, objectId), eq(book_records.object_id, obj.id)))
       .then((r) => r[0] ?? null)
     if (!rec) throw new Error('レコードが見つかりません')
     const data = { ...(rec.data as Record<string, unknown> ?? {}), [field]: value }
-    await db.update(custom_records)
+    await db.update(book_records)
       .set({ data, updated_at: new Date() })
-      .where(eq(custom_records.id, objectId))
+      .where(eq(book_records.id, objectId))
   }
   await logChanges(LOG_TYPE_BY_API[objectType] ?? objectType, objectId,
     { [field]: { label: fieldLabel, value: beforeValue } },
@@ -197,7 +197,7 @@ const BOOK_HREF: Record<string, string> = {
   properties: '/properties/',
 }
 export function bookRecordHref(api: string, id: string): string {
-  return `${BOOK_HREF[api] ?? `/objects/${api}/`}${id}`
+  return `${BOOK_HREF[api] ?? `/books/${api}/`}${id}`
 }
 
 const BOOK_LABEL = new Map(APPROVAL_BOOK_META.map((m) => [m.api, m.label]))
@@ -312,10 +312,10 @@ export async function getApprovalAdminData(): Promise<{
 export async function getApprovalBooks(): Promise<ApprovalBookMetaResolved[]> {
   const typedApis = new Set(APPROVAL_BOOK_META.map((m) => m.api))
   const customs = await db.select({
-    api_name: object_definitions.api_name, label_plural: object_definitions.label_plural,
-  }).from(object_definitions)
-    .where(eq(object_definitions.is_builtin, false))
-    .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label_plural))
+    api_name: book_definitions.api_name, label_plural: book_definitions.label_plural,
+  }).from(book_definitions)
+    .where(eq(book_definitions.is_builtin, false))
+    .orderBy(asc(book_definitions.sort_order), asc(book_definitions.label_plural))
   return [
     ...APPROVAL_BOOK_META,
     ...customs

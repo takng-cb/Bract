@@ -37,7 +37,7 @@ export type QuickBook = {
   listHref: string
   /** 新規作成（手動）への遷移先 */
   newHref: string
-  /** custom_records ベース（field_definitions 駆動）なら true → 汎用AI作成が可能 */
+  /** book_records ベース（book_fields 駆動）なら true → 汎用AI作成が可能 */
   custom: boolean
   /** ウィザードの AI 作成（テキスト/画像/URL→確認→作成）に対応するブックか（#49） */
   aiCreate: boolean
@@ -73,7 +73,7 @@ const VIEW_ONLY_BOOKS = new Set(['forecast'])
 /**
  * 有効モジュール群 → 「モジュール → ブック」ツリー。
  * listHref/newHref は各モジュールの navItems（label 一致）から解決し、
- * 無ければカスタムオブジェクト規約 `/objects/<apiName>` にフォールバックする。
+ * 無ければカスタムオブジェクト規約 `/books/<apiName>` にフォールバックする。
  */
 export function buildModuleBooks(modules: ModuleManifest[]): QuickModule[] {
   return [...modules]
@@ -83,8 +83,8 @@ export function buildModuleBooks(modules: ModuleManifest[]): QuickModule[] {
       const firstNavIcon = m.navItems?.[0]?.icon
       const books: QuickBook[] = (m.books ?? []).map((b) => {
         const nav = m.navItems?.find((n) => n.label === b.label)
-        const listHref = nav?.href ?? `/objects/${b.apiName}`
-        const custom = listHref.startsWith('/objects/')
+        const listHref = nav?.href ?? `/books/${b.apiName}`
+        const custom = listHref.startsWith('/books/')
         return {
           apiName: b.apiName,
           label: b.label,

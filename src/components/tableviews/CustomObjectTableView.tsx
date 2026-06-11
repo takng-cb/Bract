@@ -42,7 +42,7 @@ export default function CustomObjectTableView({
         const name = String(r.name ?? r.title ?? r.id ?? '—')
         return (
           <Link
-            href={`/objects/${objectApiName}/${r.id}`}
+            href={`/books/${objectApiName}/${r.id}`}
             className="font-medium text-zinc-900 hover:text-blue-600"
           >
             {name}

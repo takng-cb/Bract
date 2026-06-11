@@ -7,8 +7,8 @@ import { db } from '@/lib/db'
 import {
   activities,
   activity_related_records,
-  object_definitions,
-  custom_records,
+  book_definitions,
+  book_records,
 } from '@/lib/schema'
 import { eq, inArray, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -148,7 +148,7 @@ export async function createActivity(formData: FormData) {
   if (firstContact) redirect(`/contacts/${firstContact.record_id}`)
   const firstOpportunity = selections.find((s) => s.object_api === 'opportunity')
   if (firstOpportunity) redirect(`/opportunities/${firstOpportunity.record_id}`)
-  // カスタムオブジェクトの場合: api_name + record_id で /objects/<api>/<id> に遷移
+  // カスタムオブジェクトの場合: api_name + record_id で /books/<api>/<id> に遷移
   const firstCustom = selections.find((s) => !['account', 'contact', 'opportunity'].includes(s.object_api))
   if (firstCustom) redirect(recordHref(firstCustom.object_api, firstCustom.record_id))
   redirect('/activities')
@@ -185,7 +185,7 @@ export async function quickCreateActivity(formData: FormData) {
  *
  * 標準オブジェクトの label は accounts.name / contacts.full_name /
  * opportunities.name から取得。カスタムオブジェクトの label は
- * custom_records.data の name/title フィールドから抽出（既存ロジック踏襲）。
+ * book_records.data の name/title フィールドから抽出（既存ロジック踏襲）。
  */
 export async function getRelatedRecordsForActivities(activityIds: string[]) {
   if (activityIds.length === 0) return {} as Record<string, Record<string, { id: string; label: string }[]>>
@@ -200,7 +200,7 @@ export async function getRelatedRecordsForActivities(activityIds: string[]) {
   // 標準オブジェクトのラベル取得（一回で SQL 投げる必要があるが、簡潔さ重視で別途実装）
   // ここでは API のみ返し、ラベル解決は呼び出し側で行う想定にしておく
   // 必要に応じてあとで JOIN ベースに最適化する
-  void object_definitions; void custom_records  // imports 抑制（後続実装でフル解決を行う際に使う）
+  void book_definitions; void book_records  // imports 抑制（後続実装でフル解決を行う際に使う）
   void and
   const grouped: Record<string, Record<string, { id: string; label: string }[]>> = {}
   for (const r of rows) {

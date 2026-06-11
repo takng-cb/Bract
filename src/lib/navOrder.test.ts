@@ -37,7 +37,7 @@ const workspace: ModuleManifest = {
 const noNav: ModuleManifest = { id: 'empty', name: '空', category: 'erp' }
 
 const customItems: NavItem[] = [
-  { href: '/objects/reservations', label: '予約', icon: '📅' },
+  { href: '/books/reservations', label: '予約', icon: '📅' },
 ]
 
 describe('parseNavOrder（保存文字列のパース）', () => {
@@ -81,14 +81,14 @@ describe('buildNavGroups（モジュール → ナビグループ構築）', () 
     const groups = buildNavGroups([crmCore], customItems)
     const other = groups.find((g) => g.id === OTHER_GROUP_ID)
     expect(other).toBeDefined()
-    expect(other!.items.map((i) => i.href)).toEqual(['/objects/reservations'])
+    expect(other!.items.map((i) => i.href)).toEqual(['/books/reservations'])
   })
 
   it('モジュールと重複する extraItems は「その他」に出ない', () => {
     const dup: NavItem[] = [{ href: '/accounts', label: '取引先', icon: '🏢' }, ...customItems]
     const groups = buildNavGroups([crmCore], dup)
     const other = groups.find((g) => g.id === OTHER_GROUP_ID)
-    expect(other!.items.map((i) => i.href)).toEqual(['/objects/reservations'])
+    expect(other!.items.map((i) => i.href)).toEqual(['/books/reservations'])
   })
 
   it('extraItems が空ならその他グループ自体が無い', () => {

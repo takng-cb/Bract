@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { custom_records, object_definitions } from '@/lib/schema'
+import { book_records, book_definitions } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import ExpenseForm from '@/components/ExpenseForm'
 import Breadcrumbs from '@/components/Breadcrumbs'
@@ -38,12 +38,12 @@ export default async function NewExpensePage({
   let customDefault: { api: string; record_id: string } | null = null
   if (custom_record_id) {
     const row = await db.select({
-      object_id: custom_records.object_id,
-      api_name:  object_definitions.api_name,
+      object_id: book_records.object_id,
+      api_name:  book_definitions.api_name,
     })
-      .from(custom_records)
-      .innerJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
-      .where(eq(custom_records.id, custom_record_id))
+      .from(book_records)
+      .innerJoin(book_definitions, eq(book_records.object_id, book_definitions.id))
+      .where(eq(book_records.id, custom_record_id))
       .then((r) => r[0] ?? null)
     if (row) customDefault = { api: row.api_name, record_id: custom_record_id }
   }

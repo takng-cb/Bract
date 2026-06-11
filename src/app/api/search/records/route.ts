@@ -6,12 +6,12 @@
  * - ids= 指定時はその ID 群のレコードを返す（既選択のラベル解決用）。
  * - 対応 objectType:
  *     accounts/account, contacts/contact, opportunities/opportunity,
- *     maintenance(整備), customer-vehicle(顧客車両), その他=カスタム（custom_records）
+ *     maintenance(整備), customer-vehicle(顧客車両), その他=カスタム（book_records）
  * - RBAC: 対象ブックの Read 権限が無い場合は 403（ADR-0023）。
  */
 import { db } from '@/lib/db'
 import {
-  accounts, contacts, opportunities, object_definitions, custom_records,
+  accounts, contacts, opportunities, book_definitions, book_records,
   maintenance_records, customer_vehicles,
 } from '@/lib/schema'
 import { ilike, notInArray, inArray, and, or, eq, desc, sql, type SQL } from 'drizzle-orm'
@@ -179,27 +179,27 @@ export async function GET(req: NextRequest) {
       }
 
       default: {
-        // カスタムオブジェクト：custom_records.data の name/title を DB 側でフィルタ
+        // カスタムオブジェクト：book_records.data の name/title を DB 側でフィルタ
         const objRows = await db
-          .select({ id: object_definitions.id, label: object_definitions.label })
-          .from(object_definitions)
-          .where(eq(object_definitions.api_name, objectType))
+          .select({ id: book_definitions.id, label: book_definitions.label })
+          .from(book_definitions)
+          .where(eq(book_definitions.api_name, objectType))
           .limit(1)
         if (objRows.length === 0) {
           return NextResponse.json({ error: 'Unknown objectType' }, { status: 400 })
         }
         const objectId = objRows[0].id
         const conds: (SQL | undefined)[] = [
-          eq(custom_records.object_id, objectId),
-          q ? sql`((${custom_records.data}->>'name') ILIKE ${pattern} OR (${custom_records.data}->>'title') ILIKE ${pattern})` : undefined,
-          excludeIds.length > 0 ? notInArray(custom_records.id, excludeIds) : undefined,
-          ids.length > 0 ? inArray(custom_records.id, ids) : undefined,
+          eq(book_records.object_id, objectId),
+          q ? sql`((${book_records.data}->>'name') ILIKE ${pattern} OR (${book_records.data}->>'title') ILIKE ${pattern})` : undefined,
+          excludeIds.length > 0 ? notInArray(book_records.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(book_records.id, ids) : undefined,
         ]
         const rows = await db
-          .select({ id: custom_records.id, data: custom_records.data })
-          .from(custom_records)
+          .select({ id: book_records.id, data: book_records.data })
+          .from(book_records)
           .where(and(...conds.filter(Boolean) as SQL[]))
-          .orderBy(desc(custom_records.updated_at))
+          .orderBy(desc(book_records.updated_at))
           .limit(limit)
         results = rows.map((r) => {
           const d = (r.data ?? {}) as Record<string, unknown>

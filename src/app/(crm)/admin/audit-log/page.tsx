@@ -31,7 +31,7 @@ const OBJECT_TYPE_META: Record<string, { label: string; href?: (id: string) => s
   property:      { label: '物件',    href: (id) => `/properties/${id}` },
   vehicle:       { label: '車両',    href: (id) => `/vehicles/${id}` },
   part:          { label: '部品',    href: (id) => `/parts/${id}` },
-  custom_record: { label: 'カスタム', href: (id) => `/objects/_/${id}` },
+  custom_record: { label: 'カスタム', href: (id) => `/books/_/${id}` },
 }
 
 function truncate(s: string | null, maxLen = 80): string {

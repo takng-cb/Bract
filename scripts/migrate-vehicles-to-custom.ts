@@ -1,5 +1,5 @@
 /**
- * vehicles テーブルの既存データを custom_records にミラーする一度きりの移行スクリプト。
+ * vehicles テーブルの既存データを book_records にミラーする一度きりの移行スクリプト。
  *
  * 想定:
  *   - auto-body Neon でのみ実行
@@ -31,15 +31,15 @@ function vehicleLabel(v: { maker: string; model: string; year: number | null; li
 }
 
 async function main() {
-  // 1. object_definitions に vehicles 行が存在するか確認
-  const objs = await sql`SELECT id FROM object_definitions WHERE api_name = 'vehicles' LIMIT 1`
+  // 1. book_definitions に vehicles 行が存在するか確認
+  const objs = await sql`SELECT id FROM book_definitions WHERE api_name = 'vehicles' LIMIT 1`
   if (objs.length === 0) {
-    console.error('❌ object_definitions に vehicles 行がありません。')
+    console.error('❌ book_definitions に vehicles 行がありません。')
     console.error('   先に scripts/seed-auto-body.ts を実行してマスタを投入してください。')
     process.exit(1)
   }
   const objectId = objs[0].id as string
-  console.log(`✓ object_definitions[vehicles] = ${objectId}`)
+  console.log(`✓ book_definitions[vehicles] = ${objectId}`)
 
   // 2. vehicles テーブルから全件取得
   const allVehicles = await sql`
@@ -52,7 +52,7 @@ async function main() {
   }>
   console.log(`\n📋 vehicles テーブル: ${allVehicles.length} 件`)
 
-  // 3. custom_records へ INSERT or UPDATE（同一 UUID）
+  // 3. book_records へ INSERT or UPDATE（同一 UUID）
   let inserted = 0, updated = 0
   const skipped = 0
 
@@ -69,12 +69,12 @@ async function main() {
       status:        v.status,
     }
 
-    const exists = await sql`SELECT id FROM custom_records WHERE id = ${v.id} LIMIT 1`
+    const exists = await sql`SELECT id FROM book_records WHERE id = ${v.id} LIMIT 1`
 
     if (exists.length > 0) {
       if (!isDryRun) {
         await sql`
-          UPDATE custom_records
+          UPDATE book_records
           SET data = ${JSON.stringify(data)}::jsonb,
               owner_id = ${v.owner_id},
               updated_at = now()
@@ -85,7 +85,7 @@ async function main() {
     } else {
       if (!isDryRun) {
         await sql`
-          INSERT INTO custom_records (id, object_id, data, owner_id)
+          INSERT INTO book_records (id, object_id, data, owner_id)
           VALUES (${v.id}, ${objectId}, ${JSON.stringify(data)}::jsonb, ${v.owner_id})
         `
       }
@@ -100,10 +100,10 @@ async function main() {
 
   // 4. 件数チェック
   const vCount = (await sql`SELECT count(*)::int AS c FROM vehicles`)[0].c
-  const crCount = (await sql`SELECT count(*)::int AS c FROM custom_records WHERE object_id = ${objectId}`)[0].c
+  const crCount = (await sql`SELECT count(*)::int AS c FROM book_records WHERE object_id = ${objectId}`)[0].c
   console.log(`\n件数検証:`)
   console.log(`  vehicles テーブル        : ${vCount}`)
-  console.log(`  custom_records[vehicles] : ${crCount}`)
+  console.log(`  book_records[vehicles] : ${crCount}`)
   if (vCount !== crCount) {
     console.warn(`  ⚠️ 件数不一致。`)
   } else {

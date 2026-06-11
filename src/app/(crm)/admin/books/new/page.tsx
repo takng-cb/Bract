@@ -15,7 +15,7 @@ export default function NewObjectPage() {
   return (
     <div className="p-4 md:p-8 max-w-lg">
       <div className="mb-6">
-        <Link href="/admin/objects" className="text-sm text-zinc-400 hover:text-zinc-600">← オブジェクト管理</Link>
+        <Link href="/admin/books" className="text-sm text-zinc-400 hover:text-zinc-600">← オブジェクト管理</Link>
         <h1 className="text-2xl font-bold text-zinc-900 mt-2">新規オブジェクト作成</h1>
       </div>
 
@@ -86,7 +86,7 @@ export default function NewObjectPage() {
             {isPending ? '作成中…' : '作成'}
           </button>
           <Link
-            href="/admin/objects"
+            href="/admin/books"
             className="px-4 py-2 border border-zinc-300 text-zinc-700 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors"
           >
             キャンセル

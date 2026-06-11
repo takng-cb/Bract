@@ -39,8 +39,8 @@ test.describe('Role matrix: editor (編集可・admin 不可)', () => {
   })
 
   // ── 2) /admin/* に弾かれる ─────────────────────────────────
-  test('/admin/objects → /dashboard へ redirect される', async ({ page }) => {
-    await page.goto('/admin/objects')
+  test('/admin/books → /dashboard へ redirect される', async ({ page }) => {
+    await page.goto('/admin/books')
     await expectRedirectedTo(page, '/dashboard')
   })
 

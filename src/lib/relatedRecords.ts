@@ -7,10 +7,10 @@
  *   - 'account'                    → accounts.name
  *   - 'contact'                    → contacts.full_name
  *   - 'opportunity'                → opportunities.name
- *   - <custom api_name>            → custom_records.data の name/title など
+ *   - <custom api_name>            → book_records.data の name/title など
  *
  * 標準オブジェクトはアイコンと href プレフィクスをハードコード。カスタムは
- * object_definitions テーブルから icon と api_name を引いて URL を組み立てる。
+ * book_definitions テーブルから icon と api_name を引いて URL を組み立てる。
  *
  * 入力ペア数が多くなりがちなので、各テーブルへの問い合わせは IN リストで
  * 一括実行する（N+1 を避ける）。
@@ -18,7 +18,7 @@
 import { db } from '@/lib/db'
 import {
   accounts, contacts, opportunities,
-  custom_records, object_definitions,
+  book_records, book_definitions,
   activity_related_records, task_related_records, expense_related_records,
   maintenance_records, customer_vehicles,
 } from '@/lib/schema'
@@ -169,22 +169,22 @@ const STANDARD_META: Record<string, { icon: string; hrefPrefix: string }> = {
   contact:            { icon: '👤', hrefPrefix: '/contacts/' },
   opportunity:        { icon: '💼', hrefPrefix: '/opportunities/' },
   // 業種オーバーレイ (auto-body) の専用ルートを持つオブジェクト。
-  // /objects/<api>/<id> ではなく業種専用 URL に向ける。
+  // /books/<api>/<id> ではなく業種専用 URL に向ける。
   maintenance:        { icon: '🔧', hrefPrefix: '/maintenance/' },
   'customer-vehicle': { icon: '🚙', hrefPrefix: '/customer-vehicles/' },
 }
 
 /**
  * object_api + record_id を遷移先 href に解決する。
- * 標準/業種専用ルート（maintenance 等）を優先し、無ければ汎用 /objects/<api>/<id>。
- * 例: maintenance は /objects/maintenance/<id>（=404）ではなく /maintenance/<id> に向ける。
+ * 標準/業種専用ルート（maintenance 等）を優先し、無ければ汎用 /books/<api>/<id>。
+ * 例: maintenance は /books/maintenance/<id>（=404）ではなく /maintenance/<id> に向ける。
  */
 export function recordHref(objectApi: string, recordId: string): string {
   const std = STANDARD_META[objectApi]
-  return std ? `${std.hrefPrefix}${recordId}` : `/objects/${objectApi}/${recordId}`
+  return std ? `${std.hrefPrefix}${recordId}` : `/books/${objectApi}/${recordId}`
 }
 
-/** custom_records.data から表示名を導出（既存ロジック踏襲） */
+/** book_records.data から表示名を導出（既存ロジック踏襲） */
 function customRecordLabel(
   data: unknown,
   objectLabel: string | null,
@@ -301,16 +301,16 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
   const customIconByApi = new Map<string, string>()
   const customLabelByApi = new Map<string, string>()
   if (customApis.length > 0) {
-    // 各 api に対応する object_definitions を一括取得
+    // 各 api に対応する book_definitions を一括取得
     fetches.push(
       db.select({
-        id:       object_definitions.id,
-        api_name: object_definitions.api_name,
-        icon:     object_definitions.icon,
-        label:    object_definitions.label,
+        id:       book_definitions.id,
+        api_name: book_definitions.api_name,
+        icon:     book_definitions.icon,
+        label:    book_definitions.label,
       })
-        .from(object_definitions)
-        .where(inArray(object_definitions.api_name, customApis))
+        .from(book_definitions)
+        .where(inArray(book_definitions.api_name, customApis))
         .then((rows) => {
           for (const r of rows) {
             customIconByApi.set(r.api_name, r.icon || '🗂️')
@@ -324,15 +324,15 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
     if (allCustomIds.length > 0) {
       fetches.push(
         db.select({
-          id:        custom_records.id,
-          object_id: custom_records.object_id,
-          data:      custom_records.data,
-          api_name:  object_definitions.api_name,
-          obj_label: object_definitions.label,
+          id:        book_records.id,
+          object_id: book_records.object_id,
+          data:      book_records.data,
+          api_name:  book_definitions.api_name,
+          obj_label: book_definitions.label,
         })
-          .from(custom_records)
-          .innerJoin(object_definitions, eq(custom_records.object_id, object_definitions.id))
-          .where(inArray(custom_records.id, allCustomIds))
+          .from(book_records)
+          .innerJoin(book_definitions, eq(book_records.object_id, book_definitions.id))
+          .where(inArray(book_records.id, allCustomIds))
           .then((rows) => {
             for (const r of rows) {
               setLabel(r.api_name, r.id, customRecordLabel(r.data, r.obj_label, r.id))
@@ -351,7 +351,7 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
     const icon  = std ? std.icon : (customIconByApi.get(p.object_api) ?? '🗂️')
     const href  = std
       ? `${std.hrefPrefix}${p.record_id}`
-      : `/objects/${p.object_api}/${p.record_id}`
+      : `/books/${p.object_api}/${p.record_id}`
     return { object_api: p.object_api, record_id: p.record_id, label, icon, href }
   })
 }

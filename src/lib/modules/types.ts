@@ -16,7 +16,7 @@ export type NavItemDef = {
 
 /** モジュールが束ねるブック（旧オブジェクト）への参照 */
 export type BookRef = {
-  /** book 定義の api_name（現状は object_definitions.api_name と一致） */
+  /** book 定義の api_name（現状は book_definitions.api_name と一致） */
   apiName: string
   label: string
 }

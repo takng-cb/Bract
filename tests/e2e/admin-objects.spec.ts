@@ -5,7 +5,7 @@
 import { test, expect } from '@playwright/test'
 
 test('オブジェクト管理: 組み込みオブジェクトが表示される', async ({ page }) => {
-  await page.goto('/admin/objects', { waitUntil: 'domcontentloaded' })
+  await page.goto('/admin/books', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { name: 'オブジェクト管理' })).toBeVisible()
   await expect(page.getByText('オブジェクトがまだありません')).toHaveCount(0)
   // 代表的な組み込みオブジェクトのラベル

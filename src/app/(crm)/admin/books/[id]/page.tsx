@@ -43,7 +43,7 @@ export default async function AdminObjectDetailPage({
   return (
     <div className="p-4 md:p-8 max-w-4xl">
       <div className="mb-6">
-        <Link href="/admin/objects" className="text-sm text-zinc-400 hover:text-zinc-600">← オブジェクト管理</Link>
+        <Link href="/admin/books" className="text-sm text-zinc-400 hover:text-zinc-600">← オブジェクト管理</Link>
         <h1 className="text-2xl font-bold text-zinc-900 mt-2">
           {obj.icon} {obj.label_plural}
         </h1>
@@ -99,7 +99,7 @@ export default async function AdminObjectDetailPage({
         <h2 className="text-sm font-semibold text-zinc-700 mb-4">フィールドを追加</h2>
         {obj.is_builtin && (
           <p className="text-xs text-zinc-400 mb-4">
-            ※ 組み込みオブジェクトです。カスタムフィールドの追加はできますが、このフィールドは汎用レコード（/objects/...）ではなく専用画面で使用します。
+            ※ 組み込みオブジェクトです。カスタムフィールドの追加はできますが、このフィールドは汎用レコード（/books/...）ではなく専用画面で使用します。
           </p>
         )}
         <NewFieldForm objectId={id} createAction={createFieldDef} />

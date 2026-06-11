@@ -13,8 +13,8 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
   const { id } = await params
   await requireEditor()
   // properties は real-estate overlay の専用 UI で全フィールドを扱うため、
-  // 汎用カスタムフィールド (field_definitions/custom_field_values) システムは使わない。
-  // 過去の migrate スクリプトが schema 列を field_definitions に複製登録した残骸が
+  // 汎用カスタムフィールド (book_fields/custom_field_values) システムは使わない。
+  // 過去の migrate スクリプトが schema 列を book_fields に複製登録した残骸が
   // 二重表示の原因になっていたため、ここでは取得・保存しない。
   const [property, accountsList, contactsList, scrivenerAccounts, scrivenerContacts] = await Promise.all([
     db.select().from(properties).where(eq(properties.id, id)).then((r) => r[0] ?? null),
