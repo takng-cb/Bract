@@ -186,7 +186,7 @@ export default async function MaintenanceListPage({
     return (
       <div className="flex flex-col h-full p-4 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <h1 className="text-2xl font-bold text-zinc-900">整備</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">整備{hasFilter && <span className="ml-2 text-sm font-semibold text-blue-600">（絞り込み中）</span>}</h1>
           <div className="flex items-center gap-2">
             <ViewToggle view="board" filterRaw={filterRaw} />
             {edit && (
@@ -196,6 +196,15 @@ export default async function MaintenanceListPage({
             )}
           </div>
         </div>
+        {/* フィルター（入庫日/納車日の「以降・以前」で期間絞り込み可。グルーピングはボード非対応） */}
+        <ListViewToolbar
+          fields={FIELDS}
+          initialFilters={filterRaw}
+          basePath="/maintenance"
+          groupableFields={[]}
+          initialGroup=""
+          persistParams={{ view: 'board' }}
+        />
         <div className="flex flex-wrap gap-2.5 mb-4">
           {stats.map((s, i) => (
             <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-zinc-200 rounded-lg shadow-xs">
