@@ -441,12 +441,12 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           </div>
         </section>
 
+        {/* 代車のフォームは1カラムで収まるため、その場（カード内）で編集する（全幅化しない） */}
         <InlineSection
           title="代車"
           icon={<NavIcon icon="🚙" className="w-4 h-4" />}
           canEdit={editable}
           view={loanerView}
-          editClassName="md:col-span-2 lg:col-span-3"
         >
           <MaintenanceLoanerEditForm
             maintenanceId={maintenanceId}
