@@ -37,7 +37,8 @@ export async function createUser(
 
   const email    = (formData.get('email') as string).trim()
   const password = formData.get('password') as string
-  const role     = (formData.get('role') as string) === 'admin' ? 'admin' : 'member'
+  const roleRaw  = (formData.get('role') as string) ?? ''
+  const role     = ['admin', 'editor', 'viewer'].includes(roleRaw) ? roleRaw : 'viewer'
 
   if (!email || !password) return 'メールアドレスとパスワードは必須です'
   if (password.length < 8) return 'パスワードは8文字以上にしてください'
@@ -66,7 +67,7 @@ export async function createUser(
 // ─────────────────────────────────────────────
 export async function updateUserRole(
   targetUserId: string,
-  newRole: 'admin' | 'member',
+  newRole: 'admin' | 'editor' | 'viewer',
 ): Promise<{ error?: string }> {
   const supabase = await createSupabaseServerClient()
   const { data: { user: me } } = await supabase.auth.getUser()
