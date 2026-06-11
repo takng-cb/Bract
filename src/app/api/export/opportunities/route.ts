@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { activeIndustry } from '@/lib/industry'
+import { requireApiUser } from '@/lib/apiAuth'
 
 const STAGE_LABEL: Record<string, string> = {
   prospecting: '見込み', qualification: '要件確認', proposal: '提案',
@@ -12,6 +13,10 @@ const STAGE_LABEL: Record<string, string> = {
 }
 
 export async function GET() {
+  // 認証確認（未ログインは 401）
+  const denied = await requireApiUser()
+  if (denied) return denied
+
   try {
     const data = await db.select({
       id:          opportunities.id,

@@ -3,6 +3,7 @@ import { activities, accounts, contacts, opportunities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { parseCsvWithHeaders } from '@/lib/csvUtils'
+import { requireApiEditor } from '@/lib/apiAuth'
 
 const TYPE_MAP: Record<string, string> = {
   '電話': 'call', 'call': 'call',
@@ -12,6 +13,10 @@ const TYPE_MAP: Record<string, string> = {
 }
 
 export async function POST(req: NextRequest) {
+  // 編集権限確認（viewer の書き込みを拒否）
+  const denied = await requireApiEditor()
+  if (denied) return denied
+
   const formData  = await req.formData()
   const file      = formData.get('file') as File | null
   const textInput = formData.get('text') as string | null
