@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 import { getSystemSetting } from '@/lib/systemSettings'
-import { provisionUser } from '@/lib/userRole'
+import { isRegisteredUser } from '@/lib/userRole'
 
 export async function signIn(_: string | null, formData: FormData): Promise<string | null> {
   const email    = formData.get('email') as string
@@ -15,9 +15,10 @@ export async function signIn(_: string | null, formData: FormData): Promise<stri
 
   if (error) return 'メールアドレスまたはパスワードが正しくありません'
 
-  // users テーブルへの自動プロビジョニング（初回ログインのみ）
-  if (data.user) {
-    await provisionUser(data.user.id, data.user.email ?? email)
+  // 招待制（REQ-0033）: 管理者が追加したユーザーのみログイン可（自動登録は廃止）
+  if (data.user && !(await isRegisteredUser(data.user.id))) {
+    await supabase.auth.signOut()
+    return 'このアカウントは登録されていません。システム管理者にユーザー追加を依頼してください。'
   }
 
   // セッションタイムアウト設定をCookieに保存（ミドルウェアが参照する）

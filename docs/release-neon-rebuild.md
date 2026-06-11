@@ -47,8 +47,12 @@ npm run check:schema
 
 - [ ] **licenses 行の投入**（tenant_key='default'）。`features.enabled_modules` / `entitled_modules` をプランに合わせて設定
       （未設定の間は互換シムで `NEXT_PUBLIC_INDUSTRY` の業種モジュールが有効になる）。
-- [ ] **最初のログイン＝自動で admin**（`provisionUser`: users テーブルが空のとき最初のユーザーが admin）。
-      自分が最初にログインすること。以降のユーザーは viewer で入るので /admin/roles で割当。
+- [ ] **初期管理者の作成（運営側オペレーション）**：招待制（REQ-0033）のため自動登録は無い。
+      `npx tsx scripts/create-admin-user.ts <email> <password>` で最初の admin を作成
+      （.env.local に対象 Neon の DATABASE_URL と SUPABASE_SERVICE_ROLE_KEY が必要）。
+      以降のユーザー追加は admin がアプリ内「システム設定 → ユーザー管理」で行う。
+      管理者が追加したユーザーは、同じメールの Google アカウントでログインすると自動で紐づく
+      （以降は Google ログイン可）。未登録アカウントのログインは拒否される。
 - [ ] **RBAC ロール設計**：/admin/roles で顧客組織に合わせたロール（例: 営業/経理/工場）を作成し、ブック×CRUD を設定。
 
 ## 4. Supabase（Auth）設定 — #44 の解消（必須）

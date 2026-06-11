@@ -1,6 +1,6 @@
 import { db } from './db'
 import { users } from './schema'
-import { eq, count } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { canEditRole, isAdminRole, type Role } from './role'
 
 // 純粋判定関数は './role' に分離。Vitest が DB を呼ばずにテストできるよう
@@ -28,21 +28,17 @@ export async function canEditUser(userId: string): Promise<boolean> {
 }
 
 /**
- * サインイン時にユーザーレコードを自動プロビジョニング。
- * - 初めてのユーザー（users テーブルが空）→ role = 'admin'
- * - 2人目以降 → role = 'viewer'
- * - 既存レコードがある場合は何もしない
+ * 登録済みユーザーかどうか（招待制: REQ-0033）。
+ *
+ * 以前はサインイン時に users 行を自動作成していた（初回=admin、以降=viewer）が、
+ * 「誰でも Google ログインで入れてしまう」ため廃止。ユーザー追加は
+ * システム管理者（/settings/system のユーザー管理）のみが行い、
+ * 初期 admin はテナント構築時に scripts/create-admin-user.ts で作成する。
  */
-export async function provisionUser(id: string, email: string): Promise<void> {
+export async function isRegisteredUser(id: string): Promise<boolean> {
   const existing = await db
     .select({ id: users.id })
     .from(users)
     .where(eq(users.id, id))
-
-  if (existing.length > 0) return  // 既に登録済み
-
-  const [{ total }] = await db.select({ total: count() }).from(users)
-  const role: Role = total === 0 ? 'admin' : 'viewer'
-
-  await db.insert(users).values({ id, email, role })
+  return existing.length > 0
 }
