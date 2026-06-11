@@ -5,7 +5,8 @@ import { deleteObjectDef } from '@/app/actions/objectDefinitions'
 import DeleteButton from '@/components/DeleteButton'
 import NavOrderEditor from '@/components/NavOrderEditor'
 import { getNavOrderSettings } from '@/app/actions/navSettings'
-import { customObjectsToNavItems } from '@/lib/navItems'
+import { customObjectsToNavItems, buildExtraNavItems } from '@/lib/navItems'
+import { buildNavGroups } from '@/lib/navOrder'
 import { activeIndustry } from '@/lib/industry'
 import ActivityTypesEditor from '@/components/ActivityTypesEditor'
 import { getActivityTypes } from '@/lib/activityTypes'
@@ -71,11 +72,12 @@ export default async function AdminObjectsPage() {
   const moduleBookApis = new Set(modules.flatMap((m) => (m.books ?? []).map((b) => b.apiName)))
   const customBooks = objects.filter((o) => !moduleBookApis.has(o.api_name))
 
-  // ナビ並び替えに渡すカスタムオブジェクトのアイテム（業種オーバーレイ対応 URL）。
+  // ナビ並び替えに渡すグループ構造（layout.tsx のサイドバー構築と同じ手順で組み、ドリフトを防ぐ）
   const customNavItems = customObjectsToNavItems(
     customObjects.filter((o) => o.nav_enabled),
     activeIndustry,
   )
+  const navGroups = buildNavGroups(enabledModules, buildExtraNavItems(customNavItems, activeIndustry))
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8 space-y-8">
@@ -225,7 +227,7 @@ export default async function AdminObjectsPage() {
         </form>
       </section>
 
-      <NavOrderEditor userOrder={userOrder} systemOrder={systemOrder} customItems={customNavItems} />
+      <NavOrderEditor groups={navGroups} userOrder={userOrder} systemOrder={systemOrder} />
 
       {/* 活動種別の管理（builtin object のピックリスト値） */}
       <section className="bg-white rounded-lg border border-zinc-200 p-5">

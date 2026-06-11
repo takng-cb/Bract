@@ -43,6 +43,32 @@ function hrefForCustomObject(apiName: string, activeIndustry: Industry): string 
   return `/objects/${apiName}`
 }
 
+/**
+ * 業種オーバーレイ専用ルートのナビ項目（object_definitions に行が無い場合のフォールバック）。
+ * 初期セットアップ前でもサイドバーに表示できるようハードコードする。
+ * layout.tsx（サイドバー）と並び替え画面（NavOrderEditor）で共用しドリフトを防ぐ。
+ * 重複時は customObjectsToNavItems 由来の項目を優先（呼び出し側で href 重複排除）。
+ */
+export function industryFallbackNavItems(activeIndustry: Industry): NavItem[] {
+  if (activeIndustry === 'auto-body') {
+    return [
+      { href: '/maintenance',           label: '整備',         icon: '🔧' },
+      { href: '/maintenance/templates', label: '整備パッケージ', icon: '📋' },
+      { href: '/customer-vehicles',     label: '顧客車両',     icon: '🚙' },
+      { href: '/vehicles',              label: '車両',         icon: '🚗' },
+      { href: '/parts',                 label: '部品',         icon: '🪛' },
+      { href: '/receivables',           label: '売掛金',       icon: '💰' },
+    ]
+  }
+  if (activeIndustry === 'staffing') {
+    return [
+      { href: '/staff',       label: 'スタッフ', icon: '🧑‍💼' },
+      { href: '/assignments', label: '案件',    icon: '📋' },
+    ]
+  }
+  return []
+}
+
 /** メインナビに並べられる全アイテム（マスター定義） */
 export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard',     label: 'ホーム', icon: '📊' },
@@ -95,19 +121,20 @@ export const ADMIN_LINKS: AdminLink[] = [
   { href: '/admin/license',       label: 'ライセンス',       icon: '🎫',  desc: '契約状態・プラン・機能フラグ（提供者が設定）', provider: true },
 ]
 
-/** デフォルト順序（hrefs配列） */
-export const DEFAULT_NAV_ORDER: string[] = ALL_NAV_ITEMS.map((i) => i.href)
-
 /**
- * href配列を受け取り、全アイテム（静的＋カスタム）を並び替えたNavItem配列を返す。
- * 順序リストにないアイテムは末尾に追加される。
- * @param order  保存済みの href 順序
- * @param extraItems  カスタムオブジェクトなど動的に追加されるアイテム
+ * モジュールに属さない可能性のあるナビ項目の既定順リストを構築する
+ * （静的ナビ → カスタムオブジェクト → 業種フォールバック。dashboard はグループ外なので除外）。
+ * buildNavGroups の extraItems としてサイドバー（layout.tsx）と
+ * 並び替え画面（NavOrderEditor）の両方で使い、構造のドリフトを防ぐ。
  */
-export function applyNavOrder(order: string[], extraItems: NavItem[] = []): NavItem[] {
-  const allItems = [...ALL_NAV_ITEMS, ...extraItems]
-  const map      = new Map(allItems.map((i) => [i.href, i]))
-  const ordered  = order.filter((h) => map.has(h)).map((h) => map.get(h)!)
-  const missing  = allItems.filter((i) => !order.includes(i.href))
-  return [...ordered, ...missing]
+export function buildExtraNavItems(customNavItems: NavItem[], activeIndustry: Industry): NavItem[] {
+  const industryItems = industryFallbackNavItems(activeIndustry)
+  const allCustom = [
+    ...customNavItems,
+    ...industryItems.filter((i) => !customNavItems.some((c) => c.href === i.href)),
+  ]
+  return [
+    ...ALL_NAV_ITEMS.filter((i) => i.href !== '/dashboard'),
+    ...allCustom.filter((i) => !ALL_NAV_ITEMS.some((s) => s.href === i.href)),
+  ]
 }
