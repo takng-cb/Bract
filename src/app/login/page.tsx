@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { signIn } from '@/app/actions/auth'
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -14,7 +14,11 @@ function LoginForm() {
   const reason = searchParams.get('reason')
 
   const handleGoogleLogin = async () => {
-    const supabase = createClient(
+    // @supabase/ssr の browser client を使う（PKCE + Cookie 保存）。
+    // 素の supabase-js だとセッションが localStorage に入り、サーバー側
+    // （Cookie ベースの ssr クライアント/ミドルウェア）と共有されず、
+    // 認証成功後も未ログイン扱いで /login に戻されてしまう（#44）。
+    const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     )
