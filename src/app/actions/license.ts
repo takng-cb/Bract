@@ -5,7 +5,7 @@
  *
  * 管理者のみが呼び出せる。features や status を編集する。
  */
-import { requireAdmin } from '@/lib/auth'
+import { requireProvider } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { licenses } from '@/lib/schema'
@@ -32,7 +32,7 @@ export type UpdateLicensePayload = {
  * 部分更新可能。空の payload なら何もしない。
  */
 export async function updateLicense(payload: UpdateLicensePayload): Promise<{ ok: true } | { ok: false; error: string }> {
-  await requireAdmin()
+  await requireProvider()  // 契約・プランの変更は運営者のみ（REQ-0046）
 
   // バリデーション
   if (payload.plan && !VALID_PLANS.includes(payload.plan)) {

@@ -75,6 +75,30 @@ export async function requireAdmin(): Promise<void> {
   }
 }
 
+/**
+ * サービス提供者（運営）かどうか（REQ-0046）。
+ * 各コンテナに置く運営用アカウントのメールを env `PROVIDER_EMAILS`（カンマ区切り）で指定する。
+ * テナント側 DB では制御しない（テナント管理者が自分を運営に昇格できないように env 固定）。
+ * env 未設定の間は移行措置として admin を運営扱いにする（本番コンテナでは必ず設定すること）。
+ */
+export async function isProvider(): Promise<boolean> {
+  const user = await getSupabaseUser()
+  if (!user?.email) return false
+  const list = (process.env.PROVIDER_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+  if (list.length === 0) return isAdmin()  // 未設定時のフォールバック（移行措置）
+  return list.includes(user.email.toLowerCase())
+}
+
+/** 運営者でなければエラー（Server Action 保護用。画面側は各ページでエラーカードを出す） */
+export async function requireProvider(): Promise<void> {
+  if (!(await isProvider())) {
+    throw new Error('この操作はサービス提供者（運営）のみ実行できます')
+  }
+}
+
 /** 現在のログインユーザーのIDを返す（未ログインは null） */
 export const getCurrentUserId = cache(async (): Promise<string | null> => {
   const user = await getSupabaseUser()

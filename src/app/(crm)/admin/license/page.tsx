@@ -8,15 +8,37 @@
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
-import { isAdmin } from '@/lib/auth'
+import Link from 'next/link'
+import { isAdmin, isProvider } from '@/lib/auth'
 import { getLicense } from '@/lib/license'
 import LicenseEditForm from './LicenseEditForm'
 import { NavIcon } from '@/lib/navIcon'
 import PageHeader from '@/components/ui/PageHeader'
+import { ShieldX } from 'lucide-react'
 
 export default async function AdminLicensePage() {
   const adminFlag = await isAdmin()
   if (!adminFlag) redirect('/dashboard')
+
+  // コンテナ（契約・プラン）の設定は運営者のみ（REQ-0046）。
+  // テナント管理者がアクセスした場合は明示的にエラー表示する。
+  if (!(await isProvider())) {
+    return (
+      <div className="mx-auto max-w-lg p-4 md:p-8">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+          <ShieldX className="mx-auto mb-3 h-10 w-10 text-red-400" strokeWidth={2} aria-hidden />
+          <h1 className="text-base font-bold text-red-700">アクセスできません</h1>
+          <p className="mt-2 text-sm text-red-600">
+            この画面（契約・プラン・利用上限）はサービス提供者（運営）のみが利用できます。
+            設定変更が必要な場合は運営にお問い合わせください。
+          </p>
+          <Link href="/settings/system" className="mt-4 inline-block rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+            システム設定へ戻る
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   const license = await getLicense()
 
