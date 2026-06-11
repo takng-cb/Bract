@@ -7,7 +7,7 @@
  */
 import { db } from '@/lib/db'
 import { accounts, customer_vehicles } from '@/lib/schema'
-import { eq, ilike } from 'drizzle-orm'
+import { eq, ilike, or } from 'drizzle-orm'
 import { requirePermission } from '@/lib/permissions'
 
 export type InlineAccountResult = { id: string; name: string; existed: boolean }
@@ -63,4 +63,38 @@ export async function findAccountCandidates(name: string): Promise<{ id: string;
   if (q.length < 1) return []
   return db.select({ id: accounts.id, name: accounts.name })
     .from(accounts).where(ilike(accounts.name, `%${q}%`)).limit(5)
+}
+
+export type VehicleCandidate = {
+  id: string
+  label: string
+  account_id: string | null
+  contact_id: string | null
+}
+
+/** 顧客車両の部分一致候補（ナンバー / 車名 / 車種。検索→なければ新規の UX 用） */
+export async function findCustomerVehicleCandidates(qRaw: string): Promise<VehicleCandidate[]> {
+  const q = qRaw.trim()
+  if (q.length < 1) return []
+  const p = `%${q}%`
+  const rows = await db.select({
+    id: customer_vehicles.id,
+    plate_number: customer_vehicles.plate_number,
+    car_name: customer_vehicles.car_name,
+    car_model: customer_vehicles.car_model,
+    account_id: customer_vehicles.account_id,
+    contact_id: customer_vehicles.contact_id,
+  }).from(customer_vehicles)
+    .where(or(
+      ilike(customer_vehicles.plate_number, p),
+      ilike(customer_vehicles.car_name, p),
+      ilike(customer_vehicles.car_model, p),
+    ))
+    .limit(6)
+  return rows.map((r) => ({
+    id: r.id,
+    label: [r.plate_number, r.car_name ?? r.car_model].filter(Boolean).join(' / ') || '（無名車両）',
+    account_id: r.account_id,
+    contact_id: r.contact_id,
+  }))
 }
