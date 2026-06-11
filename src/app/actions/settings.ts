@@ -131,6 +131,19 @@ export async function saveOpportunityProductBooks(formData: FormData): Promise<v
 }
 
 // ────────────────────────────────────────────────────────────────
+// ボードの終端列ウィンドウ（REQ-0044・管理者のみ）
+//   受注/失注/完了の列をボードで直近Nヶ月に絞る。0 = 無制限
+// ────────────────────────────────────────────────────────────────
+export async function saveBoardClosedWindow(formData: FormData): Promise<void> {
+  await requireAdmin()
+  const months = Math.max(0, Math.trunc(Number(formData.get('months') ?? 3)) || 0)
+  await db.insert(system_settings)
+    .values({ key: 'board_closed_window_months', value: String(months) })
+    .onConflictDoUpdate({ target: system_settings.key, set: { value: String(months), updated_at: new Date() } })
+  revalidatePath('/', 'layout')
+}
+
+// ────────────────────────────────────────────────────────────────
 // モバイル下部タブの設定（REQ-0041・管理者のみ）
 //   formData: slot_1..slot_4 = href（中央 FAB は固定のため4枠）
 // ────────────────────────────────────────────────────────────────

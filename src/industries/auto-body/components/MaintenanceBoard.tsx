@@ -26,6 +26,10 @@ export type BoardColumn = {
   badgeBg: string
   badgeText: string
   jobs: BoardJob[]
+  /** 終端列の表示ウィンドウ注記（例: 直近3ヶ月 ・ 全120件中24件。REQ-0044） */
+  windowNote?: string
+  /** 全件を見るリンク（フィルタ済みリストビュー等） */
+  moreHref?: string
 }
 
 function fmtDate(d: string | null): string {
@@ -44,6 +48,14 @@ export default function MaintenanceBoard({ columns }: { columns: BoardColumn[] }
             <span className="text-sm font-bold text-zinc-800">{col.status}</span>
             <span className="text-xs text-zinc-500 bg-zinc-100 px-1.5 py-px rounded-full tabular-nums">{col.jobs.length}</span>
           </div>
+
+          {/* 終端列の表示ウィンドウ注記（REQ-0044） */}
+          {col.windowNote && (
+            <p className="px-1 -mt-1.5 pb-2 text-[11px] text-zinc-400">
+              {col.windowNote}
+              {col.moreHref && <Link href={col.moreHref} className="ml-1.5 text-blue-600 hover:underline">すべて見る →</Link>}
+            </p>
+          )}
 
           <div className="flex flex-col gap-2.5">
             {col.jobs.map((j) => (

@@ -16,6 +16,8 @@ export const SYSTEM_DEFAULTS = {
   opportunity_product_books: '["products","parts"]',
   // モバイル下部タブ（JSON 配列の href ×4。中央 FAB は固定。REQ-0041）
   mobile_bottom_nav: '["/dashboard","/accounts","/tasks","/activities"]',
+  // ボードの終端ステータス列（受注/失注/完了）を直近Nヶ月に絞る。'0' = 無制限（REQ-0044）
+  board_closed_window_months: '3',
 } as const
 
 export type SystemSettingKey = keyof typeof SYSTEM_DEFAULTS

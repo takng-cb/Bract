@@ -17,7 +17,7 @@ import type { ModuleCategory } from '@/lib/modules/types'
 import { getLicense } from '@/lib/license'
 import ModuleToggle from '@/components/ModuleToggle'
 import { getProductBookCandidates, getOpportunityProductBooks } from '@/lib/opportunityProductBooks'
-import { saveOpportunityProductBooks, saveMobileBottomNav } from '@/app/actions/settings'
+import { saveOpportunityProductBooks, saveMobileBottomNav, saveBoardClosedWindow } from '@/app/actions/settings'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { getApprovalConfigs, getApprovalAdminData, getApprovalBooks } from '@/lib/approvals'
 import ApprovalRulesEditor from '@/components/admin/ApprovalRulesEditor'
@@ -58,7 +58,7 @@ export default async function AdminObjectsPage() {
     getApprovalConfigs(),
     getApprovalAdminData(),
     getApprovalBooks(),
-    getSystemSettings(['mobile_bottom_nav']),
+    getSystemSettings(['mobile_bottom_nav', 'board_closed_window_months']),
   ])
   const productBookSet = new Set(productBooks)
 
@@ -262,6 +262,32 @@ export default async function AdminObjectsPage() {
           users={approvalAdminData.users}
           roles={approvalAdminData.roles}
         />
+      </section>
+
+      {/* ボードの終端列ウィンドウ（REQ-0044） */}
+      <section className="bg-white rounded-lg border border-zinc-200 p-5">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-zinc-900">ボードの完了レコード表示期間</h2>
+          <p className="text-xs text-zinc-500 mt-1">
+            商談パイプラインの「受注・失注」、整備ボードの「完了」は溜まり続けるため、
+            ボードでは直近の期間だけ表示します（全件はリストビューで確認できます）。
+            進行中のレコードは常にすべて表示されます。
+          </p>
+        </div>
+        <form action={saveBoardClosedWindow} className="flex flex-wrap items-center gap-3">
+          <select
+            name="months"
+            defaultValue={mobileNavSettings.board_closed_window_months}
+            className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm"
+          >
+            <option value="1">直近1ヶ月</option>
+            <option value="3">直近3ヶ月</option>
+            <option value="6">直近6ヶ月</option>
+            <option value="12">直近12ヶ月</option>
+            <option value="0">無制限（すべて表示）</option>
+          </select>
+          <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">保存</button>
+        </form>
       </section>
 
       {/* モバイル下部タブの設定（REQ-0041） */}

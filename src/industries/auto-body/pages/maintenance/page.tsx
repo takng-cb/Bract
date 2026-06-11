@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { maintenance_records, customer_vehicles, accounts, contacts } from '@/lib/schema'
-import { eq, desc, sql } from 'drizzle-orm'
+import { eq, ne, desc, sql, and, or, gte, count } from 'drizzle-orm'
+import { getSystemSettings } from '@/lib/systemSettings'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
@@ -79,9 +80,19 @@ export default async function MaintenanceListPage({
     worker_owner_id:    { col: maintenance_records.worker_owner_id,    type: 'select' },
   }
   const conditions = parseFilterParams(filterRaw)
-  const where = buildWhere(conditions, resolver)
+  const baseWhere = buildWhere(conditions, resolver)
 
-  const [rows, edit, allUsers, allAccounts] = await Promise.all([
+  // 完了は溜まり続けるため、ボードでは直近Nヶ月のみ表示（REQ-0044。0=無制限）
+  const windowMonths = view === 'board'
+    ? Math.max(0, Number((await getSystemSettings(['board_closed_window_months'])).board_closed_window_months) || 0)
+    : 0
+  const cutoff = new Date()
+  cutoff.setMonth(cutoff.getMonth() - windowMonths)
+  const where = windowMonths > 0
+    ? and(baseWhere, or(ne(maintenance_records.status, '完了'), gte(maintenance_records.updated_at, cutoff)))
+    : baseWhere
+
+  const [rows, edit, allUsers, allAccounts, doneTotalRow] = await Promise.all([
     db.select({
       id:             maintenance_records.id,
       maintenance_no: maintenance_records.maintenance_no,
@@ -111,7 +122,17 @@ export default async function MaintenanceListPage({
     canEdit(),
     getAllUsers(),
     db.select({ id: accounts.id, name: accounts.name }).from(accounts).orderBy(accounts.name),
+    // ウィンドウ適用前の「完了」全件数（ボードの「全N件中」表示用）
+    windowMonths > 0
+      ? db.select({ total: count() })
+          .from(maintenance_records)
+          .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
+          .leftJoin(accounts, eq(maintenance_records.account_id, accounts.id))
+          .leftJoin(contacts, eq(maintenance_records.contact_id, contacts.id))
+          .where(and(baseWhere ?? sql`true`, eq(maintenance_records.status, '完了')))
+      : Promise.resolve([{ total: 0 }]),
   ])
+  const doneTotal = Number(doneTotalRow[0]?.total ?? 0)
 
   const FIELDS: FieldDef[] = [
     {
@@ -172,7 +193,15 @@ export default async function MaintenanceListPage({
           over,
         }
       })
-      return { status, color: pal?.activeColor ?? '#64748b', badgeBg: pal?.bg ?? 'bg-n-100', badgeText: pal?.text ?? 'text-n-600', jobs }
+      return {
+        status, color: pal?.activeColor ?? '#64748b', badgeBg: pal?.bg ?? 'bg-n-100', badgeText: pal?.text ?? 'text-n-600', jobs,
+        ...(windowMonths > 0 && status === '完了'
+          ? {
+              windowNote: `直近${windowMonths}ヶ月 ・ 全${doneTotal}件中${jobs.length}件`,
+              moreHref: `/maintenance?view=list&f=${encodeURIComponent('status|eq|完了')}`,
+            }
+          : {}),
+      }
     })
     const cnt = (s: string) => rows.filter((m) => m.status === s).length
     const todayDelivery = rows.filter((m) => m.delivery_date === today && m.status !== '完了' && m.status !== 'キャンセル').length

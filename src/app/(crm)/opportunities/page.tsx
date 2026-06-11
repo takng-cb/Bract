@@ -3,7 +3,8 @@ import { opportunities, accounts, taggables } from '@/lib/schema'
 import { activeIndustry } from '@/lib/industry'
 import { getAllTags } from '@/lib/tagUtils'
 import { getAllUsers } from '@/lib/userUtils'
-import { desc, eq, and, inArray, count } from 'drizzle-orm'
+import { desc, eq, and, or, inArray, notInArray, gte, count } from 'drizzle-orm'
+import { getSystemSettings } from '@/lib/systemSettings'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ListViewToolbar from '@/components/ListViewToolbar'
@@ -137,16 +138,29 @@ export default async function OpportunitiesPage({
     const conditions = parseFilterParams(filterRaw)
     const { tagConditions, otherConditions } = splitTagConditions(conditions)
     const useJsFallback = unresolvedConditions(otherConditions, FILTER_RESOLVER).length > 0
-    const where = useJsFallback
+    const baseWhere = useJsFallback
       ? undefined
       : and(buildWhere(otherConditions, FILTER_RESOLVER), buildTagWhere(tagConditions, 'opportunity', opportunities.id))
 
-    const [edit, rawRows, users, allTags, taggableRows] = await Promise.all([
+    // 受注/失注は溜まり続けるため、ボードでは直近Nヶ月のみ表示（REQ-0044。0=無制限）
+    const TERMINAL_STAGES = ['closed_won', 'closed_lost']
+    const windowMonths = view === 'board'
+      ? Math.max(0, Number((await getSystemSettings(['board_closed_window_months'])).board_closed_window_months) || 0)
+      : 0
+    const cutoff = new Date()
+    cutoff.setMonth(cutoff.getMonth() - windowMonths)
+    const windowWhere = windowMonths > 0
+      ? or(notInArray(opportunities.stage, TERMINAL_STAGES), gte(opportunities.updated_at, cutoff))
+      : undefined
+    const where = and(baseWhere, useJsFallback ? undefined : windowWhere)
+
+    const [edit, rawRows, users, allTags, taggableRows, closedTotals] = await Promise.all([
       canEdit(),
       db.select({
         id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
         amount: opportunities.amount, probability: opportunities.probability,
         close_date: opportunities.close_date, owner_id: opportunities.owner_id,
+        updated_at: opportunities.updated_at,
         accounts: { id: accounts.id, name: accounts.name },
       })
         .from(opportunities)
@@ -162,6 +176,14 @@ export default async function OpportunitiesPage({
               inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
             ))
         : Promise.resolve([] as { tag_id: string; object_id: string }[]),
+      // ウィンドウ適用前の終端ステージ全件数（「全N件中」表示用）
+      windowMonths > 0
+        ? db.select({ stage: opportunities.stage, total: count() })
+            .from(opportunities)
+            .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+            .where(and(baseWhere, inArray(opportunities.stage, TERMINAL_STAGES)))
+            .groupBy(opportunities.stage)
+        : Promise.resolve([] as { stage: string; total: number }[]),
     ])
 
     let rows = rawRows
@@ -175,8 +197,14 @@ export default async function OpportunitiesPage({
         applyFilters(rows as unknown as Record<string, unknown>[], otherConditions) as unknown as typeof rawRows,
         tagConditions, taggedIdsByTagId,
       )
+      // JS フォールバック時もウィンドウを適用
+      if (windowMonths > 0) {
+        rows = rows.filter((r) =>
+          !TERMINAL_STAGES.includes(r.stage) || (r.updated_at && new Date(r.updated_at) >= cutoff))
+      }
     }
 
+    const closedTotalByStage = new Map(closedTotals.map((t) => [t.stage, Number(t.total)]))
     const ownerName = new Map(users.map((u) => [u.id, u.name]))
     const columns: BoardColumn[] = BOARD_STAGES.map((s) => {
       const deals = rows
@@ -189,7 +217,16 @@ export default async function OpportunitiesPage({
           closeDate: r.close_date ?? null,
         }))
       const sum = deals.reduce((acc, d) => acc + (d.amount ?? 0), 0)
-      return { id: s.id, label: s.label, dot: s.dot, deals, sum }
+      const isTerminal = TERMINAL_STAGES.includes(s.id)
+      return {
+        id: s.id, label: s.label, dot: s.dot, deals, sum,
+        ...(windowMonths > 0 && isTerminal
+          ? {
+              windowNote: `直近${windowMonths}ヶ月 ・ 全${closedTotalByStage.get(s.id) ?? deals.length}件中${deals.length}件`,
+              moreHref: `/opportunities?view=list&f=${encodeURIComponent(`stage|eq|${s.id}`)}`,
+            }
+          : {}),
+      }
     })
     const total = rows.length
     const weighted = rows.reduce((acc, r) => acc + (r.amount != null && r.probability != null ? Number(r.amount) * Number(r.probability) / 100 : 0), 0)
