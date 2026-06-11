@@ -217,6 +217,19 @@
 - 段階：Phase1＝単一ブック（例：経費）で単純条件＋単段相当のルートを通し基盤確立 → Phase2＝多段・複数条件・全ブック設定 UI → Phase3＝承認待ちウィジェット/一覧の高度化。
 - 影響：新規 `approvals` / `approval_configs`（or object_definitions メタ）, 各詳細ページ（承認バッジ＋ボタン）, ダッシュボード/ナビ, 通知, 権限チェック。#85。モジュール化(#10/#11)とは独立に進行可。
 
+### ADR-0023  RBAC は「roles＋role_permissions（ブック×CRUD）＋既存3ロールの system role 化」で段階導入（方針案）
+- 2026-06-11 / **方針案・詳細確定待ち**（REQ-0031）
+- 文脈：ロールごとにブック単位の CRUD 権限を設定したい。現状は users.role の固定3値（admin/editor/viewer）で全ブック一律。
+- 方針案：
+  1. **`roles` テーブル新設**（id, name, description, is_system）。既存 admin/editor/viewer は **system ロール**として行を持たせ後方互換（admin=全権・editor=全ブックCRUD・viewer=全ブックRead）。
+  2. **`role_permissions` テーブル**（role_id, book_api, can_create/can_read/can_update/can_delete）。book_api='*' のワイルドカード行で既定を表現し、ブック行で上書き。
+  3. **users.role_id** を追加（既存 users.role テキストは移行期間中フォールバックとして併存＝ストラングラー）。
+  4. **判定ヘルパ**：`canDo(bookApi, op)` / `requirePermission(bookApi, op)` を src/lib/auth に追加。既存 `requireEditor()` は当面 `canDo(book,'update')` 相当へ内部委譲し、server actions をブック単位ガードに順次置換。
+  5. **UI**：/admin/roles（ロール一覧・作成・ブック×CRUD のマトリクス編集）＋ /admin/users でロール割当。read=false のブックはナビ・検索・一覧からも非表示。
+  6. **段階**：Phase1＝テーブル＋system ロール移行＋ロール管理 UI（挙動非変更） → Phase2＝server actions のブック別 enforcement ＋ UI ゲーティング → Phase3＝フィールド単位など細粒度（将来）。
+- 未確定（ユーザー確認中）：①Read もブック別に制御するか ②既存3ロールを残しカスタムロールを追加する形でよいか ③フィールド単位制御は将来送りか。
+- 影響：users / 新規2テーブル / src/lib/auth / 全 server actions（段階置換）/ ナビ・一覧・詳細の表示ゲート / #85 の承認者指定。
+
 
 
 
