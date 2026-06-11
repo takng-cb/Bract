@@ -271,6 +271,12 @@
 - 状態：実装・出荷済み。
 - 関連：#14（staffing umbrella）/ REQ-0005
 
+### REQ-0040  通知ベルの実装（既読タイムスタンプ方式）
+- 2026-06-11 / 会話（「右上のベルのマークはどう使いますか？」→飾りと判明→「1の方法（既読タイムスタンプ）でいきましょう」）
+- 内容：トップバーのベルを実装。notifications テーブルは作らず、開くたびに「①自分が承認すべき承認待ち（route_snapshot の現在 step に自分が user/role で含まれ未判定）②期限超過・今日期限の未完了 ToDo（自分担当 or 担当未設定）」をその場で集計。赤ドットは `user_preferences.notifications_seen_at`（最後に開いた時刻）より新しい項目がある時のみ点灯し、開くと全既読。項目クリックで該当レコードへ。migration `20260611230000_notifications_seen.sql`。
+- 状態：実装・出荷済み（migration の適用が前提）。
+- 関連：REQ-0023/0037（承認 Phase3 の「自分が承認すべき一覧」の軽量版）/ #85
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

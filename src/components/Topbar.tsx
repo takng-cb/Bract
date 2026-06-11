@@ -9,9 +9,10 @@
  */
 import { useState, useRef, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Bell, Sprout, Loader2 } from 'lucide-react'
+import { Search, Sprout, Loader2 } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 import { globalSearch, type SearchGroup } from '@/app/actions/search'
+import NotificationsBell from '@/components/NotificationsBell'
 
 export default function Topbar() {
   const router = useRouter()
@@ -125,10 +126,7 @@ export default function Topbar() {
         <span className="hidden lg:inline">クイック</span>
       </button>
       <div className="flex-1" />
-      <button type="button" className="ds-icbtn" title="通知" aria-label="通知">
-        <Bell className="w-4.5 h-4.5" strokeWidth={2.25} aria-hidden />
-        <span className="dot" />
-      </button>
+      <NotificationsBell />
     </div>
   )
 }

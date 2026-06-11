@@ -796,6 +796,8 @@ export const user_preferences = pgTable('user_preferences', {
   // 形式: { "widget_id": { "enabled": boolean, "order": number } }
   // 未設定なら DASHBOARD_WIDGETS 定義の defaultEnabled に従う
   dashboard_widgets:  jsonb('dashboard_widgets'),
+  // 通知ベルを最後に開いた時刻（既読タイムスタンプ方式。REQ-0040）
+  notifications_seen_at: timestamp('notifications_seen_at', { withTimezone: true }),
   created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:         timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
