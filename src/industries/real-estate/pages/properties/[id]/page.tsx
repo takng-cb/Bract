@@ -1,3 +1,4 @@
+import { buildRecordStream } from '@/lib/buildRecordStream'
 import { db } from '@/lib/db'
 import { House, Building2, UserRound, Tag, Wallet, Activity, SquareCheckBig, Receipt, Folder } from 'lucide-react'
 import { accounts, contacts, activities, tasks, expenses, change_logs } from '@/lib/schema'
@@ -28,16 +29,13 @@ import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { NavIcon } from '@/lib/navIcon'
 import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, type KpiItem, type BadgeTone } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
-import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
+import ActivityStream from '@/components/record/ActivityStream'
 import InlineComposer from '@/components/record/InlineComposer'
 
 const RE_PROPERTY_TYPES = ['土地・建物', '建物のみ', '土地のみ', 'その他']
 const RE_TX_TYPES = ['売買', '賃貸']
 const OTHER_TX_TYPES = ['売買', '賃貸', 'サービス提供', 'その他']
 const TX_TONE: Record<string, BadgeTone> = { '売買': 'warn', '賃貸': 'info' }
-const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
-  high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
-}
 
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -151,44 +149,11 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   ]
 
   // ── stream ──────────────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/purity
-  const NOW = Date.now()
-  const dayLabel = (d: Date) => {
-    const t0 = new Date(NOW); t0.setHours(0, 0, 0, 0); const d0 = new Date(d); d0.setHours(0, 0, 0, 0)
-    const diff = Math.round((t0.getTime() - d0.getTime()) / 86400000)
-    if (diff === 0) return '今日'; if (diff === 1) return '昨日'
-    return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
-  }
-  const hm = (d: Date) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
-  const stream: (StreamEvent & { sort: number })[] = []
-  for (const a of activitiesList) {
-    const d = a.occurred_at ? new Date(a.occurred_at) : a.created_at ? new Date(a.created_at) : null
-    if (!d) continue
-    stream.push({ id: `a-${a.id}`, kind: 'act', typeLabel: ACTIVITY_TYPE_LABELS[a.type] ?? a.type, time: hm(d), day: dayLabel(d), sort: d.getTime(),
-      body: <><Link href={`/activities/${a.id}`} className="font-semibold text-zinc-900 hover:text-brand-700">{a.subject}</Link>{a.body && <span className="block text-zinc-500 text-[12.5px] mt-0.5 line-clamp-2">{a.body}</span>}</> })
-  }
-  for (const t of tasksList) {
-    const d = t.created_at ? new Date(t.created_at) : null
-    if (!d) continue
-    const pr = PRIORITY_BADGE[t.priority] ?? PRIORITY_BADGE.medium
-    stream.push({ id: `t-${t.id}`, kind: 'todo', typeLabel: 'ToDo', time: hm(d), day: dayLabel(d), sort: d.getTime(),
-      leading: <AuthGuard minRole="editor"><form action={toggleTask}><input type="hidden" name="task_id" value={t.id} /><input type="hidden" name="done" value={(!t.done).toString()} /><button type="submit" className={`w-4.5 h-4.5 rounded-md border-[1.5px] grid place-items-center ${t.done ? 'bg-brand-600 border-brand-600 text-white' : 'border-zinc-300 hover:border-brand-400'}`}>{t.done && <span className="text-[10px] leading-none">✓</span>}</button></form></AuthGuard>,
-      body: <div className="flex items-center gap-2 flex-wrap"><Link href={`/tasks/${t.id}`} className={`font-semibold hover:text-brand-700 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>{t.title}</Link><Badge tone={pr.tone}>{pr.label}</Badge></div> })
-  }
-  for (const e of expensesList) {
-    const d = e.expense_date ? new Date(e.expense_date) : e.created_at ? new Date(e.created_at) : null
-    if (!d) continue
-    stream.push({ id: `e-${e.id}`, kind: 'exp', typeLabel: '経費', day: dayLabel(d), sort: d.getTime(),
-      body: <Link href={`/expenses/${e.id}`} className="flex items-center justify-between gap-2"><span className="font-semibold text-zinc-900">{e.title}</span><span className="font-bold text-zinc-900 shrink-0">¥{Number(e.amount).toLocaleString()}</span></Link> })
-  }
-  for (const c of changeLogs) {
-    const d = c.changed_at ? new Date(c.changed_at) : null
-    if (!d) continue
-    stream.push({ id: `c-${c.id}`, kind: 'his', typeLabel: '履歴', time: hm(d), day: dayLabel(d), sort: d.getTime(),
-      body: <span className="text-zinc-600">{c.field_label}を <span className="text-zinc-900 font-medium">{c.old_value ?? '—'}</span> → <span className="text-zinc-900 font-medium">{c.new_value ?? '—'}</span> に変更</span> })
-  }
-  stream.sort((a, b) => b.sort - a.sort)
-  const interactionCount = activitiesList.length + tasksList.length + expensesList.length
+  // stream（活動 / ToDo / 経費 / 履歴）は共通ヘルパで構築
+  const { stream, interactionCount } = buildRecordStream({
+    activities: activitiesList, tasks: tasksList, expenses: expensesList, changeLogs,
+    activityTypeLabels: ACTIVITY_TYPE_LABELS, toggleTask,
+  })
   const openTasks = tasksList.filter((t) => !t.done).length
   const expSum = expensesList.reduce((s, e) => s + Number(e.amount), 0)
   const aiEnabled = await isAIFeatureEnabled()
