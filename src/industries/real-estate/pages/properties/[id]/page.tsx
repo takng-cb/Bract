@@ -7,12 +7,14 @@ import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/l
 import { eq, and, inArray, desc, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { deleteProperty, setPropertyStatus, updatePropertyBasic } from '@/industries/real-estate/actions/properties'
+import { deleteProperty, updatePropertyBasic } from '@/industries/real-estate/actions/properties'
 import { canEdit } from '@/lib/auth'
 import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import StageBar from '@/components/StageBar'
 import { PROPERTY_STAGES } from '@/lib/statusStages'
+import { requestStatusChange } from '@/app/actions/approvals'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
 import { toggleTaskDone, quickCreateTask } from '@/app/actions/tasks'
 import { quickCreateActivity } from '@/app/actions/activities'
 import { quickCreateExpense } from '@/app/actions/expenses'
@@ -84,7 +86,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   async function savePropertyInline(formData: FormData) { 'use server'; await updatePropertyBasic(id, formData) }
   async function handleDelete() { 'use server'; await deleteProperty(id) }
-  async function changeStatus(status: string) { 'use server'; await setPropertyStatus(id, status) }
+  async function changeStatus(status: string) { 'use server'; return await requestStatusChange('properties', id, 'status', status) }
   async function toggleTask(formData: FormData) { 'use server'; await toggleTaskDone(formData.get('task_id') as string, formData.get('done') === 'true', `/properties/${id}`) }
   async function handlePropertySummarize(from: string, to: string) { 'use server'; return summarizeProperty(id, from, to) }
 
@@ -197,6 +199,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       <div className="mb-5">
         <StageBar stages={PROPERTY_STAGES} currentStage={p.status} updateAction={changeStatus} />
       </div>
+
+      <ApprovalSection objectType="properties" objectId={id} />
 
       <KpiBand items={kpis} />
 

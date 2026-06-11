@@ -15,7 +15,17 @@ export type ApprovalOp = '=' | '!=' | '>' | '>=' | '<' | '<=' | 'contains'
 
 export type ApprovalCondition = { field: string; op: ApprovalOp; value: string }
 export type ApprovalStep = { approvers: string[]; mode: 'any' | 'all' }
+/**
+ * ステータス遷移トリガー（REQ-0037）。
+ * レコードの field を from → to に変更しようとした時に承認を必須にする。
+ * from / to が空・未指定なら「任意の値」にマッチ。
+ */
+export type ApprovalTransition = { field: string; from?: string; to?: string }
 export type ApprovalRule = {
+  /** 任意のルール名（設定 UI の表示用） */
+  name?: string
+  /** 指定があれば「ステータス遷移」トリガー。無ければ手動申請トリガー */
+  transition?: ApprovalTransition
   when?: { all?: ApprovalCondition[]; any?: ApprovalCondition[] }
   steps: ApprovalStep[]
 }
@@ -65,17 +75,116 @@ export function matchRule(rule: ApprovalRule, record: RecordValues): boolean {
 }
 
 /**
- * 設定とレコード値から承認ルート（steps）を決定する。
+ * 設定とレコード値から「手動申請」の承認ルート（steps）を決定する。
+ * ステータス遷移トリガーのルールは対象外（findTransitionRoute が扱う）。
  * 無効/ルール無し/マッチ無し/steps 空 → null（承認不要）。
  */
 export function findRoute(config: ApprovalConfig | null, record: RecordValues): ApprovalStep[] | null {
   if (!config?.enabled) return null
   for (const rule of config.rules) {
+    if (rule.transition) continue
     if (matchRule(rule, record)) {
       return rule.steps?.length ? rule.steps : null
     }
   }
   return null
+}
+
+/**
+ * ステータス遷移（field: from → to）に承認が必要かを判定し、必要ならルートを返す。
+ * 遷移ルールを上から評価し、field 一致＋from/to 一致（空=任意）＋when 条件で最初のマッチを採用。
+ */
+export function findTransitionRoute(
+  config: ApprovalConfig | null,
+  record: RecordValues,
+  field: string,
+  from: string,
+  to: string,
+): ApprovalStep[] | null {
+  if (!config?.enabled) return null
+  for (const rule of config.rules) {
+    const t = rule.transition
+    if (!t || t.field !== field) continue
+    if (t.from && t.from !== from) continue
+    if (t.to && t.to !== to) continue
+    if (!matchRule(rule, record)) continue
+    return rule.steps?.length ? rule.steps : null
+  }
+  return null
+}
+
+const SANITIZE_OPS: ApprovalOp[] = ['=', '!=', '>', '>=', '<', '<=', 'contains']
+
+/**
+ * 設定 UI から受け取った unknown 値を厳格に検証して ApprovalConfig にする（不正は null）。
+ * approvers は 'user:<ref>' / 'role:<ref>' のみ許可。
+ */
+export function sanitizeApprovalConfig(raw: unknown): ApprovalConfig | null {
+  if (!raw || typeof raw !== 'object') return null
+  const o = raw as Record<string, unknown>
+  if (typeof o.enabled !== 'boolean' || !Array.isArray(o.rules)) return null
+
+  const rules: ApprovalRule[] = []
+  for (const r of o.rules) {
+    if (!r || typeof r !== 'object') return null
+    const rr = r as Record<string, unknown>
+    if (!Array.isArray(rr.steps) || rr.steps.length === 0) return null
+
+    const steps: ApprovalStep[] = []
+    for (const s of rr.steps) {
+      const ss = s as { approvers?: unknown; mode?: unknown }
+      if (!Array.isArray(ss.approvers) || ss.approvers.length === 0) return null
+      const approvers = ss.approvers.filter(
+        (a): a is string => typeof a === 'string' && (/^user:.+/.test(a) || /^role:.+/.test(a)),
+      )
+      if (approvers.length !== ss.approvers.length) return null
+      steps.push({ approvers, mode: ss.mode === 'all' ? 'all' : 'any' })
+    }
+
+    const rule: ApprovalRule = { steps }
+    if (typeof rr.name === 'string' && rr.name.trim()) rule.name = rr.name.trim()
+
+    if (rr.transition && typeof rr.transition === 'object') {
+      const t = rr.transition as Record<string, unknown>
+      if (typeof t.field !== 'string' || !t.field.trim()) return null
+      rule.transition = {
+        field: t.field.trim(),
+        ...(typeof t.from === 'string' && t.from.trim() ? { from: t.from.trim() } : {}),
+        ...(typeof t.to === 'string' && t.to.trim() ? { to: t.to.trim() } : {}),
+      }
+    }
+
+    if (rr.when && typeof rr.when === 'object') {
+      const w = rr.when as Record<string, unknown>
+      const parseConds = (arr: unknown): ApprovalCondition[] | null => {
+        if (!Array.isArray(arr)) return null
+        const out: ApprovalCondition[] = []
+        for (const c of arr) {
+          const cc = c as { field?: unknown; op?: unknown; value?: unknown }
+          if (typeof cc.field !== 'string' || !cc.field.trim()) return null
+          if (!SANITIZE_OPS.includes(cc.op as ApprovalOp)) return null
+          if (typeof cc.value !== 'string') return null
+          out.push({ field: cc.field.trim(), op: cc.op as ApprovalOp, value: cc.value })
+        }
+        return out
+      }
+      const when: ApprovalRule['when'] = {}
+      if (w.all !== undefined) {
+        const all = parseConds(w.all)
+        if (all === null) return null
+        if (all.length) when.all = all
+      }
+      if (w.any !== undefined) {
+        const any = parseConds(w.any)
+        if (any === null) return null
+        if (any.length) when.any = any
+      }
+      if (when.all || when.any) rule.when = when
+    }
+
+    rules.push(rule)
+  }
+  return { enabled: o.enabled, rules }
 }
 
 export type DecisionLite = { step: number; approver_id: string; decision: string }

@@ -1,15 +1,27 @@
 # 仕様：レコード承認（Approvals）
 
-> 生きた仕様。確定済みの内容を反映する。経緯は REQ-0023 / ADR-0022 / #85 を参照。
-> ステータス：**Phase1 実装済み**（経費ブックで基盤確立。Phase2 多段/全ブック設定 UI・Phase3 承認待ち一覧は未）。
+> 生きた仕様。確定済みの内容を反映する。経緯は REQ-0023 / REQ-0037 / ADR-0022 / #85 を参照。
+> ステータス：**Phase1+2 実装済み**（全ブック＋ステータス遷移トリガー。Phase3 承認待ち一覧は未）。
 >
 > Phase1 実装メモ（2026-06-11）:
 > - スキーマ：`approvals` / `approval_decisions`（migration `20260611180000_approvals.sql`）
 > - 設定保存：system_settings `approval_config:<book_api>`（本仕様の ApprovalConfig JSON）
 > - ルール評価：`src/lib/approvalRules.ts`（純関数・unit test 付き）。多段 step / any・all / user・role 承認者はデータモデルとして実装済み
-> - UI：経費詳細の承認セクション（申請/承認/差戻し/取消/履歴）＋ /admin/objects の設定カード（1ルール・各step承認者1名の最小エディタ）
+> - UI：レコード詳細の承認セクション（申請/承認/差戻し/取消/履歴）
 > - 編集ロック：承認待ち中は expenses の update/delete action が拒否＋詳細ページの編集 UI 非表示
 > - 通知は #25（Discord 基盤）側で対応（本機能では未実装）
+>
+> Phase2 実装メモ（2026-06-11・REQ-0037）:
+> - **ステータス遷移トリガー**：ルールに `transition: { field, from?, to? }`（空=任意）。
+>   StageBar のステータス変更は `requestStatusChange`（actions/approvals.ts）を経由し、
+>   遷移ルールにマッチすると変更を保留して承認待ちを作成（approvals.transition jsonb、
+>   migration `20260611210000_approvals_transition.sql`）。最終承認で変更を自動適用（change_logs 記録込み）。
+> - **全ブック対応**：loadRecordValues / applyFieldChange が全 typed ブック（TABLE_BY_API）＋カスタムブック（data JSON）に対応。
+>   対象 7 詳細ページ（取引先/商談/整備/車両/物件/スタッフ/案件）に承認セクション設置（経費は Phase1 から）。
+> - **設定エディタ v2**（/admin/objects）：ブック選択 × 複数ルール × トリガー（手動/遷移）× 条件 × 多段ステップ。
+>   保存は ApprovalConfig JSON を `sanitizeApprovalConfig` で厳格検証。
+> - 編集ロックの範囲：経費は全編集ロック。他ブックは Phase2 時点では「承認待ち中のステータス再変更」をロック
+>   （フィールド編集の全面ロックは今後の課題）。
 
 ## 目的
 

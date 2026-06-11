@@ -7,7 +7,9 @@ import { eq, and, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import StageBar, { type StageConfig } from '@/components/StageBar'
-import { updateOpportunityStage, deleteOpportunity, updateOpportunityBasic } from '@/app/actions/opportunities'
+import { deleteOpportunity, updateOpportunityBasic } from '@/app/actions/opportunities'
+import { requestStatusChange } from '@/app/actions/approvals'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
 import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { uploadAttachment, deleteAttachment } from '@/app/actions/attachments'
@@ -123,7 +125,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   }))
 
   async function saveOppBasic(formData: FormData) { 'use server'; await updateOpportunityBasic(id, formData) }
-  async function changeStage(stage: string) { 'use server'; await updateOpportunityStage(id, stage) }
+  async function changeStage(stage: string) { 'use server'; return await requestStatusChange('opportunities', id, 'stage', stage) }
   async function handleDelete() { 'use server'; await deleteOpportunity(id) }
   async function toggleTask(formData: FormData) {
     'use server'
@@ -337,6 +339,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       <div className="mb-5">
         <StageBar stages={OPPORTUNITY_STAGES} currentStage={opportunity.stage} updateAction={changeStage} />
       </div>
+
+      <ApprovalSection objectType="opportunities" objectId={id} />
 
       <KpiBand items={kpis} />
 

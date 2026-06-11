@@ -33,7 +33,8 @@ import MaintenanceCustomerVehicleEditForm from './MaintenanceCustomerVehicleEdit
 import MaintenanceBasicInfoEditForm from './MaintenanceBasicInfoEditForm'
 import MaintenanceLoanerEditForm from './MaintenanceLoanerEditForm'
 import StageBar, { type StageConfig } from '@/components/StageBar'
-import { updateMaintenanceStatus } from '@/industries/auto-body/actions/maintenance'
+import { requestStatusChange } from '@/app/actions/approvals'
+import ApprovalSection from '@/components/approvals/ApprovalSection'
 import { NavIcon } from '@/lib/navIcon'
 
 const STATUS_STAGES: StageConfig[] = [
@@ -226,7 +227,8 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
 
   async function changeStatus(status: string) {
     'use server'
-    await updateMaintenanceStatus(maintenanceId, status)
+    // 承認ゲート（REQ-0037）：遷移ルールにマッチしたら承認待ちを作成して保留
+    return await requestStatusChange('maintenance_records', maintenanceId, 'status', status)
   }
 
   // ════════════════════════════════════════════════
@@ -440,6 +442,9 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-3">
         <StageBar stages={STATUS_STAGES} currentStage={m.status} updateAction={changeStatus} />
       </div>
+
+      {/* 承認（遷移ルール設定時のみ表示） */}
+      <ApprovalSection objectType="maintenance_records" objectId={maintenanceId} />
 
       {/* 帳票ボタン群 */}
       <div className="bg-white border border-zinc-200 rounded-lg px-3 py-2">

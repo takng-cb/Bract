@@ -4,6 +4,8 @@ import {
   evaluateCondition,
   matchRule,
   findRoute,
+  findTransitionRoute,
+  sanitizeApprovalConfig,
   approverMatches,
   canDecideStep,
   isStepSatisfied,
@@ -103,6 +105,70 @@ describe('matchRule / findRoute', () => {
     }
     expect(findRoute(config, { amount: '600000' })).toEqual(bigSteps)
     expect(findRoute(config, { amount: '200000' })).toEqual(steps)
+  })
+})
+
+describe('findTransitionRoute（ステータス遷移トリガー REQ-0037）', () => {
+  const steps: ApprovalStep[] = [{ approvers: ['role:admin'], mode: 'any' }]
+  const config: ApprovalConfig = {
+    enabled: true,
+    rules: [
+      { transition: { field: 'stage', from: 'negotiation', to: 'closed_won' }, steps },
+      { transition: { field: 'status', to: '完了' }, when: { all: [{ field: 'amount', op: '>=', value: '100000' }] }, steps },
+      { steps }, // 手動申請ルール（遷移評価では無視される）
+    ],
+  }
+
+  it('from/to が一致する遷移にマッチ', () => {
+    expect(findTransitionRoute(config, {}, 'stage', 'negotiation', 'closed_won')).toEqual(steps)
+  })
+
+  it('from 不一致・field 不一致はマッチしない', () => {
+    expect(findTransitionRoute(config, {}, 'stage', 'proposal', 'closed_won')).toBeNull()
+    expect(findTransitionRoute(config, {}, 'status', 'negotiation', 'closed_won')).toBeNull()
+  })
+
+  it('from 省略は任意の値にマッチ。when 条件も併用される', () => {
+    expect(findTransitionRoute(config, { amount: '200000' }, 'status', '作業中', '完了')).toEqual(steps)
+    expect(findTransitionRoute(config, { amount: '50000' }, 'status', '作業中', '完了')).toBeNull()
+  })
+
+  it('手動申請ルールしか無ければ遷移は承認不要。findRoute は遷移ルールを無視', () => {
+    const manualOnly: ApprovalConfig = { enabled: true, rules: [{ steps }] }
+    expect(findTransitionRoute(manualOnly, {}, 'stage', 'a', 'b')).toBeNull()
+    const transitionOnly: ApprovalConfig = { enabled: true, rules: [{ transition: { field: 'stage' }, steps }] }
+    expect(findRoute(transitionOnly, {})).toBeNull()
+  })
+})
+
+describe('sanitizeApprovalConfig（設定エディタ入力の検証）', () => {
+  const validStep = { approvers: ['role:admin'], mode: 'any' }
+
+  it('正しい設定を受理（transition / when / name 付き）', () => {
+    const c = sanitizeApprovalConfig({
+      enabled: true,
+      rules: [{
+        name: '受注の承認',
+        transition: { field: 'stage', from: 'negotiation', to: 'closed_won' },
+        when: { all: [{ field: 'amount', op: '>=', value: '100000' }] },
+        steps: [validStep, { approvers: ['user:u1'], mode: 'all' }],
+      }],
+    })
+    expect(c?.enabled).toBe(true)
+    expect(c?.rules[0].transition).toEqual({ field: 'stage', from: 'negotiation', to: 'closed_won' })
+    expect(c?.rules[0].steps[1].mode).toBe('all')
+  })
+
+  it('不正な approver / op / steps 空 / transition.field 欠落は拒否', () => {
+    expect(sanitizeApprovalConfig({ enabled: true, rules: [{ steps: [{ approvers: ['hacker'], mode: 'any' }] }] })).toBeNull()
+    expect(sanitizeApprovalConfig({ enabled: true, rules: [{ steps: [validStep], when: { all: [{ field: 'a', op: 'DROP', value: 'x' }] } }] })).toBeNull()
+    expect(sanitizeApprovalConfig({ enabled: true, rules: [{ steps: [] }] })).toBeNull()
+    expect(sanitizeApprovalConfig({ enabled: true, rules: [{ steps: [validStep], transition: { from: 'a' } }] })).toBeNull()
+  })
+
+  it('from/to の空文字は省略扱いに正規化', () => {
+    const c = sanitizeApprovalConfig({ enabled: true, rules: [{ steps: [validStep], transition: { field: 'status', from: '', to: '完了' } }] })
+    expect(c?.rules[0].transition).toEqual({ field: 'status', to: '完了' })
   })
 })
 
