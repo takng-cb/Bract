@@ -49,24 +49,68 @@ const BOARD_STAGES: { id: string; label: string; dot: string }[] = [
   { id: 'closed_lost',   label: '失注',     dot: 'bg-zinc-400' },
 ]
 
-/** ビュー切替トグル（パイプライン / リスト）＋予実リンク */
+/**
+ * ビュー切替トグル（パイプライン / リスト）＋予実リンク。
+ * モバイルではラベルを隠してアイコンのみ（横幅あふれによるボタン崩れ防止）。
+ */
 function ViewToggle({ view }: { view: 'board' | 'list' }) {
-  const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md transition-colors'
+  const base = 'inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-semibold rounded-md transition-colors whitespace-nowrap'
   return (
     <div className="flex items-center gap-2">
-      <Link href="/forecast" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-zinc-600 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50">
-        <BarChart3 className="w-4 h-4" strokeWidth={2.25} aria-hidden />予実
+      <Link href="/forecast" title="予実" className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-semibold text-zinc-600 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 whitespace-nowrap">
+        <BarChart3 className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">予実</span>
       </Link>
       <div className="inline-flex items-center gap-0.5 rounded-md border border-zinc-200 bg-zinc-100 p-0.5">
-        <Link href="/opportunities?view=board" className={`${base} ${view === 'board' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
-          <KanbanIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden />パイプライン
+        <Link href="/opportunities?view=board" title="パイプライン" className={`${base} ${view === 'board' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+          <KanbanIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">パイプライン</span>
         </Link>
-        <Link href="/opportunities?view=list" className={`${base} ${view === 'list' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
-          <ListIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden />リスト
+        <Link href="/opportunities?view=list" title="リスト" className={`${base} ${view === 'list' ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600'}`}>
+          <ListIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden /><span className="hidden sm:inline">リスト</span>
         </Link>
       </div>
     </div>
   )
+}
+
+/** フィルタの SQL pushdown 用 resolver（パイプライン / リスト共通） */
+const FILTER_RESOLVER: FilterColumnResolver = {
+  name:             { col: opportunities.name,        type: 'text' },
+  'accounts.name':  { col: accounts.name,             type: 'text' },
+  stage:            { col: opportunities.stage,       type: 'select' },
+  amount:           { col: opportunities.amount,      type: 'number' },
+  probability:      { col: opportunities.probability, type: 'number' },
+  close_date:       { col: opportunities.close_date,  type: 'date' },
+  owner_id:         { col: opportunities.owner_id,    type: 'select' },
+}
+
+/** フィルタ UI のフィールド定義（パイプライン / リスト共通） */
+function buildFilterFields(
+  allUsers: { id: string; name: string }[],
+  allTags: { id: string; name: string }[],
+): FieldDef[] {
+  return [
+    { value: 'name',          label: '商談名',    type: 'text' },
+    { value: 'accounts.name', label: '取引先',    type: 'text' },
+    {
+      value: 'stage', label: 'ステージ', type: 'select',
+      options: [
+        { value: 'prospecting',   label: '見込み' },
+        { value: 'qualification', label: '要件確認' },
+        { value: 'proposal',      label: '提案' },
+        { value: 'negotiation',   label: '交渉' },
+        { value: 'closed_won',    label: '受注' },
+        { value: 'closed_lost',   label: '失注' },
+      ],
+    },
+    { value: 'amount',      label: '金額（円）', type: 'number' },
+    { value: 'probability', label: '確度（%）',  type: 'number' },
+    { value: 'close_date',  label: '完了予定日', type: 'date' },
+    { value: 'owner_id', label: '担当者', type: 'select', options: allUsers.map((u) => ({ value: u.id, label: u.name })) },
+    {
+      value: 'tag', label: 'タグ', type: 'select',
+      options: allTags.map((t) => ({ value: t.id, label: t.name })),
+    },
+  ]
 }
 
 export default async function OpportunitiesPage({
@@ -81,25 +125,57 @@ export default async function OpportunitiesPage({
   const view: 'board' | 'list' = sp0.view === 'list' || (sp0.view !== 'board' && hasListParams) ? 'list' : 'board'
 
   if (view === 'board') {
-    const [edit, rows, users] = await Promise.all([
+    // ── パイプラインのフィルタ（リストと同じ f パラメータ・SQL pushdown。view=board は persistParams で保持）──
+    const filterRaw = [sp0.f].flat().filter(Boolean) as string[]
+    const conditions = parseFilterParams(filterRaw)
+    const { tagConditions, otherConditions } = splitTagConditions(conditions)
+    const useJsFallback = unresolvedConditions(otherConditions, FILTER_RESOLVER).length > 0
+    const where = useJsFallback
+      ? undefined
+      : and(buildWhere(otherConditions, FILTER_RESOLVER), buildTagWhere(tagConditions, 'opportunity', opportunities.id))
+
+    const [edit, rawRows, users, allTags, taggableRows] = await Promise.all([
       canEdit(),
       db.select({
         id: opportunities.id, name: opportunities.name, stage: opportunities.stage,
         amount: opportunities.amount, probability: opportunities.probability,
         close_date: opportunities.close_date, owner_id: opportunities.owner_id,
-        accountName: accounts.name,
+        accounts: { id: accounts.id, name: accounts.name },
       })
         .from(opportunities)
         .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+        .where(where)
         .orderBy(desc(opportunities.amount)),
       getAllUsers(),
+      getAllTags(),
+      useJsFallback && tagConditions.length > 0
+        ? db.select({ tag_id: taggables.tag_id, object_id: taggables.object_id })
+            .from(taggables).where(and(
+              eq(taggables.object_type, 'opportunity'),
+              inArray(taggables.tag_id, tagConditions.map((c) => c.value)),
+            ))
+        : Promise.resolve([] as { tag_id: string; object_id: string }[]),
     ])
+
+    let rows = rawRows
+    if (useJsFallback) {
+      const taggedIdsByTagId = new Map<string, Set<string>>()
+      for (const t of taggableRows) {
+        if (!taggedIdsByTagId.has(t.tag_id)) taggedIdsByTagId.set(t.tag_id, new Set())
+        taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
+      }
+      rows = applyTagFilter(
+        applyFilters(rows as unknown as Record<string, unknown>[], otherConditions) as unknown as typeof rawRows,
+        tagConditions, taggedIdsByTagId,
+      )
+    }
+
     const ownerName = new Map(users.map((u) => [u.id, u.name]))
     const columns: BoardColumn[] = BOARD_STAGES.map((s) => {
       const deals = rows
         .filter((r) => r.stage === s.id)
         .map((r) => ({
-          id: r.id, name: r.name, accountName: r.accountName ?? null,
+          id: r.id, name: r.name, accountName: r.accounts?.name ?? null,
           amount: r.amount != null ? Number(r.amount) : null,
           probability: r.probability != null ? Number(r.probability) : null,
           ownerChar: (r.owner_id && ownerName.get(r.owner_id)?.trim()?.[0]) || '—',
@@ -110,22 +186,33 @@ export default async function OpportunitiesPage({
     })
     const total = rows.length
     const weighted = rows.reduce((acc, r) => acc + (r.amount != null && r.probability != null ? Number(r.amount) * Number(r.probability) / 100 : 0), 0)
+    const hasFilter = conditions.length > 0
 
     return (
       <div className="flex flex-col h-full p-4 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900">商談 <span className="ml-1 text-base font-semibold text-zinc-400 tabular-nums">{total}件 · 加重 ¥{Math.round(weighted).toLocaleString()}</span></h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-zinc-900">商談 <span className="ml-1 text-base font-semibold text-zinc-400 tabular-nums">{total}件 · 加重 ¥{Math.round(weighted).toLocaleString()}</span>
+              {hasFilter && <span className="ml-1 text-sm font-semibold text-blue-600">（絞り込み中）</span>}
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <ViewToggle view="board" />
             {edit && (
-              <Link href="/opportunities/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
-                <NavIcon icon="💼" className="w-4 h-4" />商談を作成
+              <Link href="/opportunities/new" title="商談を作成" className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap">
+                <NavIcon icon="💼" className="w-4 h-4" /><span className="hidden sm:inline">商談を作成</span><span className="sm:hidden">作成</span>
               </Link>
             )}
           </div>
         </div>
+        <ListViewToolbar
+          fields={buildFilterFields(users, allTags)}
+          initialFilters={filterRaw}
+          basePath="/opportunities"
+          groupableFields={[]}
+          initialGroup=""
+          persistParams={{ view: 'board' }}
+        />
         <OpportunityBoard columns={columns} canEdit={edit} />
       </div>
     )
@@ -156,20 +243,9 @@ export default async function OpportunitiesPage({
   const sortRaw = sp.sort ?? ''
   const sortDefs = parseSortParams(sortRaw)
 
-  // SQL ベースのページング・フィルタ・ソートに使う resolver
-  const resolver: FilterColumnResolver = {
-    name:             { col: opportunities.name,        type: 'text' },
-    'accounts.name':  { col: accounts.name,             type: 'text' },
-    stage:            { col: opportunities.stage,       type: 'select' },
-    amount:           { col: opportunities.amount,      type: 'number' },
-    probability:      { col: opportunities.probability, type: 'number' },
-    close_date:       { col: opportunities.close_date,  type: 'date' },
-    owner_id:         { col: opportunities.owner_id,    type: 'select' },
-  }
-
-  // resolver で解決できないフィルタがある場合のみ JS フォールバック。
+  // resolver（FILTER_RESOLVER）で解決できないフィルタがある場合のみ JS フォールバック。
   // tag フィルタは buildTagWhere で SQL に押し下げる。
-  const useJsFallback = unresolvedConditions(otherConditions, resolver).length > 0
+  const useJsFallback = unresolvedConditions(otherConditions, FILTER_RESOLVER).length > 0
 
   // 共通の SELECT 形（ページデータ取得用）
   const selectShape = {
@@ -230,11 +306,11 @@ export default async function OpportunitiesPage({
     displayList = isGrouped ? sorted : sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   } else {
     // ── SQL fast path ──
-    const userWhere = buildWhere(otherConditions, resolver)
+    const userWhere = buildWhere(otherConditions, FILTER_RESOLVER)
     const tagWhere = buildTagWhere(tagConditions, 'opportunity', opportunities.id)
     // and(undefined, x, y) は drizzle が undefined を無視するため安全
     const where = and(userWhere, tagWhere)
-    const orderBy = buildOrderBy(sortDefs, resolver)
+    const orderBy = buildOrderBy(sortDefs, FILTER_RESOLVER)
     const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(opportunities.created_at)]
 
     const baseQuery = db.select(selectShape)
@@ -258,29 +334,7 @@ export default async function OpportunitiesPage({
     displayList = pageRows
   }
 
-  const FIELDS: FieldDef[] = [
-    { value: 'name',          label: '商談名',    type: 'text' },
-    { value: 'accounts.name', label: '取引先',    type: 'text' },
-    {
-      value: 'stage', label: 'ステージ', type: 'select',
-      options: [
-        { value: 'prospecting',   label: '見込み' },
-        { value: 'qualification', label: '要件確認' },
-        { value: 'proposal',      label: '提案' },
-        { value: 'negotiation',   label: '交渉' },
-        { value: 'closed_won',    label: '受注' },
-        { value: 'closed_lost',   label: '失注' },
-      ],
-    },
-    { value: 'amount',      label: '金額（円）', type: 'number' },
-    { value: 'probability', label: '確度（%）',  type: 'number' },
-    { value: 'close_date',  label: '完了予定日', type: 'date' },
-    { value: 'owner_id', label: '担当者', type: 'select', options: allUsers.map((u) => ({ value: u.id, label: u.name })) },
-    {
-      value: 'tag', label: 'タグ', type: 'select',
-      options: allTags.map((t) => ({ value: t.id, label: t.name })),
-    },
-  ]
+  const FIELDS: FieldDef[] = buildFilterFields(allUsers, allTags)
 
   const hasFilter  = conditions.length > 0
   const totalPages = isGrouped ? 1 : Math.ceil(totalCount / PAGE_SIZE)
@@ -291,15 +345,15 @@ export default async function OpportunitiesPage({
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-4">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-zinc-900">商談</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件{hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
             {isGrouped && <span className="ml-1 text-violet-600">（グルーピング中）</span>}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <ViewToggle view="list" />
           <CsvToolbar
             exportUrl="/api/export/opportunities"
