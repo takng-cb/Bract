@@ -30,6 +30,7 @@ import { requestStatusChange } from '@/app/actions/approvals'
 import ApprovalSection from '@/components/approvals/ApprovalSection'
 import OutreachSection from '@/industries/staffing/components/OutreachSection'
 import CandidatesSection from '@/industries/staffing/components/CandidatesSection'
+import InvoiceSection from '@/industries/staffing/components/InvoiceSection'
 import { RecordColumns, KpiBand, type KpiItem } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream from '@/components/record/ActivityStream'
@@ -122,6 +123,8 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
     <div className="px-4 py-4 space-y-4">
       <OutreachSection assignmentId={id} agencies={suppliers} items={outreachItems} />
       <CandidatesSection assignmentId={id} agencies={suppliers} staffList={staffList} items={candidateRows} clientTotalFee={a.client_total_fee} requiredCount={a.staff_count_required} />
+      {/* 売上・請求（Phase5 / REQ-0007）：確定内容から請求データ生成→ステータス管理 */}
+      <InvoiceSection assignmentId={id} canEdit={editFlag} />
     </div>
   )
 

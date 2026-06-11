@@ -132,6 +132,7 @@ export const HREF_BOOK: Record<string, string> = {
   '/receivables': 'maintenance_records',
   '/staff': 'staff',
   '/assignments': 'assignments',
+  '/invoices': 'assignments',  // 売上・請求は案件の付帯（RBAC は assignments に従う）
 }
 
 /** href から book_api を解決（カスタムは /objects/<api>） */

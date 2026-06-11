@@ -144,6 +144,7 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     navItems: [
       { href: '/assignments', label: '案件',   icon: '📋' },
       { href: '/staff',       label: 'スタッフ', icon: '🧑‍💼' },
+      { href: '/invoices',    label: '売上・請求', icon: '💰' },
     ],
     books: [
       { apiName: 'assignments', label: '案件' },
