@@ -74,8 +74,8 @@ test.describe('Role matrix: viewer (読み取り専用)', () => {
   })
 
   // ── 4) /admin/* に弾かれる ─────────────────────────────
-  test('/admin/objects → /dashboard へ redirect される', async ({ page }) => {
-    await page.goto('/admin/objects')
+  test('/admin/books → /dashboard へ redirect される', async ({ page }) => {
+    await page.goto('/admin/books')
     await expectRedirectedTo(page, '/dashboard')
   })
 

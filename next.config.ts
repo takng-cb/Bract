@@ -42,9 +42,9 @@ const nextConfig: NextConfig = {
    * /properties/* と /vehicles/* リダイレクト（INDUSTRY 切替）
    *
    * - INDUSTRY=real-estate: /properties は overlay 専用ルートへ。
-   *   /vehicles は base と同じく /objects/vehicles へ転送（auto-body 用なので不在）。
+   *   /vehicles は base と同じく /books/vehicles へ転送（auto-body 用なので不在）。
    * - INDUSTRY=auto-body:   /vehicles は overlay 専用ルートへ。
-   *   /properties は base と同じく /objects/properties へ転送。
+   *   /properties は base と同じく /books/properties へ転送。
    * - INDUSTRY=base:        両方ともカスタムオブジェクトの汎用ルートへ転送。
    *
    * 業種ごとに振る舞いを切り替えるため、ビルド時に NEXT_PUBLIC_INDUSTRY を
@@ -58,27 +58,34 @@ const nextConfig: NextConfig = {
     const industry = process.env.NEXT_PUBLIC_INDUSTRY
     const rules: { source: string; destination: string; permanent: boolean }[] = []
 
-    // properties: real-estate のみ overlay。それ以外は /objects/properties へ
+    // #21 内部リネーム: 旧 /objects・/admin/objects URL を新 /books へ恒久リダイレクト
+    rules.push(
+      { source: '/objects/:path*',       destination: '/books/:path*',       permanent: true },
+      { source: '/admin/objects/:path*', destination: '/admin/books/:path*', permanent: true },
+      { source: '/admin/objects',        destination: '/admin/books',        permanent: true },
+    )
+
+    // properties: real-estate のみ overlay。それ以外は /books/properties へ
     if (industry !== 'real-estate') {
       rules.push(
-        { source: '/properties/new',      destination: '/objects/properties/new',       permanent: false },
-        { source: '/properties/:id/edit', destination: '/objects/properties/:id/edit',  permanent: false },
-        { source: '/properties/:id',      destination: '/objects/properties/:id',       permanent: false },
-        { source: '/properties',          destination: '/objects/properties',           permanent: false },
+        { source: '/properties/new',      destination: '/books/properties/new',       permanent: false },
+        { source: '/properties/:id/edit', destination: '/books/properties/:id/edit',  permanent: false },
+        { source: '/properties/:id',      destination: '/books/properties/:id',       permanent: false },
+        { source: '/properties',          destination: '/books/properties',           permanent: false },
       )
     }
 
-    // vehicles / parts: auto-body のみ overlay。それ以外は /objects/* へ
+    // vehicles / parts: auto-body のみ overlay。それ以外は /books/* へ
     if (industry !== 'auto-body') {
       rules.push(
-        { source: '/vehicles/new',      destination: '/objects/vehicles/new',      permanent: false },
-        { source: '/vehicles/:id/edit', destination: '/objects/vehicles/:id/edit', permanent: false },
-        { source: '/vehicles/:id',      destination: '/objects/vehicles/:id',      permanent: false },
-        { source: '/vehicles',          destination: '/objects/vehicles',          permanent: false },
-        { source: '/parts/new',         destination: '/objects/parts/new',         permanent: false },
-        { source: '/parts/:id/edit',    destination: '/objects/parts/:id/edit',    permanent: false },
-        { source: '/parts/:id',         destination: '/objects/parts/:id',         permanent: false },
-        { source: '/parts',             destination: '/objects/parts',             permanent: false },
+        { source: '/vehicles/new',      destination: '/books/vehicles/new',      permanent: false },
+        { source: '/vehicles/:id/edit', destination: '/books/vehicles/:id/edit', permanent: false },
+        { source: '/vehicles/:id',      destination: '/books/vehicles/:id',      permanent: false },
+        { source: '/vehicles',          destination: '/books/vehicles',          permanent: false },
+        { source: '/parts/new',         destination: '/books/parts/new',         permanent: false },
+        { source: '/parts/:id/edit',    destination: '/books/parts/:id/edit',    permanent: false },
+        { source: '/parts/:id',         destination: '/books/parts/:id',         permanent: false },
+        { source: '/parts',             destination: '/books/parts',             permanent: false },
       )
     }
 

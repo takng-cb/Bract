@@ -1,7 +1,7 @@
 'use server'
 import { db } from '@/lib/db'
 import { trashRecord } from '@/lib/trash'
-import { custom_records } from '@/lib/schema'
+import { book_records } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions'
@@ -32,12 +32,12 @@ export async function createCustomRecord(
 
   const owner_id = (formData.get('owner_id') as string) || null
 
-  const [rec] = await db.insert(custom_records)
+  const [rec] = await db.insert(book_records)
     .values({ object_id: obj.id, data, owner_id })
-    .returning({ id: custom_records.id })
+    .returning({ id: book_records.id })
 
-  revalidatePath(`/objects/${objectApiName}`)
-  redirect(`/objects/${objectApiName}/${rec.id}`)
+  revalidatePath(`/books/${objectApiName}`)
+  redirect(`/books/${objectApiName}/${rec.id}`)
 }
 
 /** FormData から data JSON を構築して UPDATE */
@@ -60,12 +60,12 @@ export async function updateCustomRecord(
 
   const owner_id = (formData.get('owner_id') as string) || null
 
-  await db.update(custom_records)
+  await db.update(book_records)
     .set({ data, owner_id, updated_at: new Date() })
-    .where(and(eq(custom_records.id, recordId), eq(custom_records.object_id, obj.id)))
+    .where(and(eq(book_records.id, recordId), eq(book_records.object_id, obj.id)))
 
-  revalidatePath(`/objects/${objectApiName}/${recordId}`)
-  redirect(`/objects/${objectApiName}/${recordId}`)
+  revalidatePath(`/books/${objectApiName}/${recordId}`)
+  redirect(`/books/${objectApiName}/${recordId}`)
 }
 
 /** 削除 */
@@ -78,16 +78,16 @@ export async function deleteCustomRecord(
   const obj = await getObjectDef(objectApiName)
   if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
 
-  await trashRecord('custom_records', recordId, obj.label_plural ?? objectApiName)  // 実削除の前にゴミ箱へ退避（REQ-0047）
+  await trashRecord('book_records', recordId, obj.label_plural ?? objectApiName)  // 実削除の前にゴミ箱へ退避（REQ-0047）
 
   // Phase 2: junction クリーンアップ。api_name 経由で参照されているため
-  // objectApiName (= object_definitions.api_name) を渡す。
+  // objectApiName (= book_definitions.api_name) を渡す。
   await cleanupRelatedRecordsForParent(objectApiName, recordId)
-  await db.delete(custom_records)
-    .where(and(eq(custom_records.id, recordId), eq(custom_records.object_id, obj.id)))
+  await db.delete(book_records)
+    .where(and(eq(book_records.id, recordId), eq(book_records.object_id, obj.id)))
 
-  revalidatePath(`/objects/${objectApiName}`)
-  redirect(`/objects/${objectApiName}`)
+  revalidatePath(`/books/${objectApiName}`)
+  redirect(`/books/${objectApiName}`)
 }
 
 // ────────────────────────────────────────────────────────────────

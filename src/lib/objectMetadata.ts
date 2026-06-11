@@ -1,5 +1,5 @@
 /**
- * object_definitions / field_definitions を読み取るユーティリティ
+ * book_definitions / book_fields を読み取るユーティリティ
  *
  * DB クエリを unstable_cache でサーバーサイドキャッシュし、
  * 全リクエスト共通で再利用することで DB ラウンドトリップを削減する。
@@ -8,22 +8,22 @@
  * 管理画面での更新時は revalidateTag を呼ぶことでキャッシュを即時破棄できる。
  */
 import { db } from '@/lib/db'
-import { object_definitions, field_definitions } from '@/lib/schema'
+import { book_definitions, book_fields } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
 import { parseFieldOptions as _parseFieldOptions } from '@/lib/fieldUtils'
 import { unstable_cache } from 'next/cache'
 
-export type ObjectDef = typeof object_definitions.$inferSelect
-export type FieldDef  = typeof field_definitions.$inferSelect
+export type ObjectDef = typeof book_definitions.$inferSelect
+export type FieldDef  = typeof book_fields.$inferSelect
 
 // ── キャッシュタグ定数 ─────────────────────────────────────────────
-export const CACHE_TAG_OBJECTS = 'object_definitions'
-export const CACHE_TAG_FIELDS  = 'field_definitions'
+export const CACHE_TAG_OBJECTS = 'book_definitions'
+export const CACHE_TAG_FIELDS  = 'book_fields'
 
 // ── 全オブジェクト定義（管理画面・ナビ用） ────────────────────────
 const _getAllObjectDefs = unstable_cache(
-  async () => db.select().from(object_definitions)
-    .orderBy(asc(object_definitions.sort_order), asc(object_definitions.created_at)),
+  async () => db.select().from(book_definitions)
+    .orderBy(asc(book_definitions.sort_order), asc(book_definitions.created_at)),
   ['all_object_defs'],
   { tags: [CACHE_TAG_OBJECTS], revalidate: 30 },
 )
@@ -53,9 +53,9 @@ export async function getAllObjectDefs(): Promise<ObjectDef[]> {
 
 // ── フィールド定義（オブジェクトごと） ───────────────────────────
 const _getFieldDefsRaw = unstable_cache(
-  async (objectId: string) => db.select().from(field_definitions)
-    .where(eq(field_definitions.object_id, objectId))
-    .orderBy(asc(field_definitions.sort_order), asc(field_definitions.created_at)),
+  async (objectId: string) => db.select().from(book_fields)
+    .where(eq(book_fields.object_id, objectId))
+    .orderBy(asc(book_fields.sort_order), asc(book_fields.created_at)),
   ['field_defs'],
   { tags: [CACHE_TAG_FIELDS], revalidate: 30 },
 )

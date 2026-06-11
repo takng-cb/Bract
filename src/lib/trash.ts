@@ -33,7 +33,7 @@ export const TRASH_TABLES: Record<string, string> = {
   properties:          '物件',
   assignments:         '案件',
   staff:               'スタッフ',
-  custom_records:      'カスタムレコード',
+  book_records:      'カスタムレコード',
 }
 
 const LABEL_KEYS = ['name', 'title', 'full_name', 'subject', 'maintenance_no', 'assignment_no', 'plate_number', 'license_plate', 'slug']
@@ -43,7 +43,7 @@ function deriveLabel(payload: Record<string, unknown>): string {
     const v = payload[k]
     if (typeof v === 'string' && v.trim()) return v
   }
-  // custom_records は data JSON の name/title
+  // book_records は data JSON の name/title
   const data = payload.data as Record<string, unknown> | undefined
   if (data) {
     for (const k of ['name', 'title']) {

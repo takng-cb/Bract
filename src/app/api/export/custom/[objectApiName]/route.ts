@@ -2,11 +2,11 @@
  * GET /api/export/custom/[objectApiName]
  *
  * カスタムオブジェクトのレコードを CSV でエクスポートする。
- * ヘッダーは field_definitions の label を使用。
+ * ヘッダーは book_fields の label を使用。
  * account_id / contact_id フィールドは名前も一緒にエクスポートする。
  */
 import { db } from '@/lib/db'
-import { custom_records, object_definitions, field_definitions, accounts, contacts } from '@/lib/schema'
+import { book_records, book_definitions, book_fields, accounts, contacts } from '@/lib/schema'
 import { eq, asc, inArray } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
@@ -25,9 +25,9 @@ export async function GET(
 
   // オブジェクト定義取得
   const objRows = await db
-    .select({ id: object_definitions.id, label: object_definitions.label })
-    .from(object_definitions)
-    .where(eq(object_definitions.api_name, objectApiName))
+    .select({ id: book_definitions.id, label: book_definitions.label })
+    .from(book_definitions)
+    .where(eq(book_definitions.api_name, objectApiName))
     .limit(1)
   if (objRows.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const obj = objRows[0]
@@ -35,16 +35,16 @@ export async function GET(
   // フィールド定義取得（section 以外）
   const fields = await db
     .select()
-    .from(field_definitions)
-    .where(eq(field_definitions.object_id, obj.id))
-    .orderBy(asc(field_definitions.sort_order), asc(field_definitions.created_at))
+    .from(book_fields)
+    .where(eq(book_fields.object_id, obj.id))
+    .orderBy(asc(book_fields.sort_order), asc(book_fields.created_at))
   const dataFields = fields.filter((f) => f.field_type !== 'section' && f.is_visible)
 
   // レコード取得
   const records = await db
     .select()
-    .from(custom_records)
-    .where(eq(custom_records.object_id, obj.id))
+    .from(book_records)
+    .where(eq(book_records.object_id, obj.id))
 
   // account_id / contact_id フィールドのIDを収集してまとめてDBルックアップ
   const accountIdFields = dataFields.filter((f) => f.api_name === 'account_id' || f.api_name.endsWith('_account_id'))

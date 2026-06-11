@@ -80,7 +80,7 @@ export async function createProperty(formData: FormData): Promise<string> {
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
   const [row] = await db.insert(properties).values(data).returning()
-  // custom_records ミラー（activities/tasks/expenses 等の関連先表示用）
+  // book_records ミラー（activities/tasks/expenses 等の関連先表示用）
   await syncPropertyToCustomRecord(row)
   revalidatePath('/properties')
   return row.id
@@ -89,7 +89,7 @@ export async function createProperty(formData: FormData): Promise<string> {
 /**
  * インライン編集用・部分更新。送信されたフィールドだけを更新する（formData.has 判定）。
  * 概要カード／登記カード／司法書士カードのどれを保存しても他カードの値を消さない。
- * custom_records ミラーは全保存で再同期する（関連表示の整合を保つ）。
+ * book_records ミラーは全保存で再同期する（関連表示の整合を保つ）。
  */
 export async function updatePropertyBasic(id: string, formData: FormData) {
   await requirePermission('properties', 'update')
@@ -140,14 +140,14 @@ export async function updateProperty(id: string, formData: FormData) {
     .set({ ...data, updated_at: new Date() })
     .where(eq(properties.id, id))
     .returning()
-  // custom_records ミラーを更新
+  // book_records ミラーを更新
   if (row) await syncPropertyToCustomRecord(row)
   revalidatePath('/properties')
   revalidatePath(`/properties/${id}`)
   redirect(`/properties/${id}`)
 }
 
-/** ステータスのみ更新（矢羽根 StageBar 用）。custom_records ミラーも同期 */
+/** ステータスのみ更新（矢羽根 StageBar 用）。book_records ミラーも同期 */
 export async function setPropertyStatus(id: string, status: string) {
   await requirePermission('properties', 'update')
   const [row] = await db.update(properties)
@@ -163,7 +163,7 @@ export async function deleteProperty(id: string) {
   await requirePermission('properties', 'delete')
   await trashRecord('properties', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(properties).where(eq(properties.id, id))
-  // custom_records ミラー側も削除
+  // book_records ミラー側も削除
   await deletePropertyCustomRecord(id)
   revalidatePath('/properties')
   redirect('/properties')

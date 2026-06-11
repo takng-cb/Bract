@@ -17,7 +17,7 @@ type ObjectForNav = {
  * カスタムオブジェクトを NavItem に変換する共通ヘルパー。
  *
  * 業種オーバーレイで業種専用ルートを持つオブジェクト
- * (例: real-estate モードの properties) は `/objects/<api>` ではなく
+ * (例: real-estate モードの properties) は `/books/<api>` ではなく
  * 業種専用 URL (`/properties` 等) に向ける。
  *
  * これを共通化することで、サイドバー（layout.tsx）と
@@ -40,11 +40,11 @@ function hrefForCustomObject(apiName: string, activeIndustry: Industry): string 
   if (activeIndustry === 'real-estate' && apiName === 'properties') return '/properties'
   if (activeIndustry === 'auto-body'   && apiName === 'vehicles')   return '/vehicles'
   if (activeIndustry === 'auto-body'   && apiName === 'parts')      return '/parts'
-  return `/objects/${apiName}`
+  return `/books/${apiName}`
 }
 
 /**
- * 業種オーバーレイ専用ルートのナビ項目（object_definitions に行が無い場合のフォールバック）。
+ * 業種オーバーレイ専用ルートのナビ項目（book_definitions に行が無い場合のフォールバック）。
  * 初期セットアップ前でもサイドバーに表示できるようハードコードする。
  * layout.tsx（サイドバー）と並び替え画面（NavOrderEditor）で共用しドリフトを防ぐ。
  * 重複時は customObjectsToNavItems 由来の項目を優先（呼び出し側で href 重複排除）。
@@ -80,7 +80,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/tasks',         label: 'ToDo',          icon: '✅' },
   { href: '/expenses',      label: '経費管理',      icon: '💰' },
   // /properties はカスタムオブジェクト化のため削除。
-  // DB の object_definitions (api_name='properties') から自動的にサイドバーに表示される。
+  // DB の book_definitions (api_name='properties') から自動的にサイドバーに表示される。
 ]
 
 /**
@@ -107,7 +107,7 @@ export type AdminLink = {
   provider?: boolean
 }
 export const ADMIN_LINKS: AdminLink[] = [
-  { href: '/admin/objects',       label: 'ブック/モジュール管理', icon: '🗂️', desc: 'モジュールの有効/無効・ブック・フィールド・並び順' },
+  { href: '/admin/books',       label: 'ブック/モジュール管理', icon: '🗂️', desc: 'モジュールの有効/無効・ブック・フィールド・並び順' },
   { href: '/admin/relationships', label: '関係性管理',       icon: '🔗',  desc: 'ブック間のリレーション' },
   { href: '/admin/users',         label: 'ユーザー管理',     icon: '👥',  desc: '権限・パスワード・削除' },
   { href: '/admin/roles',         label: 'ロール管理',       icon: '🛡️', desc: 'ロール作成・ブック別CRUD権限・割当' },

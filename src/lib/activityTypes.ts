@@ -5,7 +5,7 @@
  * 未設定の場合はデフォルトの 4 種別 (call/email/meeting/note) を使用。
  *
  * 設計判断: 活動種別はビルトインオブジェクト (activities) の「ピックリスト値」
- * に相当するため、object_definitions/field_definitions ではなく専用の
+ * に相当するため、book_definitions/book_fields ではなく専用の
  * system_settings キーで管理する（admin/objects ページでまとめて編集可）。
  */
 import { db } from '@/lib/db'

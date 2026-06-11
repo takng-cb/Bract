@@ -1,5 +1,5 @@
 /**
- * 組み込みオブジェクト定義を object_definitions / field_definitions に投入する
+ * 組み込みオブジェクト定義を book_definitions / book_fields に投入する
  * 実行: npx tsx scripts/seed-metadata.ts
  */
 import { neon } from '@neondatabase/serverless'
@@ -37,9 +37,9 @@ async function main() {
 
   for (const obj of BUILTIN_OBJECTS) {
     // 既に存在する場合はスキップ
-    const existing = await db.select({ id: schema.object_definitions.id })
-      .from(schema.object_definitions)
-      .where(eq(schema.object_definitions.api_name, obj.api_name))
+    const existing = await db.select({ id: schema.book_definitions.id })
+      .from(schema.book_definitions)
+      .where(eq(schema.book_definitions.api_name, obj.api_name))
       .then((r) => r[0] ?? null)
 
     if (existing) {
@@ -47,7 +47,7 @@ async function main() {
       continue
     }
 
-    await db.insert(schema.object_definitions).values({
+    await db.insert(schema.book_definitions).values({
       api_name:     obj.api_name,
       label:        obj.label,
       label_plural: obj.label_plural,
@@ -59,10 +59,10 @@ async function main() {
     console.log(`  ✅ ${obj.api_name}`)
   }
 
-  const total = await db.select({ id: schema.object_definitions.id })
-    .from(schema.object_definitions)
+  const total = await db.select({ id: schema.book_definitions.id })
+    .from(schema.book_definitions)
     .then((r) => r.length)
-  console.log(`\n✅ 完了 — object_definitions: 計 ${total} 件`)
+  console.log(`\n✅ 完了 — book_definitions: 計 ${total} 件`)
 }
 
 main().catch((e) => { console.error('❌', e); process.exit(1) })

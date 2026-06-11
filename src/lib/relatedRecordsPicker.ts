@@ -3,16 +3,16 @@
  * 業種オーバーレイ専用オブジェクト（maintenance / customer-vehicle 等）を
  * 追加するためのヘルパ。
  *
- * 標準オブジェクト（account/contact/opportunity）と DB の object_definitions
+ * 標準オブジェクト（account/contact/opportunity）と DB の book_definitions
  * からのカスタムオブジェクトに加え、業種専用テーブル（auto-body の
  * maintenance_records / customer_vehicles 等）を Picker の objectTypes と
  * recordsByObject に追加する。
  *
- * 業種専用オブジェクトは `object_definitions` に行を持たないため、別経路で
+ * 業種専用オブジェクトは `book_definitions` に行を持たないため、別経路で
  * UI のオプションとして提供する必要がある。
  */
 import { db } from '@/lib/db'
-import { object_definitions } from '@/lib/schema'
+import { book_definitions } from '@/lib/schema'
 import { asc, eq } from 'drizzle-orm'
 import { activeIndustry } from '@/lib/industry'
 import type { ObjectTypeOption, RecordOption } from '@/components/RelatedRecordsPicker'
@@ -59,10 +59,10 @@ export async function getRelatedRecordsPickerData(_kind: PickerKind): Promise<{
   // ここでは「選べるブック一覧」だけを返す。recordsByObject は旧 API 互換の空オブジェクト。
   // 紐付け先としては全カスタムオブジェクトを選べる（enable_* はセクション表示用でありゲートではない）。
   const [customObjects, industryPicker] = await Promise.all([
-    db.select({ id: object_definitions.id, api_name: object_definitions.api_name, label: object_definitions.label })
-      .from(object_definitions)
-      .where(eq(object_definitions.is_builtin, false))
-      .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label)),
+    db.select({ id: book_definitions.id, api_name: book_definitions.api_name, label: book_definitions.label })
+      .from(book_definitions)
+      .where(eq(book_definitions.is_builtin, false))
+      .orderBy(asc(book_definitions.sort_order), asc(book_definitions.label)),
     getIndustryPickerData(),
   ])
 

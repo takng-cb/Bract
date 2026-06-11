@@ -1,11 +1,11 @@
 /**
- * custom_records.data (JSONB) に対する SQL フィルタ・ソートビルダー
+ * book_records.data (JSONB) に対する SQL フィルタ・ソートビルダー
  *
  * FilterCondition[] → Drizzle SQL WHERE 句
  * SortDef[]        → Drizzle SQL ORDER BY 句
  */
 import { sql, asc, desc, and, SQL } from 'drizzle-orm'
-import { custom_records } from '@/lib/schema'
+import { book_records } from '@/lib/schema'
 import type { FilterCondition } from '@/lib/filterUtils'
 import type { SortDef } from '@/lib/sortUtils'
 
@@ -14,13 +14,13 @@ import type { SortDef } from '@/lib/sortUtils'
 // ----------------------------------------------------------------
 /** data->>'fieldName'  （テキストとして取得） */
 function jsonbText(field: string): SQL {
-  // field は field_definitions.api_name 由来なので Drizzle のパラメータ化で渡す
-  return sql`(${custom_records.data}->>${field})`
+  // field は book_fields.api_name 由来なので Drizzle のパラメータ化で渡す
+  return sql`(${book_records.data}->>${field})`
 }
 
 /** (data->>'fieldName')::numeric  （数値キャスト） */
 function jsonbNumeric(field: string): SQL {
-  return sql`((${custom_records.data}->>${field})::numeric)`
+  return sql`((${book_records.data}->>${field})::numeric)`
 }
 
 // ----------------------------------------------------------------
@@ -34,7 +34,7 @@ function buildOneCondition(
 ): SQL | undefined {
   if (!value.trim()) return undefined
 
-  // created_at など custom_records の通常カラムはそのまま処理
+  // created_at など book_records の通常カラムはそのまま処理
   // （将来的な拡張点。現状ではフィールド定義にない）
 
   switch (fieldType) {
@@ -109,11 +109,11 @@ export function buildJsonbOrderBy(
   if (sorts.length === 0) return []
 
   return sorts.map(({ field, dir }) => {
-    // created_at / updated_at は custom_records の通常カラム
+    // created_at / updated_at は book_records の通常カラム
     if (field === 'created_at')
-      return dir === 'asc' ? asc(custom_records.created_at) : desc(custom_records.created_at)
+      return dir === 'asc' ? asc(book_records.created_at) : desc(book_records.created_at)
     if (field === 'updated_at')
-      return dir === 'asc' ? asc(custom_records.updated_at) : desc(custom_records.updated_at)
+      return dir === 'asc' ? asc(book_records.updated_at) : desc(book_records.updated_at)
 
     const ft = fieldTypeMap.get(field) ?? 'text'
     const expr = ft === 'number' ? jsonbNumeric(field) : jsonbText(field)

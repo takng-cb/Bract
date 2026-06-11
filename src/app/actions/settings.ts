@@ -127,7 +127,7 @@ export async function saveOpportunityProductBooks(formData: FormData): Promise<v
     .values({ key: 'opportunity_product_books', value })
     .onConflictDoUpdate({ target: system_settings.key, set: { value } })
   const { revalidatePath } = await import('next/cache')
-  revalidatePath('/admin/objects')
+  revalidatePath('/admin/books')
 }
 
 // ────────────────────────────────────────────────────────────────

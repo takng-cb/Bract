@@ -8,7 +8,7 @@
  */
 import { db } from '@/lib/db'
 import {
-  custom_records, object_definitions, field_definitions,
+  book_records, book_definitions, book_fields,
   accounts, contacts,
 } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
@@ -39,9 +39,9 @@ export async function POST(
 
   // オブジェクト定義取得
   const objRows = await db
-    .select({ id: object_definitions.id })
-    .from(object_definitions)
-    .where(eq(object_definitions.api_name, objectApiName))
+    .select({ id: book_definitions.id })
+    .from(book_definitions)
+    .where(eq(book_definitions.api_name, objectApiName))
     .limit(1)
   if (objRows.length === 0) return NextResponse.json({ error: 'オブジェクトが見つかりません' }, { status: 404 })
   const objectId = objRows[0].id
@@ -49,9 +49,9 @@ export async function POST(
   // フィールド定義取得（label → api_name マップ）
   const fields = await db
     .select()
-    .from(field_definitions)
-    .where(eq(field_definitions.object_id, objectId))
-    .orderBy(asc(field_definitions.sort_order))
+    .from(book_fields)
+    .where(eq(book_fields.object_id, objectId))
+    .orderBy(asc(book_fields.sort_order))
   const labelToField = new Map(fields.filter((f) => f.field_type !== 'section').map((f) => [f.label, f]))
 
   // 取引先・担当者の名前→IDマップ（エクスポートした「（名前）」列からのインポートに対応）
@@ -137,27 +137,27 @@ export async function POST(
       if (id) {
         // 既存レコード更新
         const existing = await db
-          .select({ id: custom_records.id })
-          .from(custom_records)
-          .where(eq(custom_records.id, id))
+          .select({ id: book_records.id })
+          .from(book_records)
+          .where(eq(book_records.id, id))
           .limit(1)
 
         if (existing.length > 0) {
           // 既存データとマージ（上書き）
           const current = await db
-            .select({ data: custom_records.data })
-            .from(custom_records)
-            .where(eq(custom_records.id, id))
+            .select({ data: book_records.data })
+            .from(book_records)
+            .where(eq(book_records.id, id))
             .then((r) => r[0])
           const merged = { ...(current.data ?? {}), ...data }
 
-          await db.update(custom_records)
+          await db.update(book_records)
             .set({ data: merged, updated_at: new Date() })
-            .where(eq(custom_records.id, id))
+            .where(eq(book_records.id, id))
           updated++
         } else {
           // ID 指定で新規挿入
-          await db.insert(custom_records).values({
+          await db.insert(book_records).values({
             id,
             object_id: objectId,
             data,
@@ -171,7 +171,7 @@ export async function POST(
           userErrors.push('名前が空の行をスキップしました')
           continue
         }
-        await db.insert(custom_records).values({
+        await db.insert(book_records).values({
           object_id: objectId,
           data,
           owner_id: userId,

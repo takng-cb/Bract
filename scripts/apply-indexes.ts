@@ -48,8 +48,8 @@ const INDEXES = [
   'CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status)',
   // taggables
   'CREATE INDEX IF NOT EXISTS idx_taggables_tag_id ON taggables(tag_id)',
-  // field_definitions
-  'CREATE INDEX IF NOT EXISTS idx_field_definitions_object_id ON field_definitions(object_id)',
+  // book_fields
+  'CREATE INDEX IF NOT EXISTS idx_book_fields_object_id ON book_fields(object_id)',
   // custom_field_values
   'CREATE INDEX IF NOT EXISTS idx_custom_field_values_field_id ON custom_field_values(field_id)',
 ]

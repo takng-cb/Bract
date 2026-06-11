@@ -4,7 +4,7 @@
  * モバイル下部タブ（Claude Design モックアップ再現 / REQ-0020）
  * 4タブ＋中央の浮き FAB（クイック操作）。FAB は QuickLauncher を開く。
  *
- * タブの中身はシステム設定 `mobile_bottom_nav`（/admin/objects で管理者が変更）から
+ * タブの中身はシステム設定 `mobile_bottom_nav`（/admin/books で管理者が変更）から
  * layout.tsx が解決して渡す（REQ-0041）。アイコンは NavIcon（絵文字キー→Lucide）。
  */
 import Link from 'next/link'

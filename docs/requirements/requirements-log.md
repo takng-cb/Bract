@@ -326,6 +326,11 @@
 - 内容：案件詳細「調整」タブに**売上・請求**セクションを追加。確定内容から請求データ生成（請求額=発注単価 client_total_fee、支払額=確定候補の提示単価合計、粗利=差額。ADR-0010 固定単価モデル）。請求（未請求/請求済/入金済）・支払（未払/支払済）ステータス管理（請求日・支払日を自動記録）。未請求のみ再計算・削除可。/invoices 新設（staffing ナビ「売上・請求」）：業務日ベースの**月次グルーピング**で売上・原価・粗利の合計とステータス一覧。請求書 PDF/会計連携は MVP 外（B3 のまま）。
 - 状態：実装・出荷済み。関連：#14 / REQ-0007 / ADR-0010
 
+### REQ-0050  「オブジェクト」内部識別子のブックへのリネーム（#21 第1段階）
+- 2026-06-12 / 会話（「#21 のリネームも、リリースを検討している段階なのでやってもらったほうがいい」）
+- 内容：DB テーブルを改名 — object_definitions→**book_definitions**、field_definitions→**book_fields**、custom_records→**book_records**（migration `20260612120000`。過去マイグレは旧名のまま replay→最後に rename されるため Neon 立て直しでも安全）。ルートを /objects/*→**/books/***、/admin/objects→**/admin/books** に移設し、旧 URL は恒久リダイレクト。コード内のテーブル識別子・URL 文字列を全置換（44＋38ファイル）。**第2段階（別途）**: TS の型/関数名（ObjectDef・getObjectDef・objectApiName 等）と docs 内の旧名掃除。api_name の値・taggables/change_logs の object_type 値は変更しない。
+- 状態：実装・出荷済み（migration の全 Neon 適用が前提）。関連：#21 / ADR-0017/0018
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

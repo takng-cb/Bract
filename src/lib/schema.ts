@@ -138,14 +138,14 @@ export const activities = pgTable('activities', {
 //
 // related_object_api の値:
 //   - 'account' / 'contact' / 'opportunity'（標準オブジェクト）
-//   - object_definitions.api_name（カスタムオブジェクト、例: 'properties'）
+//   - book_definitions.api_name（カスタムオブジェクト、例: 'properties'）
 //
 // related_record_id の参照先:
 //   - 標準: それぞれの accounts/contacts/opportunities テーブルの id
-//   - カスタム: custom_records.id
+//   - カスタム: book_records.id
 //
 // FK 制約は多態性のため設定できない。レコード削除時のクリーンアップは
-// app 層で実施する（accounts/contacts/opportunities/custom_records の
+// app 層で実施する（accounts/contacts/opportunities/book_records の
 // delete 時に対応する junction 行も削除）。
 // ----------------------------------------------------------------
 export const activity_related_records = pgTable('activity_related_records', {
@@ -614,9 +614,9 @@ export const change_logs = pgTable('change_logs', {
 ])
 
 // ----------------------------------------------------------------
-// object_definitions（カスタムオブジェクト定義）
+// book_definitions（カスタムオブジェクト定義）
 // ----------------------------------------------------------------
-export const object_definitions = pgTable('object_definitions', {
+export const book_definitions = pgTable('book_definitions', {
   id:                uuid('id').primaryKey().defaultRandom(),
   api_name:          text('api_name').notNull().unique(),   // URL・DB キー。変更不可想定
   label:             text('label').notNull(),               // 単数形表示名
@@ -633,11 +633,11 @@ export const object_definitions = pgTable('object_definitions', {
 })
 
 // ----------------------------------------------------------------
-// field_definitions（カスタムフィールド定義）
+// book_fields（カスタムフィールド定義）
 // ----------------------------------------------------------------
-export const field_definitions = pgTable('field_definitions', {
+export const book_fields = pgTable('book_fields', {
   id:          uuid('id').primaryKey().defaultRandom(),
-  object_id:   uuid('object_id').notNull().references(() => object_definitions.id, { onDelete: 'cascade' }),
+  object_id:   uuid('object_id').notNull().references(() => book_definitions.id, { onDelete: 'cascade' }),
   api_name:    text('api_name').notNull(),             // フィールドキー
   label:       text('label').notNull(),
   field_type:  text('field_type').notNull().default('text'), // 'text'|'number'|'date'|'boolean'|'select'|'textarea'
@@ -653,17 +653,17 @@ export const field_definitions = pgTable('field_definitions', {
 ])
 
 // ----------------------------------------------------------------
-// custom_records（カスタムオブジェクトのレコード）
+// book_records（カスタムオブジェクトのレコード）
 // ----------------------------------------------------------------
-export const custom_records = pgTable('custom_records', {
+export const book_records = pgTable('book_records', {
   id:        uuid('id').primaryKey().defaultRandom(),
-  object_id: uuid('object_id').notNull().references(() => object_definitions.id, { onDelete: 'cascade' }),
+  object_id: uuid('object_id').notNull().references(() => book_definitions.id, { onDelete: 'cascade' }),
   data:      jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
   owner_id:  uuid('owner_id'),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (t) => [
-  index('custom_records_object_idx').on(t.object_id),
+  index('book_records_object_idx').on(t.object_id),
 ])
 
 // ----------------------------------------------------------------
@@ -671,7 +671,7 @@ export const custom_records = pgTable('custom_records', {
 // ----------------------------------------------------------------
 export const custom_field_values = pgTable('custom_field_values', {
   id:        uuid('id').primaryKey().defaultRandom(),
-  field_id:  uuid('field_id').notNull().references(() => field_definitions.id, { onDelete: 'cascade' }),
+  field_id:  uuid('field_id').notNull().references(() => book_fields.id, { onDelete: 'cascade' }),
   record_id: uuid('record_id').notNull(),  // 任意テーブルの id
   value:     text('value'),               // 値をテキストで保存（型は field_type で解釈）
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -735,17 +735,17 @@ export const tagsRelations = relations(tags, ({ many }) => ({
   taggables: many(taggables),
 }))
 
-export const objectDefinitionsRelations = relations(object_definitions, ({ many }) => ({
-  field_definitions: many(field_definitions),
-  custom_records:    many(custom_records),
+export const objectDefinitionsRelations = relations(book_definitions, ({ many }) => ({
+  book_fields: many(book_fields),
+  book_records:    many(book_records),
 }))
 
-export const fieldDefinitionsRelations = relations(field_definitions, ({ one }) => ({
-  object_definition: one(object_definitions, { fields: [field_definitions.object_id], references: [object_definitions.id] }),
+export const fieldDefinitionsRelations = relations(book_fields, ({ one }) => ({
+  object_definition: one(book_definitions, { fields: [book_fields.object_id], references: [book_definitions.id] }),
 }))
 
-export const customRecordsRelations = relations(custom_records, ({ one }) => ({
-  object_definition: one(object_definitions, { fields: [custom_records.object_id], references: [object_definitions.id] }),
+export const customRecordsRelations = relations(book_records, ({ one }) => ({
+  object_definition: one(book_definitions, { fields: [book_records.object_id], references: [book_definitions.id] }),
 }))
 
 // ----------------------------------------------------------------

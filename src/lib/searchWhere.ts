@@ -4,7 +4,7 @@
  * カラムを手で列挙せず Drizzle のメタデータから自動収集するため、
  * テーブルに住所・備考などのカラムが増えても自動で検索対象になる。
  * 対象は PgText / PgVarchar / PgChar のみ（uuid・数値・日付・jsonb は除外。
- * jsonb は custom_records.data のように呼び出し側で ::text キャスト検索する）。
+ * jsonb は book_records.data のように呼び出し側で ::text キャスト検索する）。
  */
 import { getTableColumns, ilike, or, type SQL } from 'drizzle-orm'
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'

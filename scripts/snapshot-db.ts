@@ -6,7 +6,7 @@
  *   ./backups/<host>/<timestamp>/
  *     - meta.json          : テーブル一覧 / 各テーブルの行数とカラム名
  *     - opportunities-rows.json : opportunities 全行（差し戻し用）
- *     - object_definitions-rows.json : 全行（後で追加される行の確認用）
+ *     - book_definitions-rows.json : 全行（後で追加される行の確認用）
  *
  * 実行:
  *   npx tsx scripts/snapshot-db.ts
@@ -51,11 +51,11 @@ async function main() {
     colsByTable[t] = cols.map((x) => x.column_name as string)
   }
 
-  // opportunities と object_definitions は全行ダンプ
+  // opportunities と book_definitions は全行ダンプ
   const oppRows = tableList.includes('opportunities')
     ? await sql`SELECT * FROM opportunities` : []
-  const odRows = tableList.includes('object_definitions')
-    ? await sql`SELECT * FROM object_definitions` : []
+  const odRows = tableList.includes('book_definitions')
+    ? await sql`SELECT * FROM book_definitions` : []
 
   writeFileSync(join(dir, 'meta.json'), JSON.stringify({
     timestamp: new Date().toISOString(),
@@ -65,11 +65,11 @@ async function main() {
     columns: colsByTable,
   }, null, 2))
   writeFileSync(join(dir, 'opportunities-rows.json'), JSON.stringify(oppRows, null, 2))
-  writeFileSync(join(dir, 'object_definitions-rows.json'), JSON.stringify(odRows, null, 2))
+  writeFileSync(join(dir, 'book_definitions-rows.json'), JSON.stringify(odRows, null, 2))
 
   console.log(`💾 dump 完了`)
   console.log(`   - opportunities: ${oppRows.length} 行`)
-  console.log(`   - object_definitions: ${odRows.length} 行`)
+  console.log(`   - book_definitions: ${odRows.length} 行`)
 }
 
 main().then(() => process.exit(0)).catch((e) => { console.error('❌', e); process.exit(1) })

@@ -44,6 +44,6 @@ export async function saveActivityTypes(types: ActivityType[]): Promise<void> {
     await db.insert(system_settings).values({ key: SETTING_KEY, value: json })
   }
 
-  revalidatePath('/admin/objects')
+  revalidatePath('/admin/books')
   revalidatePath('/activities')
 }

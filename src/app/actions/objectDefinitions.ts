@@ -1,6 +1,6 @@
 'use server'
 import { db } from '@/lib/db'
-import { object_definitions, field_definitions } from '@/lib/schema'
+import { book_definitions, book_fields } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { isAdmin } from '@/lib/auth'
@@ -21,14 +21,14 @@ export async function createObjectDef(formData: FormData) {
   if (!api_name || !label || !label_plural) throw new Error('必須項目が不足しています')
   if (!/^[a-z][a-z0-9_]*$/.test(api_name)) throw new Error('API名は英小文字・数字・アンダースコアのみ使用できます（先頭は英字）')
 
-  await db.insert(object_definitions).values({
+  await db.insert(book_definitions).values({
     api_name, label, label_plural, icon,
     is_builtin:  false,
     nav_enabled: true,
     sort_order:  100,
   })
   revalidateTag(CACHE_TAG_OBJECTS, 'max')
-  revalidatePath('/admin/objects')
+  revalidatePath('/admin/books')
   revalidatePath('/', 'layout')
 }
 
@@ -45,29 +45,29 @@ export async function updateObjectDef(id: string, formData: FormData) {
 
   if (!label || !label_plural) throw new Error('必須項目が不足しています')
 
-  await db.update(object_definitions)
+  await db.update(book_definitions)
     .set({ label, label_plural, icon, nav_enabled, enable_activities, enable_tasks, enable_expenses, updated_at: new Date() })
-    .where(eq(object_definitions.id, id))
+    .where(eq(book_definitions.id, id))
 
   revalidateTag(CACHE_TAG_OBJECTS, 'max')
-  revalidatePath('/admin/objects')
+  revalidatePath('/admin/books')
   revalidatePath('/', 'layout')
 }
 
 export async function deleteObjectDef(id: string) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
-  const obj = await db.select({ is_builtin: object_definitions.is_builtin })
-    .from(object_definitions).where(eq(object_definitions.id, id))
+  const obj = await db.select({ is_builtin: book_definitions.is_builtin })
+    .from(book_definitions).where(eq(book_definitions.id, id))
     .then((r) => r[0])
 
   if (!obj) throw new Error('オブジェクトが見つかりません')
   if (obj.is_builtin) throw new Error('組み込みオブジェクトは削除できません')
 
-  await db.delete(object_definitions).where(eq(object_definitions.id, id))
+  await db.delete(book_definitions).where(eq(book_definitions.id, id))
   revalidateTag(CACHE_TAG_OBJECTS, 'max')
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath('/admin/objects')
+  revalidatePath('/admin/books')
   revalidatePath('/', 'layout')
 }
 
@@ -102,7 +102,7 @@ export async function createFieldDef(objectId: string, formData: FormData) {
     options = optionsRaw
   }
 
-  await db.insert(field_definitions).values({
+  await db.insert(book_fields).values({
     object_id: objectId,
     api_name, label, field_type,
     options,
@@ -112,7 +112,7 @@ export async function createFieldDef(objectId: string, formData: FormData) {
     sort_order: 100,
   })
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath(`/admin/objects/${objectId}`)
+  revalidatePath(`/admin/books/${objectId}`)
 }
 
 export async function updateFieldDef(fieldId: string, objectId: string, formData: FormData) {
@@ -134,12 +134,12 @@ export async function updateFieldDef(fieldId: string, objectId: string, formData
     options = optionsRaw
   }
 
-  await db.update(field_definitions)
+  await db.update(book_fields)
     .set({ label, field_type, options, is_required, is_visible, updated_at: new Date() })
-    .where(eq(field_definitions.id, fieldId))
+    .where(eq(book_fields.id, fieldId))
 
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath(`/admin/objects/${objectId}`)
+  revalidatePath(`/admin/books/${objectId}`)
 }
 
 /**
@@ -151,10 +151,10 @@ export async function moveFieldDef(fieldId: string, objectId: string, direction:
 
   // 同オブジェクトの全フィールドを sort_order 順で取得
   const all = await db
-    .select({ id: field_definitions.id, sort_order: field_definitions.sort_order })
-    .from(field_definitions)
-    .where(eq(field_definitions.object_id, objectId))
-    .orderBy(field_definitions.sort_order, field_definitions.created_at)
+    .select({ id: book_fields.id, sort_order: book_fields.sort_order })
+    .from(book_fields)
+    .where(eq(book_fields.object_id, objectId))
+    .orderBy(book_fields.sort_order, book_fields.created_at)
 
   const idx = all.findIndex((f) => f.id === fieldId)
   if (idx < 0) return
@@ -170,25 +170,25 @@ export async function moveFieldDef(fieldId: string, objectId: string, direction:
   const bOrder = swapIdx * 10
 
   await Promise.all([
-    db.update(field_definitions).set({ sort_order: bOrder }).where(eq(field_definitions.id, a.id)),
-    db.update(field_definitions).set({ sort_order: aOrder }).where(eq(field_definitions.id, b.id)),
+    db.update(book_fields).set({ sort_order: bOrder }).where(eq(book_fields.id, a.id)),
+    db.update(book_fields).set({ sort_order: aOrder }).where(eq(book_fields.id, b.id)),
   ])
 
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath(`/admin/objects/${objectId}`)
+  revalidatePath(`/admin/books/${objectId}`)
 }
 
 export async function deleteFieldDef(fieldId: string, objectId: string) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
-  const field = await db.select({ is_builtin: field_definitions.is_builtin })
-    .from(field_definitions).where(eq(field_definitions.id, fieldId))
+  const field = await db.select({ is_builtin: book_fields.is_builtin })
+    .from(book_fields).where(eq(book_fields.id, fieldId))
     .then((r) => r[0])
 
   if (!field) throw new Error('フィールドが見つかりません')
   if (field.is_builtin) throw new Error('組み込みフィールドは削除できません')
 
-  await db.delete(field_definitions).where(eq(field_definitions.id, fieldId))
+  await db.delete(book_fields).where(eq(book_fields.id, fieldId))
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath(`/admin/objects/${objectId}`)
+  revalidatePath(`/admin/books/${objectId}`)
 }

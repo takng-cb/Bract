@@ -9,8 +9,8 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Role matrix: admin (管理画面到達)', () => {
-  test('/admin/objects に到達できる', async ({ page }) => {
-    await page.goto('/admin/objects')
+  test('/admin/books に到達できる', async ({ page }) => {
+    await page.goto('/admin/books')
     await expect(page.locator('h1')).toContainText('オブジェクト管理')
   })
 

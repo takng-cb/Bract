@@ -130,7 +130,7 @@ export default function NavOrderEditor({ groups: defaultGroups, userOrder, syste
             </div>
             <ul className="divide-y divide-zinc-100">
               {g.items.map((item, i) => {
-                const isCustom = item.href.startsWith('/objects/')
+                const isCustom = item.href.startsWith('/books/')
                 return (
                   <li key={item.href} className="flex items-center gap-3 px-4 py-2 bg-white">
                     <span className="w-6 flex items-center justify-center shrink-0 text-zinc-500"><NavIcon icon={item.icon} className="w-4.5 h-4.5" /></span>

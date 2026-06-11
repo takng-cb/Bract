@@ -39,12 +39,12 @@ async function main() {
   // ════════════════════════════════════════════════════════════
   // 1. 業種マスタデータ（必須・冪等）
   //    新 auto-body Neon を立てた時にも必ず投入される。
-  //    object_definitions に 'vehicles' 行が無いと
+  //    book_definitions に 'vehicles' 行が無いと
   //    /admin/objects に車両オブジェクトが出てこない。
   // ════════════════════════════════════════════════════════════
   console.log('  Ensuring auto-body master data...')
   await sql`
-    INSERT INTO object_definitions (
+    INSERT INTO book_definitions (
       api_name, label, label_plural, icon,
       is_builtin, nav_enabled, sort_order,
       enable_activities, enable_tasks, enable_expenses
@@ -56,10 +56,10 @@ async function main() {
     )
     ON CONFLICT (api_name) DO NOTHING
   `
-  console.log('    ✓ object_definitions: vehicles')
+  console.log('    ✓ book_definitions: vehicles')
 
   await sql`
-    INSERT INTO object_definitions (
+    INSERT INTO book_definitions (
       api_name, label, label_plural, icon,
       is_builtin, nav_enabled, sort_order,
       enable_activities, enable_tasks, enable_expenses
@@ -71,10 +71,10 @@ async function main() {
     )
     ON CONFLICT (api_name) DO NOTHING
   `
-  console.log('    ✓ object_definitions: parts')
+  console.log('    ✓ book_definitions: parts')
 
   await sql`
-    INSERT INTO object_definitions (
+    INSERT INTO book_definitions (
       api_name, label, label_plural, icon,
       is_builtin, nav_enabled, sort_order,
       enable_activities, enable_tasks, enable_expenses
@@ -86,7 +86,7 @@ async function main() {
     )
     ON CONFLICT (api_name) DO NOTHING
   `
-  console.log('    ✓ object_definitions: part_movements')
+  console.log('    ✓ book_definitions: part_movements')
 
   // ════════════════════════════════════════════════════════════
   // 2. 試験データ（任意・dev/demo 用）

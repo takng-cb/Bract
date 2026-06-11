@@ -1,6 +1,6 @@
 'use server'
 import { db } from '@/lib/db'
-import { custom_field_values, field_definitions, object_definitions } from '@/lib/schema'
+import { custom_field_values, book_fields, book_definitions } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { canEdit } from '@/lib/auth'
@@ -16,16 +16,16 @@ export async function saveCustomFieldValues(
 ): Promise<void> {
   if (!(await canEdit())) throw new Error('権限がありません')
 
-  // object_definition から field_definitions を取得
-  const objRows = await db.select({ id: object_definitions.id })
-    .from(object_definitions)
-    .where(eq(object_definitions.api_name, objectApiName))
+  // object_definition から book_fields を取得
+  const objRows = await db.select({ id: book_definitions.id })
+    .from(book_definitions)
+    .where(eq(book_definitions.api_name, objectApiName))
   const obj = objRows[0]
   if (!obj) throw new Error('オブジェクトが見つかりません')
 
-  const fields = await db.select({ id: field_definitions.id, api_name: field_definitions.api_name, field_type: field_definitions.field_type })
-    .from(field_definitions)
-    .where(eq(field_definitions.object_id, obj.id))
+  const fields = await db.select({ id: book_fields.id, api_name: book_fields.api_name, field_type: book_fields.field_type })
+    .from(book_fields)
+    .where(eq(book_fields.object_id, obj.id))
 
   for (const field of fields) {
     if (field.field_type === 'section') continue  // セクションは値を持たない

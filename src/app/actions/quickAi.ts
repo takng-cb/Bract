@@ -2,9 +2,9 @@
 /**
  * クイック操作ウィザード — 汎用 AI 作成（REQ-0022 / draft-then-apply）
  *
- * カスタムオブジェクト（custom_records ＋ field_definitions 駆動）のブックに対して、
+ * カスタムオブジェクト（book_records ＋ book_fields 駆動）のブックに対して、
  * 自由入力テキスト or 画像から各フィールド値を AI 抽出し、編集可能なドラフトを返す。
- * 確定値は `quickAiCreate` で custom_records に INSERT する。
+ * 確定値は `quickAiCreate` で book_records に INSERT する。
  *
  * 安全方針：
  * - typed テーブル（accounts / maintenance_records 等）は対象外（個別スキーマの誤投入を避ける）。
@@ -14,7 +14,7 @@
 import net from 'node:net'
 import { lookup as dnsLookup } from 'node:dns/promises'
 import { db } from '@/lib/db'
-import { custom_records, accounts, contacts, opportunities, tasks, activities, task_related_records, activity_related_records } from '@/lib/schema'
+import { book_records, accounts, contacts, opportunities, tasks, activities, task_related_records, activity_related_records } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { ilike } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -30,7 +30,7 @@ import { createProperty } from '@/industries/real-estate/actions/properties'
 
 /**
  * typed CRM コアブックの AI 作成スペック（#49）。
- * field_definitions を持たない typed テーブル（accounts/contacts）に、
+ * book_fields を持たない typed テーブル（accounts/contacts）に、
  * 抽出対象フィールドと作成処理（既存 create アクション）を定義して AI 作成を可能にする。
  */
 type TypedField = { apiName: string; label: string; fieldType: string; options?: string[] }
@@ -218,7 +218,7 @@ export type QuickAiDraft = {
 export type QuickAiImage = { mediaType: string; dataBase64: string }
 export type QuickAiInput = { text?: string; image?: QuickAiImage; url?: string }
 
-/** AI 作成に対応するブックか（custom_records ベース or typed CRM コア） */
+/** AI 作成に対応するブックか（book_records ベース or typed CRM コア） */
 export async function quickAiSupported(apiName: string): Promise<boolean> {
   if (TYPED_SPECS[apiName]) return true
   const obj = await getObjectDef(apiName)
@@ -233,7 +233,7 @@ export async function quickAiExtract(apiName: string, input: QuickAiInput): Prom
   if (!(await canEdit())) throw new Error('権限がありません')
   await assertAiRateLimit()
 
-  // 対象フィールド仕様（typed spec or field_definitions）
+  // 対象フィールド仕様（typed spec or book_fields）
   let label: string
   let specFields: TypedField[]
   const typed = TYPED_SPECS[apiName]
@@ -303,7 +303,7 @@ export async function quickAiExtract(apiName: string, input: QuickAiInput): Prom
   }
 }
 
-/** 確定値でレコードを作成。typed は既存 create アクション、custom は custom_records。related は活動/ToDo の紐づけ先。 */
+/** 確定値でレコードを作成。typed は既存 create アクション、custom は book_records。related は活動/ToDo の紐づけ先。 */
 export async function quickAiCreate(apiName: string, values: Record<string, string>, related?: QuickAiRelated | null): Promise<{ recordHref: string }> {
   if (!(await canEdit())) throw new Error('権限がありません')
 
@@ -319,11 +319,11 @@ export async function quickAiCreate(apiName: string, values: Record<string, stri
   for (const f of fields) data[f.api_name] = coerceValue(f.field_type, values[f.api_name] ?? null)
 
   const owner_id = (await getCurrentUserId()) ?? null
-  const [rec] = await db.insert(custom_records)
+  const [rec] = await db.insert(book_records)
     .values({ object_id: obj.id, data, owner_id })
-    .returning({ id: custom_records.id })
+    .returning({ id: book_records.id })
 
-  return { recordHref: `/objects/${apiName}/${rec.id}` }
+  return { recordHref: `/books/${apiName}/${rec.id}` }
 }
 
 export type QuickAiDup = { id: string; label: string; href: string }

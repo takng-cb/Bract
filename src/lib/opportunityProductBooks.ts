@@ -2,13 +2,13 @@
  * 商談の「商品」セクションで紐付け先にできるブックの設定（REQ-0034）。
  *
  * - どのブックを商品候補にするかは system_settings の `opportunity_product_books`
- *   （JSON 配列の book api 名）で管理者が設定する（/admin/objects の設定カード）。
+ *   （JSON 配列の book api 名）で管理者が設定する（/admin/books の設定カード）。
  * - 既定は ['products', 'parts']（従来挙動）。
  * - 選択された各ブックのレコードを Picker 用オプション（label / 単価の自動補完つき）に変換する。
  */
 import 'server-only'
 import { db } from '@/lib/db'
-import { products, parts, vehicles, object_definitions, custom_records } from '@/lib/schema'
+import { products, parts, vehicles, book_definitions, book_records } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { asc, eq } from 'drizzle-orm'
 import { getSystemSettings } from '@/lib/systemSettings'
@@ -29,10 +29,10 @@ const TYPED_CANDIDATES: ProductBookCandidate[] = [
 /** 設定可能な候補ブック一覧（typed ＋ 全カスタムブック） */
 export async function getProductBookCandidates(): Promise<ProductBookCandidate[]> {
   const customs = await db
-    .select({ api_name: object_definitions.api_name, label: object_definitions.label })
-    .from(object_definitions)
-    .where(eq(object_definitions.is_builtin, false))
-    .orderBy(asc(object_definitions.sort_order), asc(object_definitions.label))
+    .select({ api_name: book_definitions.api_name, label: book_definitions.label })
+    .from(book_definitions)
+    .where(eq(book_definitions.is_builtin, false))
+    .orderBy(asc(book_definitions.sort_order), asc(book_definitions.label))
   return [
     ...TYPED_CANDIDATES,
     ...customs.map((c) => ({ api: c.api_name, label: c.label, builtin: false })),
@@ -86,11 +86,11 @@ export async function getProductPickerOptions(): Promise<ProductOptionRow[]> {
       out.push(...rows.map((r) => ({ value: `properties:${r.id}`, label: `${bookLabel} / ${r.name}`, price: numOrNull(r.price) })))
     } else {
       // カスタムブック：data.name/title をラベル、data.unit_price/price を単価候補に
-      const obj = await db.select({ id: object_definitions.id })
-        .from(object_definitions).where(eq(object_definitions.api_name, api)).then((r) => r[0] ?? null)
+      const obj = await db.select({ id: book_definitions.id })
+        .from(book_definitions).where(eq(book_definitions.api_name, api)).then((r) => r[0] ?? null)
       if (!obj) continue
-      const rows = await db.select({ id: custom_records.id, data: custom_records.data })
-        .from(custom_records).where(eq(custom_records.object_id, obj.id))
+      const rows = await db.select({ id: book_records.id, data: book_records.data })
+        .from(book_records).where(eq(book_records.object_id, obj.id))
       out.push(...rows.map((r) => {
         const d = (r.data ?? {}) as Record<string, unknown>
         const name = (typeof d.name === 'string' && d.name) || (typeof d.title === 'string' && d.title) || `#${r.id.slice(0, 8)}`

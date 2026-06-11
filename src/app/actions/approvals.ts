@@ -262,6 +262,6 @@ export async function saveApprovalConfig(bookApi: string, configJson: string): P
       set:    { value: JSON.stringify(config), updated_at: new Date() },
     })
 
-  revalidatePath('/admin/objects')
+  revalidatePath('/admin/books')
   revalidatePath('/', 'layout')
 }

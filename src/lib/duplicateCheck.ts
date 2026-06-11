@@ -10,7 +10,7 @@
  */
 import { db } from '@/lib/db'
 import {
-  accounts, contacts, opportunities, assignments, vehicles, parts, custom_records,
+  accounts, contacts, opportunities, assignments, vehicles, parts, book_records,
 } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { and, eq, sql } from 'drizzle-orm'
@@ -109,12 +109,12 @@ async function checkCustomDuplicates(objectApiName: string, fd: FormData): Promi
   if (!nameField) return []
   const value = s(fd, nameField.api_name)
   if (!value) return []
-  const rows = await db.select({ id: custom_records.id }).from(custom_records)
+  const rows = await db.select({ id: book_records.id }).from(book_records)
     .where(and(
-      eq(custom_records.object_id, obj.id),
-      sql`lower(${custom_records.data} ->> ${nameField.api_name}) = ${value.toLowerCase()}`,
+      eq(book_records.object_id, obj.id),
+      sql`lower(${book_records.data} ->> ${nameField.api_name}) = ${value.toLowerCase()}`,
     )).limit(LIMIT)
-  return rows.map((r) => ({ id: r.id, label: value, href: `/objects/${objectApiName}/${r.id}` }))
+  return rows.map((r) => ({ id: r.id, label: value, href: `/books/${objectApiName}/${r.id}` }))
 }
 
 /**

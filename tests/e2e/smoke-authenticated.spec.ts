@@ -61,7 +61,7 @@ test.describe('Authenticated smoke (admin)', () => {
   })
 
   test('admin/objects: オブジェクト管理', async ({ page }) => {
-    await page.goto('/admin/objects')
+    await page.goto('/admin/books')
     await expect(page.locator('h1')).toContainText('オブジェクト管理')
   })
 })
