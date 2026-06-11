@@ -80,16 +80,36 @@ export default function MobileNav({ navGroups, dashboardItem, companyName, displ
 
         <nav className="flex-1 overflow-y-auto px-2 py-3 scrollbar-dark">
           {dashboardItem && <div className="space-y-0.5">{renderItem(dashboardItem)}</div>}
-          {navGroups.map((group) => (
-            <div key={group.id} className="mt-3 first:mt-1">
-              {group.id !== '__all' && (
-                <p className="px-2 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--side-heading)' }}>
-                  {group.name}
-                </p>
-              )}
-              <div className="space-y-0.5">{group.items.map(renderItem)}</div>
-            </div>
-          ))}
+          {navGroups.map((group) => {
+            const isModule = group.id !== '__all' && group.id !== '__other'
+            const moduleHref = `/modules/${group.id}`
+            return (
+              <div key={group.id} className="mt-3 first:mt-1">
+                {/* 見出し（強調ピル）。モジュールはタップでモジュールホームへ */}
+                {group.id !== '__all' && (
+                  isModule ? (
+                    <Link
+                      href={moduleHref}
+                      prefetch={true}
+                      onClick={() => setOpen(false)}
+                      className={`flex items-center gap-2 rounded-md px-3 py-2 mb-1 text-xs font-bold tracking-wide transition-colors ${
+                        pathname === moduleHref ? 'bg-blue-600 text-white' : 'bg-white/10 text-zinc-100 hover:bg-white/20 hover:text-white'
+                      }`}
+                      title={`${group.name} のホーム`}
+                    >
+                      <span className="flex-1 truncate">{group.name}</span>
+                      <span className="shrink-0 text-[10px] opacity-60" aria-hidden>›</span>
+                    </Link>
+                  ) : (
+                    <p className="rounded-md px-3 py-2 mb-1 text-xs font-bold tracking-wide bg-white/5 text-zinc-400">
+                      {group.name}
+                    </p>
+                  )
+                )}
+                <div className={`space-y-0.5 ${group.id !== '__all' ? 'pl-1.5' : ''}`}>{group.items.map(renderItem)}</div>
+              </div>
+            )
+          })}
           {/* 設定・管理（ボトムナビ項目） */}
           <div className="mt-3 pt-2 border-t" style={{ borderColor: 'var(--side-border)' }}>
             {bottomItems.map(renderItem)}

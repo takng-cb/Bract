@@ -150,29 +150,29 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
           const headerActive = isModule && pathname === moduleHref
           return (
             <div key={group.id} className="mt-2 first:mt-1">
-              {/* 見出し（展開時のみ）：左=モジュールDashへのリンク、右=開閉トグル */}
+              {/* 見出し（展開時のみ・強調ピル）：左=モジュールDashへのリンク、右=開閉トグル */}
               {!isCollapsed && group.id !== '__all' && (
-                <div className="flex items-center gap-1 px-1 pt-2 pb-1">
+                <div className="flex items-center gap-1 pt-2.5 pb-1">
                   {isModule ? (
                     <Link
                       href={moduleHref}
                       prefetch={true}
-                      className={`flex-1 truncate rounded px-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
-                        headerActive ? 'text-blue-400' : 'text-zinc-500 hover:text-zinc-200'
+                      className={`flex-1 truncate rounded-md px-2 py-1.5 text-xs font-bold tracking-wide transition-colors ${
+                        headerActive ? 'bg-blue-600 text-white' : 'bg-white/10 text-zinc-100 hover:bg-white/20 hover:text-white'
                       }`}
                       title={`${group.name} のホーム`}
                     >
                       {group.name}
                     </Link>
                   ) : (
-                    <span className="flex-1 truncate px-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                    <span className="flex-1 truncate rounded-md px-2 py-1.5 text-xs font-bold tracking-wide bg-white/5 text-zinc-400">
                       {group.name}
                     </span>
                   )}
                   <button
                     onClick={() => toggleGroup(group.id)}
                     title={groupCollapsed ? '展開' : '折りたたむ'}
-                    className="shrink-0 text-zinc-500 hover:text-white text-xs leading-none w-4 h-4 flex items-center justify-center"
+                    className="shrink-0 text-zinc-500 hover:text-white text-xs leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-800"
                   >
                     {groupCollapsed ? '▸' : '▾'}
                   </button>
@@ -183,7 +183,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
               )}
               {/* 項目（折りたたみ時は非表示。サイドバー全体が細い時は常に表示=アイコン） */}
               {(!groupCollapsed || isCollapsed) && (
-                <div className="space-y-0.5">
+                <div className={`space-y-0.5 ${!isCollapsed && group.id !== '__all' ? 'pl-1.5' : ''}`}>
                   {group.items.map((item) => renderItem(item))}
                 </div>
               )}
