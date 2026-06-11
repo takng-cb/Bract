@@ -17,7 +17,8 @@ export const dynamic = 'force-dynamic'
 
 /**
  * モジュール別ダッシュボード（#22 / REQ-0015）
- * サイドバーのグループ見出しクリックでここに来る。モジュールの起点アクション＋ブック一覧。
+ * サイドバーのグループ見出しクリックでここに来る。状況ボード＋クイック操作。
+ * （ブック一覧はクイック操作と重複するため非表示。ブックへはサイドバーから遷移する）
  */
 export default async function ModuleDashboardPage({
   params,
@@ -48,10 +49,10 @@ export default async function ModuleDashboardPage({
       {moduleId === 'staffing' && <StaffingWidgets />}
       {moduleId === 'inventory' && <InventoryWidgets />}
 
-      {/* クイック起点 */}
+      {/* クイック操作 */}
       {mod.quickActions && mod.quickActions.length > 0 && (
         <section className="mb-8">
-          <p className="mb-2 text-xs font-semibold text-zinc-400">クイック起点</p>
+          <p className="mb-2 text-xs font-semibold text-zinc-400">クイック操作</p>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {mod.quickActions.map((a, i) =>
               a.href ? (
@@ -87,33 +88,6 @@ export default async function ModuleDashboardPage({
         </section>
       )}
 
-      {/* ブック（このモジュールのデータ種別） */}
-      {mod.books && mod.books.length > 0 && (
-        <section className="mb-8">
-          <p className="mb-2 text-xs font-semibold text-zinc-400">ブック</p>
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            {mod.books.map((b) => {
-              const nav = mod.navItems?.find((n) => n.label === b.label)
-              const href = nav?.href ?? `/objects/${b.apiName}`
-              return (
-                <Link
-                  key={b.apiName}
-                  href={href}
-                  className="group flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:shadow-sm"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600 group-hover:bg-white">
-                    <NavIcon icon={nav?.icon} className="h-5 w-5" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-zinc-800">{b.label}</span>
-                    <span className="block truncate font-mono text-xs text-zinc-400">{b.apiName}</span>
-                  </span>
-                </Link>
-              )
-            })}
-          </div>
-        </section>
-      )}
     </div>
   )
 }

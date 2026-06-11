@@ -2,7 +2,7 @@
  * クイックアクセス（REQ-0016）— 純粋関数・追加のみ
  *
  * 有効モジュール群から「モジュール見出し付きクイックアクション群」を組み立てる。
- * ランチャー(QuickLauncher) と ダッシュボードのクイック起点セクションが共用。
+ * ランチャー(QuickLauncher) と モジュールホームのクイック操作セクションが共用。
  */
 import type { ModuleManifest, QuickAction, ModuleCategory } from './types'
 
