@@ -241,13 +241,13 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         <>
           <p className="text-[10px] text-zinc-500 mb-0.5">取引先</p>
           <Link href={`/accounts/${account.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
-            {AB_ICONS.account} {account.name}
+            <NavIcon icon={AB_ICONS.account} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{account.name}
           </Link>
           {contact && (
             <>
               <p className="text-[10px] text-zinc-500 mt-2 mb-0.5">顧客担当者</p>
               <Link href={`/contacts/${contact.id}`} className="text-xs text-zinc-700 hover:text-blue-700 hover:underline">
-                {AB_ICONS.contact} {contact.full_name}
+                <NavIcon icon={AB_ICONS.contact} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{contact.full_name}
               </Link>
             </>
           )}
@@ -276,7 +276,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         <>
           <p className="text-[10px] text-zinc-500 mb-0.5">顧客</p>
           <Link href={`/contacts/${contact.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
-            {AB_ICONS.contact} {contact.full_name}
+            <NavIcon icon={AB_ICONS.contact} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{contact.full_name}
           </Link>
           <dl className="space-y-1 text-xs mt-2">
             {contact.phone && (
@@ -302,7 +302,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         <div className="mt-3 pt-2 border-t border-zinc-100">
           <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">請求先（別指定）</p>
           <Link href={`/accounts/${billingAccount.id}`} className="text-xs text-blue-600 hover:text-blue-800 hover:underline">
-            {AB_ICONS.account} {billingAccount.name}
+            <NavIcon icon={AB_ICONS.account} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{billingAccount.name}
           </Link>
         </div>
       )}
@@ -313,7 +313,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         {v ? (
           <>
             <Link href={`/customer-vehicles/${v.id}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
-              {AB_ICONS.customerVehicle} {v.plate_number ?? '—'}
+              <NavIcon icon={AB_ICONS.customerVehicle} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{v.plate_number ?? '—'}
             </Link>
             <p className="text-xs text-zinc-600 mt-1">{[v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') || '—'}</p>
             <dl className="space-y-1 text-xs mt-2">
@@ -323,7 +323,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
                 <KV label="初年度" value={[v.first_registration_year, v.first_registration_month].filter(Boolean).join('/')} />
               )}
               {v.inspection_due_date && (
-                <KV label={`${AB_ICONS.warning} 車検満了`} value={v.inspection_due_date} />
+                <KV label={<span className="inline-flex items-center gap-1"><NavIcon icon={AB_ICONS.warning} className="w-3 h-3" />車検満了</span>} value={v.inspection_due_date} />
               )}
             </dl>
             {v.memo && <p className="text-[11px] text-zinc-500 mt-2 whitespace-pre-wrap bg-zinc-50 rounded p-2 flex items-start gap-1"><NavIcon icon="📝" className="w-3 h-3 shrink-0 mt-0.5" /> {v.memo}</p>}
@@ -448,7 +448,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
           className="text-[10px] uppercase tracking-wider text-zinc-500 hover:text-blue-600 inline-block mb-1.5"
           title="全帳票一覧"
         >
-          {AB_ICONS.document} 帳票（クリックで別タブ印刷プレビュー）
+          <NavIcon icon={AB_ICONS.document} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />帳票（クリックで別タブ印刷プレビュー）
         </Link>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
           {DOCUMENT_TYPES.map((d) => (
@@ -469,7 +469,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
         <InlineSection
           title="顧客・車両"
-          icon={<span>{AB_ICONS.account}</span>}
+          icon={<NavIcon icon={AB_ICONS.account} className="w-4 h-4" />}
           canEdit={editable}
           view={customerVehicleView}
         >
@@ -524,7 +524,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       {/* 整備（基本情報 + メモ） */}
       <InlineSection
         title="整備"
-        icon={<span>{AB_ICONS.maintenance}</span>}
+        icon={<NavIcon icon={AB_ICONS.maintenance} className="w-4 h-4" />}
         canEdit={editable}
         view={maintenanceView}
       >
@@ -567,7 +567,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
       {/* 作業項目（ステージング表エディタを直接表示） */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs">
         <div className="px-4 py-2.5 border-b border-zinc-100">
-          <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5">{AB_ICONS.lineItem}<span>作業項目</span></h2>
+          <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5"><NavIcon icon={AB_ICONS.lineItem} className="w-4 h-4" /><span>作業項目</span></h2>
         </div>
         <div className="p-4">
           <MaintenanceLineItemsEditor maintenanceId={maintenanceId} canEdit={editable} leverRate={m.lever_rate} />
@@ -579,7 +579,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         {/* 諸費用（エディタ直接） */}
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs">
           <div className="px-4 py-2.5 border-b border-zinc-100">
-            <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5">{AB_ICONS.fee}<span>諸費用</span></h2>
+            <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5"><NavIcon icon={AB_ICONS.fee} className="w-4 h-4" /><span>諸費用</span></h2>
           </div>
           <div className="p-4">
             <MaintenanceFeesEditor maintenanceId={maintenanceId} canEdit={editable} />
@@ -609,7 +609,7 @@ export default async function MaintenanceFullView({ maintenanceId, users }: Prop
         {/* 入金・預かり金（エディタ直接） */}
         <section className="bg-white border border-zinc-200 rounded-lg shadow-xs">
           <div className="px-4 py-2.5 border-b border-zinc-100">
-            <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5">{AB_ICONS.payment}<span>入金・預かり金</span></h2>
+            <h2 className="text-sm font-bold text-zinc-700 flex items-center gap-1.5"><NavIcon icon={AB_ICONS.payment} className="w-4 h-4" /><span>入金・預かり金</span></h2>
           </div>
           <div className="p-4">
             <MaintenancePaymentsEditor maintenanceId={maintenanceId} canEdit={editable} users={users} invoiceTotal={invoiceTotal} />

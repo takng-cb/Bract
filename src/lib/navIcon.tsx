@@ -14,7 +14,7 @@ import {
   AlertTriangle, Handshake, Receipt, Wallet, Contact, Map, Scale, Printer,
   ArrowLeftRight, CheckCircle2, Globe, Lock, LogOut, MessageSquare, Pencil,
   CreditCard, Boxes, Paperclip, Eye, MousePointer2, Search, FlaskConical,
-  Folder, Hash, Warehouse, Repeat, BookOpen, SlidersHorizontal,
+  Folder, Hash, Warehouse, Repeat, BookOpen, SlidersHorizontal, Bolt, Store, StickyNote,
 } from 'lucide-react'
 
 /** 絵文字 → Lucide コンポーネント（design_handoff/README.md「Icon Map」準拠） */
@@ -84,6 +84,9 @@ export const EMOJI_TO_LUCIDE: Record<string, LucideIcon> = {
   '🔁': Repeat,          // 在庫移動 stock-movements
   '📖': BookOpen,        // Wiki（社内ナレッジ）
   '🛠️': SlidersHorizontal, // システム設定
+  '🔩': Bolt,            // 作業項目（整備の行アイテム）
+  '🏪': Store,           // 拠点
+  '🗒️': StickyNote,      // 活動メモ
 }
 
 export function NavIcon({ icon, className = 'w-4 h-4' }: { icon?: string | null; className?: string }) {

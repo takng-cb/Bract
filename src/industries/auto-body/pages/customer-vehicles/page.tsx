@@ -216,11 +216,11 @@ export default async function CustomerVehiclesListPage({
                           <td className="px-4 py-2 text-zinc-600">
                             {acc && !isPersonalAccount(acc) ? (
                               <Link href={`/accounts/${acc.id}`} className="hover:text-blue-600">
-                                {AB_ICONS.account} {acc.name}
+                                <NavIcon icon={AB_ICONS.account} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{acc.name}
                               </Link>
                             ) : con ? (
                               <Link href={`/contacts/${con.id}`} className="hover:text-blue-600">
-                                {AB_ICONS.contact} {con.full_name}
+                                <NavIcon icon={AB_ICONS.contact} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{con.full_name}
                               </Link>
                             ) : '—'}
                           </td>

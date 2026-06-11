@@ -4,6 +4,7 @@
  * よくある作業セットを保存しておくと、整備の行アイテム編集画面から
  * 1 クリックで投入できる。
  */
+import { NavIcon } from '@/lib/navIcon'
 import { db } from '@/lib/db'
 import { maintenance_templates, maintenance_template_lines, maintenance_template_fees } from '@/lib/schema'
 import { asc, eq, sql } from 'drizzle-orm'
@@ -33,7 +34,7 @@ export default async function TemplatesPage() {
     <div className="p-4 md:p-8 max-w-5xl">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{AB_ICONS.template} 整備パッケージ</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 inline-flex items-center gap-2"><NavIcon icon={AB_ICONS.template} className="w-6 h-6 text-brand-600" />整備パッケージ</h1>
           <p className="text-sm text-zinc-500 mt-1">よくある作業セットをテンプレ化。整備の行アイテム編集から 1 クリックで投入できます。</p>
         </div>
         {edit && (
@@ -50,7 +51,7 @@ export default async function TemplatesPage() {
 
       {rows.length === 0 ? (
         <div className="text-center py-16 text-zinc-400 bg-white border border-zinc-200 rounded-lg">
-          <p className="text-4xl mb-3">{AB_ICONS.template}</p>
+          <NavIcon icon={AB_ICONS.template} className="w-10 h-10 mx-auto mb-3 text-zinc-300" />
           <p className="text-base font-medium">テンプレートはまだありません</p>
           <p className="text-sm mt-1">「テンプレを作成」ボタンから追加してください</p>
         </div>
@@ -71,7 +72,7 @@ export default async function TemplatesPage() {
                 <tr key={t.id} className="hover:bg-zinc-50/30">
                   <td className="px-4 py-3">
                     <Link href={`/maintenance/templates/${t.id}`} className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
-                      {AB_ICONS.template} {t.name}
+                      <NavIcon icon={AB_ICONS.template} className="w-4 h-4 inline-block -mt-0.5 mr-1" />{t.name}
                     </Link>
                     {t.description && <p className="text-xs text-zinc-500 mt-0.5">{t.description}</p>}
                   </td>

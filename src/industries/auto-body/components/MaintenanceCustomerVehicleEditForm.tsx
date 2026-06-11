@@ -157,7 +157,7 @@ export default function MaintenanceCustomerVehicleEditForm({
             {/* 顧客ブロック */}
             <section className="bg-white border border-zinc-200 rounded-lg">
               <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40 rounded-t-lg">
-                <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.account} 顧客</h3>
+                <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide inline-flex items-center gap-1"><NavIcon icon={AB_ICONS.account} className="w-3.5 h-3.5" />顧客</h3>
                 <p className="text-[10px] text-zinc-400 mt-0.5">
                   BtoB は取引先（会社）を選択。BtoC（個人）は取引先を空のままに
                 </p>
@@ -235,7 +235,7 @@ export default function MaintenanceCustomerVehicleEditForm({
             {/* 車両ブロック */}
             <section className="bg-white border border-zinc-200 rounded-lg">
               <div className="px-4 pt-3 pb-2 border-b border-zinc-100 bg-zinc-50/40 rounded-t-lg">
-                <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">{AB_ICONS.customerVehicle} 車両</h3>
+                <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide inline-flex items-center gap-1"><NavIcon icon={AB_ICONS.customerVehicle} className="w-3.5 h-3.5" />車両</h3>
               </div>
               <div className="p-4">
                 <label className="block text-sm font-medium text-zinc-700 mb-1">
@@ -266,7 +266,7 @@ export default function MaintenanceCustomerVehicleEditForm({
 
             {/* 取引先プレビュー */}
             <PreviewCard
-              title={`${AB_ICONS.account} 取引先`}
+              title={<span className="inline-flex items-center gap-1"><NavIcon icon={AB_ICONS.account} className="w-3.5 h-3.5" />取引先</span>}
               emptyText={accountId ? '取引先が見つかりません' : '— (BtoC = 個人のお客様)'}
               link={selAccount ? `/accounts/${selAccount.id}` : null}
             >
@@ -283,7 +283,7 @@ export default function MaintenanceCustomerVehicleEditForm({
 
             {/* 顧客担当者 / 顧客プレビュー */}
             <PreviewCard
-              title={`${AB_ICONS.contact} ${contactLabel}`}
+              title={<span className="inline-flex items-center gap-1"><NavIcon icon={AB_ICONS.contact} className="w-3.5 h-3.5" />{contactLabel}</span>}
               emptyText={isToC ? '顧客（本人）が未選択' : '担当者なし'}
               link={selContact ? `/contacts/${selContact.id}` : null}
             >
@@ -317,7 +317,7 @@ export default function MaintenanceCustomerVehicleEditForm({
 
             {/* 車両プレビュー */}
             <PreviewCard
-              title={`${AB_ICONS.customerVehicle} 車両`}
+              title={<span className="inline-flex items-center gap-1"><NavIcon icon={AB_ICONS.customerVehicle} className="w-3.5 h-3.5" />車両</span>}
               emptyText="車両を選択してください"
               link={selVehicle ? `/customer-vehicles/${selVehicle.id}` : null}
             >
