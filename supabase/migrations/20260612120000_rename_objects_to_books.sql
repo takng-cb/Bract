@@ -3,22 +3,11 @@
 --   field_definitions  → book_fields
 --   custom_records     → book_records
 -- 過去のマイグレーションは旧名のまま実行され、最後に本マイグレで改名される（replay 安全）。
--- 冪等。全 Neon に適用すること。
+-- 冪等（ALTER TABLE IF EXISTS: 改名済み＝旧名が無ければ何もしない）。
+-- ※ apply-migration.ts はセミコロン分割のため DO $$ ブロックは使わない。
 
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'object_definitions')
-     AND NOT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'book_definitions') THEN
-    ALTER TABLE object_definitions RENAME TO book_definitions;
-  END IF;
+ALTER TABLE IF EXISTS object_definitions RENAME TO book_definitions;
 
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'field_definitions')
-     AND NOT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'book_fields') THEN
-    ALTER TABLE field_definitions RENAME TO book_fields;
-  END IF;
+ALTER TABLE IF EXISTS field_definitions RENAME TO book_fields;
 
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'custom_records')
-     AND NOT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'book_records') THEN
-    ALTER TABLE custom_records RENAME TO book_records;
-  END IF;
-END $$;
+ALTER TABLE IF EXISTS custom_records RENAME TO book_records;
