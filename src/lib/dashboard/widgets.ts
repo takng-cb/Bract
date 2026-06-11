@@ -72,7 +72,7 @@ export const DASHBOARD_WIDGETS: WidgetMeta[] = [
   // ── auto-body 専用 ──
   {
     id:           'auto-body-work-progress',
-    title:        '📊 作業進行状況',
+    title:        '作業進行状況',
     description:  '整備の状態別件数 (予約/受付/作業中/部品待ち/納車待ち/完了)',
     industries:   ['auto-body'],
     defaultEnabled: true,
@@ -80,7 +80,7 @@ export const DASHBOARD_WIDGETS: WidgetMeta[] = [
   },
   {
     id:           'auto-body-active-loaners',
-    title:        '🚙 代車中の車両',
+    title:        '代車中の車両',
     description:  '現在貸出中の代車一覧',
     industries:   ['auto-body'],
     defaultEnabled: true,
@@ -88,7 +88,7 @@ export const DASHBOARD_WIDGETS: WidgetMeta[] = [
   },
   {
     id:           'auto-body-low-stock-parts',
-    title:        '🔧 要発注の部品',
+    title:        '要発注の部品',
     description:  '在庫が発注しきい値を下回っている部品リスト',
     industries:   ['auto-body'],
     defaultEnabled: true,
@@ -96,7 +96,7 @@ export const DASHBOARD_WIDGETS: WidgetMeta[] = [
   },
   {
     id:           'auto-body-receivables',
-    title:        '💰 未入金の整備',
+    title:        '未入金の整備',
     description:  '請求済みで入金が完了していない整備の合計と件数',
     industries:   ['auto-body'],
     defaultEnabled: true,
@@ -104,7 +104,7 @@ export const DASHBOARD_WIDGETS: WidgetMeta[] = [
   },
   {
     id:           'auto-body-upcoming-inspections',
-    title:        '🚗 車検期限アラート',
+    title:        '車検期限アラート',
     description:  '30 日以内 / 期限超過の車両を表示',
     industries:   ['auto-body'],
     defaultEnabled: true,

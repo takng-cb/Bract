@@ -1,6 +1,7 @@
 /**
  * 整備パッケージ（テンプレート）詳細 — 行・諸費用のインライン編集。
  */
+import { NavIcon } from '@/lib/navIcon'
 import { db } from '@/lib/db'
 import { SquarePen } from 'lucide-react'
 import {
@@ -92,7 +93,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
       />
 
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">{AB_ICONS.template} {t.name}</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 inline-flex items-center gap-2"><NavIcon icon={AB_ICONS.template} className="w-6 h-6 text-brand-600" />{t.name}</h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
           {t.category && <span className="text-xs px-2 py-0.5 rounded bg-zinc-50 text-zinc-700 border border-zinc-200">{t.category}</span>}
           {t.is_active
@@ -104,7 +105,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
 
       {/* 行アイテム */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-        <h2 className="text-sm font-bold text-zinc-700 mb-3">{AB_ICONS.lineItem} 作業項目（{lines.length}）</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-3 inline-flex items-center gap-1.5"><NavIcon icon={AB_ICONS.lineItem} className="w-4 h-4" />作業項目（{lines.length}）</h2>
         {lines.length === 0 ? (
           <p className="text-sm text-zinc-400 py-4 text-center">作業項目はまだありません</p>
         ) : (
@@ -130,7 +131,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
 
       {/* 諸費用 */}
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-4">
-        <h2 className="text-sm font-bold text-zinc-700 mb-3">{AB_ICONS.fee} 諸費用（{fees.length}）</h2>
+        <h2 className="text-sm font-bold text-zinc-700 mb-3 inline-flex items-center gap-1.5"><NavIcon icon={AB_ICONS.fee} className="w-4 h-4" />諸費用（{fees.length}）</h2>
         {fees.length === 0 ? (
           <p className="text-sm text-zinc-400 py-4 text-center">諸費用はまだありません</p>
         ) : (

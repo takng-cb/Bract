@@ -118,7 +118,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
         badges={v.inspection_due_date ? <Badge tone={days != null && days < 0 ? 'danger' : urgent ? 'warn' : 'pos'} dot>{days != null && days < 0 ? '車検切れ' : urgent ? '車検間近' : '車検有効'}</Badge> : undefined}
         meta={[
           ...([v.car_name, v.car_model, v.grade].filter(Boolean).length > 0 ? [{ value: [v.car_name, v.car_model, v.grade].filter(Boolean).join(' / ') }] : []),
-          ...(account && !accountIsPersonal ? [{ icon: AB_ICONS.account, value: <Link href={`/accounts/${account.id}`} className="text-brand-700 hover:underline">{account.name}</Link> }] : contact ? [{ icon: AB_ICONS.contact, value: <Link href={`/contacts/${contact.id}`} className="text-brand-700 hover:underline">{contact.full_name}</Link> }] : []),
+          ...(account && !accountIsPersonal ? [{ icon: <NavIcon icon={AB_ICONS.account} className="w-3.5 h-3.5" />, value: <Link href={`/accounts/${account.id}`} className="text-brand-700 hover:underline">{account.name}</Link> }] : contact ? [{ icon: <NavIcon icon={AB_ICONS.contact} className="w-3.5 h-3.5" />, value: <Link href={`/contacts/${contact.id}`} className="text-brand-700 hover:underline">{contact.full_name}</Link> }] : []),
         ]}
         actions={
           <AuthGuard minRole="editor">
@@ -143,8 +143,8 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
               editEvent="bract:edit-customer-vehicle"
               action={saveCustomerVehicleInline}
               fields={[
-                { section: '顧客・所有者', label: '取引先', name: 'account_id', kind: 'select', value: v.account_id ?? '', options: accountOptions, view: account && !accountIsPersonal ? <Link href={`/accounts/${account.id}`} className="text-brand-700 hover:underline">{AB_ICONS.account} {account.name}</Link> : <span className="text-zinc-300">—</span> },
-                { section: '顧客・所有者', label: '顧客（人物）', name: 'contact_id', kind: 'select', value: v.contact_id ?? '', options: contactOptions, view: contact ? <Link href={`/contacts/${contact.id}`} className="text-brand-700 hover:underline">{AB_ICONS.contact} {contact.full_name}</Link> : <span className="text-zinc-300">—</span> },
+                { section: '顧客・所有者', label: '取引先', name: 'account_id', kind: 'select', value: v.account_id ?? '', options: accountOptions, view: account && !accountIsPersonal ? <Link href={`/accounts/${account.id}`} className="text-brand-700 hover:underline"><NavIcon icon={AB_ICONS.account} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{account.name}</Link> : <span className="text-zinc-300">—</span> },
+                { section: '顧客・所有者', label: '顧客（人物）', name: 'contact_id', kind: 'select', value: v.contact_id ?? '', options: contactOptions, view: contact ? <Link href={`/contacts/${contact.id}`} className="text-brand-700 hover:underline"><NavIcon icon={AB_ICONS.contact} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{contact.full_name}</Link> : <span className="text-zinc-300">—</span> },
                 { section: '顧客・所有者', label: '社内担当', name: 'owner_id', kind: 'select', value: v.owner_id ?? '', options: userOptions, view: ownerName ?? <span className="text-zinc-300">—</span> },
                 { section: '顧客・所有者', label: '連絡先', fullWidth: true, view: (contact?.phone ?? account?.phone) || contact?.email || account?.address ? (
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-700">

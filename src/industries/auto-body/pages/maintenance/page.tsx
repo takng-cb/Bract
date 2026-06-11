@@ -270,7 +270,7 @@ export default async function MaintenanceListPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">{AB_ICONS.maintenance}</p>
+          <NavIcon icon={AB_ICONS.maintenance} className="w-10 h-10 mx-auto mb-4 text-zinc-300" />
           <p className="text-lg font-medium">
             {hasFilter ? '条件に一致する整備がありません' : '整備がまだ登録されていません'}
           </p>
@@ -320,18 +320,18 @@ export default async function MaintenanceListPage({
                           <td className="px-4 py-2 text-zinc-700">
                             {m.vehicle?.id ? (
                               <Link href={`/customer-vehicles/${m.vehicle.id}`} className="hover:text-blue-700">
-                                {AB_ICONS.customerVehicle} {m.vehicle.plate_number ?? m.vehicle.car_model ?? '—'}
+                                <NavIcon icon={AB_ICONS.customerVehicle} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{m.vehicle.plate_number ?? m.vehicle.car_model ?? '—'}
                               </Link>
                             ) : '—'}
                           </td>
                           <td className="px-4 py-2 text-zinc-700">
                             {acc && !isPersonalAccount(acc) ? (
                               <Link href={`/accounts/${acc.id}`} className="hover:text-blue-700">
-                                {AB_ICONS.account} {acc.name}
+                                <NavIcon icon={AB_ICONS.account} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{acc.name}
                               </Link>
                             ) : con ? (
                               <Link href={`/contacts/${con.id}`} className="hover:text-blue-700">
-                                {AB_ICONS.contact} {con.full_name}
+                                <NavIcon icon={AB_ICONS.contact} className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />{con.full_name}
                               </Link>
                             ) : '—'}
                           </td>
