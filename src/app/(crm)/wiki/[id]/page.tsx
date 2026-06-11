@@ -67,7 +67,7 @@ export default async function WikiDetailPage({ params }: { params: Promise<{ id:
   const updated = page.updated_at ? new Date(page.updated_at).toLocaleDateString('ja-JP') : '—'
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-4xl">
       <RecordHeader
         crumbs={crumbs}
         title={page.title}

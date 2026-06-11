@@ -58,7 +58,7 @@ export default async function EditWikiPage({ params }: { params: Promise<{ id: s
   const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-6xl">
       <div className="text-sm text-zinc-400 mb-4">
         <Link href="/wiki" className="hover:text-zinc-600">Wiki</Link>
         <span className="mx-2">/</span>
