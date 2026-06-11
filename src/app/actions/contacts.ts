@@ -2,6 +2,7 @@
 
 
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { contacts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -80,6 +81,7 @@ export async function updateContact(id: string, formData: FormData) {
 
 export async function deleteContact(id: string) {
   await requirePermission('contacts', 'delete')
+  await trashRecord('contacts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('contact', id)
   await db.delete(contacts).where(eq(contacts.id, id))
   redirect('/contacts')

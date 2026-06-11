@@ -4,6 +4,7 @@
  * staff (スタッフマスタ) CRUD アクション (Issue #69)
  */
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { staff } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -105,6 +106,7 @@ export async function setStaffStatus(id: string, status: string) {
 
 export async function deleteStaff(id: string) {
   await requirePermission('staff', 'delete')
+  await trashRecord('staff', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(staff).where(eq(staff.id, id))
   revalidatePath('/staff')
   redirect('/staff')

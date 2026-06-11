@@ -311,6 +311,11 @@
 - 内容：運営者判定を env `PROVIDER_EMAILS`（カンマ区切り・テナント DB では制御しない＝テナント管理者が自己昇格できない）で行う `isProvider()/requireProvider()` を追加。/settings/system の「サービス提供者向け」セクションは運営者にのみ表示。/admin/license は運営者以外（テナント管理者含む）にはアクセス不可のエラーカードを表示し、updateLicense action も requireProvider でガード。env 未設定時は移行措置として admin を運営扱い（本番コンテナでは必ず設定）。
 - 状態：実装・出荷済み。
 
+### REQ-0047  レコードのゴミ箱（復元・自動削除）
+- 2026-06-12 / 会話（「ゴミ箱機能。一定タイミングで自動で消える。管理者は全件・一般ユーザーは自分が消したものだけ閲覧。復旧もできるように」）
+- 内容：`trash_records`（物理テーブル名・to_jsonb の行スナップショット・削除者・削除日時）を新設（migration `20260612090000`）。主要17ブックの削除 action が実削除前に退避。/trash で一覧（管理者=全件・一般=自分の削除分のみ）・**復元**（jsonb_populate_record で再INSERT、id重複時はエラー）・完全削除。保持期限は system_settings `trash_retention_days`（既定30日）で、一覧表示時に期限切れを自動削除。入口は /settings の「ゴミ箱」カード。子レコード（明細・junction）は v1 では復元対象外（注記表示）。
+- 状態：実装・出荷済み（migration の全 Neon 適用が前提）。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

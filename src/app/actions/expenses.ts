@@ -1,6 +1,7 @@
 'use server'
 
 import { recordHref } from '@/lib/relatedRecords'
+import { trashRecord } from '@/lib/trash'
 
 import { db } from '@/lib/db'
 import { expenses, expense_related_records } from '@/lib/schema'
@@ -158,6 +159,7 @@ export async function updateExpenseRelatedRecords(id: string, formData: FormData
 export async function deleteExpense(id: string, revalidate: string) {
   await requirePermission('expenses', 'delete')
   await assertNotPendingApproval('expenses', id)  // 承認待ち中は削除も不可（REQ-0023）
+  await trashRecord('expenses', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(expenses).where(eq(expenses.id, id))
   revalidatePath(revalidate)
   revalidatePath('/expenses')

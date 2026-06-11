@@ -1,5 +1,6 @@
 'use server'
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { custom_records } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -76,6 +77,8 @@ export async function deleteCustomRecord(
 
   const obj = await getObjectDef(objectApiName)
   if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
+
+  await trashRecord('custom_records', recordId, obj.label_plural ?? objectApiName)  // 実削除の前にゴミ箱へ退避（REQ-0047）
 
   // Phase 2: junction クリーンアップ。api_name 経由で参照されているため
   // objectApiName (= object_definitions.api_name) を渡す。

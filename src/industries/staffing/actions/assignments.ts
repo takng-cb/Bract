@@ -4,6 +4,7 @@
  * assignments (案件) CRUD アクション (Issue #69)
  */
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { assignments, assignment_staff, accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -121,6 +122,7 @@ export async function updateAssignment(id: string, formData: FormData) {
 
 export async function deleteAssignment(id: string) {
   await requirePermission('assignments', 'delete')
+  await trashRecord('assignments', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(assignments).where(eq(assignments.id, id))
   revalidatePath('/assignments')
   redirect('/assignments')

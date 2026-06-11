@@ -1,6 +1,7 @@
 'use server'
 
 import { requirePermission } from '@/lib/permissions'
+import { trashRecord } from '@/lib/trash'
 import { db } from '@/lib/db'
 import { vehicles } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
@@ -197,6 +198,7 @@ export async function setVehicleStatus(id: string, status: string) {
 
 export async function deleteVehicle(id: string) {
   await requirePermission('vehicles', 'delete')
+  await trashRecord('vehicles', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(vehicles).where(eq(vehicles.id, id))
   // custom_records ミラー側も削除（cascade ではないので明示的に）
   await deleteVehicleCustomRecord(id)

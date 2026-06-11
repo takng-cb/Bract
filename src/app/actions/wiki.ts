@@ -6,6 +6,7 @@
  * 自動的に NULL になる（孤児はルート扱い）。
  */
 import { db } from '@/lib/db'
+import { trashRecord } from '@/lib/trash'
 import { wiki_pages } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -57,6 +58,7 @@ export async function updateWikiPage(id: string, formData: FormData): Promise<vo
 
 export async function deleteWikiPage(id: string): Promise<void> {
   await requirePermission('wiki_pages', 'delete')
+  await trashRecord('wiki_pages', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   // 子ページの parent_id は FK の ON DELETE SET NULL で自動的に NULL になる
   await db.delete(wiki_pages).where(eq(wiki_pages.id, id))
   revalidatePath('/wiki')
