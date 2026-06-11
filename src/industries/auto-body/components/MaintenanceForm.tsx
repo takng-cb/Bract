@@ -1,11 +1,11 @@
 'use client'
 
-import { useActionState, useState, useTransition } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Loader2, X } from 'lucide-react'
 import SearchableSelect from '@/components/SearchableSelect'
+import { SearchCombo, useDebouncedSearch } from './SearchCreateCombo'
 import {
-  inlineCreateAccount, inlineCreateCustomerVehicle, findAccountCandidates,
+  findAccountCandidates, findCustomerVehicleCandidates, type VehicleCandidate,
 } from '@/industries/auto-body/actions/maintenanceInline'
 
 type VehicleOption = { id: string; label: string; account_id: string | null }
@@ -58,34 +58,44 @@ export default function MaintenanceForm({
   action, cancelHref, vehicles, accounts, contacts, users, defaultValues = {},
 }: Props) {
   const [error, formAction, pending] = useActionState(action, null)
-  const [selectedAccountId, setSelectedAccountId] = useState(defaultValues.account_id ?? '')
-  const [selectedVehicleId, setSelectedVehicleId] = useState(defaultValues.customer_vehicle_id ?? '')
 
-  // 新規作成で増えた選択肢をローカルに保持
-  const [accountOpts, setAccountOpts] = useState<AccountOption[]>(accounts)
-  const [vehicleOpts, setVehicleOpts] = useState<VehicleOption[]>(vehicles)
+  // ── 顧客・車両は「検索→なければ新規」（レコード詳細ページと同じ UX。REQ-0042）──
+  const initialAccountId = defaultValues.account_id ?? ''
+  const initialVehicleId = defaultValues.customer_vehicle_id ?? ''
+  const [accountId, setAccountId] = useState(initialAccountId)
+  const [accountLabel, setAccountLabel] = useState<string | null>(
+    initialAccountId ? (accounts.find((a) => a.id === initialAccountId)?.name ?? '選択済み') : null,
+  )
+  const [accountText, setAccountText] = useState('')
+  const [vehicleId, setVehicleId] = useState(initialVehicleId)
+  const [vehicleLabel, setVehicleLabel] = useState<string | null>(
+    initialVehicleId ? (vehicles.find((v) => v.id === initialVehicleId)?.label ?? '選択済み') : null,
+  )
+  const [vehicleText, setVehicleText] = useState('')
+  const [newCarName, setNewCarName] = useState('')
 
-  // 車両選択 → その車両の所有者を顧客に自動入力
-  function onVehicleChange(id: string) {
-    setSelectedVehicleId(id)
-    const v = vehicleOpts.find((x) => x.id === id)
-    if (v && v.account_id && !selectedAccountId) {
-      setSelectedAccountId(v.account_id)
+  const { results: accountCandidates, searching: accountSearching } =
+    useDebouncedSearch(accountText, findAccountCandidates)
+  const { results: vehicleCandidates, searching: vehicleSearching } =
+    useDebouncedSearch<VehicleCandidate>(vehicleText, findCustomerVehicleCandidates)
+
+  // 既存車両を選択 → その車両の所有者を顧客に自動入力（顧客が未設定の場合のみ）
+  function onPickVehicle(id: string, label: string) {
+    setVehicleId(id); setVehicleLabel(label); setVehicleText('')
+    const c = vehicleCandidates.find((x) => x.id === id)
+    if (c?.account_id && !accountId && !accountText.trim()) {
+      setAccountId(c.account_id)
+      setAccountLabel(accounts.find((a) => a.id === c.account_id)?.name ?? '選択済み')
     }
   }
 
-  const filteredContacts = selectedAccountId
-    ? contacts.filter((c) => c.account_id === selectedAccountId)
-    : contacts
+  // 新規入力（未選択テキスト）は hidden input で送り、保存時に作成して紐付け（createMaintenance 側）
+  const willCreateAccount = !accountId && accountText.trim().length > 0
+  const willCreateVehicle = !vehicleId && vehicleText.trim().length > 0
 
-  function addAccountOption(o: AccountOption) {
-    setAccountOpts((prev) => prev.some((a) => a.id === o.id) ? prev : [o, ...prev])
-    setSelectedAccountId(o.id)
-  }
-  function addVehicleOption(o: VehicleOption) {
-    setVehicleOpts((prev) => prev.some((v) => v.id === o.id) ? prev : [o, ...prev])
-    setSelectedVehicleId(o.id)
-  }
+  const filteredContacts = accountId
+    ? contacts.filter((c) => c.account_id === accountId)
+    : contacts
 
   return (
     <form action={formAction} className="space-y-6">
@@ -103,56 +113,94 @@ export default function MaintenanceForm({
         </Link>
       </div>
 
-      {/* 顧客車両 + 顧客 */}
-      <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">対象</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              顧客車両 <span className="text-red-500">*</span>
-            </label>
-            <SearchableSelect
-              key={`veh-${selectedVehicleId}`}
-              name="customer_vehicle_id"
-              defaultValue={selectedVehicleId || undefined}
-              options={vehicleOpts.map((v) => ({ value: v.id, label: v.label }))}
-              placeholder="選択してください"
-              onSelect={onVehicleChange}
-            />
-            <VehicleInline accountId={selectedAccountId} onCreated={addVehicleOption} />
+      {/* 顧客 + 車両（レコード詳細と同じ「検索→なければ新規」。REQ-0042） */}
+      {/* 選択結果/新規テキストは hidden で送信。新規分は保存時に作成して紐付け */}
+      <input type="hidden" name="account_id" value={accountId} />
+      <input type="hidden" name="new_account_name" value={willCreateAccount ? accountText.trim() : ''} />
+      <input type="hidden" name="customer_vehicle_id" value={vehicleId} />
+      <input type="hidden" name="new_vehicle_plate" value={willCreateVehicle ? vehicleText.trim() : ''} />
+      <input type="hidden" name="new_vehicle_car_name" value={willCreateVehicle ? newCarName.trim() : ''} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
+          <h2 className="text-sm font-bold text-zinc-700 mb-4">顧客</h2>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
+                取引先（入力で検索・無ければ新規作成） <span className="text-red-500">*</span>
+              </label>
+              <SearchCombo
+                placeholder="会社名を入力（空のまま＝個人のお客様）"
+                selectedLabel={accountLabel}
+                onClear={() => { setAccountId(''); setAccountLabel(null) }}
+                value={accountText}
+                onChange={setAccountText}
+                candidates={accountCandidates.map((c) => ({ id: c.id, label: c.name }))}
+                searching={accountSearching}
+                onPick={(id, label) => { setAccountId(id); setAccountLabel(label); setAccountText('') }}
+                createHint={
+                  willCreateAccount && !accountCandidates.some((c) => c.name === accountText.trim())
+                    ? `保存時に「${accountText.trim()}」を新規取引先として登録します`
+                    : undefined
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">{accountId ? '顧客担当者' : '顧客（人物・BtoC）'}</label>
+              <SearchableSelect
+                key={`contact-${accountId}`}
+                name="contact_id"
+                defaultValue={defaultValues.contact_id ?? undefined}
+                options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
+                placeholder="—"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">請求先別指定（保険会社など）</label>
+              <SearchableSelect
+                name="billing_account_id"
+                defaultValue={defaultValues.billing_account_id ?? undefined}
+                options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+                placeholder="—（指定なし。顧客と同じ）"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              顧客（取引先） <span className="text-red-500">*</span>
-            </label>
-            <SearchableSelect
-              key={selectedAccountId}
-              name="account_id"
-              defaultValue={selectedAccountId || defaultValues.account_id || undefined}
-              options={accountOpts.map((a) => ({ value: a.id, label: a.name }))}
-              placeholder="選択してください"
-              onSelect={setSelectedAccountId}
-            />
-            <AccountInline onCreated={addAccountOption} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">顧客担当者</label>
-            <SearchableSelect
-              key={`contact-${selectedAccountId}`}
-              name="contact_id"
-              defaultValue={defaultValues.contact_id ?? undefined}
-              options={filteredContacts.map((c) => ({ value: c.id, label: c.full_name }))}
-              placeholder="—"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">請求先別指定</label>
-            <SearchableSelect
-              name="billing_account_id"
-              defaultValue={defaultValues.billing_account_id ?? undefined}
-              options={accountOpts.map((a) => ({ value: a.id, label: a.name }))}
-              placeholder="—（指定なし）"
-            />
+        </div>
+
+        <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
+          <h2 className="text-sm font-bold text-zinc-700 mb-4">車両</h2>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
+                顧客車両（ナンバー / 車名で検索・無ければ新規作成） <span className="text-red-500">*</span>
+              </label>
+              <SearchCombo
+                placeholder="例: 35-89、ノート"
+                selectedLabel={vehicleLabel}
+                onClear={() => { setVehicleId(''); setVehicleLabel(null) }}
+                value={vehicleText}
+                onChange={setVehicleText}
+                candidates={vehicleCandidates.map((c) => ({ id: c.id, label: c.label }))}
+                searching={vehicleSearching}
+                onPick={onPickVehicle}
+                createHint={
+                  willCreateVehicle && !vehicleCandidates.some((c) => c.label.includes(vehicleText.trim()))
+                    ? `保存時に「${vehicleText.trim()}」をナンバーとして新規車両を登録します`
+                    : undefined
+                }
+              />
+              <p className="text-[11px] text-zinc-400 mt-1">既存車両を選ぶと所有者が顧客欄に自動入力されます</p>
+            </div>
+            {willCreateVehicle && (
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">車名（新規登録用・任意）</label>
+                <input
+                  value={newCarName}
+                  onChange={(e) => setNewCarName(e.target.value)}
+                  placeholder="例: 日産 ノート"
+                  className="w-full rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -302,111 +350,5 @@ export default function MaintenanceForm({
         </Link>
       </div>
     </form>
-  )
-}
-
-// ── インライン作成（#45）─────────────────────────────────────────────
-function InlineToggle({ open, onToggle, label }: { open: boolean; onToggle: () => void; label: string }) {
-  return (
-    <button type="button" onClick={onToggle}
-      className="mt-1 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
-      {open ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}{open ? '閉じる' : label}
-    </button>
-  )
-}
-
-function inlineInputCls() {
-  return 'w-full border border-zinc-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-}
-
-function AccountInline({ onCreated }: { onCreated: (o: AccountOption) => void }) {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [candidates, setCandidates] = useState<{ id: string; name: string }[]>([])
-  const [msg, setMsg] = useState<string | null>(null)
-  const [pending, start] = useTransition()
-
-  const onNameChange = (v: string) => {
-    setName(v); setMsg(null)
-    start(async () => { setCandidates(await findAccountCandidates(v)) })
-  }
-  const create = () => {
-    if (!name.trim()) { setMsg('取引先名を入力してください'); return }
-    start(async () => {
-      try {
-        const r = await inlineCreateAccount({ name, phone })
-        onCreated({ id: r.id, name: r.name })
-        setOpen(false); setName(''); setPhone(''); setCandidates([])
-      } catch (e) { setMsg(e instanceof Error ? e.message : String(e)) }
-    })
-  }
-
-  return (
-    <div>
-      <InlineToggle open={open} onToggle={() => setOpen((o) => !o)} label="＋ 取引先を新規作成" />
-      {open && (
-        <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 p-3 space-y-2">
-          <input className={inlineInputCls()} placeholder="取引先名（必須）" value={name} onChange={(e) => onNameChange(e.target.value)} />
-          <input className={inlineInputCls()} placeholder="電話（任意）" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          {candidates.length > 0 && (
-            <div className="rounded border border-amber-200 bg-amber-50 p-2 space-y-1">
-              <p className="text-[11px] text-amber-700">同名・類似の取引先があります（重複作成を避けるには選択）:</p>
-              {candidates.map((c) => (
-                <button key={c.id} type="button" onClick={() => { onCreated({ id: c.id, name: c.name }); setOpen(false) }}
-                  className="block w-full text-left text-xs text-blue-700 hover:underline">✓ 既存「{c.name}」を使う</button>
-              ))}
-            </div>
-          )}
-          {msg && <p className="text-xs text-red-600">{msg}</p>}
-          <button type="button" onClick={create} disabled={pending}
-            className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-            {pending && <Loader2 className="w-3 h-3 animate-spin" />}この内容で作成
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function VehicleInline({ accountId, onCreated }: { accountId: string; onCreated: (o: VehicleOption) => void }) {
-  const [open, setOpen] = useState(false)
-  const [plate, setPlate] = useState('')
-  const [carName, setCarName] = useState('')
-  const [carModel, setCarModel] = useState('')
-  const [msg, setMsg] = useState<string | null>(null)
-  const [pending, start] = useTransition()
-
-  const create = () => {
-    if (!accountId) { setMsg('先に顧客（取引先）を選択してください'); return }
-    if (!plate.trim() && !carName.trim() && !carModel.trim()) { setMsg('ナンバー・車名・型式のいずれかを入力してください'); return }
-    start(async () => {
-      try {
-        const r = await inlineCreateCustomerVehicle({ plate_number: plate, car_name: carName, car_model: carModel, account_id: accountId })
-        onCreated({ id: r.id, label: r.label, account_id: accountId })
-        setOpen(false); setPlate(''); setCarName(''); setCarModel('')
-      } catch (e) { setMsg(e instanceof Error ? e.message : String(e)) }
-    })
-  }
-
-  return (
-    <div>
-      <InlineToggle open={open} onToggle={() => setOpen((o) => !o)} label="＋ 顧客車両を新規作成" />
-      {open && (
-        <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 p-3 space-y-2">
-          {!accountId && <p className="text-[11px] text-amber-600">先に「顧客（取引先）」を選択するとここに保存されます。</p>}
-          <input className={inlineInputCls()} placeholder="ナンバー（例: 品川 300 あ 12-34）" value={plate} onChange={(e) => setPlate(e.target.value)} />
-          <div className="grid grid-cols-2 gap-2">
-            <input className={inlineInputCls()} placeholder="車名" value={carName} onChange={(e) => setCarName(e.target.value)} />
-            <input className={inlineInputCls()} placeholder="型式" value={carModel} onChange={(e) => setCarModel(e.target.value)} />
-          </div>
-          {msg && <p className="text-xs text-red-600">{msg}</p>}
-          <button type="button" onClick={create} disabled={pending}
-            className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-            {pending && <Loader2 className="w-3 h-3 animate-spin" />}この内容で作成
-          </button>
-        </div>
-      )}
-    </div>
   )
 }

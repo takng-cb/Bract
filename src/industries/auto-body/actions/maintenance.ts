@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { generateMaintenanceNo } from '@/industries/auto-body/lib/maintenanceNo'
 import { requirePermission } from '@/lib/permissions'
+import { inlineCreateAccount, inlineCreateCustomerVehicle } from '@/industries/auto-body/actions/maintenanceInline'
 
 // 代車運用 (Issue #45):
 //   vehicles.status は '在庫' / '販売済' / '整備中' などを取り得るが、
@@ -53,14 +54,29 @@ function pickInt(formData: FormData, key: string): number | null {
 export async function createMaintenance(formData: FormData): Promise<string> {
   await requirePermission('maintenance_records', 'create')
 
-  const customer_vehicle_id = pick(formData, 'customer_vehicle_id')
-  if (!customer_vehicle_id) throw new Error('顧客車両は必須です')
-  const account_id = pick(formData, 'account_id')
+  // 「検索→なければ新規」（REQ-0042）：未選択のままテキスト入力されたものは保存時に作成して紐付ける
+  let account_id = pick(formData, 'account_id')
   const contact_id_check = pick(formData, 'contact_id')
+  const newAccountName = pick(formData, 'new_account_name')
+  if (!account_id && newAccountName) {
+    account_id = (await inlineCreateAccount({ name: newAccountName })).id
+  }
   // BtoB は取引先（会社）、BtoC は contact（人物）のみで成立。いずれか必須。
   if (!account_id && !contact_id_check) {
     throw new Error('顧客（取引先または人物）は必須です')
   }
+
+  let customer_vehicle_id = pick(formData, 'customer_vehicle_id')
+  const newVehiclePlate = pick(formData, 'new_vehicle_plate')
+  if (!customer_vehicle_id && newVehiclePlate) {
+    customer_vehicle_id = (await inlineCreateCustomerVehicle({
+      plate_number: newVehiclePlate,
+      car_name:     pick(formData, 'new_vehicle_car_name') ?? undefined,
+      account_id:   account_id ?? undefined,
+      contact_id:   contact_id_check ?? undefined,
+    })).id
+  }
+  if (!customer_vehicle_id) throw new Error('顧客車両は必須です')
 
   // UNIQUE 違反したら 5 回まで番号再採番（同時 INSERT 対策）
   let lastErr: unknown = null

@@ -8,12 +8,19 @@
 import { db } from '@/lib/db'
 import { accounts, customer_vehicles } from '@/lib/schema'
 import { eq, ilike, or } from 'drizzle-orm'
-import { requirePermission } from '@/lib/permissions'
+import { canDo } from '@/lib/permissions'
+
+/** 整備の作成 or 更新のどちらかができれば、付随する取引先/車両のインライン作成を許可 */
+async function requireMaintenanceWrite(): Promise<void> {
+  if (!(await canDo('maintenance_records', 'update')) && !(await canDo('maintenance_records', 'create'))) {
+    throw new Error('権限がありません（maintenance_records の作成または更新）')
+  }
+}
 
 export type InlineAccountResult = { id: string; name: string; existed: boolean }
 
 export async function inlineCreateAccount(input: { name: string; phone?: string }): Promise<InlineAccountResult> {
-  await requirePermission('maintenance_records', 'update')
+  await requireMaintenanceWrite()
   const name = input.name?.trim()
   if (!name) throw new Error('取引先名は必須です')
 
@@ -37,7 +44,7 @@ export async function inlineCreateCustomerVehicle(input: {
   account_id?: string
   contact_id?: string
 }): Promise<InlineVehicleResult> {
-  await requirePermission('maintenance_records', 'update')
+  await requireMaintenanceWrite()
   if (!input.account_id && !input.contact_id) {
     throw new Error('先に顧客（取引先）を指定してください')
   }
