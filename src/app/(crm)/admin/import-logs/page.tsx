@@ -3,6 +3,7 @@ import { import_logs } from '@/lib/schema'
 import { requireAdmin } from '@/lib/auth'
 import { desc } from 'drizzle-orm'
 import PageHeader from '@/components/ui/PageHeader'
+import { NavIcon } from '@/lib/navIcon'
 
 const ROUTE_LABELS: Record<string, string> = {
   '/api/import/properties':     '物件',
@@ -57,8 +58,8 @@ export default async function AdminImportLogsPage() {
                       {log.imported === 0 && log.updated === 0 && <span className="text-zinc-400">変更なし</span>}
                     </span>
                     {hasError && (
-                      <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                        ⚠ エラー {userErrors.length} 件
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                        <NavIcon icon="⚠️" className="w-3.5 h-3.5" /> エラー {userErrors.length} 件
                       </span>
                     )}
                   </div>

@@ -288,8 +288,8 @@ export default async function CustomRecordDetailPage({
           <ul className="space-y-3">
             {activitiesList.map((act) => (
               <li key={act.id} className="flex gap-3 pb-3 border-b border-zinc-100 last:border-0 last:pb-0">
-                <span className="text-lg shrink-0 mt-0.5">
-                  {ACTIVITY_TYPE_LABELS[act.type]?.split(' ')[0] ?? '📋'}
+                <span className="shrink-0 mt-0.5 text-zinc-400">
+                  <NavIcon icon={ACTIVITY_TYPE_LABELS[act.type]?.split(' ')[0] ?? '📋'} className="w-4.5 h-4.5" />
                 </span>
                 <div className="flex-1 min-w-0">
                   <Link href={`/activities/${act.id}`} className="text-sm font-medium text-zinc-900 hover:text-blue-600 truncate block">
