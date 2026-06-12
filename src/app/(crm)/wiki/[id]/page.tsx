@@ -4,7 +4,7 @@
  */
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, SquarePen } from 'lucide-react'
+import { BookOpen, SquarePen, History } from 'lucide-react'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { db } from '@/lib/db'
 import { wiki_pages } from '@/lib/schema'
@@ -80,12 +80,18 @@ export default async function WikiDetailPage({ params }: { params: Promise<{ id:
           ...(parent ? [{ label: '親ページ', value: <Link href={`/wiki/${parent.id}`} className="text-blue-600 hover:underline">{parent.title}</Link> }] : []),
         ]}
         actions={
-          <AuthGuard minRole="editor">
-            <div className="flex items-center gap-2">
-              <Link href={`/wiki/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
-              <DeleteButton action={handleDelete} confirmMessage="このページを削除しますか？子ページは親なし（ルート）になります。" />
-            </div>
-          </AuthGuard>
+          <div className="flex items-center gap-2">
+            {/* 版差分（#129） */}
+            <Link href={`/wiki/${id}/history`} className="px-3 py-1.5 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50" title="変更履歴・版差分">
+              <History className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} aria-hidden /> 履歴
+            </Link>
+            <AuthGuard minRole="editor">
+              <div className="flex items-center gap-2">
+                <Link href={`/wiki/${id}/edit`} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"><SquarePen className="w-4 h-4 inline -mt-0.5" strokeWidth={2.25} /> 編集</Link>
+                <DeleteButton action={handleDelete} confirmMessage="このページを削除しますか？子ページは親なし（ルート）になります。" />
+              </div>
+            </AuthGuard>
+          </div>
         }
       />
 
