@@ -371,6 +371,11 @@
 - 内容：グローバルトースト基盤 `src/components/Toast.tsx`（ToastHost を (crm)/layout に配置、`showToast()` は CustomEvent 経由・Provider 不要、useActionState 用の `useActionToast` フック付き）。①その場保存の設定系11フォーム（プロフィール/パスワード/システム設定/表示設定/ナビ順序/活動種別/承認設定/AI設定/一覧列/ライセンス/パスワードリセット）は成功 inline 表示を廃止してトースト化（エラー inline は残す）。②redirect を伴う保存（新規作成/更新/削除/インライン編集）は `lib/saveToast.ts` の `withSaveToast(path, kind)` で URL に `toast=<kind>.<nonce>` を付与し、遷移先の ToastHost が「作成しました/保存しました/削除しました」を表示して URL から除去。runCreate は中央1箇所、個別 action は更新33・削除14・作成系を配線。revalidate のみの action（ステータスバー等）は既存のその場 UI 反映があるため対象外。
 - 状態：実装・出荷済み。
 
+### REQ-0058  業務報告の最小手数化（#88 方針確定）
+- 2026-06-13 / 会話（AskUserQuestion で4論点を確定: 「B→Aの順で両方」「対象は案件＋商談」「音声は後回し」「入口は独立ページ」）
+- 内容：Phase1=テンプレ式の期間集約 AI 要約レポート（その場生成＋コピー、report_templates 新設）→ Phase2=独立ページの一括報告インボックス（テキスト貼付→AI が案件別分割→draft-then-apply、上限10件/回）。詳細は ADR-0025 / docs/design-88-business-reporting.md。
+- 状態：方針確定・実装待ち（#88 で管理）。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
