@@ -1,7 +1,8 @@
 /**
  * /assignments/[id]/edit — 案件編集 (Issue #69 Phase 1)
  *
- * 簡易版: 案件本体 + スタッフ追加フォーム
+ * 案件本体（AssignmentForm = RecordColumns＋カード様式）+ スタッフ追加/解除セクション。
+ * スタッフ側のフォームは本体フォームと入れ子にならないよう、本体フォームの外（下部）に置く。
  */
 import { notFound } from 'next/navigation'
 import { isModuleEnabled } from '@/lib/modules/registry'
@@ -10,9 +11,14 @@ import { db } from '@/lib/db'
 import { assignments, assignment_staff, accounts, contacts, staff } from '@/lib/schema'
 import { eq, asc, ne } from 'drizzle-orm'
 import Link from 'next/link'
-import Breadcrumbs from '@/components/Breadcrumbs'
+import { Package } from 'lucide-react'
+import RecordHeader from '@/components/RecordHeader'
 import { updateAssignment, assignStaffToAssignment, unassignStaff } from '@/industries/staffing/actions/assignments'
+import AssignmentForm from '@/industries/staffing/components/AssignmentForm'
+import type { CreateState } from '@/lib/duplicateTypes'
 import { requireBookRead } from '@/lib/permissions'
+
+const FORM_ID = 'record-create-form'
 
 const FIELD_CLS = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
@@ -51,9 +57,15 @@ export default async function EditAssignmentPage({ params }: { params: Promise<{
 
   if (!row) notFound()
 
-  async function updateAction(formData: FormData) {
+  async function updateAction(_: CreateState, formData: FormData): Promise<CreateState> {
     'use server'
-    await updateAssignment(id, formData)
+    try {
+      await updateAssignment(id, formData)
+      return null
+    } catch (e) {
+      if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
+      return { kind: 'error', message: (e as Error).message }
+    }
   }
   async function assignAction(formData: FormData) {
     'use server'
@@ -74,148 +86,127 @@ export default async function EditAssignmentPage({ params }: { params: Promise<{
   const availableStaff = allStaff.filter((s) => !assignedStaffIds.has(s.id))
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
-      <Breadcrumbs items={[
-        { label: '案件', href: '/assignments' },
-        { label: row.assignment_no, href: `/assignments/${id}` },
-        { label: '編集' },
-      ]} />
-      <h1 className="text-2xl font-bold text-zinc-900 mb-6 font-mono">{row.assignment_no} を編集</h1>
+    <div className="p-4 md:p-8 max-w-7xl">
+      {/* 詳細ページと同じヒーローヘッダ（REQ-0051）。保存はフォームに form 属性で紐付け */}
+      <RecordHeader
+        crumbs={[
+          { label: '案件', href: '/assignments' },
+          { label: row.assignment_no, href: `/assignments/${id}` },
+          { label: '編集' },
+        ]}
+        avatar={<Package className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={`${row.title ?? row.assignment_no} を編集`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link href={`/assignments/${id}`} className="px-4 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+              キャンセル
+            </Link>
+            <button
+              type="submit"
+              form={FORM_ID}
+              className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              保存
+            </button>
+          </div>
+        }
+      />
 
-      {/* 案件本体編集 */}
-      <form action={updateAction} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-4 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700">案件情報</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <label className="block text-xs text-zinc-500 mb-1">派遣先（取引先）*</label>
-            <select name="client_account_id" required defaultValue={row.client_account_id ?? ''} className={`${FIELD_CLS} bg-white`}>
-              <option value="">— 選択 —</option>
-              {allClients.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">業務日</label>
-            <input type="date" name="service_date" defaultValue={row.service_date ?? ''} className={FIELD_CLS} />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">募集人数</label>
-            <input type="number" name="staff_count_required" defaultValue={row.staff_count_required ?? ''} className={FIELD_CLS} />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">開始時間</label>
-            <input type="time" name="service_start_time" defaultValue={row.service_start_time ?? ''} className={FIELD_CLS} />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">終了時間</label>
-            <input type="time" name="service_end_time" defaultValue={row.service_end_time ?? ''} className={FIELD_CLS} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-xs text-zinc-500 mb-1">業務区分</label>
-            <input name="service_type" defaultValue={row.service_type ?? ''} className={FIELD_CLS} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-xs text-zinc-500 mb-1">場所</label>
-            <input name="service_location" defaultValue={row.service_location ?? ''} className={FIELD_CLS} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-xs text-zinc-500 mb-1">業務内容</label>
-            <textarea name="service_description" rows={3} defaultValue={row.service_description ?? ''} className={`${FIELD_CLS} resize-y`} />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">請求総額</label>
-            <input type="number" name="client_total_fee" defaultValue={row.client_total_fee ?? ''} className={FIELD_CLS} />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">ステータス</label>
-            <select name="status" defaultValue={row.status} className={`${FIELD_CLS} bg-white`}>
-              <option value="予約">予約</option>
-              <option value="確定">確定</option>
-              <option value="実施中">実施中</option>
-              <option value="完了">完了</option>
-              <option value="キャンセル">キャンセル</option>
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-xs text-zinc-500 mb-1">内部メモ</label>
-            <textarea name="internal_memo" rows={2} defaultValue={row.internal_memo ?? ''} className={`${FIELD_CLS} resize-y`} />
-          </div>
+      {/* 案件本体編集（RecordColumns＋カード様式。保存/キャンセルはヘッダとフォーム末尾） */}
+      <AssignmentForm
+        action={updateAction}
+        cancelHref={`/assignments/${id}`}
+        clientAccounts={allClients}
+        mode="edit"
+        formId={FORM_ID}
+        defaultValues={{
+          client_account_id:    row.client_account_id,
+          service_date:         row.service_date,
+          service_start_time:   row.service_start_time,
+          service_end_time:     row.service_end_time,
+          service_type:         row.service_type,
+          service_location:     row.service_location,
+          service_description:  row.service_description,
+          staff_count_required: row.staff_count_required,
+          client_total_fee:     row.client_total_fee,
+          status:               row.status,
+          internal_memo:        row.internal_memo,
+        }}
+      />
+
+      {/* スタッフのアサイン管理（本体フォームの外＝下部。詳細ページと同じカード様式） */}
+      <section className="mt-6 bg-white border border-zinc-200 rounded-xl shadow-xs">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100">
+          <h2 className="text-[13px] font-bold text-zinc-800">スタッフのアサイン</h2>
         </div>
-        <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
-          <Link href={`/assignments/${id}`} className="px-4 py-2 text-sm border border-zinc-300 rounded-md hover:bg-zinc-50">キャンセル</Link>
-          <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700">保存</button>
-        </div>
-      </form>
-
-      {/* スタッフのアサイン管理 */}
-      <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
-        <h2 className="text-sm font-bold text-zinc-700 mb-4">スタッフのアサイン</h2>
-
-        {existingAssignedStaff.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs text-zinc-500 mb-2">現在アサイン済み</p>
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
-                <tr>
-                  <th className="text-left px-2 py-1.5 font-medium text-zinc-600">スタッフ</th>
-                  <th className="text-right px-2 py-1.5 font-medium text-zinc-600">時間</th>
-                  <th className="text-right px-2 py-1.5 font-medium text-zinc-600">請求</th>
-                  <th className="text-right px-2 py-1.5 font-medium text-zinc-600">仕入</th>
-                  <th className="text-left px-2 py-1.5 font-medium text-zinc-600">状態</th>
-                  <th className="px-2 py-1.5"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {existingAssignedStaff.map((s) => (
-                  <tr key={s.id}>
-                    <td className="px-2 py-1.5">{s.staff_name}</td>
-                    <td className="px-2 py-1.5 text-right font-mono text-xs">{s.service_hours ?? '—'}</td>
-                    <td className="px-2 py-1.5 text-right font-mono text-xs">{s.hourly_rate ?? '—'}</td>
-                    <td className="px-2 py-1.5 text-right font-mono text-xs">{s.cost_per_hour ?? '—'}</td>
-                    <td className="px-2 py-1.5 text-xs">{s.status}</td>
-                    <td className="px-2 py-1.5 text-right">
-                      <form action={unassignAction}>
-                        <input type="hidden" name="assignment_staff_id" value={s.id} />
-                        <button type="submit" className="text-xs text-rose-600 hover:underline">解除</button>
-                      </form>
-                    </td>
+        <div className="px-4 py-4">
+          {existingAssignedStaff.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs text-zinc-500 mb-2">現在アサイン済み</p>
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50 border-b border-zinc-200">
+                  <tr>
+                    <th className="text-left px-2 py-1.5 font-medium text-zinc-600">スタッフ</th>
+                    <th className="text-right px-2 py-1.5 font-medium text-zinc-600">時間</th>
+                    <th className="text-right px-2 py-1.5 font-medium text-zinc-600">請求</th>
+                    <th className="text-right px-2 py-1.5 font-medium text-zinc-600">仕入</th>
+                    <th className="text-left px-2 py-1.5 font-medium text-zinc-600">状態</th>
+                    <th className="px-2 py-1.5"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {existingAssignedStaff.map((s) => (
+                    <tr key={s.id}>
+                      <td className="px-2 py-1.5">{s.staff_name}</td>
+                      <td className="px-2 py-1.5 text-right font-mono text-xs">{s.service_hours ?? '—'}</td>
+                      <td className="px-2 py-1.5 text-right font-mono text-xs">{s.hourly_rate ?? '—'}</td>
+                      <td className="px-2 py-1.5 text-right font-mono text-xs">{s.cost_per_hour ?? '—'}</td>
+                      <td className="px-2 py-1.5 text-xs">{s.status}</td>
+                      <td className="px-2 py-1.5 text-right">
+                        <form action={unassignAction}>
+                          <input type="hidden" name="assignment_staff_id" value={s.id} />
+                          <button type="submit" className="text-xs text-rose-600 hover:underline">解除</button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-        {availableStaff.length > 0 ? (
-          <form action={assignAction} className="border-t border-zinc-200 pt-4">
-            <p className="text-xs text-zinc-500 mb-2">スタッフを追加</p>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
-              <div className="sm:col-span-1">
-                <label className="block text-[10px] text-zinc-400 mb-0.5">スタッフ</label>
-                <select name="staff_id" required className={`${FIELD_CLS} bg-white`}>
-                  <option value="">—</option>
-                  {availableStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+          {availableStaff.length > 0 ? (
+            <form action={assignAction} className={existingAssignedStaff.length > 0 ? 'border-t border-zinc-200 pt-4' : ''}>
+              <p className="text-xs text-zinc-500 mb-2">スタッフを追加</p>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+                <div className="sm:col-span-1">
+                  <label className="block text-[10px] text-zinc-400 mb-0.5">スタッフ</label>
+                  <select name="staff_id" required className={`${FIELD_CLS} bg-white`}>
+                    <option value="">—</option>
+                    {availableStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-zinc-400 mb-0.5">時間 (h)</label>
+                  <input type="number" step="0.25" name="service_hours" className={FIELD_CLS} />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-zinc-400 mb-0.5">請求時給</label>
+                  <input type="number" name="hourly_rate" className={FIELD_CLS} />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-zinc-400 mb-0.5">仕入時給</label>
+                  <input type="number" name="cost_per_hour" className={FIELD_CLS} />
+                </div>
               </div>
-              <div>
-                <label className="block text-[10px] text-zinc-400 mb-0.5">時間 (h)</label>
-                <input type="number" step="0.25" name="service_hours" className={FIELD_CLS} />
+              <div className="flex justify-end mt-2">
+                <button type="submit" className="px-3 py-1.5 text-xs bg-zinc-800 text-white rounded-md hover:bg-zinc-900">追加</button>
               </div>
-              <div>
-                <label className="block text-[10px] text-zinc-400 mb-0.5">請求時給</label>
-                <input type="number" name="hourly_rate" className={FIELD_CLS} />
-              </div>
-              <div>
-                <label className="block text-[10px] text-zinc-400 mb-0.5">仕入時給</label>
-                <input type="number" name="cost_per_hour" className={FIELD_CLS} />
-              </div>
-            </div>
-            <div className="flex justify-end mt-2">
-              <button type="submit" className="px-3 py-1.5 text-xs bg-zinc-800 text-white rounded-md hover:bg-zinc-900">追加</button>
-            </div>
-          </form>
-        ) : (
-          <p className="text-xs text-zinc-400">アサイン可能なスタッフがいません（全員アサイン済みまたは引退）</p>
-        )}
+            </form>
+          ) : (
+            <p className="text-xs text-zinc-400">アサイン可能なスタッフがいません（全員アサイン済みまたは引退）</p>
+          )}
+        </div>
       </section>
     </div>
   )

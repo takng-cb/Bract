@@ -1,8 +1,12 @@
 /**
  * /stock-movements/new — 入出庫の登録 (Issue #48)
+ *
+ * レコード詳細ページと同じ見た目（REQ-0051）:
+ * RecordHeader + RecordColumns（左=入出庫情報 dense / 右=対象・メモ）。
  */
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Boxes } from 'lucide-react'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { requireEditor } from '@/lib/auth'
 import { db } from '@/lib/db'
@@ -10,11 +14,16 @@ import { products, warehouses } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
 import SearchableSelect from '@/components/SearchableSelect'
 import SubmitButton from '@/components/SubmitButton'
+import RecordHeader from '@/components/RecordHeader'
+import CreateInfoCard from '@/components/create/CreateInfoCard'
+import { RecordColumns } from '@/components/record/RecordUI'
 import { createStockMovement } from '@/app/actions/inventory'
 import { MOVEMENT_TYPES } from '@/lib/inventory'
 import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
+
+const FORM_ID = 'record-create-form'
 
 export default async function NewStockMovementPage({
   searchParams,
@@ -38,74 +47,89 @@ export default async function NewStockMovementPage({
     await createStockMovement(formData) // redirect('/stock-movements') 内包
   }
 
-  const field = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-
   return (
-    <div className="p-4 md:p-8 max-w-2xl">
-      <div className="text-sm text-zinc-400 mb-4">
-        <Link href="/stock-movements" className="hover:text-zinc-600">在庫移動</Link>
-        <span className="mx-2">/</span>
-        <span className="text-zinc-700">入出庫を登録</span>
-      </div>
-      <h1 className="text-2xl font-bold text-zinc-900 mb-6">入出庫を登録</h1>
+    <div className="p-4 md:p-8 max-w-7xl">
+      {/* 詳細ページと同じヒーローヘッダ（REQ-0051）。登録はフォームに form 属性で紐付け */}
+      <RecordHeader
+        crumbs={[{ label: '在庫移動', href: '/stock-movements' }, { label: '入出庫を登録' }]}
+        avatar={<Boxes className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title="入出庫を登録"
+        actions={
+          productRows.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <Link href="/stock-movements" className="px-4 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+                キャンセル
+              </Link>
+              <button
+                type="submit"
+                form={FORM_ID}
+                className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                登録
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
 
       {productRows.length === 0 ? (
         <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 text-sm text-zinc-500">
           先に <Link href="/products/new" className="text-blue-600 hover:underline">商品</Link> を登録してください。
         </div>
       ) : (
-        <form action={action} className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-4">
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">商品 <span className="text-red-500">*</span></label>
-            <SearchableSelect
-              name="product_id"
-              options={productRows.map((p) => ({ value: p.id, label: `${p.name}（${p.sku}）` }))}
-              defaultValue={sp.product_id ?? ''}
-              placeholder="— 商品を選択 —"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">倉庫</label>
-            <SearchableSelect
-              name="warehouse_id"
-              options={warehouseRows.map((w) => ({ value: w.id, label: `${w.name}（${w.code}）` }))}
-              placeholder="— 倉庫を選択（任意）—"
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">種別 <span className="text-red-500">*</span></label>
-              <select name="movement_type" required defaultValue="入庫" className={`${field} bg-white`}>
-                {MOVEMENT_TYPES.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">数量 <span className="text-red-500">*</span></label>
-              <input name="quantity" type="number" min="1" required className={field} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">日付</label>
-              <input name="occurred_at" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className={field} />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">単価</label>
-              <input name="unit_price" type="number" min="0" step="0.01" className={field} />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">伝票番号</label>
-              <input name="reference" className={field} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">メモ</label>
-            <textarea name="note" rows={2} className={field} />
-          </div>
+        <form id={FORM_ID} action={action}>
+          <RecordColumns
+            narrow
+            left={
+              <CreateInfoCard
+                dense
+                title="入出庫情報"
+                fields={[
+                  { label: '種別', name: 'movement_type', kind: 'select', required: true, defaultValue: '入庫', emptyOption: null, options: MOVEMENT_TYPES.map((m) => ({ value: m, label: m })) },
+                  { label: '数量', name: 'quantity', kind: 'number', min: 1, required: true },
+                  { label: '日付', name: 'occurred_at', kind: 'date', defaultValue: new Date().toISOString().slice(0, 10) },
+                  { label: '単価', name: 'unit_price', kind: 'number', min: 0, step: 0.01 },
+                  { label: '伝票番号', name: 'reference' },
+                ]}
+              />
+            }
+          >
+            <CreateInfoCard title="対象" fields={[]}>
+              <div className="space-y-4">
+                <div>
+                  <span className="block text-xs text-zinc-400 mb-1">
+                    商品<span className="text-red-500"> *</span>
+                  </span>
+                  <SearchableSelect
+                    name="product_id"
+                    options={productRows.map((p) => ({ value: p.id, label: `${p.name}（${p.sku}）` }))}
+                    defaultValue={sp.product_id ?? ''}
+                    placeholder="— 商品を選択 —"
+                  />
+                </div>
+                <div>
+                  <span className="block text-xs text-zinc-400 mb-1">倉庫</span>
+                  <SearchableSelect
+                    name="warehouse_id"
+                    options={warehouseRows.map((w) => ({ value: w.id, label: `${w.name}（${w.code}）` }))}
+                    placeholder="— 倉庫を選択（任意）—"
+                  />
+                </div>
+              </div>
+            </CreateInfoCard>
 
-          <div className="flex items-center gap-2 pt-2">
+            <CreateInfoCard
+              title="メモ"
+              fields={[{ label: 'メモ', name: 'note', kind: 'textarea', fullWidth: true }]}
+            />
+          </RecordColumns>
+
+          {/* 登録/キャンセルはページ最下部（2カラムの外・全幅）に置く */}
+          <div className="mt-6 flex justify-center gap-3 border-t border-zinc-200 pt-5">
             <SubmitButton>登録</SubmitButton>
-            <Link href="/stock-movements" className="px-4 py-2 border border-zinc-300 text-zinc-600 text-sm rounded-md hover:bg-zinc-50">キャンセル</Link>
+            <Link href="/stock-movements" className="px-6 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+              キャンセル
+            </Link>
           </div>
         </form>
       )}
