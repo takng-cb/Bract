@@ -1,5 +1,5 @@
 /**
- * 操作マニュアル用スクリーンショット自動撮影（docs/manual/ 用）
+ * 操作マニュアル用スクリーンショット自動撮影（public/manual/ 用）
  *
  * 使い方:
  *   1. 対象業種で production サーバーを起動しておく:
@@ -12,7 +12,7 @@
  *   TEST_USER_PASSWORD … scripts/seed-test-users.ts で投入した test-admin のパスワード
  *   MANUAL_BASE_URL    … 省略時 http://localhost:3100
  *
- * 出力: docs/manual/img/<industry>/<name>.png（1440x900、ja-JP）
+ * 出力: public/manual/img/<industry>/<name>.png（1440x900、ja-JP）
  * 機能更新後はサーバーを立て直して本スクリプトを再実行すればスクショを最新化できる。
  */
 import { config as loadEnv } from 'dotenv'
@@ -143,7 +143,7 @@ async function main() {
     process.exit(1)
   }
 
-  const outDir = resolve(process.cwd(), `docs/manual/img/${industry}`)
+  const outDir = resolve(process.cwd(), `public/manual/img/${industry}`)
   mkdirSync(outDir, { recursive: true })
 
   const browser = await chromium.launch()
@@ -192,7 +192,7 @@ async function main() {
   }
 
   await browser.close()
-  console.log(`\n${industry}: ${ok} 枚撮影 / ${fail} 失敗 → docs/manual/img/${industry}/`)
+  console.log(`\n${industry}: ${ok} 枚撮影 / ${fail} 失敗 → public/manual/img/${industry}/`)
   process.exit(fail > 0 ? 1 : 0)
 }
 
