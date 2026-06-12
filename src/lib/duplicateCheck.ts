@@ -15,6 +15,7 @@ import {
 import { properties } from '@/industries/real-estate/schema'
 import { and, eq, sql } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { buildAssignmentTitle } from '@/industries/staffing/lib/assignmentTitle'
 import type { CreateState, DupCandidate } from '@/lib/duplicateTypes'
@@ -146,7 +147,7 @@ export async function runCreate(opts: {
     if (dups.length > 0) return { kind: 'duplicate', objectLabel: opts.objectLabel, candidates: dups }
     const id = await opts.create()
     if (opts.afterCreate) await opts.afterCreate(id)
-    redirect(opts.redirectTo(id))
+    redirect(withSaveToast(opts.redirectTo(id), 'created'))  // 遷移後に「作成しました」トースト（REQ-0057）
   } catch (e) {
     if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
     return { kind: 'error', message: (e as Error).message }

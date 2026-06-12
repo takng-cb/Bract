@@ -14,6 +14,7 @@ import {
   type NavOrderV2,
 } from '@/lib/navOrder'
 import { NavIcon } from '@/lib/navIcon'
+import { showToast } from '@/components/Toast'
 
 type Props = {
   /** 既定順のナビグループ（buildNavGroups で構築。dashboard は含めない） */
@@ -37,7 +38,6 @@ export default function NavOrderEditor({ groups: defaultGroups, userOrder, syste
   const [groups, setGroups] = useState<NavGroup[]>(
     () => applyNavOrderToGroups(defaultGroups, userOrder ?? systemOrder),
   )
-  const [saved, setSaved]   = useState<'user' | 'system' | null>(null)
   const [isPending, startTransition] = useTransition()
 
   function moveGroup(index: number, dir: -1 | 1) {
@@ -46,7 +46,6 @@ export default function NavOrderEditor({ groups: defaultGroups, userOrder, syste
     if (swap < 0 || swap >= next.length) return
     ;[next[index], next[swap]] = [next[swap], next[index]]
     setGroups(next)
-    setSaved(null)
   }
 
   function moveItem(groupIndex: number, index: number, dir: -1 | 1) {
@@ -56,20 +55,20 @@ export default function NavOrderEditor({ groups: defaultGroups, userOrder, syste
     if (swap < 0 || swap >= items.length) return
     ;[items[index], items[swap]] = [items[swap], items[index]]
     setGroups(next)
-    setSaved(null)
   }
 
+  // 保存完了はグローバルトーストで通知（REQ-0057。inline の完了表示は廃止）
   function handleSaveUser() {
     startTransition(async () => {
       await saveUserNavOrder(toOrderV2(groups))
-      setSaved('user')
+      showToast('ナビゲーション順序をマイ設定として保存しました')
     })
   }
 
   function handleSaveSystem() {
     startTransition(async () => {
       await saveSystemNavOrder(toOrderV2(groups))
-      setSaved('system')
+      showToast('ナビゲーション順序をシステムデフォルトとして保存しました')
     })
   }
 
@@ -77,7 +76,6 @@ export default function NavOrderEditor({ groups: defaultGroups, userOrder, syste
     startTransition(async () => {
       await resetUserNavOrder()
       setGroups(applyNavOrderToGroups(defaultGroups, systemOrder))
-      setSaved(null)
     })
   }
 
@@ -85,7 +83,6 @@ export default function NavOrderEditor({ groups: defaultGroups, userOrder, syste
     startTransition(async () => {
       await resetSystemNavOrder()
       setGroups(defaultGroups)
-      setSaved(null)
     })
   }
 
@@ -165,13 +162,6 @@ export default function NavOrderEditor({ groups: defaultGroups, userOrder, syste
           </section>
         ))}
       </div>
-
-      {/* 保存完了メッセージ */}
-      {saved && (
-        <div className="mb-4 px-4 py-2.5 bg-green-50 border border-green-200 text-green-700 text-sm rounded-md inline-flex items-center gap-1.5">
-          <NavIcon icon="✅" className="w-4 h-4 shrink-0" /> {saved === 'user' ? 'マイ設定として' : 'システムデフォルトとして'}保存しました
-        </div>
-      )}
 
       {/* ユーザー設定 */}
       <div className="border border-zinc-200 rounded-lg p-4 mb-4">

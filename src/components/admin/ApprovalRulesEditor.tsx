@@ -15,6 +15,7 @@
  */
 import { useState } from 'react'
 import { saveApprovalConfig } from '@/app/actions/approvals'
+import { showToast } from '@/components/Toast'
 import type { ApprovalConfig, ApprovalOp } from '@/lib/approvalRules'
 import type { ApprovalBookMeta, StatusOption } from '@/lib/approvalBookMeta'
 
@@ -125,7 +126,7 @@ export default function ApprovalRulesEditor({ books, configs, users, roles }: Pr
   const [bookApi, setBookApi] = useState(books[0]?.api ?? '')
   const book = books.find((b) => b.api === bookApi) ?? books[0]
   const [draft, setDraft] = useState<Draft>(() => toDraft(book, configs[book?.api]))
-  const [saved, setSaved] = useState(false)
+  // 保存成功はグローバルトーストで通知（REQ-0057）。エラーのみ inline 表示。
   const [error, setError] = useState<string | null>(null)
   const [savingBusy, setSavingBusy] = useState(false)
 
@@ -133,12 +134,11 @@ export default function ApprovalRulesEditor({ books, configs, users, roles }: Pr
     setBookApi(api)
     const b = books.find((x) => x.api === api)!
     setDraft(toDraft(b, configs[api]))
-    setSaved(false); setError(null)
+    setError(null)
   }
 
   const patchRule = (i: number, patch: Partial<RuleDraft>) => {
     setDraft((d) => ({ ...d, rules: d.rules.map((r, j) => (j === i ? { ...r, ...patch } : r)) }))
-    setSaved(false)
   }
   const patchStep = (ri: number, si: number, patch: Partial<StepDraft>) => {
     setDraft((d) => ({
@@ -148,15 +148,13 @@ export default function ApprovalRulesEditor({ books, configs, users, roles }: Pr
         steps: r.steps.map((s, k) => (k === si ? { ...s, ...patch, ...(patch.type ? { ref: '' } : {}) } : s)),
       }),
     }))
-    setSaved(false)
   }
 
   const save = async () => {
     setSavingBusy(true); setError(null)
     try {
       await saveApprovalConfig(book.api, JSON.stringify(toConfig(draft)))
-      // 保存後はローカルの configs 相当も更新された前提で saved 表示のみ
-      setSaved(true)
+      showToast(`${book.label}の承認設定を保存しました`)
     } catch (e) {
       setError((e as Error)?.message ?? '保存に失敗しました')
     } finally {
@@ -180,7 +178,7 @@ export default function ApprovalRulesEditor({ books, configs, users, roles }: Pr
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox" checked={draft.enabled}
-            onChange={(e) => { setDraft((d) => ({ ...d, enabled: e.target.checked })); setSaved(false) }}
+            onChange={(e) => setDraft((d) => ({ ...d, enabled: e.target.checked }))}
             className="accent-blue-600 w-4 h-4"
           />
           <span className="text-sm font-medium text-zinc-800">{book.label}で承認を有効にする</span>
@@ -201,7 +199,7 @@ export default function ApprovalRulesEditor({ books, configs, users, roles }: Pr
                 {draft.rules.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => { setDraft((d) => ({ ...d, rules: d.rules.filter((_, j) => j !== ri) })); setSaved(false) }}
+                    onClick={() => setDraft((d) => ({ ...d, rules: d.rules.filter((_, j) => j !== ri) }))}
                     className="rounded px-2 py-1 text-xs text-zinc-400 hover:bg-zinc-100 hover:text-red-600"
                   >
                     ルールを削除
@@ -299,7 +297,7 @@ export default function ApprovalRulesEditor({ books, configs, users, roles }: Pr
 
           <button
             type="button"
-            onClick={() => { setDraft((d) => ({ ...d, rules: [...d.rules, emptyRule(book)] })); setSaved(false) }}
+            onClick={() => setDraft((d) => ({ ...d, rules: [...d.rules, emptyRule(book)] }))}
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50"
           >
             ＋ ルールを追加
@@ -315,7 +313,6 @@ export default function ApprovalRulesEditor({ books, configs, users, roles }: Pr
         >
           {savingBusy ? '保存中…' : `${book.label}の承認設定を保存`}
         </button>
-        {saved && <span className="text-sm text-green-600">✓ 保存しました</span>}
         {error && <span className="text-sm text-red-600">{error}</span>}
       </div>
     </div>

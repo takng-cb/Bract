@@ -8,6 +8,7 @@ import { expenses, expense_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -71,16 +72,16 @@ export async function createExpense(formData: FormData) {
 
   await syncExpenseRelatedRecords(row.id, selections)
 
-  if (return_to) redirect(return_to)
+  if (return_to) redirect(withSaveToast(return_to, 'created'))
   const firstOpportunity = selections.find((s) => s.object_api === 'opportunity')
-  if (firstOpportunity) redirect(`/opportunities/${firstOpportunity.record_id}`)
+  if (firstOpportunity) redirect(withSaveToast(`/opportunities/${firstOpportunity.record_id}`, 'created'))
   const firstAccount = selections.find((s) => s.object_api === 'account')
-  if (firstAccount) redirect(`/accounts/${firstAccount.record_id}`)
+  if (firstAccount) redirect(withSaveToast(`/accounts/${firstAccount.record_id}`, 'created'))
   const firstContact = selections.find((s) => s.object_api === 'contact')
-  if (firstContact) redirect(`/contacts/${firstContact.record_id}`)
+  if (firstContact) redirect(withSaveToast(`/contacts/${firstContact.record_id}`, 'created'))
   const firstCustom = selections.find((s) => !['account', 'contact', 'opportunity'].includes(s.object_api))
-  if (firstCustom) redirect(recordHref(firstCustom.object_api, firstCustom.record_id))
-  redirect(`/expenses/${row.id}`)
+  if (firstCustom) redirect(withSaveToast(recordHref(firstCustom.object_api, firstCustom.record_id), 'created'))
+  redirect(withSaveToast(`/expenses/${row.id}`, 'created'))
 }
 
 /**
@@ -100,7 +101,7 @@ export async function updateExpenseBasic(id: string, formData: FormData) {
   if (formData.has('expense_date')) set.expense_date = (formData.get('expense_date') as string) || new Date().toISOString().slice(0, 10)
   if (formData.has('notes'))        set.notes = (formData.get('notes') as string) || null
   await db.update(expenses).set(set).where(eq(expenses.id, id))
-  redirect(`/expenses/${id}`)
+  redirect(withSaveToast(`/expenses/${id}`, 'saved'))
 }
 
 export async function updateExpense(id: string, formData: FormData) {
@@ -124,7 +125,7 @@ export async function updateExpense(id: string, formData: FormData) {
 
   await syncExpenseRelatedRecords(id, selections)
 
-  redirect(`/expenses/${id}`)
+  redirect(withSaveToast(`/expenses/${id}`, 'saved'))
 }
 
 /**
@@ -153,7 +154,7 @@ export async function updateExpenseRelatedRecords(id: string, formData: FormData
   await requirePermission('expenses', 'update')
   await assertNotPendingApproval('expenses', id)  // 承認待ち中は編集ロック（REQ-0023）
   await syncExpenseRelatedRecords(id, parseRelatedRecords(formData))
-  redirect(`/expenses/${id}`)
+  redirect(withSaveToast(`/expenses/${id}`, 'saved'))
 }
 
 export async function deleteExpense(id: string, revalidate: string) {

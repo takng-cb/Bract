@@ -10,6 +10,7 @@ import { customer_vehicles, maintenance_records } from '@/lib/schema'
 import { eq, count } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -76,7 +77,7 @@ export async function updateCustomerVehicleBasic(id: string, formData: FormData)
     if (formData.has(key)) set[key] = pickField(formData, key)
   }
   await db.update(customer_vehicles).set(set).where(eq(customer_vehicles.id, id))
-  redirect(`/customer-vehicles/${id}`)
+  redirect(withSaveToast(`/customer-vehicles/${id}`, 'saved'))
 }
 
 export async function updateCustomerVehicle(id: string, formData: FormData) {
@@ -114,7 +115,7 @@ export async function updateCustomerVehicle(id: string, formData: FormData) {
     updated_at:               new Date(),
   }).where(eq(customer_vehicles.id, id))
 
-  redirect(`/customer-vehicles/${id}`)
+  redirect(withSaveToast(`/customer-vehicles/${id}`, 'saved'))
 }
 
 export async function deleteCustomerVehicle(id: string) {
@@ -131,5 +132,5 @@ export async function deleteCustomerVehicle(id: string) {
 
   await db.delete(customer_vehicles).where(eq(customer_vehicles.id, id))
   revalidatePath('/customer-vehicles')
-  redirect('/customer-vehicles')
+  redirect(withSaveToast('/customer-vehicles', 'deleted'))
 }

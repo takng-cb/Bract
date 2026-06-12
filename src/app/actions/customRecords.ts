@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions'
 import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -38,7 +39,7 @@ export async function createCustomRecord(
     .returning({ id: book_records.id })
 
   revalidatePath(`/books/${bookApiName}`)
-  redirect(`/books/${bookApiName}/${rec.id}`)
+  redirect(withSaveToast(`/books/${bookApiName}/${rec.id}`, 'created'))
 }
 
 /** FormData から data JSON を構築して UPDATE */
@@ -68,7 +69,7 @@ export async function updateCustomRecord(
     .where(and(eq(book_records.id, recordId), eq(book_records.object_id, obj.id)))
 
   revalidatePath(`/books/${bookApiName}/${recordId}`)
-  redirect(`/books/${bookApiName}/${recordId}`)
+  redirect(withSaveToast(`/books/${bookApiName}/${recordId}`, 'saved'))
 }
 
 /** 削除 */
@@ -92,7 +93,7 @@ export async function deleteCustomRecord(
     .where(and(eq(book_records.id, recordId), eq(book_records.object_id, obj.id)))
 
   revalidatePath(`/books/${bookApiName}`)
-  redirect(`/books/${bookApiName}`)
+  redirect(withSaveToast(`/books/${bookApiName}`, 'deleted'))
 }
 
 // ────────────────────────────────────────────────────────────────

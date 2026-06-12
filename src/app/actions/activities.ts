@@ -13,6 +13,7 @@ import {
 import { eq, inArray, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -73,7 +74,7 @@ export async function updateActivityBasic(id: string, formData: FormData) {
   if (formData.has('body'))     set.body = (formData.get('body') as string) || null
   if (formData.has('owner_id')) set.owner_id = (formData.get('owner_id') as string)?.trim() || null
   await db.update(activities).set(set).where(eq(activities.id, id))
-  redirect(`/activities/${id}`)
+  redirect(withSaveToast(`/activities/${id}`, 'saved'))
 }
 
 export async function updateActivity(id: string, formData: FormData) {
@@ -101,7 +102,7 @@ export async function updateActivity(id: string, formData: FormData) {
 
   await syncActivityRelatedRecords(id, selections)
 
-  redirect(`/activities/${id}`)
+  redirect(withSaveToast(`/activities/${id}`, 'saved'))
 }
 
 /** 関連レコードのインライン編集用・junction 同期のみ。 */
@@ -109,7 +110,7 @@ export async function updateActivityRelatedRecords(id: string, formData: FormDat
   await requirePermission('activities', 'update')
   await assertNotPendingApproval('activities', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await syncActivityRelatedRecords(id, parseRelatedRecords(formData))
-  redirect(`/activities/${id}`)
+  redirect(withSaveToast(`/activities/${id}`, 'saved'))
 }
 
 export async function deleteActivity(id: string) {
@@ -117,7 +118,7 @@ export async function deleteActivity(id: string) {
   await assertNotPendingApproval('activities', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('activities', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(activities).where(eq(activities.id, id))
-  redirect('/activities')
+  redirect(withSaveToast('/activities', 'deleted'))
 }
 
 export async function createActivity(formData: FormData) {
@@ -145,18 +146,18 @@ export async function createActivity(formData: FormData) {
 
   await syncActivityRelatedRecords(row.id, selections)
 
-  if (return_to) redirect(return_to)
+  if (return_to) redirect(withSaveToast(return_to, 'created'))
   // 最初に見つかった関連レコードに遷移（旧仕様の踏襲）
   const firstAccount = selections.find((s) => s.object_api === 'account')
-  if (firstAccount) redirect(`/accounts/${firstAccount.record_id}`)
+  if (firstAccount) redirect(withSaveToast(`/accounts/${firstAccount.record_id}`, 'created'))
   const firstContact = selections.find((s) => s.object_api === 'contact')
-  if (firstContact) redirect(`/contacts/${firstContact.record_id}`)
+  if (firstContact) redirect(withSaveToast(`/contacts/${firstContact.record_id}`, 'created'))
   const firstOpportunity = selections.find((s) => s.object_api === 'opportunity')
-  if (firstOpportunity) redirect(`/opportunities/${firstOpportunity.record_id}`)
+  if (firstOpportunity) redirect(withSaveToast(`/opportunities/${firstOpportunity.record_id}`, 'created'))
   // カスタムオブジェクトの場合: api_name + record_id で /books/<api>/<id> に遷移
   const firstCustom = selections.find((s) => !['account', 'contact', 'opportunity'].includes(s.object_api))
-  if (firstCustom) redirect(recordHref(firstCustom.object_api, firstCustom.record_id))
-  redirect('/activities')
+  if (firstCustom) redirect(withSaveToast(recordHref(firstCustom.object_api, firstCustom.record_id), 'created'))
+  redirect(withSaveToast('/activities', 'created'))
 }
 
 /**

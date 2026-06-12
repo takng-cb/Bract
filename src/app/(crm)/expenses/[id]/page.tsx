@@ -14,6 +14,7 @@ import EditableInfoCard from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import InlineRelatedRecordsEditor from '@/components/detail/InlineRelatedRecordsEditor'
 import { updateExpenseBasic, updateExpenseRelatedRecords } from '@/app/actions/expenses'
+import { withSaveToast } from '@/lib/saveToast'
 import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import { Receipt, Wallet, CalendarDays } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
@@ -58,7 +59,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
     if (await hasPendingApproval('expenses', id)) throw new Error('承認待ちのため削除できません')
     const { trashRecord } = await import('@/lib/trash')
     await trashRecord('expenses', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
-    await db.delete(expenses).where(eq(expenses.id, id)); revalidatePath('/expenses'); redirect('/expenses')
+    await db.delete(expenses).where(eq(expenses.id, id)); revalidatePath('/expenses'); redirect(withSaveToast('/expenses', 'deleted'))
   }
 
   return (

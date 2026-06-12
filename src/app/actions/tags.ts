@@ -5,6 +5,7 @@ import { tags, taggables } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import { requireEditor } from '@/lib/auth'
 
 export async function createTag(formData: FormData) {
@@ -14,7 +15,7 @@ export async function createTag(formData: FormData) {
   if (!name) throw new Error('タグ名は必須です')
 
   await db.insert(tags).values({ name, color })
-  redirect('/tags')
+  redirect(withSaveToast('/tags', 'created'))
 }
 
 export async function updateTag(id: string, formData: FormData) {
@@ -26,7 +27,7 @@ export async function updateTag(id: string, formData: FormData) {
   await db.update(tags)
     .set({ name, color, updated_at: new Date() })
     .where(eq(tags.id, id))
-  redirect('/tags')
+  redirect(withSaveToast('/tags', 'saved'))
 }
 
 export async function deleteTag(id: string) {

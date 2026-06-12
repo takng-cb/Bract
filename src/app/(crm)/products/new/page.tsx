@@ -17,6 +17,7 @@ import RecordHeader from '@/components/RecordHeader'
 import CreateInfoCard from '@/components/create/CreateInfoCard'
 import { RecordColumns } from '@/components/record/RecordUI'
 import { createProduct } from '@/app/actions/inventory'
+import { withSaveToast } from '@/lib/saveToast'
 import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
@@ -34,7 +35,7 @@ export default async function NewProductPage() {
   async function action(formData: FormData) {
     'use server'
     const id = await createProduct(formData)
-    redirect(`/products/${id}`)
+    redirect(withSaveToast(`/products/${id}`, 'created'))
   }
 
   return (

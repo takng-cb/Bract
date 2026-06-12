@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { updatePassword } from '@/app/actions/settings'
-import { NavIcon } from '@/lib/navIcon'
+import { useActionToast } from '@/components/Toast'
 
 type Props = {
   passwordMinLength?: number
@@ -10,20 +10,16 @@ type Props = {
 
 export default function PasswordForm({ passwordMinLength = 8 }: Props) {
   const [state, formAction, pending] = useActionState(updatePassword, null)
+  // 保存結果はトーストで通知（REQ-0057。成功の inline 表示は廃止、エラーは残す）
+  useActionToast(pending, state, { success: 'パスワードを変更しました' })
 
-  const isSuccess = state === 'success'
-  const errorMsg  = state?.startsWith('error:') ? state.slice(6) : null
+  const errorMsg = state?.startsWith('error:') ? state.slice(6) : null
 
   return (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
       <h2 className="text-sm font-bold text-zinc-700 mb-5">パスワード変更</h2>
 
       <form action={formAction} className="space-y-4">
-        {isSuccess && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md inline-flex items-center gap-1.5">
-            <NavIcon icon="✅" className="w-4 h-4 shrink-0" /> パスワードを更新しました
-          </div>
-        )}
         {errorMsg && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">
             {errorMsg}

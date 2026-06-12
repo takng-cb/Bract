@@ -9,6 +9,7 @@ import { staff } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -67,7 +68,7 @@ export async function updateStaffBasic(id: string, formData: FormData) {
   if (formData.has('available_areas')) set.available_areas = pickJsonArray(formData, 'available_areas')
   if (formData.has('name') && pick(formData, 'name')) set.name = pick(formData, 'name')
   await db.update(staff).set(set).where(eq(staff.id, id))
-  redirect(`/staff/${id}`)
+  redirect(withSaveToast(`/staff/${id}`, 'saved'))
 }
 
 export async function updateStaff(id: string, formData: FormData) {
@@ -96,7 +97,7 @@ export async function updateStaff(id: string, formData: FormData) {
     updated_at:            new Date(),
   }).where(eq(staff.id, id))
 
-  redirect(`/staff/${id}`)
+  redirect(withSaveToast(`/staff/${id}`, 'saved'))
 }
 
 /** ステータスのみ更新（矢羽根 StageBar 用） */
@@ -114,5 +115,5 @@ export async function deleteStaff(id: string) {
   await trashRecord('staff', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(staff).where(eq(staff.id, id))
   revalidatePath('/staff')
-  redirect('/staff')
+  redirect(withSaveToast('/staff', 'deleted'))
 }

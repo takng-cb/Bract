@@ -11,6 +11,7 @@ import { wiki_pages, change_logs } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission } from '@/lib/permissions'
 import { logChanges } from '@/lib/changeLog'
 
@@ -32,7 +33,7 @@ export async function createWikiPage(formData: FormData): Promise<string> {
   }).returning({ id: wiki_pages.id })
 
   revalidatePath('/wiki')
-  redirect(`/wiki/${row.id}`)
+  redirect(withSaveToast(`/wiki/${row.id}`, 'created'))
 }
 
 export async function updateWikiPage(id: string, formData: FormData): Promise<void> {
@@ -66,7 +67,7 @@ export async function updateWikiPage(id: string, formData: FormData): Promise<vo
 
   revalidatePath('/wiki')
   revalidatePath(`/wiki/${id}`)
-  redirect(`/wiki/${id}`)
+  redirect(withSaveToast(`/wiki/${id}`, 'saved'))
 }
 
 /**
@@ -100,7 +101,7 @@ export async function restoreWikiBody(id: string, changeLogId: string, restoreTo
 
   revalidatePath(`/wiki/${id}`)
   revalidatePath(`/wiki/${id}/history`)
-  redirect(`/wiki/${id}`)
+  redirect(withSaveToast(`/wiki/${id}`, 'saved'))
 }
 
 export async function deleteWikiPage(id: string): Promise<void> {
@@ -109,5 +110,5 @@ export async function deleteWikiPage(id: string): Promise<void> {
   // 子ページの parent_id は FK の ON DELETE SET NULL で自動的に NULL になる
   await db.delete(wiki_pages).where(eq(wiki_pages.id, id))
   revalidatePath('/wiki')
-  redirect('/wiki')
+  redirect(withSaveToast('/wiki', 'deleted'))
 }

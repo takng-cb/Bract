@@ -366,6 +366,11 @@
 - 2026-06-13 追記（「ポップアップで出せるようにできますか？」）：「?」ボタンはページ遷移ではなく**右スライドパネル**で該当章を表示する方式に変更。パネル内は `/help-embed/[page]`（(crm) レイアウト外＝アプリ chrome なし）の iframe で、編をまたぐ閲覧もパネル内で完結。じっくり読む用に「全画面で開く」（/help）付き。
 - 状態：実装・出荷済み。
 
+### REQ-0057  保存系の完了をトーストで通知
+- 2026-06-13 / 会話（「設定画面で保存ボタンを押したあと変化がないので保存できてるかわかりません。トーストなどで保存を出せますか？」→「保存系はトーストを出すようにできますか?」）
+- 内容：グローバルトースト基盤 `src/components/Toast.tsx`（ToastHost を (crm)/layout に配置、`showToast()` は CustomEvent 経由・Provider 不要、useActionState 用の `useActionToast` フック付き）。①その場保存の設定系11フォーム（プロフィール/パスワード/システム設定/表示設定/ナビ順序/活動種別/承認設定/AI設定/一覧列/ライセンス/パスワードリセット）は成功 inline 表示を廃止してトースト化（エラー inline は残す）。②redirect を伴う保存（新規作成/更新/削除/インライン編集）は `lib/saveToast.ts` の `withSaveToast(path, kind)` で URL に `toast=<kind>.<nonce>` を付与し、遷移先の ToastHost が「作成しました/保存しました/削除しました」を表示して URL から除去。runCreate は中央1箇所、個別 action は更新33・削除14・作成系を配線。revalidate のみの action（ステータスバー等）は既存のその場 UI 反映があるため対象外。
+- 状態：実装・出荷済み。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

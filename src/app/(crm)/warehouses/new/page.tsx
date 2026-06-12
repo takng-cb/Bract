@@ -13,6 +13,7 @@ import RecordHeader from '@/components/RecordHeader'
 import CreateInfoCard from '@/components/create/CreateInfoCard'
 import { RecordColumns } from '@/components/record/RecordUI'
 import { createWarehouse } from '@/app/actions/inventory'
+import { withSaveToast } from '@/lib/saveToast'
 import { requireBookRead } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,7 @@ export default async function NewWarehousePage() {
   async function action(formData: FormData) {
     'use server'
     const id = await createWarehouse(formData)
-    redirect(`/warehouses/${id}`)
+    redirect(withSaveToast(`/warehouses/${id}`, 'created'))
   }
 
   return (
