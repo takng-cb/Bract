@@ -60,6 +60,10 @@ jobs:
       - name: Build for INDUSTRY=${{ matrix.industry }}
         env:
           NEXT_PUBLIC_INDUSTRY: ${{ matrix.industry }}
+          # ページデータ収集時に db.ts が neon() を即時初期化するため、
+          # 接続文字列が無いとビルド自体が落ちる。クエリは実行されないので
+          # ダミーで良い（実 DB 整合は schema-check ジョブが担当）。
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
         # `npm run build` ではなく `next build` を直接叩く。
         # `vercel-build` (= check:schema + next build) は Vercel 側で走る。
         # ここでは DB 接続なしで純粋に webpack ビルドの整合性を確認する。
