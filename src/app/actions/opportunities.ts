@@ -10,9 +10,11 @@ import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 export async function updateOpportunityStage(id: string, stage: string) {
   await requirePermission('opportunities', 'update')
+  await assertNotPendingApproval('opportunities', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const [before] = await db.select({ stage: opportunities.stage })
     .from(opportunities).where(eq(opportunities.id, id))
 
@@ -69,6 +71,7 @@ export async function createOpportunity(formData: FormData): Promise<string> {
 
 export async function updateOpportunity(id: string, formData: FormData) {
   await requirePermission('opportunities', 'update')
+  await assertNotPendingApproval('opportunities', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('商談名は必須です')
 
@@ -162,6 +165,7 @@ export async function updateOpportunity(id: string, formData: FormData) {
  */
 export async function updateOpportunityBasic(id: string, formData: FormData) {
   await requirePermission('opportunities', 'update')
+  await assertNotPendingApproval('opportunities', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const amount      = formData.get('amount') as string
   const close_date  = formData.get('close_date') as string
   const probability = formData.get('probability') as string
@@ -192,6 +196,7 @@ export async function updateOpportunityBasic(id: string, formData: FormData) {
 
 export async function deleteOpportunity(id: string) {
   await requirePermission('opportunities', 'delete')
+  await assertNotPendingApproval('opportunities', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('opportunities', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('opportunity', id)
   await db.delete(opportunities).where(eq(opportunities.id, id))

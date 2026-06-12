@@ -8,6 +8,7 @@ import { requirePermission } from '@/lib/permissions'
 import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
 import { redirect } from 'next/navigation'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 // ────────────────────────────────────────────────────────────────
 // カスタムレコード CRUD
@@ -47,6 +48,8 @@ export async function updateCustomRecord(
   formData: FormData,
 ): Promise<void> {
   await requirePermission(objectApiName, 'update')
+  // 承認待ち中は編集ロック（REQ-0023 / #131）。approvals.object_type はカスタムブックの api_name
+  await assertNotPendingApproval(objectApiName, recordId)
 
   const obj = await getObjectDef(objectApiName)
   if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
@@ -74,6 +77,8 @@ export async function deleteCustomRecord(
   recordId: string,
 ): Promise<void> {
   await requirePermission(objectApiName, 'delete')
+  // 承認待ち中は削除も不可（REQ-0023 / #131）。approvals.object_type はカスタムブックの api_name
+  await assertNotPendingApproval(objectApiName, recordId)
 
   const obj = await getObjectDef(objectApiName)
   if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)

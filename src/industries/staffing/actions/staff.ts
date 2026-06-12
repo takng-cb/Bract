@@ -10,6 +10,7 @@ import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -57,6 +58,7 @@ export async function createStaff(formData: FormData): Promise<string> {
  */
 export async function updateStaffBasic(id: string, formData: FormData) {
   await requirePermission('staff', 'update')
+  await assertNotPendingApproval('staff', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const set: Record<string, unknown> = { updated_at: new Date() }
   for (const k of ['name_kana', 'belong_account_id', 'gender', 'birth_date', 'phone', 'email', 'default_hourly_rate', 'default_cost_per_hour', 'notes', 'owner_id'] as const) {
     if (formData.has(k)) set[k] = pick(formData, k)
@@ -70,6 +72,7 @@ export async function updateStaffBasic(id: string, formData: FormData) {
 
 export async function updateStaff(id: string, formData: FormData) {
   await requirePermission('staff', 'update')
+  await assertNotPendingApproval('staff', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
   const name = pick(formData, 'name')
   if (!name) throw new Error('氏名は必須です')
@@ -99,6 +102,7 @@ export async function updateStaff(id: string, formData: FormData) {
 /** ステータスのみ更新（矢羽根 StageBar 用） */
 export async function setStaffStatus(id: string, status: string) {
   await requirePermission('staff', 'update')
+  await assertNotPendingApproval('staff', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await db.update(staff).set({ status, updated_at: new Date() }).where(eq(staff.id, id))
   revalidatePath(`/staff/${id}`)
   revalidatePath('/staff')
@@ -106,6 +110,7 @@ export async function setStaffStatus(id: string, status: string) {
 
 export async function deleteStaff(id: string) {
   await requirePermission('staff', 'delete')
+  await assertNotPendingApproval('staff', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('staff', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(staff).where(eq(staff.id, id))
   revalidatePath('/staff')

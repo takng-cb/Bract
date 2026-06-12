@@ -11,6 +11,7 @@ import { eq, count } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 function pickField(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -61,6 +62,7 @@ export async function createCustomerVehicle(formData: FormData): Promise<string>
  */
 export async function updateCustomerVehicleBasic(id: string, formData: FormData) {
   await requirePermission('customer_vehicles', 'update')
+  await assertNotPendingApproval('customer_vehicles', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const set: Record<string, unknown> = { updated_at: new Date() }
   const FIELDS = [
     'account_id', 'contact_id', 'owner_id',
@@ -79,6 +81,7 @@ export async function updateCustomerVehicleBasic(id: string, formData: FormData)
 
 export async function updateCustomerVehicle(id: string, formData: FormData) {
   await requirePermission('customer_vehicles', 'update')
+  await assertNotPendingApproval('customer_vehicles', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
   const account_id = pickField(formData, 'account_id')
   const contact_id = pickField(formData, 'contact_id')
@@ -116,6 +119,7 @@ export async function updateCustomerVehicle(id: string, formData: FormData) {
 
 export async function deleteCustomerVehicle(id: string) {
   await requirePermission('customer_vehicles', 'delete')
+  await assertNotPendingApproval('customer_vehicles', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('customer_vehicles', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
 
   // 関連する整備が残っている場合は削除を拒否（FK ON DELETE RESTRICT）

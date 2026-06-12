@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { generateMaintenanceNo } from '@/industries/auto-body/lib/maintenanceNo'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 import { inlineCreateAccount, inlineCreateCustomerVehicle } from '@/industries/auto-body/actions/maintenanceInline'
 
 // 代車運用 (Issue #45):
@@ -124,6 +125,7 @@ export async function createMaintenance(formData: FormData): Promise<string> {
 
 export async function updateMaintenance(id: string, formData: FormData) {
   await requirePermission('maintenance_records', 'update')
+  await assertNotPendingApproval('maintenance_records', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
   const customer_vehicle_id = pick(formData, 'customer_vehicle_id')
   if (!customer_vehicle_id) throw new Error('顧客車両は必須です')
@@ -166,6 +168,7 @@ export async function updateMaintenance(id: string, formData: FormData) {
 
 export async function deleteMaintenance(id: string) {
   await requirePermission('maintenance_records', 'delete')
+  await assertNotPendingApproval('maintenance_records', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('maintenance_records', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
 
   // 代車が割り当てられたままなら、削除前に '在庫' に戻す
@@ -201,6 +204,7 @@ export async function updateMaintenanceLoaner(
   },
 ) {
   await requirePermission('maintenance_records', 'update')
+  await assertNotPendingApproval('maintenance_records', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
   // 旧 loaner_vehicle_id を取得
   const before = await db.select({
@@ -248,6 +252,7 @@ export async function updateMaintenanceCustomerVehicle(
   },
 ) {
   await requirePermission('maintenance_records', 'update')
+  await assertNotPendingApproval('maintenance_records', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   if (!data.customer_vehicle_id) throw new Error('顧客車両は必須です')
   // BtoB は取引先（会社）、BtoC は contact（人物）のみで成立。いずれか必須。
   if (!data.account_id && !data.contact_id) {
@@ -292,6 +297,7 @@ export async function updateMaintenanceBasicAndMemo(
   },
 ) {
   await requirePermission('maintenance_records', 'update')
+  await assertNotPendingApproval('maintenance_records', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
   await db.update(maintenance_records).set({
     intake_date:          data.intake_date,
@@ -331,6 +337,7 @@ const AUTO_ACTIVITY_BY_STATUS: Record<string, { type: string; subject: string; b
 
 export async function updateMaintenanceStatus(id: string, status: string) {
   await requirePermission('maintenance_records', 'update')
+  await assertNotPendingApproval('maintenance_records', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
   // 旧ステータスを取得して、変更があれば活動を自動生成
   const before = await db.select({
@@ -409,6 +416,7 @@ export async function updateMaintenanceBilling(
   },
 ) {
   await requirePermission('maintenance_records', 'update')
+  await assertNotPendingApproval('maintenance_records', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
   await db.update(maintenance_records).set({
     billing_target:    data.billing_target,

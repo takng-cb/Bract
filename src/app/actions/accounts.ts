@@ -10,9 +10,11 @@ import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 export async function updateAccountStatus(id: string, status: string) {
   await requirePermission('accounts', 'update')
+  await assertNotPendingApproval('accounts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const [before] = await db.select({ status: accounts.status })
     .from(accounts).where(eq(accounts.id, id))
 
@@ -54,6 +56,7 @@ export async function createAccount(formData: FormData): Promise<string> {
 
 export async function updateAccount(id: string, formData: FormData) {
   await requirePermission('accounts', 'update')
+  await assertNotPendingApproval('accounts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('会社名は必須です')
 
@@ -110,6 +113,7 @@ export async function updateAccount(id: string, formData: FormData) {
 /** 連絡先のみ部分更新（右レールのインライン編集用） */
 export async function updateAccountContact(id: string, formData: FormData) {
   await requirePermission('accounts', 'update')
+  await assertNotPendingApproval('accounts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await db.update(accounts).set({
     phone:      (formData.get('phone') as string) || null,
     website:    (formData.get('website') as string) || null,
@@ -121,6 +125,7 @@ export async function updateAccountContact(id: string, formData: FormData) {
 
 export async function deleteAccount(id: string) {
   await requirePermission('accounts', 'delete')
+  await assertNotPendingApproval('accounts', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('accounts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   // Phase 2: FK 列削除に伴い、DB 側 ON DELETE CASCADE が無くなる。
   // 関連活動・ToDo・経費の junction 行を明示削除する（活動・ToDo・経費の

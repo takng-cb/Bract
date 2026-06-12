@@ -12,6 +12,7 @@ import { redirect } from 'next/navigation'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
 import { buildAssignmentTitle } from '@/industries/staffing/lib/assignmentTitle'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 function pick(formData: FormData, key: string): string | null {
   const v = (formData.get(key) as string) || ''
@@ -74,6 +75,7 @@ export async function createAssignment(formData: FormData): Promise<string> {
 /** 案件ステータスを直接変更（詳細画面の進行操作用） */
 export async function setAssignmentStatus(id: string, status: string) {
   await requirePermission('assignments', 'update')
+  await assertNotPendingApproval('assignments', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await db.update(assignments).set({ status, updated_at: new Date() }).where(eq(assignments.id, id))
   revalidatePath(`/assignments/${id}`)
   revalidatePath('/assignments')
@@ -85,6 +87,7 @@ export async function setAssignmentStatus(id: string, status: string) {
  */
 export async function updateAssignmentBasic(id: string, formData: FormData) {
   await requirePermission('assignments', 'update')
+  await assertNotPendingApproval('assignments', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const set: Record<string, unknown> = { updated_at: new Date() }
   for (const k of ['client_contact_id', 'owner_id', 'service_date', 'service_start_time', 'service_end_time', 'service_type', 'service_location', 'client_total_fee', 'service_description', 'internal_memo'] as const) {
     if (formData.has(k)) set[k] = pick(formData, k)
@@ -97,6 +100,7 @@ export async function updateAssignmentBasic(id: string, formData: FormData) {
 
 export async function updateAssignment(id: string, formData: FormData) {
   await requirePermission('assignments', 'update')
+  await assertNotPendingApproval('assignments', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const client_account_id = pick(formData, 'client_account_id')
   if (!client_account_id) throw new Error('派遣先は必須です')
 
@@ -122,6 +126,7 @@ export async function updateAssignment(id: string, formData: FormData) {
 
 export async function deleteAssignment(id: string) {
   await requirePermission('assignments', 'delete')
+  await assertNotPendingApproval('assignments', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('assignments', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(assignments).where(eq(assignments.id, id))
   revalidatePath('/assignments')

@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 /** related_records[] hidden inputs ("<api>:<id>") をパース */
 function parseRelatedRecords(formData: FormData): { object_api: string; record_id: string }[] {
@@ -108,6 +109,7 @@ export async function quickCreateTask(formData: FormData) {
 /** 詳細情報カードのインライン編集用・部分更新（タイトル/関連レコードには触れない）。 */
 export async function updateTaskBasic(id: string, formData: FormData) {
   await requirePermission('tasks', 'update')
+  await assertNotPendingApproval('tasks', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('title') && (formData.get('title') as string)?.trim()) set.title = (formData.get('title') as string).trim()
   if (formData.has('due_date'))    set.due_date    = (formData.get('due_date') as string) || null
@@ -120,6 +122,7 @@ export async function updateTaskBasic(id: string, formData: FormData) {
 
 export async function updateTask(id: string, formData: FormData) {
   await requirePermission('tasks', 'update')
+  await assertNotPendingApproval('tasks', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('タイトルは必須です')
 
@@ -145,12 +148,14 @@ export async function updateTask(id: string, formData: FormData) {
 /** 関連レコードのインライン編集用・junction 同期のみ。 */
 export async function updateTaskRelatedRecords(id: string, formData: FormData) {
   await requirePermission('tasks', 'update')
+  await assertNotPendingApproval('tasks', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await syncTaskRelatedRecords(id, parseRelatedRecords(formData))
   redirect(`/tasks/${id}`)
 }
 
 export async function deleteTask(id: string) {
   await requirePermission('tasks', 'delete')
+  await assertNotPendingApproval('tasks', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('tasks', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(tasks).where(eq(tasks.id, id))
   redirect('/tasks')
@@ -158,6 +163,7 @@ export async function deleteTask(id: string) {
 
 export async function toggleTaskDone(id: string, done: boolean, revalidate: string) {
   await requirePermission('tasks', 'update')
+  await assertNotPendingApproval('tasks', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await db.update(tasks)
     .set({ done, updated_at: new Date() })
     .where(eq(tasks.id, id))
