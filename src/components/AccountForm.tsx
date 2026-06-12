@@ -58,6 +58,21 @@ export default function AccountForm({ action, cancelHref, users = [], defaultVal
 
   const opt = (v: string) => ({ value: v, label: v })
 
+  // 「テキストから入力」（全フィールドを1フォームに流し込むため、どのカードからでも同じ動作）
+  const fillButton = (
+    <FormFillModal
+      formRef={formRef}
+      csvFormat="会社名,種別,業種,電話番号,Webサイト,住所,年間売上,従業員数,ステータス,メモ"
+      fieldMap={{
+        '会社名': 'name', '種別': 'type', '業種': 'industry', '電話番号': 'phone',
+        'Webサイト': 'website', '住所': 'address', '年間売上': 'annual_revenue',
+        '従業員数': 'employee_count', 'ステータス': 'status', 'メモ': 'description',
+      }}
+      valueMap={{ status: { '見込み': 'prospect', '有効': 'active', '無効': 'inactive' } }}
+      customFields={customFields}
+    />
+  )
+
   return (
     <form id={formId} ref={formRef} action={formAction}>
       <CreateFeedback state={state} formRef={formRef} />
@@ -68,6 +83,7 @@ export default function AccountForm({ action, cancelHref, users = [], defaultVal
           <CreateInfoCard
             dense
             title="取引先情報"
+            action={fillButton}
             fields={[
               { label: '取引先種別', name: 'type', kind: 'select', defaultValue: defaultValues.type, options: ACCOUNT_TYPES.map(opt), emptyOption: '選択してください' },
               { label: '業種', name: 'industry', kind: 'select', defaultValue: defaultValues.industry, options: INDUSTRIES.map(opt), emptyOption: '選択してください' },
@@ -91,19 +107,7 @@ export default function AccountForm({ action, cancelHref, users = [], defaultVal
       >
         <CreateInfoCard
           title="会社情報"
-          action={
-            <FormFillModal
-              formRef={formRef}
-              csvFormat="会社名,種別,業種,電話番号,Webサイト,住所,年間売上,従業員数,ステータス,メモ"
-              fieldMap={{
-                '会社名': 'name', '種別': 'type', '業種': 'industry', '電話番号': 'phone',
-                'Webサイト': 'website', '住所': 'address', '年間売上': 'annual_revenue',
-                '従業員数': 'employee_count', 'ステータス': 'status', 'メモ': 'description',
-              }}
-              valueMap={{ status: { '見込み': 'prospect', '有効': 'active', '無効': 'inactive' } }}
-              customFields={customFields}
-            />
-          }
+          action={fillButton}
           fields={[
             { label: '会社名', name: 'name', defaultValue: defaultValues.name, required: true, placeholder: '例: 株式会社サンプル', fullWidth: true },
             { label: '概要・メモ', name: 'description', kind: 'textarea', defaultValue: defaultValues.description, placeholder: '取引先に関するメモを記入してください...', fullWidth: true },

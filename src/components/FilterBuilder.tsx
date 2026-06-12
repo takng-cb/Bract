@@ -27,7 +27,7 @@ type Condition = {
 // 演算子定義
 // ============================================================
 
-const OPERATORS: Record<FieldType, { value: string; label: string }[]> = {
+export const OPERATORS: Record<FieldType, { value: string; label: string }[]> = {
   text: [
     { value: 'contains',     label: 'を含む' },
     { value: 'not_contains', label: 'を含まない' },
