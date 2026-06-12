@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ResolvedRecord } from '@/lib/relatedRecords'
+import { NavIcon } from '@/lib/navIcon'
 
 /**
  * 活動・ToDo・経費の各アイテムに「他にどのレコードに紐づいているか」を
@@ -22,7 +23,7 @@ export default function OtherRelationsChips({ relations }: { relations: Resolved
           href={r.href}
           className="inline-flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-800 transition-colors"
         >
-          <span>{r.icon}</span>
+          <NavIcon icon={r.icon} className="w-3 h-3 shrink-0" />
           <span className="truncate max-w-[10rem]">{r.label}</span>
         </Link>
       ))}

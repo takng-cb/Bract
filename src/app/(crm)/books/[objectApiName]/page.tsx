@@ -18,6 +18,7 @@ import { parseFieldOptions } from '@/lib/bookMetadata'
 import { getDefaultView } from '@/lib/savedViews'
 import { buildJsonbWhere, buildJsonbOrderBy } from '@/lib/jsonbFilterUtils'
 import { requireBookRead } from '@/lib/permissions'
+import { NavIcon } from '@/lib/navIcon'
 
 const PAGE_SIZE = 20
 
@@ -213,7 +214,7 @@ export default async function CustomObjectListPage({
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{obj.icon} {obj.label_plural}</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><NavIcon icon={obj.icon} className="w-6 h-6 shrink-0" /> {obj.label_plural}</h1>
           <p className="text-sm text-zinc-500 mt-1">
             全 {totalCount} 件
             {hasFilter && <span className="ml-1 text-blue-600">（絞り込み中）</span>}
@@ -260,7 +261,7 @@ export default async function CustomObjectListPage({
 
       {totalCount === 0 ? (
         <div className="text-center py-24 text-zinc-400">
-          <p className="text-4xl mb-4">{obj.icon}</p>
+          <div className="flex justify-center mb-4"><NavIcon icon={obj.icon} className="w-12 h-12 text-zinc-300" /></div>
           <p className="text-lg font-medium">
             {hasFilter ? `条件に一致する${obj.label}がありません` : `${obj.label}がまだありません`}
           </p>
