@@ -9,6 +9,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateLicense } from '@/app/actions/license'
+import { showToast } from '@/components/Toast'
 import type { License, LicensePlan, LicenseStatus, LicenseFeatures } from '@/lib/license/types'
 
 const PLANS: { value: LicensePlan; label: string; description: string }[] = [
@@ -72,7 +73,8 @@ type Props = {
 export default function LicenseEditForm({ initial, envOverrides }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  // 保存成功はグローバルトーストで通知（REQ-0057）。エラーのみ inline 表示。
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const [plan, setPlan]           = useState<LicensePlan>(initial?.plan ?? 'starter')
   const [status, setStatus]       = useState<LicenseStatus>(initial?.status ?? 'active')
@@ -89,7 +91,7 @@ export default function LicenseEditForm({ initial, envOverrides }: Props) {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setMessage(null)
+    setErrorMsg(null)
     startTransition(async () => {
       const r = await updateLicense({
         plan,
@@ -101,22 +103,19 @@ export default function LicenseEditForm({ initial, envOverrides }: Props) {
         notes,
       })
       if (r.ok) {
-        setMessage({ type: 'success', text: '保存しました' })
+        showToast('ライセンス設定を保存しました')
         router.refresh()
       } else {
-        setMessage({ type: 'error', text: r.error })
+        setErrorMsg(r.error)
       }
     })
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {message && (
-        <div className={`rounded-md p-3 text-sm ${
-          message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200'
-                                     : 'bg-rose-50 text-rose-700 border border-rose-200'
-        }`}>
-          {message.text}
+      {errorMsg && (
+        <div className="rounded-md p-3 text-sm bg-rose-50 text-rose-700 border border-rose-200">
+          {errorMsg}
         </div>
       )}
 

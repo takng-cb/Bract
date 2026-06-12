@@ -7,6 +7,7 @@ import { opportunities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { requirePermission } from '@/lib/permissions'
@@ -155,7 +156,7 @@ export async function updateOpportunity(id: string, formData: FormData) {
     )
   }
 
-  redirect(`/opportunities/${id}`)
+  redirect(withSaveToast(`/opportunities/${id}`, 'saved'))
 }
 
 /**
@@ -191,7 +192,7 @@ export async function updateOpportunityBasic(id: string, formData: FormData) {
     )
   }
 
-  redirect(`/opportunities/${id}`)
+  redirect(withSaveToast(`/opportunities/${id}`, 'saved'))
 }
 
 export async function deleteOpportunity(id: string) {
@@ -200,5 +201,5 @@ export async function deleteOpportunity(id: string) {
   await trashRecord('opportunities', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('opportunity', id)
   await db.delete(opportunities).where(eq(opportunities.id, id))
-  redirect('/opportunities')
+  redirect(withSaveToast('/opportunities', 'deleted'))
 }

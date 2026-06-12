@@ -8,6 +8,7 @@ import { properties } from '@/industries/real-estate/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 import {
   syncPropertyToCustomRecord,
@@ -131,7 +132,7 @@ export async function updatePropertyBasic(id: string, formData: FormData) {
   if (row) await syncPropertyToCustomRecord(row)
   revalidatePath('/properties')
   revalidatePath(`/properties/${id}`)
-  redirect(`/properties/${id}`)
+  redirect(withSaveToast(`/properties/${id}`, 'saved'))
 }
 
 export async function updateProperty(id: string, formData: FormData) {
@@ -147,7 +148,7 @@ export async function updateProperty(id: string, formData: FormData) {
   if (row) await syncPropertyToCustomRecord(row)
   revalidatePath('/properties')
   revalidatePath(`/properties/${id}`)
-  redirect(`/properties/${id}`)
+  redirect(withSaveToast(`/properties/${id}`, 'saved'))
 }
 
 /** ステータスのみ更新（矢羽根 StageBar 用）。book_records ミラーも同期 */
@@ -171,5 +172,5 @@ export async function deleteProperty(id: string) {
   // book_records ミラー側も削除
   await deletePropertyCustomRecord(id)
   revalidatePath('/properties')
-  redirect('/properties')
+  redirect(withSaveToast('/properties', 'deleted'))
 }

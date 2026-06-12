@@ -6,6 +6,7 @@ import { maintenance_records, vehicles, activities, activity_related_records } f
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { generateMaintenanceNo } from '@/industries/auto-body/lib/maintenanceNo'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
@@ -163,7 +164,7 @@ export async function updateMaintenance(id: string, formData: FormData) {
     updated_at:           new Date(),
   }).where(eq(maintenance_records.id, id))
 
-  redirect(`/maintenance/${id}`)
+  redirect(withSaveToast(`/maintenance/${id}`, 'saved'))
 }
 
 export async function deleteMaintenance(id: string) {
@@ -183,7 +184,7 @@ export async function deleteMaintenance(id: string) {
 
   await db.delete(maintenance_records).where(eq(maintenance_records.id, id))
   revalidatePath('/maintenance')
-  redirect('/maintenance')
+  redirect(withSaveToast('/maintenance', 'deleted'))
 }
 
 /**

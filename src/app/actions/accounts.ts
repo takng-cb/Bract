@@ -7,6 +7,7 @@ import { accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { requirePermission } from '@/lib/permissions'
@@ -107,7 +108,7 @@ export async function updateAccount(id: string, formData: FormData) {
     )
   }
 
-  redirect(`/accounts/${id}`)
+  redirect(withSaveToast(`/accounts/${id}`, 'saved'))
 }
 
 /** 連絡先のみ部分更新（右レールのインライン編集用） */
@@ -120,7 +121,7 @@ export async function updateAccountContact(id: string, formData: FormData) {
     address:    (formData.get('address') as string) || null,
     updated_at: new Date(),
   }).where(eq(accounts.id, id))
-  redirect(`/accounts/${id}`)
+  redirect(withSaveToast(`/accounts/${id}`, 'saved'))
 }
 
 export async function deleteAccount(id: string) {
@@ -132,5 +133,5 @@ export async function deleteAccount(id: string) {
   // 本体は他の関連先があれば残存する新仕様）。
   await cleanupRelatedRecordsForParent('account', id)
   await db.delete(accounts).where(eq(accounts.id, id))
-  redirect('/accounts')
+  redirect(withSaveToast('/accounts', 'deleted'))
 }

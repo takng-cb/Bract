@@ -6,6 +6,7 @@ import { parts, part_movements } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { MOVEMENT_TYPES } from '@/industries/auto-body/lib/partsHelpers'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
@@ -71,7 +72,7 @@ export async function updatePart(id: string, formData: FormData) {
 
   revalidatePath('/parts')
   revalidatePath(`/parts/${id}`)
-  redirect(`/parts/${id}`)
+  redirect(withSaveToast(`/parts/${id}`, 'saved'))
 }
 
 /**
@@ -92,7 +93,7 @@ export async function updatePartBasic(id: string, formData: FormData) {
   await db.update(parts).set(set).where(eq(parts.id, id))
   revalidatePath('/parts')
   revalidatePath(`/parts/${id}`)
-  redirect(`/parts/${id}`)
+  redirect(withSaveToast(`/parts/${id}`, 'saved'))
 }
 
 export async function deletePart(id: string) {
@@ -101,7 +102,7 @@ export async function deletePart(id: string) {
   await trashRecord('parts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(parts).where(eq(parts.id, id))  // cascade で part_movements も削除
   revalidatePath('/parts')
-  redirect('/parts')
+  redirect(withSaveToast('/parts', 'deleted'))
 }
 
 // ── 入出庫 ───────────────────────────────────────────────

@@ -21,6 +21,8 @@ import { getEnabledModules } from '@/lib/modules/registry'
 import { filterNavByRead } from '@/lib/permissions'
 import { buildModuleBooks } from '@/lib/modules/quick'
 import QuickLauncher from '@/components/QuickLauncher'
+import ToastHost from '@/components/Toast'
+import { Suspense } from 'react'
 import Topbar from '@/components/Topbar'
 
 export default async function CrmLayout({ children }: { children: React.ReactNode }) {
@@ -155,6 +157,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <PwaInstallBanner />
       </div>
       <QuickLauncher modules={quickModules} />
+      <Suspense fallback={null}><ToastHost /></Suspense>
       {impersonation && (
         <div className="print:hidden">
           <ImpersonationBanner

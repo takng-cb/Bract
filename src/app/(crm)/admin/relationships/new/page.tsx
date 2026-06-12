@@ -2,6 +2,7 @@ import { requireAdmin } from '@/lib/auth'
 import { createRelationshipDefinition } from '@/app/actions/relationships'
 import { getSelectableObjectTypes } from '@/lib/relationships'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import Link from 'next/link'
 
 export default async function NewRelationshipPage() {
@@ -13,7 +14,7 @@ export default async function NewRelationshipPage() {
   async function handleCreate(formData: FormData) {
     'use server'
     await createRelationshipDefinition(formData)
-    redirect('/admin/relationships')
+    redirect(withSaveToast('/admin/relationships', 'created'))
   }
 
   return (

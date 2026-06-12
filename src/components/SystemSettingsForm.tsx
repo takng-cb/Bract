@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { saveSystemSettings } from '@/app/actions/settings'
 import { NavIcon } from '@/lib/navIcon'
+import { useActionToast } from '@/components/Toast'
 
 type Props = {
   current: {
@@ -16,9 +17,10 @@ type Props = {
 
 export default function SystemSettingsForm({ current }: Props) {
   const [state, formAction, pending] = useActionState(saveSystemSettings, null)
+  // 保存結果はトーストで通知（REQ-0057。フォームが縦長で inline 成功表示は保存ボタンから見えないため廃止。エラーは残す）
+  useActionToast(pending, state, { success: 'システム設定を保存しました' })
 
-  const isSuccess = state === 'success'
-  const errorMsg  = state?.startsWith('error:') ? state.slice(6) : null
+  const errorMsg = state?.startsWith('error:') ? state.slice(6) : null
 
   return (
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
@@ -28,11 +30,6 @@ export default function SystemSettingsForm({ current }: Props) {
       <p className="text-xs text-zinc-400 mb-5">全ユーザーに影響する設定です</p>
 
       <form action={formAction} className="space-y-6">
-        {isSuccess && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-md inline-flex items-center gap-1.5">
-            <NavIcon icon="✅" className="w-4 h-4 shrink-0" /> システム設定を保存しました
-          </div>
-        )}
         {errorMsg && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">
             {errorMsg}

@@ -8,6 +8,7 @@ import {
 import { eq, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission } from '@/lib/permissions'
 
 function pick(formData: FormData, key: string): string | null {
@@ -50,14 +51,14 @@ export async function updateTemplate(id: string, formData: FormData) {
 
   revalidatePath('/maintenance/templates')
   revalidatePath(`/maintenance/templates/${id}`)
-  redirect(`/maintenance/templates/${id}`)
+  redirect(withSaveToast(`/maintenance/templates/${id}`, 'saved'))
 }
 
 export async function deleteTemplate(id: string) {
   await requirePermission('maintenance_records', 'delete')
   await db.delete(maintenance_templates).where(eq(maintenance_templates.id, id))
   revalidatePath('/maintenance/templates')
-  redirect('/maintenance/templates')
+  redirect(withSaveToast('/maintenance/templates', 'deleted'))
 }
 
 // ─── テンプレ内の行アイテム ───────────────────────────────

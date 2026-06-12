@@ -11,6 +11,7 @@ import { products, warehouses, stock_movements } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { MOVEMENT_TYPES, computeStockBalance } from '@/lib/inventory'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
@@ -81,7 +82,7 @@ export async function updateProduct(id: string, formData: FormData): Promise<voi
 
   revalidatePath('/products')
   revalidatePath(`/products/${id}`)
-  redirect(`/products/${id}`)
+  redirect(withSaveToast(`/products/${id}`, 'saved'))
 }
 
 /**
@@ -105,7 +106,7 @@ export async function updateProductBasic(id: string, formData: FormData): Promis
   await db.update(products).set(set).where(eq(products.id, id))
   revalidatePath('/products')
   revalidatePath(`/products/${id}`)
-  redirect(`/products/${id}`)
+  redirect(withSaveToast(`/products/${id}`, 'saved'))
 }
 
 /**
@@ -123,7 +124,7 @@ export async function updateWarehouseBasic(id: string, formData: FormData): Prom
   await db.update(warehouses).set(set).where(eq(warehouses.id, id))
   revalidatePath('/warehouses')
   revalidatePath(`/warehouses/${id}`)
-  redirect(`/warehouses/${id}`)
+  redirect(withSaveToast(`/warehouses/${id}`, 'saved'))
 }
 
 export async function deleteProduct(id: string): Promise<void> {
@@ -132,7 +133,7 @@ export async function deleteProduct(id: string): Promise<void> {
   await trashRecord('products', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(products).where(eq(products.id, id)) // cascade で stock_movements も削除
   revalidatePath('/products')
-  redirect('/products')
+  redirect(withSaveToast('/products', 'deleted'))
 }
 
 // ── warehouses ──────────────────────────────────────────
@@ -172,7 +173,7 @@ export async function updateWarehouse(id: string, formData: FormData): Promise<v
 
   revalidatePath('/warehouses')
   revalidatePath(`/warehouses/${id}`)
-  redirect(`/warehouses/${id}`)
+  redirect(withSaveToast(`/warehouses/${id}`, 'saved'))
 }
 
 export async function deleteWarehouse(id: string): Promise<void> {
@@ -182,7 +183,7 @@ export async function deleteWarehouse(id: string): Promise<void> {
   // 移動の warehouse_id は ON DELETE SET NULL（移動履歴自体は残る）
   await db.delete(warehouses).where(eq(warehouses.id, id))
   revalidatePath('/warehouses')
-  redirect('/warehouses')
+  redirect(withSaveToast('/warehouses', 'deleted'))
 }
 
 // ── stock_movements ─────────────────────────────────────
@@ -212,7 +213,7 @@ export async function createStockMovement(formData: FormData): Promise<void> {
   revalidatePath('/stock-movements')
   revalidatePath('/products')
   revalidatePath(`/products/${productId}`)
-  redirect('/stock-movements')
+  redirect(withSaveToast('/stock-movements', 'created'))
 }
 
 /**
@@ -259,7 +260,7 @@ export async function applyStocktake(formData: FormData): Promise<void> {
   revalidatePath('/stock-movements')
   revalidatePath('/products')
   revalidatePath(`/products/${productId}`)
-  redirect(`/products/${productId}`)
+  redirect(withSaveToast(`/products/${productId}`, 'saved'))
 }
 
 export async function deleteStockMovement(id: string): Promise<void> {

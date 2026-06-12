@@ -8,6 +8,7 @@ import { tasks, task_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -75,16 +76,16 @@ export async function createTask(formData: FormData) {
 
   await syncTaskRelatedRecords(row.id, selections)
 
-  if (return_to) redirect(return_to)
+  if (return_to) redirect(withSaveToast(return_to, 'created'))
   const firstAccount = selections.find((s) => s.object_api === 'account')
-  if (firstAccount) redirect(`/accounts/${firstAccount.record_id}`)
+  if (firstAccount) redirect(withSaveToast(`/accounts/${firstAccount.record_id}`, 'created'))
   const firstContact = selections.find((s) => s.object_api === 'contact')
-  if (firstContact) redirect(`/contacts/${firstContact.record_id}`)
+  if (firstContact) redirect(withSaveToast(`/contacts/${firstContact.record_id}`, 'created'))
   const firstOpportunity = selections.find((s) => s.object_api === 'opportunity')
-  if (firstOpportunity) redirect(`/opportunities/${firstOpportunity.record_id}`)
+  if (firstOpportunity) redirect(withSaveToast(`/opportunities/${firstOpportunity.record_id}`, 'created'))
   const firstCustom = selections.find((s) => !['account', 'contact', 'opportunity'].includes(s.object_api))
-  if (firstCustom) redirect(recordHref(firstCustom.object_api, firstCustom.record_id))
-  redirect(`/tasks/${row.id}`)
+  if (firstCustom) redirect(withSaveToast(recordHref(firstCustom.object_api, firstCustom.record_id), 'created'))
+  redirect(withSaveToast(`/tasks/${row.id}`, 'created'))
 }
 
 /**
@@ -117,7 +118,7 @@ export async function updateTaskBasic(id: string, formData: FormData) {
   if (formData.has('description')) set.description  = (formData.get('description') as string)?.trim() || null
   if (formData.has('owner_id'))    set.owner_id     = (formData.get('owner_id') as string)?.trim() || null
   await db.update(tasks).set(set).where(eq(tasks.id, id))
-  redirect(`/tasks/${id}`)
+  redirect(withSaveToast(`/tasks/${id}`, 'saved'))
 }
 
 export async function updateTask(id: string, formData: FormData) {
@@ -142,7 +143,7 @@ export async function updateTask(id: string, formData: FormData) {
 
   await syncTaskRelatedRecords(id, selections)
 
-  redirect(`/tasks/${id}`)
+  redirect(withSaveToast(`/tasks/${id}`, 'saved'))
 }
 
 /** 関連レコードのインライン編集用・junction 同期のみ。 */
@@ -150,7 +151,7 @@ export async function updateTaskRelatedRecords(id: string, formData: FormData) {
   await requirePermission('tasks', 'update')
   await assertNotPendingApproval('tasks', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await syncTaskRelatedRecords(id, parseRelatedRecords(formData))
-  redirect(`/tasks/${id}`)
+  redirect(withSaveToast(`/tasks/${id}`, 'saved'))
 }
 
 export async function deleteTask(id: string) {
@@ -158,7 +159,7 @@ export async function deleteTask(id: string) {
   await assertNotPendingApproval('tasks', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('tasks', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(tasks).where(eq(tasks.id, id))
-  redirect('/tasks')
+  redirect(withSaveToast('/tasks', 'deleted'))
 }
 
 export async function toggleTaskDone(id: string, done: boolean, revalidate: string) {

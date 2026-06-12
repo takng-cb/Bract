@@ -6,6 +6,7 @@ import { trashRecord } from '@/lib/trash'
 import { contacts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { requirePermission } from '@/lib/permissions'
@@ -78,7 +79,7 @@ export async function updateContact(id: string, formData: FormData) {
     )
   }
 
-  redirect(`/contacts/${id}`)
+  redirect(withSaveToast(`/contacts/${id}`, 'saved'))
 }
 
 export async function deleteContact(id: string) {
@@ -87,5 +88,5 @@ export async function deleteContact(id: string) {
   await trashRecord('contacts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('contact', id)
   await db.delete(contacts).where(eq(contacts.id, id))
-  redirect('/contacts')
+  redirect(withSaveToast('/contacts', 'deleted'))
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { saveActivityTypes } from '@/app/actions/activityTypes'
 import type { ActivityType } from '@/lib/activityTypes'
+import { showToast } from '@/components/Toast'
 
 type Props = {
   initial: ActivityType[]
@@ -11,7 +12,7 @@ type Props = {
 export default function ActivityTypesEditor({ initial }: Props) {
   const [items, setItems] = useState<ActivityType[]>(initial)
   const [pending, setPending] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  // 保存成功はグローバルトーストで通知（REQ-0057）。エラーのみ inline 表示。
   const [error, setError] = useState<string | null>(null)
 
   const update = (idx: number, patch: Partial<ActivityType>) => {
@@ -40,10 +41,10 @@ export default function ActivityTypesEditor({ initial }: Props) {
   }
 
   const onSave = async () => {
-    setPending(true); setMessage(null); setError(null)
+    setPending(true); setError(null)
     try {
       await saveActivityTypes(items)
-      setMessage('保存しました')
+      showToast('活動種別を保存しました')
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -117,7 +118,6 @@ export default function ActivityTypesEditor({ initial }: Props) {
           className="text-sm text-blue-600 hover:text-blue-800"
         >＋ 種別を追加</button>
         <div className="flex items-center gap-3">
-          {message && <span className="text-sm text-green-600">{message}</span>}
           {error && <span className="text-sm text-red-600">{error}</span>}
           <button
             type="button"

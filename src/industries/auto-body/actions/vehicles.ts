@@ -7,6 +7,7 @@ import { vehicles } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 import {
@@ -146,7 +147,7 @@ export async function updateVehicle(id: string, formData: FormData) {
     )
   }
 
-  redirect(`/vehicles/${id}`)
+  redirect(withSaveToast(`/vehicles/${id}`, 'saved'))
 }
 
 /**
@@ -182,7 +183,7 @@ export async function updateVehicleBasic(id: string, formData: FormData) {
   })
   revalidatePath('/vehicles')
   revalidatePath(`/vehicles/${id}`)
-  redirect(`/vehicles/${id}`)
+  redirect(withSaveToast(`/vehicles/${id}`, 'saved'))
 }
 
 /** ステータスのみ更新（矢羽根 StageBar 用）。book_records ミラーも同期 */
@@ -207,5 +208,5 @@ export async function deleteVehicle(id: string) {
   await db.delete(vehicles).where(eq(vehicles.id, id))
   // book_records ミラー側も削除（cascade ではないので明示的に）
   await deleteVehicleCustomRecord(id)
-  redirect('/vehicles')
+  redirect(withSaveToast('/vehicles', 'deleted'))
 }

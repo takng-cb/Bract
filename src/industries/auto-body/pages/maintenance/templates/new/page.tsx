@@ -3,6 +3,7 @@ import MaintenanceTemplateForm from '@/industries/auto-body/components/Maintenan
 import { createTemplate } from '@/industries/auto-body/actions/maintenanceTemplates'
 import { requireEditor } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 
 export default async function NewTemplatePage() {
   await requireEditor()
@@ -11,7 +12,7 @@ export default async function NewTemplatePage() {
     'use server'
     try {
       const id = await createTemplate(formData)
-      redirect(`/maintenance/templates/${id}`)
+      redirect(withSaveToast(`/maintenance/templates/${id}`, 'created'))
     } catch (e) {
       if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
       return (e as Error).message

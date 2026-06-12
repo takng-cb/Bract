@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import { updateAISettings, testAIConnection } from '@/app/actions/ai'
 import { AI_PROVIDER_LABELS, AI_DEFAULT_MODELS, type AIProviderKind } from '@/lib/ai/types'
 import { NavIcon } from '@/lib/navIcon'
+import { showToast } from '@/components/Toast'
 
 const PROVIDERS: Array<AIProviderKind | ''> = ['', 'groq', 'gemini', 'anthropic']
 
@@ -47,7 +48,8 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
   const [anthropicModel, setAnthropicModel] = useState(initial.models.anthropic)
   const [oppPrompt, setOppPrompt] = useState(initial.prompts.opportunitySummary)
   const [propPrompt, setPropPrompt] = useState(initial.prompts.propertySummary)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  // 保存成功はグローバルトーストで通知（REQ-0057）。エラーのみ inline 表示。
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null)
   const [pending, startTransition] = useTransition()
   const [testPending, startTestTransition] = useTransition()
@@ -55,7 +57,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setMessage(null)
+    setErrorMsg(null)
     setTestResult(null)
     const fd = new FormData()
     fd.set('ai_provider', provider)
@@ -71,18 +73,18 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
     startTransition(async () => {
       const r = await updateAISettings(fd)
       if (r.ok) {
-        setMessage({ type: 'success', text: '設定を保存しました' })
+        showToast('AI設定を保存しました')
         setGroqKey(''); setGeminiKey(''); setAnthropicKey('')
         router.refresh()
       } else {
-        setMessage({ type: 'error', text: r.error })
+        setErrorMsg(r.error)
       }
     })
   }
 
   function handleTest() {
     setTestResult(null)
-    setMessage(null)
+    setErrorMsg(null)
     startTestTransition(async () => {
       const r = await testAIConnection()
       if (r.ok) {
@@ -100,10 +102,10 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
     startTransition(async () => {
       const r = await updateAISettings(fd)
       if (r.ok) {
-        setMessage({ type: 'success', text: `${AI_PROVIDER_LABELS[p]} の API キーを削除しました` })
+        showToast(`${AI_PROVIDER_LABELS[p]} の API キーを削除しました`)
         router.refresh()
       } else {
-        setMessage({ type: 'error', text: r.error })
+        setErrorMsg(r.error)
       }
     })
   }
@@ -118,13 +120,10 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* メッセージ */}
-      {message && (
-        <div className={`rounded-md p-3 text-sm ${
-          message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200'
-                                     : 'bg-rose-50 text-rose-700 border border-rose-200'
-        }`}>
-          {message.text}
+      {/* エラーメッセージ */}
+      {errorMsg && (
+        <div className="rounded-md p-3 text-sm bg-rose-50 text-rose-700 border border-rose-200">
+          {errorMsg}
         </div>
       )}
 

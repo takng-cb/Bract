@@ -7,6 +7,7 @@ import { createMaintenance } from '@/industries/auto-body/actions/maintenance'
 import { requireEditor } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 
 export default async function NewMaintenancePage({
   searchParams,
@@ -42,7 +43,7 @@ export default async function NewMaintenancePage({
     'use server'
     try {
       const id = await createMaintenance(formData)
-      redirect(`/maintenance/${id}`)
+      redirect(withSaveToast(`/maintenance/${id}`, 'created'))
     } catch (e) {
       if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
       return (e as Error).message

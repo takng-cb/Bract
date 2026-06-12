@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useActionState } from 'react'
 import { resetUserPassword } from '@/app/actions/admin'
+import { showToast } from '@/components/Toast'
 
 type Props = {
   userId: string
@@ -20,18 +21,13 @@ type Props = {
 export default function ResetPasswordButton({ userId, email, isSelf }: Props) {
   const [open, setOpen] = useState(false)
   const [result, action, pending] = useActionState(resetUserPassword, null)
-  const [justSucceeded, setJustSucceeded] = useState(false)
 
-  // 成功通知 → 2 秒後にモーダル close
+  // 成功はグローバルトーストで通知してモーダルを閉じる（REQ-0057）
   useEffect(() => {
     if (result === 'success' && !pending) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Server Action 完了後の成功通知
-      setJustSucceeded(true)
-      const t = setTimeout(() => {
-        setOpen(false)
-        setJustSucceeded(false)
-      }, 2000)
-      return () => clearTimeout(t)
+      showToast('パスワードを更新しました')
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Server Action 完了後にモーダルを閉じる
+      setOpen(false)
     }
   }, [result, pending])
 
@@ -90,11 +86,6 @@ export default function ResetPasswordButton({ userId, email, isSelf }: Props) {
                 </p>
               </div>
 
-              {result === 'success' && justSucceeded && (
-                <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
-                  パスワードを更新しました
-                </p>
-              )}
               {result && result !== 'success' && (
                 <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
                   {result}

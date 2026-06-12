@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import type { ColAvail } from '@/lib/listViewDefs'
 import { updateListViewColumns } from '@/app/actions/listViewSettings'
+import { showToast } from '@/components/Toast'
 
 type Props = {
   objectType: string
@@ -14,7 +15,6 @@ export default function ListViewColumnsForm({ objectType, availableColumns, curr
   const defaults = currentKeys.length > 0 ? currentKeys : availableColumns.filter((c) => c.defaultOn).map((c) => c.key)
   const [selected, setSelected] = useState<Set<string>>(new Set(defaults))
   const [isPending, startTransition] = useTransition()
-  const [saved, setSaved] = useState(false)
 
   function toggle(key: string) {
     setSelected((prev) => {
@@ -23,7 +23,6 @@ export default function ListViewColumnsForm({ objectType, availableColumns, curr
       else next.add(key)
       return next
     })
-    setSaved(false)
   }
 
   function handleSave() {
@@ -31,8 +30,8 @@ export default function ListViewColumnsForm({ objectType, availableColumns, curr
     const ordered = availableColumns.map((c) => c.key).filter((k) => selected.has(k))
     startTransition(async () => {
       await updateListViewColumns(objectType, ordered)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      // 保存完了はグローバルトーストで通知（REQ-0057）
+      showToast('一覧の表示列を保存しました')
     })
   }
 
@@ -60,7 +59,6 @@ export default function ListViewColumnsForm({ objectType, availableColumns, curr
         >
           {isPending ? '保存中...' : '保存'}
         </button>
-        {saved && <span className="text-sm text-green-600">✓ 保存しました</span>}
         {selected.size === 0 && <span className="text-xs text-amber-600">最低1つ選択してください</span>}
       </div>
     </div>

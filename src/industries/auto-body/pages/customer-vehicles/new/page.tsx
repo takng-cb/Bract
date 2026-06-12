@@ -7,6 +7,7 @@ import { createCustomerVehicle } from '@/industries/auto-body/actions/customerVe
 import { requireEditor } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 
 export default async function NewCustomerVehiclePage({
   searchParams,
@@ -28,7 +29,7 @@ export default async function NewCustomerVehiclePage({
     'use server'
     try {
       const id = await createCustomerVehicle(formData)
-      redirect(`/customer-vehicles/${id}`)
+      redirect(withSaveToast(`/customer-vehicles/${id}`, 'created'))
     } catch (e) {
       if ((e as { digest?: string }).digest?.startsWith('NEXT_REDIRECT')) throw e
       return (e as Error).message

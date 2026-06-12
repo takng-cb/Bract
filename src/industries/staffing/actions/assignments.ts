@@ -9,6 +9,7 @@ import { assignments, assignment_staff, accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { withSaveToast } from '@/lib/saveToast'
 import { generateAssignmentNo } from '@/industries/staffing/lib/assignmentNo'
 import { buildAssignmentTitle } from '@/industries/staffing/lib/assignmentTitle'
 import { requirePermission } from '@/lib/permissions'
@@ -95,7 +96,7 @@ export async function updateAssignmentBasic(id: string, formData: FormData) {
   if (formData.has('staff_count_required')) set.staff_count_required = pickInt(formData, 'staff_count_required')
   if (formData.has('client_account_id') && pick(formData, 'client_account_id')) set.client_account_id = pick(formData, 'client_account_id')
   await db.update(assignments).set(set).where(eq(assignments.id, id))
-  redirect(`/assignments/${id}`)
+  redirect(withSaveToast(`/assignments/${id}`, 'saved'))
 }
 
 export async function updateAssignment(id: string, formData: FormData) {
@@ -121,7 +122,7 @@ export async function updateAssignment(id: string, formData: FormData) {
     updated_at:           new Date(),
   }).where(eq(assignments.id, id))
 
-  redirect(`/assignments/${id}`)
+  redirect(withSaveToast(`/assignments/${id}`, 'saved'))
 }
 
 export async function deleteAssignment(id: string) {
@@ -130,7 +131,7 @@ export async function deleteAssignment(id: string) {
   await trashRecord('assignments', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(assignments).where(eq(assignments.id, id))
   revalidatePath('/assignments')
-  redirect('/assignments')
+  redirect(withSaveToast('/assignments', 'deleted'))
 }
 
 // 案件にスタッフを追加・更新・削除
