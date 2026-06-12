@@ -4,11 +4,16 @@ import { desc } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 import { requireApiUser } from '@/lib/apiAuth'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
-export async function GET() {
+export async function GET(request: Request) {
   // 認証確認（未ログインは 401）
   const denied = await requireApiUser()
   if (denied) return denied
+
+  // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
+  const filterRaw = new URL(request.url).searchParams.getAll('f')
+  const conditions = parseFilterParams(filterRaw)
 
   try {
     const data = await db.select({
@@ -26,8 +31,12 @@ export async function GET() {
       created_at:     accounts.created_at,
     }).from(accounts).orderBy(desc(accounts.created_at))
 
+    const filtered = conditions.length > 0
+      ? (applyFilters(data as unknown as Record<string, unknown>[], conditions) as unknown as typeof data)
+      : data
+
     const headers = ['ID', '会社名', '種別', '業種', '電話番号', 'Webサイト', '住所', '年間売上', '従業員数', 'ステータス', 'メモ', '登録日']
-    const rows = data.map((r) => [
+    const rows = filtered.map((r) => [
       r.id,
       r.name,
       r.type ?? '',

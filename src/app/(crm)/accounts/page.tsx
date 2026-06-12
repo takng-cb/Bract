@@ -194,6 +194,23 @@ export default async function AccountsPage({
               'ステータス': ['見込み', '有効', '無効'],
             }}
             showImport={edit}
+            filterFields={[
+              { value: 'name',     label: '会社名',   type: 'text' },
+              { value: 'type',     label: '種別',     type: 'select', options: ['顧客', '見込み客', 'パートナー', '競合他社', 'その他'].map((v) => ({ value: v, label: v })) },
+              { value: 'industry', label: '業種',     type: 'select', options: ['IT・ソフトウェア', '製造業', '商社', '金融・保険', '医療・ヘルスケア', '広告・マーケティング', '小売・EC', '食品・飲料', 'エネルギー', '教育', '不動産', '弁護士', '司法書士', '税理士', '行政書士', 'その他'].map((v) => ({ value: v, label: v })) },
+              {
+                value: 'status', label: 'ステータス', type: 'select',
+                options: [
+                  { value: 'prospect', label: '見込み' },
+                  { value: 'active',   label: '有効' },
+                  { value: 'inactive', label: '無効' },
+                ],
+              },
+              { value: 'phone',          label: '電話番号',     type: 'text' },
+              { value: 'address',        label: '住所',         type: 'text' },
+              { value: 'annual_revenue', label: '年間売上（円）', type: 'number' },
+              { value: 'employee_count', label: '従業員数',     type: 'number' },
+            ]}
           />
           {edit && (
             <Link
