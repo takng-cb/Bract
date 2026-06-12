@@ -11,6 +11,7 @@ import { eq, asc, inArray } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
 export async function GET(
   req: NextRequest,
@@ -22,6 +23,10 @@ export async function GET(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { objectApiName } = await params
+
+  // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
+  const filterRaw = req.nextUrl.searchParams.getAll('f')
+  const conditions = parseFilterParams(filterRaw)
 
   // オブジェクト定義取得
   const objRows = await db
@@ -41,10 +46,18 @@ export async function GET(
   const dataFields = fields.filter((f) => f.field_type !== 'section' && f.is_visible)
 
   // レコード取得
-  const records = await db
+  const allRecords = await db
     .select()
     .from(book_records)
     .where(eq(book_records.object_id, obj.id))
+
+  // フィルタ適用（REQ-0052）: 一覧と同様、data jsonb を flatten した行オブジェクトに対して判定する
+  // （フィルタの field key は book_fields の api_name = 一覧ページの filterFields と一致）
+  const records = conditions.length > 0
+    ? allRecords.filter((rec) =>
+        applyFilters([{ id: rec.id, ...rec.data } as Record<string, unknown>], conditions).length > 0,
+      )
+    : allRecords
 
   // account_id / contact_id フィールドのIDを収集してまとめてDBルックアップ
   const accountIdFields = dataFields.filter((f) => f.api_name === 'account_id' || f.api_name.endsWith('_account_id'))

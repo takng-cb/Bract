@@ -6,6 +6,8 @@ import { parseFieldOptions } from '@/lib/fieldUtils'
 import FormFillModal from '@/components/FormFillModal'
 import SearchableSelect from '@/components/SearchableSelect'
 import CreateFeedback from '@/components/CreateFeedback'
+import CreateInfoCard from '@/components/create/CreateInfoCard'
+import { RecordColumns } from '@/components/record/RecordUI'
 import type { CreateState } from '@/lib/duplicateTypes'
 
 type SelectOption = { value: string; label: string }
@@ -24,7 +26,18 @@ type Props = {
   userOptions?: SelectOption[]
   /** 現在の owner_id デフォルト値 */
   defaultOwnerId?: string | null
+  /**
+   * レイアウト（REQ-0051）:
+   * - 'plain'  … 従来の1カラム縦並び（詳細ページのインライン編集で使用）
+   * - 'record' … レコード詳細と同じ RecordColumns + カード構成（新規/編集ページで使用）
+   */
+  variant?: 'plain' | 'record'
+  /** ページヘッダの保存ボタンと紐付ける form id（record バリアント用） */
+  formId?: string
 }
+
+/** record バリアントのカード入力欄（CreateInfoCard と同じ見た目） */
+const CARD_INPUT = 'w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:border-blue-400 transition-colors'
 
 export default function DynamicForm({
   fields,
@@ -36,6 +49,8 @@ export default function DynamicForm({
   contactOptions,
   userOptions,
   defaultOwnerId,
+  variant = 'plain',
+  formId = 'record-create-form',
 }: Props) {
   const formRef = useRef<HTMLFormElement | null>(null)
   const [isDirty, setIsDirty] = useState(false)
@@ -94,6 +109,137 @@ export default function DynamicForm({
     return () => document.removeEventListener('click', handleClick, true)
   }, [isDirty])
 
+  /** account_id / contact_id / formula / 通常フィールドの入力欄（両バリアント共通） */
+  const renderInput = (field: FieldDef, inputClass?: string) => {
+    const val    = defaultValues[field.api_name]
+    const strVal = val != null ? String(val) : ''
+
+    if (field.api_name === 'account_id' || field.api_name.endsWith('_account_id')) {
+      return (
+        <SearchableSelect
+          name={field.api_name}
+          options={accountOptions ?? []}
+          defaultValue={strVal}
+          placeholder="取引先を選択..."
+        />
+      )
+    }
+    if (field.api_name === 'contact_id' || field.api_name.endsWith('_contact_id')) {
+      return (
+        <SearchableSelect
+          name={field.api_name}
+          options={contactOptions ?? []}
+          defaultValue={strVal}
+          placeholder="人物を選択..."
+        />
+      )
+    }
+    if (field.field_type === 'formula') {
+      return (
+        <input
+          type="text"
+          value={strVal}
+          readOnly
+          className="w-full border border-zinc-200 bg-zinc-50 rounded-md px-3 py-2 text-sm text-zinc-500 cursor-not-allowed"
+        />
+      )
+    }
+    return <FieldInput field={field} value={val} inputClass={inputClass} />
+  }
+
+  /** フィールドのラベル表示名（_id 系は「 ID」を落とす） */
+  const labelOf = (field: FieldDef) => {
+    const isRef = field.api_name === 'account_id' || field.api_name.endsWith('_account_id')
+      || field.api_name === 'contact_id' || field.api_name.endsWith('_contact_id')
+    return isRef ? field.label.replace(/ ?ID$/, '') : field.label
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // record バリアント: RecordColumns + カード（新規/編集ページ用）
+  // ════════════════════════════════════════════════════════════
+  if (variant === 'record') {
+    // section フィールドでカードに分割（先頭 section 前のフィールドは「基本情報」へ）
+    type Group = { title: string; fields: FieldDef[] }
+    const groups: Group[] = []
+    let current: Group = { title: '基本情報', fields: [] }
+    for (const f of visibleFields) {
+      if (f.field_type === 'section') {
+        if (current.fields.length > 0) groups.push(current)
+        current = { title: f.label, fields: [] }
+      } else {
+        current.fields.push(f)
+      }
+    }
+    if (current.fields.length > 0) groups.push(current)
+
+    // 「テキストから入力」（全フィールドを1フォームに流し込むため、どのカードからでも同じ動作）
+    const fillButton = fillableFields.length > 0
+      ? <FormFillModal formRef={formRef} csvFormat={csvFormat} fieldMap={fieldMap} />
+      : undefined
+
+    return (
+      <form id={formId} ref={formRef} action={dispatch} onChange={() => setIsDirty(true)}>
+        <CreateFeedback state={state} formRef={formRef} />
+
+        <RecordColumns
+          narrow
+          left={
+            <CreateInfoCard dense title="管理情報" action={fillButton} fields={[]}>
+              {userOptions && userOptions.length > 0 && (
+                <label className="block">
+                  <span className="block text-[12px] text-zinc-500 mb-1">担当者</span>
+                  <select name="owner_id" defaultValue={defaultOwnerId ?? ''} className={CARD_INPUT}>
+                    <option value="">未設定</option>
+                    {userOptions.map((u) => (
+                      <option key={u.value} value={u.value}>{u.label}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </CreateInfoCard>
+          }
+        >
+          {groups.map((g, gi) => (
+            <CreateInfoCard key={gi} title={g.title} action={gi === 0 ? fillButton : undefined} fields={[]}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {g.fields.map((field) => (
+                  <div key={field.id} className={field.field_type === 'textarea' ? 'sm:col-span-2' : ''}>
+                    <span className="block text-xs text-zinc-400 mb-1">
+                      {labelOf(field)}
+                      {field.is_required && <span className="text-red-500"> *</span>}
+                      {field.field_type === 'formula' && <span className="ml-1.5 text-violet-500">数式</span>}
+                    </span>
+                    {renderInput(field, CARD_INPUT)}
+                  </div>
+                ))}
+              </div>
+            </CreateInfoCard>
+          ))}
+        </RecordColumns>
+
+        {/* 保存/キャンセルはページ最下部（2カラムの外・全幅）に置く */}
+        <div className="mt-6 flex justify-center gap-3 border-t border-zinc-200 pt-5">
+          <button
+            type="submit"
+            disabled={isPending}
+            className="px-8 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {isPending ? '保存中…' : submitLabel}
+          </button>
+          {cancelHref && (
+            <Link href={cancelHref} className="px-6 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+              キャンセル
+            </Link>
+          )}
+        </div>
+      </form>
+    )
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // plain バリアント: 従来の1カラム縦並び（詳細のインライン編集用）
+  // ════════════════════════════════════════════════════════════
+
   // ── ボタン（上下共通） ──────────────────────────────────────
   // 離脱確認はドキュメントレベルのクリックインターセプターで処理するため
   // Link の onClick は不要（二重確認を避ける）
@@ -145,70 +291,14 @@ export default function DynamicForm({
           )
         }
 
-        const val    = defaultValues[field.api_name]
-        const strVal = val != null ? String(val) : ''
-
-        // ── account_id / *_account_id → 取引先選択（SearchableSelect） ──
-        if (field.api_name === 'account_id' || field.api_name.endsWith('_account_id')) {
-          return (
-            <div key={field.id}>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
-                {field.label.replace(/ ?ID$/, '')}
-                {field.is_required && <span className="ml-1 text-red-500">*</span>}
-              </label>
-              <SearchableSelect
-                name={field.api_name}
-                options={accountOptions ?? []}
-                defaultValue={strVal}
-                placeholder="取引先を選択..."
-              />
-            </div>
-          )
-        }
-
-        // ── contact_id / *_contact_id → 人物選択（SearchableSelect） ──
-        if (field.api_name === 'contact_id' || field.api_name.endsWith('_contact_id')) {
-          return (
-            <div key={field.id}>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
-                {field.label.replace(/ ?ID$/, '')}
-                {field.is_required && <span className="ml-1 text-red-500">*</span>}
-              </label>
-              <SearchableSelect
-                name={field.api_name}
-                options={contactOptions ?? []}
-                defaultValue={strVal}
-                placeholder="人物を選択..."
-              />
-            </div>
-          )
-        }
-
-        // ── 数式フィールド（読み取り専用） ──
-        if (field.field_type === 'formula') {
-          return (
-            <div key={field.id}>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
-                {field.label}
-                <span className="ml-1.5 text-xs text-violet-500 font-normal">数式</span>
-              </label>
-              <input
-                type="text"
-                value={strVal}
-                readOnly
-                className="w-full border border-zinc-200 bg-zinc-50 rounded-md px-3 py-2 text-sm text-zinc-500 cursor-not-allowed"
-              />
-            </div>
-          )
-        }
-
         return (
           <div key={field.id}>
             <label className="block text-sm font-medium text-zinc-700 mb-1">
-              {field.label}
+              {labelOf(field)}
               {field.is_required && <span className="ml-1 text-red-500">*</span>}
+              {field.field_type === 'formula' && <span className="ml-1.5 text-xs text-violet-500 font-normal">数式</span>}
             </label>
-            <FieldInput field={field} value={val} />
+            {renderInput(field)}
           </div>
         )
       })}
@@ -245,8 +335,8 @@ export default function DynamicForm({
   )
 }
 
-function FieldInput({ field, value }: { field: FieldDef; value: unknown }) {
-  const base = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+function FieldInput({ field, value, inputClass }: { field: FieldDef; value: unknown; inputClass?: string }) {
+  const base = inputClass ?? 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
   const strVal = value != null ? String(value) : ''
 
   switch (field.field_type) {

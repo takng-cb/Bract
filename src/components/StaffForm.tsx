@@ -1,27 +1,22 @@
 'use client'
 
 /**
- * スタッフフォーム (Issue #69)
- * 新規作成・編集 両用
+ * スタッフの新規作成・編集フォーム（Issue #69 / REQ-0051）。
+ *
+ * レコード詳細ページと同じ見た目に揃える:
+ *   - RecordColumns（左=スタッフ情報の dense カード / 右=基本情報・メモの広いカード）
+ *   - カードは EditableInfoCard（編集モード）と同じスタイル（CreateInfoCard）
+ *   - 保存/キャンセルはページヘッダ（RecordHeader actions、form 属性で紐付け）と
+ *     フォーム末尾の両方に置く
  */
 import { useTransition, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import FormSection from '@/components/FormSection'
-
-const FIELD_CLS = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+import Link from 'next/link'
+import CreateInfoCard from '@/components/create/CreateInfoCard'
+import { RecordColumns } from '@/components/record/RecordUI'
 
 const STATUSES = ['稼働中', '一時休止', '引退']
 const GENDERS  = ['男', '女', 'その他']
-
-function Cell({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
-  return (
-    <div>
-      <label className="block text-xs text-zinc-500 mb-1">{label}</label>
-      {children}
-      {hint && <p className="text-[10px] text-zinc-400 mt-0.5">{hint}</p>}
-    </div>
-  )
-}
 
 export type StaffInitial = {
   name?:                  string | null
@@ -44,9 +39,11 @@ type Props = {
   cancelHref:  string
   initial?:    StaffInitial
   accounts:    { id: string; name: string }[]
+  /** ページヘッダの保存ボタンと紐付ける form id */
+  formId?: string
 }
 
-export default function StaffForm({ action, cancelHref, initial, accounts }: Props) {
+export default function StaffForm({ action, cancelHref, initial, accounts, formId = 'record-create-form' }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -75,79 +72,57 @@ export default function StaffForm({ action, cancelHref, initial, accounts }: Pro
     })
   }
 
+  const opt = (v: string) => ({ value: v, label: v })
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit}>
       {error && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm px-3 py-2 rounded-md">{error}</div>
+        <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm px-3 py-2 rounded-md">{error}</div>
       )}
 
-      <FormSection title="スタッフ情報">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Cell label="氏名 *">
-          <input name="name" required defaultValue={toStr(initial?.name)} className={FIELD_CLS} />
-        </Cell>
-        <Cell label="フリガナ">
-          <input name="name_kana" defaultValue={toStr(initial?.name_kana)} className={FIELD_CLS} />
-        </Cell>
+      <RecordColumns
+        narrow
+        left={
+          <CreateInfoCard
+            dense
+            title="スタッフ情報"
+            fields={[
+              { label: '所属人材会社', name: 'belong_account_id', kind: 'select', defaultValue: toStr(initial?.belong_account_id), options: accounts.map((a) => ({ value: a.id, label: a.name })), emptyOption: '— 未設定 —', hint: '取引先（人材会社）から選択' },
+              { label: '状態', name: 'status', kind: 'select', defaultValue: initial?.status ?? '稼働中', options: STATUSES.map(opt), emptyOption: null },
+              { label: '性別', name: 'gender', kind: 'select', defaultValue: toStr(initial?.gender), options: GENDERS.map(opt) },
+              { label: '生年月日', name: 'birth_date', kind: 'date', defaultValue: toStr(initial?.birth_date) },
+              { label: '電話', name: 'phone', kind: 'tel', defaultValue: toStr(initial?.phone) },
+              { label: 'メール', name: 'email', kind: 'email', defaultValue: toStr(initial?.email) },
+              { label: '標準時給（請求）', name: 'default_hourly_rate', kind: 'number', min: 0, defaultValue: toStr(initial?.default_hourly_rate), hint: '顧客への請求時給の参考値' },
+              { label: '標準時給（仕入）', name: 'default_cost_per_hour', kind: 'number', min: 0, defaultValue: toStr(initial?.default_cost_per_hour), hint: '人材会社への支払時給の参考値' },
+              { label: 'スキル', name: 'skills', defaultValue: toStrArray(initial?.skills), placeholder: '例: 介護初任者研修, 英語', hint: 'カンマ区切り（例: 介護初任者研修, 英語, 接客5年）' },
+              { label: '対応エリア', name: 'available_areas', defaultValue: toStrArray(initial?.available_areas), placeholder: '例: 東京, 神奈川', hint: 'カンマ区切り（例: 東京, 神奈川）' },
+            ]}
+          />
+        }
+      >
+        <CreateInfoCard
+          title="基本情報"
+          fields={[
+            { label: '氏名', name: 'name', defaultValue: toStr(initial?.name), required: true, fullWidth: true },
+            { label: 'フリガナ', name: 'name_kana', defaultValue: toStr(initial?.name_kana), fullWidth: true },
+            { label: 'メモ', name: 'notes', kind: 'textarea', defaultValue: toStr(initial?.notes), fullWidth: true },
+          ]}
+        />
+      </RecordColumns>
 
-        <Cell label="所属人材会社" hint="取引先（人材会社）から選択">
-          <select name="belong_account_id" defaultValue={toStr(initial?.belong_account_id)} className={`${FIELD_CLS} bg-white`}>
-            <option value="">— 未設定 —</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-        </Cell>
-        <Cell label="状態">
-          <select name="status" defaultValue={initial?.status ?? '稼働中'} className={`${FIELD_CLS} bg-white`}>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </Cell>
-
-        <Cell label="性別">
-          <select name="gender" defaultValue={toStr(initial?.gender)} className={`${FIELD_CLS} bg-white`}>
-            <option value="">—</option>
-            {GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </Cell>
-        <Cell label="生年月日">
-          <input type="date" name="birth_date" defaultValue={toStr(initial?.birth_date)} className={FIELD_CLS} />
-        </Cell>
-
-        <Cell label="電話">
-          <input name="phone" defaultValue={toStr(initial?.phone)} className={FIELD_CLS} />
-        </Cell>
-        <Cell label="メール">
-          <input type="email" name="email" defaultValue={toStr(initial?.email)} className={FIELD_CLS} />
-        </Cell>
-
-        <Cell label="標準時給（請求）" hint="顧客への請求時給の参考値">
-          <input type="number" name="default_hourly_rate" min="0" defaultValue={toStr(initial?.default_hourly_rate)} className={FIELD_CLS} />
-        </Cell>
-        <Cell label="標準時給（仕入）" hint="人材会社への支払時給の参考値">
-          <input type="number" name="default_cost_per_hour" min="0" defaultValue={toStr(initial?.default_cost_per_hour)} className={FIELD_CLS} />
-        </Cell>
-
-        <Cell label="スキル" hint="カンマ区切り（例: 介護初任者研修, 英語, 接客5年）">
-          <input name="skills" defaultValue={toStrArray(initial?.skills)} className={FIELD_CLS} placeholder="例: 介護初任者研修, 英語" />
-        </Cell>
-        <Cell label="対応エリア" hint="カンマ区切り（例: 東京, 神奈川）">
-          <input name="available_areas" defaultValue={toStrArray(initial?.available_areas)} className={FIELD_CLS} placeholder="例: 東京, 神奈川" />
-        </Cell>
-
-        <div className="sm:col-span-2">
-          <Cell label="メモ">
-            <textarea name="notes" defaultValue={toStr(initial?.notes)} rows={3} className={`${FIELD_CLS} resize-y`} />
-          </Cell>
-        </div>
-      </div>
-      </FormSection>
-
-      <div className="flex items-center justify-end gap-2">
-        <button type="button" onClick={() => router.push(cancelHref)} className="px-4 py-2 text-sm border border-zinc-300 rounded-md hover:bg-zinc-50">
+      {/* 保存/キャンセルはページ最下部（2カラムの外・全幅）に置く */}
+      <div className="mt-6 flex justify-center gap-3 border-t border-zinc-200 pt-5">
+        <button
+          type="submit"
+          disabled={pending}
+          className="px-8 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {pending ? '保存中...' : '保存'}
+        </button>
+        <Link href={cancelHref} className="px-6 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
           キャンセル
-        </button>
-        <button type="submit" disabled={pending} className="px-4 py-2 text-sm bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
-          {pending ? '保存中…' : '保存'}
-        </button>
+        </Link>
       </div>
     </form>
   )

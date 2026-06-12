@@ -129,6 +129,7 @@ export default async function VehiclesListPage({
               '状態': [...VEHICLE_STATUSES],
             }}
             showImport={edit}
+            filterFields={FIELDS}
           />
           {edit && (
             <Link

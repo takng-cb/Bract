@@ -227,6 +227,7 @@ export default async function CustomObjectListPage({
             label={obj.label}
             csvFormat={csvFormat}
             showImport={edit}
+            filterFields={filterFields}
           />
           {edit && (
             <Link

@@ -157,6 +157,17 @@ export default async function PropertiesPage({
               '建物差押有無': ['1（あり）', '空（なし）'],
             }}
             showImport={edit}
+            filterFields={[
+              // エクスポートは不動産・その他商品の両カテゴリを含むため、カテゴリでも絞れるようにする
+              {
+                value: 'product_category', label: 'カテゴリ', type: 'select',
+                options: [
+                  { value: 'real_estate', label: '不動産' },
+                  { value: 'other',       label: 'その他商品' },
+                ],
+              },
+              ...FIELDS,
+            ]}
           />
           {edit && (
             <Link

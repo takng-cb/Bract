@@ -5,8 +5,13 @@ import { alias } from 'drizzle-orm/pg-core'
 import { eq, desc } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
-export async function GET() {
+export async function GET(request: Request) {
+  // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
+  const filterRaw = new URL(request.url).searchParams.getAll('f')
+  const conditions = parseFilterParams(filterRaw)
+
   try {
     const supplier = alias(accounts, 'supplier')
     const buyer    = alias(accounts, 'buyer')
@@ -36,13 +41,17 @@ export async function GET() {
       .leftJoin(buyer,    eq(vehicles.buyer_account_id,    buyer.id))
       .orderBy(desc(vehicles.created_at))
 
+    const filtered = conditions.length > 0
+      ? (applyFilters(data as unknown as Record<string, unknown>[], conditions) as unknown as typeof data)
+      : data
+
     const headers = [
       'ID', 'メーカー', '車種', '年式', '走行距離(km)', '色', 'ナンバー', '車台番号', '状態',
       '仕入日', '仕入価格', '仕入元',
       '希望売価', '売却日', '売却価格', '売却先',
       '次回車検期日', '備考', '登録日',
     ]
-    const rows = data.map((r) => [
+    const rows = filtered.map((r) => [
       r.id,
       r.maker,
       r.model,

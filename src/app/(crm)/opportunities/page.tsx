@@ -447,6 +447,24 @@ export default async function OpportunitiesPage({
               } : {}),
             }}
             showImport={edit}
+            filterFields={[
+              { value: 'name',          label: '商談名', type: 'text' },
+              { value: 'accounts.name', label: '取引先名', type: 'text' },
+              {
+                value: 'stage', label: 'ステージ', type: 'select',
+                options: [
+                  { value: 'prospecting',   label: '見込み' },
+                  { value: 'qualification', label: '要件確認' },
+                  { value: 'proposal',      label: '提案' },
+                  { value: 'negotiation',   label: '交渉' },
+                  { value: 'closed_won',    label: '受注' },
+                  { value: 'closed_lost',   label: '失注' },
+                ],
+              },
+              { value: 'amount',      label: '金額（円）', type: 'number' },
+              { value: 'probability', label: '確度（%）',  type: 'number' },
+              { value: 'close_date',  label: '完了予定日', type: 'date' },
+            ]}
           />
           {edit && (
             <Link

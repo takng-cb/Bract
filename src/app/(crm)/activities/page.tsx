@@ -257,6 +257,15 @@ export default async function ActivitiesPage({
               '種別': ['電話', 'メール', '打ち合わせ', 'メモ'],
             }}
             showImport={edit}
+            filterFields={[
+              { value: 'subject', label: '件名', type: 'text' },
+              { value: 'body',    label: '内容', type: 'text' },
+              {
+                value: 'type', label: '種別', type: 'select',
+                options: activityTypes.map((t) => ({ value: t.value, label: t.label })),
+              },
+              { value: 'occurred_at', label: '実施日', type: 'date' },
+            ]}
           />
           {edit && (
             <Link

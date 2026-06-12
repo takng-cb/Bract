@@ -59,6 +59,15 @@ export default async function ProductsListPage() {
             label="商品"
             csvFormat="ID,SKU,商品名,カテゴリ,単位,売価,原価,発注しきい値,備考"
             showImport={edit}
+            filterFields={[
+              { value: 'sku',           label: 'SKU',          type: 'text' },
+              { value: 'name',          label: '商品名',       type: 'text' },
+              { value: 'category',      label: 'カテゴリ',     type: 'text' },
+              { value: 'unit',          label: '単位',         type: 'text' },
+              { value: 'unit_price',    label: '売価（円）',   type: 'number' },
+              { value: 'cost_price',    label: '原価（円）',   type: 'number' },
+              { value: 'reorder_level', label: '発注しきい値', type: 'number' },
+            ]}
           />
           {edit && (
             <Link href="/products/new" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">

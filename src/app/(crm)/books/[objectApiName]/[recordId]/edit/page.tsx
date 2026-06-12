@@ -7,8 +7,11 @@ import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
 import { updateCustomRecord } from '@/app/actions/customRecords'
 import DynamicForm from '@/components/DynamicForm'
+import RecordHeader from '@/components/RecordHeader'
 import { getAllUsers } from '@/lib/userUtils'
 import { requireBookRead } from '@/lib/permissions'
+
+const FORM_ID = 'record-create-form'
 
 export default async function EditCustomRecordPage({
   params,
@@ -58,29 +61,45 @@ export default async function EditCustomRecordPage({
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-2xl">
-      <div className="mb-6">
-        <Link href={`/books/${objectApiName}/${recordId}`} className="text-sm text-zinc-400 hover:text-zinc-600">
-          ← {obj.label}詳細
-        </Link>
-        <h1 className="text-2xl font-bold text-zinc-900 mt-2">
-          {obj.icon} {obj.label}を編集
-        </h1>
-      </div>
+    <div className="p-4 md:p-8 max-w-7xl">
+      {/* 詳細ページと同じヒーローヘッダ（REQ-0051）。保存はフォームに form 属性で紐付け */}
+      <RecordHeader
+        crumbs={[
+          { label: obj.label_plural, href: `/books/${objectApiName}` },
+          { label: `${obj.label}詳細`, href: `/books/${objectApiName}/${recordId}` },
+          { label: '編集' },
+        ]}
+        avatar={<span className="text-2xl leading-none" aria-hidden>{obj.icon}</span>}
+        title={`${obj.label}を編集`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link href={`/books/${objectApiName}/${recordId}`} className="px-4 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+              キャンセル
+            </Link>
+            <button
+              type="submit"
+              form={FORM_ID}
+              className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              保存
+            </button>
+          </div>
+        }
+      />
 
-      <div className="bg-white rounded-lg border border-zinc-200 p-6">
-        <DynamicForm
-          fields={fields}
-          defaultValues={defaultValues}
-          action={handleUpdate}
-          submitLabel="保存"
-          cancelHref={`/books/${objectApiName}/${recordId}`}
-          accountOptions={hasAccountField ? accountList.map((a) => ({ value: a.id, label: a.name })) : undefined}
-          contactOptions={hasContactField ? contactList.map((c) => ({ value: c.id, label: c.name })) : undefined}
-          userOptions={allUsers.map((u) => ({ value: u.id, label: u.name }))}
-          defaultOwnerId={record.owner_id ?? null}
-        />
-      </div>
+      <DynamicForm
+        variant="record"
+        formId={FORM_ID}
+        fields={fields}
+        defaultValues={defaultValues}
+        action={handleUpdate}
+        submitLabel="保存"
+        cancelHref={`/books/${objectApiName}/${recordId}`}
+        accountOptions={hasAccountField ? accountList.map((a) => ({ value: a.id, label: a.name })) : undefined}
+        contactOptions={hasContactField ? contactList.map((c) => ({ value: c.id, label: c.name })) : undefined}
+        userOptions={allUsers.map((u) => ({ value: u.id, label: u.name }))}
+        defaultOwnerId={record.owner_id ?? null}
+      />
     </div>
   )
 }
