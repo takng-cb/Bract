@@ -39,6 +39,23 @@ function parseRow(line: string): string[] {
   return cols
 }
 
+/**
+ * React の制御コンポーネント（EditableInfoCard 等）でも反映されるよう、
+ * ネイティブ setter で値を入れてから input/change イベントを発火する。
+ */
+function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: string) {
+  const proto = el instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : el instanceof HTMLSelectElement
+    ? HTMLSelectElement.prototype
+    : HTMLInputElement.prototype
+  const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
+  if (setter) setter.call(el, value)
+  else el.value = value
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+  el.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
 /** フォームフィールドに値をセット（input / textarea / select / radio グループ対応） */
 function applyField(form: HTMLFormElement, name: string, value: string) {
   const el = form.elements.namedItem(name)
@@ -52,7 +69,7 @@ function applyField(form: HTMLFormElement, name: string, value: string) {
     el instanceof HTMLTextAreaElement ||
     el instanceof HTMLSelectElement
   ) {
-    el.value = value
+    setNativeValue(el, value)
   }
 }
 

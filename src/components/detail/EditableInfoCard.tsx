@@ -13,6 +13,16 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { SquarePen, X } from 'lucide-react'
 import SubmitButton from '@/components/SubmitButton'
+import FormFillModal from '@/components/FormFillModal'
+import type { FieldDef } from '@/lib/objectMetadata'
+
+/** 「テキストから入力」（FormFillModal）の設定。指定すると編集モードのヘッダに出る */
+export type FillConfig = {
+  csvFormat: string
+  fieldMap: Record<string, string>
+  valueMap?: Record<string, Record<string, string>>
+  customFields?: FieldDef[]
+}
 
 export type EditField = {
   label: string
@@ -74,6 +84,7 @@ export default function EditableInfoCard({
   showEditButton = true,
   editEvent = 'bract:edit-record',
   dense = false,
+  fill,
 }: {
   title: string
   fields: EditField[]
@@ -87,10 +98,22 @@ export default function EditableInfoCard({
   editEvent?: string
   /** コンパクト表示（左カラムの参照カード用・dt/dd 1カラム） */
   dense?: boolean
+  /** 「テキストから入力」の設定（編集モードのヘッダに表示。REQ-0051） */
+  fill?: FillConfig
 }) {
   const [editing, setEditing] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
   const groups = groupBySection(fields)
+  const fillButton = fill && (
+    <FormFillModal
+      formRef={formRef}
+      csvFormat={fill.csvFormat}
+      fieldMap={fill.fieldMap}
+      valueMap={fill.valueMap}
+      customFields={fill.customFields}
+    />
+  )
 
   // 右上の編集ボタン等からのイベントで編集モードに入る
   useEffect(() => {
@@ -140,10 +163,13 @@ export default function EditableInfoCard({
             </div>
           </div>
         ) : (
-          <form action={action} className="bg-white border border-brand-300 rounded-xl shadow-xs">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100">
+          <form ref={formRef} action={action} className="bg-white border border-brand-300 rounded-xl shadow-xs">
+            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-zinc-100">
               <h2 className="text-[13px] font-bold text-zinc-800">{title}<span className="ml-2 text-[11px] font-normal text-brand-600">編集中</span></h2>
-              <button type="button" onClick={() => setEditing(false)} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-700"><X className="w-4 h-4" /></button>
+              <div className="flex items-center gap-2 shrink-0">
+                {fillButton}
+                <button type="button" onClick={() => setEditing(false)} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-700"><X className="w-4 h-4" /></button>
+              </div>
             </div>
             <div className="px-4 py-3 space-y-2.5">
               {hiddenFields?.map((h) => <input key={h.name} type="hidden" name={h.name} value={h.value} />)}
@@ -212,10 +238,13 @@ export default function EditableInfoCard({
           })}
         </div>
       ) : (
-        <form action={action} className="bg-white border border-brand-300 rounded-lg shadow-xs p-6">
-          <div className="flex items-center justify-between mb-4">
+        <form ref={formRef} action={action} className="bg-white border border-brand-300 rounded-lg shadow-xs p-6">
+          <div className="flex items-center justify-between gap-2 mb-4">
             <h2 className="text-sm font-bold text-zinc-700">{title}<span className="ml-2 text-xs font-normal text-brand-600">編集中</span></h2>
-            <button type="button" onClick={() => setEditing(false)} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-700"><X className="w-4 h-4" /></button>
+            <div className="flex items-center gap-2 shrink-0">
+              {fillButton}
+              <button type="button" onClick={() => setEditing(false)} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-700"><X className="w-4 h-4" /></button>
+            </div>
           </div>
           {hiddenFields?.map((h) => <input key={h.name} type="hidden" name={h.name} value={h.value} />)}
           {groups.map((g, gi) => {

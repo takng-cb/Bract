@@ -331,6 +331,10 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 { name: 'address', value: account.address ?? '' },
                 { name: 'owner_id', value: account.owner_id ?? '' },
               ]}
+              fill={{
+                csvFormat: '従業員数,年間売上,業種,種別,メモ',
+                fieldMap: { '従業員数': 'employee_count', '年間売上': 'annual_revenue', '業種': 'industry', '種別': 'type', 'メモ': 'description' },
+              }}
               fields={[
                 { label: '従業員数', name: 'employee_count', kind: 'number', value: account.employee_count != null ? String(account.employee_count) : '', view: account.employee_count ? `${account.employee_count.toLocaleString()} 名` : '—' },
                 { label: '年間売上', name: 'annual_revenue', kind: 'number', value: account.annual_revenue != null ? String(account.annual_revenue) : '', view: account.annual_revenue ? `¥${Number(account.annual_revenue).toLocaleString()}` : '—' },
@@ -346,6 +350,10 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
               canEdit={editFlag}
               editEvent="bract:edit-account-contact"
               action={saveAccountContact}
+              fill={{
+                csvFormat: '電話番号,Webサイト,住所',
+                fieldMap: { '電話番号': 'phone', 'Webサイト': 'website', '住所': 'address' },
+              }}
               fields={[
                 { label: '電話', name: 'phone', kind: 'tel', value: account.phone, view: account.phone ? <span className="inline-flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} />{account.phone}</span> : '—' },
                 { label: 'Web', name: 'website', kind: 'text', value: account.website, view: account.website ? <span className="inline-flex items-center gap-1.5 min-w-0"><Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2.25} /><a href={account.website} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline truncate">{account.website}</a></span> : '—' },
