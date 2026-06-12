@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理者編 | Bract 操作マニュアル</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<header class="site">
+  <span class="logo">Bract 操作マニュアル</span>
+  <nav>
+    <a href="index.html">目次</a>
+    <a href="common.html">共通編</a>
+    <a href="admin.html" class="current">管理者編</a>
+    <a href="auto-body.html">板金・整備編</a>
+    <a href="real-estate.html">不動産編</a>
+    <a href="staffing.html">人材手配編</a>
+  </nav>
+</header>
+<main>
+  <h1>管理者編 — 設定と運用</h1>
+  <p class="lead">システム管理者（admin ロール）向けの設定方法です。設定はサイドバー下部の「システム設定」から行います。</p>
+
+  <div class="toc">
+    <b>この章の内容</b>
+    <ul>
+      <li><a href="#settings">1. 設定画面の入り口</a> / <a href="#users">2. ユーザー管理（招待制）</a> / <a href="#roles">3. ロールと権限</a></li>
+      <li><a href="#books">4. ブックと項目（フィールド）の設定</a> / <a href="#approval">5. 承認ルートの設定</a></li>
+      <li><a href="#system">6. システム設定いろいろ</a> / <a href="#notifications">7. 通知</a> / <a href="#trash">8. ゴミ箱の管理</a> / <a href="#modules">9. モジュール / 契約（運営者）</a></li>
+    </ul>
+  </div>
+
+  <h2 id="settings">1. 設定画面の入り口</h2>
+  <figure><img src="img/base/settings.png" alt="設定"><figcaption>個人設定（プロフィール・パスワード）</figcaption></figure>
+  <figure><img src="img/base/settings-system.png" alt="システム設定"><figcaption>システム設定のメニュー。管理者だけに表示されます</figcaption></figure>
+  <p>
+    「設定」は自分のプロフィールなど<b>個人の設定</b>、「システム設定」はユーザー管理・ブック設定など
+    <b>組織全体の設定</b>です。システム設定は admin ロールのユーザーにのみ表示されます。
+  </p>
+
+  <h2 id="users">2. ユーザー管理（招待制）</h2>
+  <figure><img src="img/base/admin-users.png" alt="ユーザー管理"><figcaption>ユーザーの一覧と招待</figcaption></figure>
+  <ol class="steps">
+    <li>システム設定 → ユーザー管理 を開きます。</li>
+    <li><span class="btn-label">ユーザーを招待</span> からメールアドレスとロールを指定して招待します。本人は届いた案内からパスワードを設定してログインします。</li>
+    <li>退職時などはユーザーを無効化します。無効化したユーザーはログインできなくなりますが、過去のレコードの担当者表示は残ります。</li>
+  </ol>
+  <div class="note">Bract に自己サインアップはありません。<b>ユーザーの追加は必ずこの画面から</b>行います。</div>
+
+  <h2 id="roles">3. ロールと権限</h2>
+  <figure><img src="img/base/admin-roles.png" alt="ロール管理"><figcaption>ロールの一覧。ブック × 作成/閲覧/更新/削除 のマトリクスで設定します</figcaption></figure>
+  <table class="info">
+    <tr><th>admin</th><td>全権限＋システム設定。組織に最低 1 人必要です。</td></tr>
+    <tr><th>editor</th><td>レコードの作成・編集・削除ができる標準ロール。</td></tr>
+    <tr><th>viewer</th><td>閲覧のみ。</td></tr>
+    <tr><th>カスタムロール</th><td>「ブックごと」に 作成 / 閲覧 / 更新 / 削除 を細かく設定したロールを追加できます（例: 経費だけ入力できる、整備は見るだけ）。閲覧権限のないブックはナビ・検索・一覧にも表示されません。</td></tr>
+  </table>
+
+  <h2 id="books">4. ブックと項目（フィールド）の設定</h2>
+  <figure><img src="img/base/admin-books.png" alt="ブック管理"><figcaption>ブック管理。標準ブックの項目追加や、独自ブックの作成ができます</figcaption></figure>
+  <ol class="steps">
+    <li>システム設定 → ブック管理 を開きます。</li>
+    <li>既存ブック（取引先・商談など）を選ぶと、<b>カスタム項目</b>（テキスト・数値・日付・選択リスト・チェックボックス・数式など）を追加できます。追加した項目は新規作成・詳細・一覧・フィルタ・エクスポートにすべて反映されます。</li>
+    <li><span class="btn-label">＋ 新規ブック</span> で会社独自のブック（例: 「クレーム」「設備」）も作れます。作ったブックはサイドバーに表示され、標準ブックと同じように一覧・詳細・インポート/エクスポートが使えます。</li>
+  </ol>
+  <div class="tip">項目の「表示/非表示」を切り替えれば、使わなくなった項目をデータを消さずに画面から隠せます。</div>
+
+  <h2 id="approval">5. 承認ルートの設定</h2>
+  <ol class="steps">
+    <li>システム設定 → 承認設定 を開き、対象ブック（例: 経費、商談）を選びます。</li>
+    <li>「どの条件のとき（例: 金額が 10 万円以上）」「誰が（特定ユーザー / ロール）」「何段階で」承認するかをルートとして設定します。</li>
+    <li>商談などステータスを持つブックでは、「<b>このステータスへ進めるとき承認が必要</b>」という遷移トリガーも設定できます。</li>
+  </ol>
+  <div class="note">承認待ちのレコードは申請内容が確定するまで削除できません。ルートを変更しても、すでに申請済みのものは申請時点のルートで進みます。</div>
+
+  <h2 id="system">6. システム設定いろいろ</h2>
+  <table class="info">
+    <tr><th>ナビゲーションの並び</th><td>サイドバーのモジュールの順序、モジュール内のブックの順序を変更できます。</td></tr>
+    <tr><th>モバイル下部タブ</th><td>スマホ表示で画面下部に固定されるタブ（最大数件）を選べます。</td></tr>
+    <tr><th>ボードの表示期間</th><td>商談・整備などのボードで「受注 / 失注 / 完了」の終端列に表示する期間（既定: 直近 3 ヶ月）を変更できます。</td></tr>
+    <tr><th>ゴミ箱の保持日数</th><td>削除レコードを自動完全削除するまでの日数（既定: 30 日）。</td></tr>
+    <tr><th>商談の商品ブック</th><td>商談明細として選択できるブックを指定します。</td></tr>
+  </table>
+
+  <h2 id="notifications">7. 通知</h2>
+  <figure><img src="img/base/admin-notifications.png" alt="通知設定"><figcaption>通知の設定</figcaption></figure>
+  <p>通知ベルに表示する内容や、外部への通知連携を設定します。</p>
+
+  <h2 id="trash">8. ゴミ箱の管理</h2>
+  <figure><img src="img/base/trash.png" alt="ゴミ箱"><figcaption>ゴミ箱（管理者は全ユーザーの削除分が見えます）</figcaption></figure>
+  <ol class="steps">
+    <li>一般ユーザーは自分が削除したレコードのみ、<b>管理者は全ユーザーの削除分</b>を確認できます。</li>
+    <li>誤削除は <span class="btn-label">復元</span> で元のブックに戻せます。</li>
+    <li>保持期間を過ぎたものは自動で完全削除されます。期間はシステム設定で変更できます。</li>
+  </ol>
+
+  <h2 id="modules">9. モジュール / 契約（運営者向け）</h2>
+  <figure><img src="img/base/admin-modules.png" alt="モジュール管理"><figcaption>モジュールの有効/無効の切り替え画面</figcaption></figure>
+  <p>
+    どのモジュール（在庫管理・業種機能など）を使えるかは契約（ライセンス）で決まります。
+    モジュールの有効/無効の切り替えと契約情報の画面は<b>サービス運営者のみ</b>が操作できます。
+    モジュールを増やしたい場合は運営者にご相談ください。一般の管理者がこの画面を開くとエラーになります。
+  </p>
+
+  <p style="margin-top:48px"><a href="common.html">← 共通編</a> ／ <a href="index.html">目次へ戻る</a></p>
+</main>
+<footer class="site">Bract 操作マニュアル — 管理者編</footer>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>人材手配編 | Bract 操作マニュアル</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<header class="site">
+  <span class="logo">Bract 操作マニュアル</span>
+  <nav>
+    <a href="index.html">目次</a>
+    <a href="common.html">共通編</a>
+    <a href="admin.html">管理者編</a>
+    <a href="auto-body.html">板金・整備編</a>
+    <a href="real-estate.html">不動産編</a>
+    <a href="staffing.html" class="current">人材手配編</a>
+  </nav>
+</header>
+<main>
+  <h1>人材手配 編</h1>
+  <p class="lead">案件（派遣依頼）の受付からスタッフの手配、売上・請求までの流れを説明します。基本操作は<a href="common.html">共通編</a>を参照してください。</p>
+
+  <div class="toc">
+    <b>この章の内容</b>
+    <ul>
+      <li><a href="#flow">1. 業務の流れ</a> / <a href="#quick">2. AI クイック起票</a> / <a href="#assignments">3. 案件管理</a></li>
+      <li><a href="#staff">4. スタッフ管理</a> / <a href="#invoices">5. 売上・請求</a></li>
+    </ul>
+  </div>
+
+  <h2 id="flow">1. 業務の流れ</h2>
+  <table class="info">
+    <tr><th>① 案件を受ける</th><td>クライアントからの依頼を「案件」として登録（AI クイック起票 or 手入力）。</td></tr>
+    <tr><th>② スタッフを手配</th><td>案件にスタッフを候補として追加し、提示単価を決めて確定。</td></tr>
+    <tr><th>③ 業務実施</th><td>業務日を迎えたらステータスを進める。</td></tr>
+    <tr><th>④ 請求・支払</th><td>確定内容から請求データを生成し、請求 / 入金、スタッフへの支払を管理。</td></tr>
+  </table>
+
+  <h2 id="quick">2. AI クイック起票</h2>
+  <figure><img src="img/staffing/quick-staffing.png" alt="クイック起票"><figcaption>AI クイック起票。依頼文を貼り付けるだけで案件の下書きができます</figcaption></figure>
+  <ol class="steps">
+    <li>サイドバーの「クイック」またはモジュールホームから <span class="btn-label">クイック登録（AI起票）</span> を開きます。</li>
+    <li>LINE やメールで届いた依頼文をそのまま貼り付けて実行します。</li>
+    <li>AI が日付・時間・場所・人数・単価などを読み取って案件のフォームに展開します。<b>内容を確認・修正してから</b>登録してください。クライアント名は既存の取引先と照合されます。</li>
+  </ol>
+
+  <h2 id="assignments">3. 案件管理</h2>
+  <figure><img src="img/staffing/assignments-list.png" alt="案件一覧"><figcaption>案件の一覧。業務日・クライアント・充足状況を確認できます</figcaption></figure>
+  <figure><img src="img/staffing/assignments-new.png" alt="案件の新規作成"><figcaption>案件の新規作成。クライアント・業務日・時間・人数・発注単価を入力します</figcaption></figure>
+  <figure><img src="img/staffing/assignments-detail.png" alt="案件詳細"><figcaption>案件の詳細。スタッフの追加・確定や調整状況を管理します</figcaption></figure>
+  <ol class="steps">
+    <li>案件詳細の「スタッフ」セクションで <span class="btn-label">スタッフを追加</span> し、候補者と提示単価（スタッフへの支払額）を登録します。</li>
+    <li>出られることが確定したら候補を<b>確定</b>にします。募集人数に達すると案件が「充足」になります。</li>
+    <li>案件のステータス（募集中 → 充足 → 終了 など）は詳細画面から進めます。</li>
+  </ol>
+  <div class="tip">単価は「発注単価（クライアントへ請求する額）」と「提示単価（スタッフへ支払う額）」の2種類です。差額が粗利として売上・請求に集計されます。</div>
+
+  <h2 id="staff">4. スタッフ管理</h2>
+  <figure><img src="img/staffing/staff-list.png" alt="スタッフ一覧"><figcaption>スタッフの一覧。稼働状況・スキルで検索できます</figcaption></figure>
+  <figure><img src="img/staffing/staff-detail.png" alt="スタッフ詳細"><figcaption>スタッフの詳細。連絡先・標準時給・過去の案件履歴を確認できます</figcaption></figure>
+  <p>登録スタッフの台帳です。所属会社・連絡先・標準時給（請求 / 仕入）・スキル・対応エリアを管理します。案件への手配履歴はスタッフ詳細から確認できます。</p>
+
+  <h2 id="invoices">5. 売上・請求</h2>
+  <figure><img src="img/staffing/invoices.png" alt="売上・請求"><figcaption>売上・請求。月ごとに売上・原価・粗利が集計されます</figcaption></figure>
+  <ol class="steps">
+    <li>案件の調整が終わったら、案件詳細の「売上・請求」セクションで <span class="btn-label">請求データを生成</span> します。請求額（クライアント発注単価）・支払額（確定スタッフの提示単価合計）・粗利が自動計算されます。</li>
+    <li>サイドバーの「売上・請求」で全案件の請求を<b>月次グルーピング</b>で確認し、請求済み / 入金済み、支払済みのステータスを更新します（請求日・支払日は自動記録）。</li>
+    <li>金額を修正したい場合は、未請求のうちに再計算または削除して作り直します。<b>請求済み以降は再計算できません</b>。</li>
+  </ol>
+
+  <p style="margin-top:48px"><a href="index.html">← 目次へ戻る</a></p>
+</main>
+<footer class="site">Bract 操作マニュアル — 人材手配編</footer>
+</body>
+</html>

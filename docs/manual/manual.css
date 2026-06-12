@@ -1,0 +1,72 @@
+/* Bract 操作マニュアル 共通スタイル */
+:root {
+  --ink: #18181b; --sub: #52525b; --line: #e4e4e7;
+  --brand: #166534; --brand-bg: #f0fdf4;
+  --note-bg: #fffbeb; --note-line: #fde68a;
+  --tip-bg: #eff6ff; --tip-line: #bfdbfe;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--ink); background: #fafafa;
+  font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  line-height: 1.8; font-size: 15px;
+}
+header.site {
+  background: #14532d; color: #fff; padding: 14px 28px;
+  display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+}
+header.site .logo { font-size: 18px; font-weight: 700; letter-spacing: .04em; }
+header.site nav { display: flex; gap: 4px 14px; flex-wrap: wrap; }
+header.site nav a { color: #d1fae5; text-decoration: none; font-size: 13px; }
+header.site nav a:hover, header.site nav a.current { color: #fff; text-decoration: underline; }
+main { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+h1 { font-size: 26px; border-bottom: 3px solid var(--brand); padding-bottom: 8px; margin: 8px 0 4px; }
+.lead { color: var(--sub); margin: 0 0 28px; }
+h2 {
+  font-size: 20px; margin: 56px 0 12px; padding: 6px 12px;
+  background: var(--brand-bg); border-left: 5px solid var(--brand); border-radius: 4px;
+}
+h3 { font-size: 16px; margin: 28px 0 8px; }
+figure { margin: 14px 0 6px; }
+figure img {
+  width: 100%; border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+figcaption { font-size: 12.5px; color: var(--sub); margin-top: 6px; }
+ol.steps { padding-left: 1.4em; }
+ol.steps li { margin: 6px 0; }
+ol.steps li::marker { font-weight: 700; color: var(--brand); }
+.note, .tip {
+  border-radius: 8px; padding: 10px 14px; margin: 14px 0; font-size: 13.5px;
+}
+.note { background: var(--note-bg); border: 1px solid var(--note-line); }
+.note::before { content: "⚠ 注意　"; font-weight: 700; }
+.tip { background: var(--tip-bg); border: 1px solid var(--tip-line); }
+.tip::before { content: "💡 ヒント　"; font-weight: 700; }
+table.info { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 12px 0; }
+table.info th, table.info td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; }
+table.info th { background: #f4f4f5; white-space: nowrap; }
+kbd, .btn-label {
+  display: inline-block; padding: 1px 8px; border: 1px solid var(--line);
+  border-radius: 5px; background: #fff; font-size: 12.5px; font-weight: 600;
+}
+.toc { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px 24px; }
+.toc ul { margin: 6px 0; padding-left: 1.2em; }
+.toc a { color: var(--brand); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin: 20px 0; }
+.card {
+  display: block; background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; text-decoration: none; color: var(--ink);
+  transition: box-shadow .15s;
+}
+.card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.10); }
+.card b { display: block; color: var(--brand); font-size: 16px; margin-bottom: 4px; }
+.card span { font-size: 13px; color: var(--sub); }
+footer.site { text-align: center; color: var(--sub); font-size: 12px; padding: 26px 0 40px; }
+@media print {
+  header.site nav { display: none; }
+  figure img { box-shadow: none; }
+  h2 { break-after: avoid; }
+  figure { break-inside: avoid; }
+}
