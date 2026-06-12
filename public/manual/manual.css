@@ -70,3 +70,11 @@ footer.site { text-align: center; color: var(--sub); font-size: 12px; padding: 2
   h2 { break-after: avoid; }
   figure { break-inside: avoid; }
 }
+
+/* インストール版アプリ（PWA）でブラウザの戻るが無くても復帰できる常設ボタン */
+.manual-back {
+  margin-left: auto; align-self: center; white-space: nowrap;
+  padding: 5px 12px; border: 1px solid rgba(255,255,255,.45); border-radius: 999px;
+  color: #fff; text-decoration: none; font-size: 12.5px;
+}
+.manual-back:hover { background: rgba(255,255,255,.12); }
