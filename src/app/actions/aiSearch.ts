@@ -137,7 +137,7 @@ export async function aiSearchToFilter(apiName: string, query: string): Promise<
   const q = query?.trim()
   if (!q) throw new Error('検索したい内容を入力してください')
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })  // JST 基準
   const fieldSpec = fields.map((f) => {
     const opt = f.options ? `（選択肢 value:label = ${f.options.map((o) => `${o.value}:${o.label}`).join(', ')}）` : ''
     return `- ${f.field}: ${f.label}（型: ${f.type}）${opt}`
@@ -245,7 +245,7 @@ async function aiSearchTurnAutoImpl(
   }
   if (allowed.length === 0) throw new Error('検索できるブックがありません')
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })  // JST 基準
   const bookSpecs = allowed.map((api) => {
     const lines = SEARCH_FIELDS[api].map((f) => {
       const opt = f.options ? `（選択肢 value:label = ${f.options.map((o) => `${o.value}:${o.label}`).join(', ')}）` : ''
