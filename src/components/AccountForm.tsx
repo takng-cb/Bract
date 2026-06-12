@@ -1,12 +1,22 @@
 'use client'
 
+/**
+ * 取引先の新規作成フォーム（REQ-0051）。
+ *
+ * レコード詳細ページと同じ見た目に揃える:
+ *   - RecordColumns（左=取引先情報の dense カード / 右=会社情報・メモの広いカード）
+ *   - カードは EditableInfoCard（編集モード）と同じスタイル（CreateInfoCard）
+ *   - 保存/キャンセルはページヘッダ（RecordHeader actions、form 属性で紐付け）と
+ *     フォーム末尾の両方に置く
+ */
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import type { FieldDef } from '@/lib/objectMetadata'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'
 import CreateFeedback from '@/components/CreateFeedback'
-import FormSection from '@/components/FormSection'
+import CreateInfoCard from '@/components/create/CreateInfoCard'
+import { RecordColumns } from '@/components/record/RecordUI'
 import type { CreateAction } from '@/lib/duplicateTypes'
 
 type UserOption = { id: string; name: string }
@@ -17,6 +27,8 @@ type AccountFormProps = {
   users?: UserOption[]
   customFields?: FieldDef[]
   customValues?: Record<string, string | null>
+  /** ページヘッダの保存ボタンと紐付ける form id */
+  formId?: string
   defaultValues?: {
     name?: string
     type?: string | null
@@ -40,132 +52,84 @@ const INDUSTRIES = [
 
 const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他社', 'その他']
 
-export default function AccountForm({ action, cancelHref, users = [], defaultValues = {}, customFields = [], customValues = {} }: AccountFormProps) {
+export default function AccountForm({ action, cancelHref, users = [], defaultValues = {}, customFields = [], customValues = {}, formId = 'record-create-form' }: AccountFormProps) {
   const [state, formAction, pending] = useActionState(action, null)
   const formRef = useRef<HTMLFormElement>(null)
 
-  const labelCls = 'block text-sm font-medium text-zinc-700 mb-1'
-  const inputCls = 'w-full border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
-  const selectCls = `${inputCls} bg-white`
-
-  const actions = (
-    <div className="flex gap-3">
-      <button
-        type="submit"
-        disabled={pending}
-        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-      >
-        {pending ? '保存中...' : '保存'}
-      </button>
-      <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-        キャンセル
-      </Link>
-    </div>
-  )
+  const opt = (v: string) => ({ value: v, label: v })
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
+    <form id={formId} ref={formRef} action={formAction}>
       <CreateFeedback state={state} formRef={formRef} />
 
-      {actions}
-
-      <FormSection
-        title="基本情報"
-        action={
-          <FormFillModal
-            formRef={formRef}
-            csvFormat="会社名,種別,業種,電話番号,Webサイト,住所,年間売上,従業員数,ステータス,メモ"
-            fieldMap={{
-              '会社名': 'name', '種別': 'type', '業種': 'industry', '電話番号': 'phone',
-              'Webサイト': 'website', '住所': 'address', '年間売上': 'annual_revenue',
-              '従業員数': 'employee_count', 'ステータス': 'status', 'メモ': 'description',
-            }}
-            valueMap={{ status: { '見込み': 'prospect', '有効': 'active', '無効': 'inactive' } }}
-            customFields={customFields}
+      <RecordColumns
+        narrow
+        left={
+          <CreateInfoCard
+            dense
+            title="取引先情報"
+            fields={[
+              { label: '取引先種別', name: 'type', kind: 'select', defaultValue: defaultValues.type, options: ACCOUNT_TYPES.map(opt), emptyOption: '選択してください' },
+              { label: '業種', name: 'industry', kind: 'select', defaultValue: defaultValues.industry, options: INDUSTRIES.map(opt), emptyOption: '選択してください' },
+              { label: '電話番号', name: 'phone', kind: 'tel', defaultValue: defaultValues.phone, placeholder: '例: 03-1234-5678' },
+              { label: 'Webサイト', name: 'website', defaultValue: defaultValues.website, placeholder: '例: https://example.com' },
+              { label: '住所', name: 'address', defaultValue: defaultValues.address, placeholder: '例: 東京都渋谷区...' },
+              { label: '年間売上（円）', name: 'annual_revenue', kind: 'number', min: 0, defaultValue: defaultValues.annual_revenue, placeholder: '例: 100000000' },
+              { label: '従業員数', name: 'employee_count', kind: 'number', min: 0, defaultValue: defaultValues.employee_count, placeholder: '例: 50' },
+              { label: '担当者', name: 'owner_id', kind: 'select', defaultValue: defaultValues.owner_id, options: users.map((u) => ({ value: u.id, label: u.name })), emptyOption: '未設定' },
+              {
+                label: 'ステータス', name: 'status', kind: 'select', defaultValue: defaultValues.status ?? 'active', emptyOption: null,
+                options: [
+                  { value: 'prospect', label: '見込み' },
+                  { value: 'active',   label: '有効' },
+                  { value: 'inactive', label: '無効' },
+                ],
+              },
+            ]}
           />
         }
       >
-        <div className="space-y-4">
-          <div>
-            <label className={labelCls}>会社名 <span className="text-red-500">*</span></label>
-            <input name="name" defaultValue={defaultValues.name ?? ''} required className={inputCls} placeholder="例: 株式会社サンプル" />
-          </div>
+        <CreateInfoCard
+          title="会社情報"
+          action={
+            <FormFillModal
+              formRef={formRef}
+              csvFormat="会社名,種別,業種,電話番号,Webサイト,住所,年間売上,従業員数,ステータス,メモ"
+              fieldMap={{
+                '会社名': 'name', '種別': 'type', '業種': 'industry', '電話番号': 'phone',
+                'Webサイト': 'website', '住所': 'address', '年間売上': 'annual_revenue',
+                '従業員数': 'employee_count', 'ステータス': 'status', 'メモ': 'description',
+              }}
+              valueMap={{ status: { '見込み': 'prospect', '有効': 'active', '無効': 'inactive' } }}
+              customFields={customFields}
+            />
+          }
+          fields={[
+            { label: '会社名', name: 'name', defaultValue: defaultValues.name, required: true, placeholder: '例: 株式会社サンプル', fullWidth: true },
+            { label: '概要・メモ', name: 'description', kind: 'textarea', defaultValue: defaultValues.description, placeholder: '取引先に関するメモを記入してください...', fullWidth: true },
+          ]}
+        />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>取引先種別</label>
-              <select name="type" defaultValue={defaultValues.type ?? ''} className={selectCls}>
-                <option value="">選択してください</option>
-                {ACCOUNT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>業種</label>
-              <select name="industry" defaultValue={defaultValues.industry ?? ''} className={selectCls}>
-                <option value="">選択してください</option>
-                {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
-              </select>
-            </div>
-          </div>
+        {customFields.length > 0 && (
+          <CreateInfoCard title="カスタム項目" fields={[]}>
+            <CustomFieldsFields fields={customFields} values={customValues} />
+          </CreateInfoCard>
+        )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>電話番号</label>
-              <input name="phone" defaultValue={defaultValues.phone ?? ''} className={inputCls} placeholder="例: 03-1234-5678" />
-            </div>
-            <div>
-              <label className={labelCls}>Webサイト</label>
-              <input name="website" defaultValue={defaultValues.website ?? ''} className={inputCls} placeholder="例: https://example.com" />
-            </div>
-          </div>
-
-          <div>
-            <label className={labelCls}>住所</label>
-            <input name="address" defaultValue={defaultValues.address ?? ''} className={inputCls} placeholder="例: 東京都渋谷区..." />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>年間売上（円）</label>
-              <input name="annual_revenue" type="number" min="0" defaultValue={defaultValues.annual_revenue ?? ''} className={inputCls} placeholder="例: 100000000" />
-            </div>
-            <div>
-              <label className={labelCls}>従業員数</label>
-              <input name="employee_count" type="number" min="0" defaultValue={defaultValues.employee_count ?? ''} className={inputCls} placeholder="例: 50" />
-            </div>
-          </div>
-
-          <div>
-            <label className={labelCls}>担当者</label>
-            <select name="owner_id" defaultValue={defaultValues.owner_id ?? ''} className={selectCls}>
-              <option value="">未設定</option>
-              {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className={labelCls}>概要・メモ</label>
-            <textarea name="description" rows={3} defaultValue={defaultValues.description ?? ''} className={`${inputCls} resize-none`} placeholder="取引先に関するメモを記入してください..." />
-          </div>
-
-          <div>
-            <label className={labelCls}>ステータス</label>
-            <select name="status" defaultValue={defaultValues.status ?? 'active'} className={selectCls}>
-              <option value="prospect">見込み</option>
-              <option value="active">有効</option>
-              <option value="inactive">無効</option>
-            </select>
-          </div>
+        {/* フォーム末尾の保存/キャンセル（ヘッダと同じ動作） */}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={pending}
+            className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {pending ? '保存中...' : '保存'}
+          </button>
+          <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+            キャンセル
+          </Link>
         </div>
-      </FormSection>
-
-      {customFields.length > 0 && (
-        <FormSection title="カスタム項目">
-          <CustomFieldsFields fields={customFields} values={customValues} />
-        </FormSection>
-      )}
-
-      {actions}
+      </RecordColumns>
     </form>
   )
 }
