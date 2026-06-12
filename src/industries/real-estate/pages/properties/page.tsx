@@ -18,8 +18,30 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
+import { Kanban as KanbanIcon, List as ListIcon } from 'lucide-react'
+import PropertyBoard, { type PropertyBoardColumn } from '@/industries/real-estate/components/PropertyBoard'
+import { getSystemSettings } from '@/lib/systemSettings'
 
 const PAGE_SIZE = 20
+
+/** パイプラインのカラム（タブ別。dot は OpportunityBoard と同じ作法 REQ-0067） */
+const BOARD_COLUMNS: Record<'real_estate' | 'other', { id: string; label: string; dot: string }[]> = {
+  real_estate: [
+    { id: '募集中', label: '募集中', dot: 'bg-blue-500' },
+    { id: '交渉中', label: '交渉中', dot: 'bg-amber-500' },
+    { id: '成約',   label: '成約',   dot: 'bg-green-500' },
+    { id: '管理中', label: '管理中', dot: 'bg-violet-500' },
+    { id: '終了',   label: '終了',   dot: 'bg-zinc-400' },
+  ],
+  other: [
+    { id: '提案中', label: '提案中', dot: 'bg-blue-500' },
+    { id: '交渉中', label: '交渉中', dot: 'bg-amber-500' },
+    { id: '成約',   label: '成約',   dot: 'bg-green-500' },
+    { id: '終了',   label: '終了',   dot: 'bg-zinc-400' },
+  ],
+}
+/** 溜まり続ける終端ステータス（ボードでは直近Nヶ月のみ表示。REQ-0044） */
+const BOARD_TERMINAL_STATUSES = ['成約', '終了']
 
 const STATUS_COLORS: Record<string, string> = {
   '募集中': 'bg-blue-100 text-blue-700',
@@ -72,7 +94,7 @@ const FIELDS_OTHER: FieldDef[] = [
 export default async function PropertiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; group?: string; sort?: string }>
+  searchParams: Promise<{ f?: string | string[]; page?: string; view?: string; mode?: string; group?: string; sort?: string }>
 }) {
   // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
@@ -81,12 +103,13 @@ export default async function PropertiesPage({
     searchParams, canEdit(), getListViewColumns('properties'), userIdPromise, dvPromise,
   ])
   const view      = sp.view === 'other' ? 'other' : 'real_estate'
+  const mode      = sp.mode === 'board' ? 'board' : 'list'   // パイプライン表示（REQ-0067）
   const filterRaw = [sp.f].flat().filter(Boolean) as string[]
   const page      = Math.max(1, parseInt(sp.page ?? '1', 10))
   const groupBy   = (sp.group ?? '').split(',').filter(Boolean)
   const isGrouped = groupBy.length > 0
 
-  if (filterRaw.length === 0 && groupBy.length === 0) {
+  if (filterRaw.length === 0 && groupBy.length === 0 && mode !== 'board') {  // ボード表示は既定ビューに飛ばさない
     if (dv && (dv.filter_params.length > 0 || dv.group_params)) {
       const p = new URLSearchParams({ view })
       dv.filter_params.forEach((f) => p.append('f', f))
@@ -107,6 +130,7 @@ export default async function PropertiesPage({
     address:          properties.address,
     area:             properties.area,
     price:            properties.price,
+    updated_at:       properties.updated_at,
     accounts: { id: accounts.id, name: accounts.name },
     contacts: { id: contacts.id, full_name: contacts.full_name },
   })
@@ -129,6 +153,42 @@ export default async function PropertiesPage({
   const isRE    = view === 'real_estate'
   const FIELDS  = isRE ? FIELDS_RE : FIELDS_OTHER
   const newHref = `/properties/new?view=${view}`
+
+  // ── パイプライン（REQ-0067）: フィルタ適用後の全件から組み立て ──
+  type Row = typeof raw[0]
+  let boardColumns: PropertyBoardColumn[] = []
+  if (mode === 'board') {
+    // 成約/終了は溜まり続けるため直近Nヶ月のみ表示（REQ-0044。0=無制限）
+    const windowMonths = Math.max(0, Number((await getSystemSettings(['board_closed_window_months'])).board_closed_window_months) || 0)
+    const cutoff = new Date()
+    cutoff.setMonth(cutoff.getMonth() - windowMonths)
+    const all = sorted as unknown as Row[]
+    boardColumns = BOARD_COLUMNS[view].map((col) => {
+      const inCol = all.filter((r) => r.status === col.id)
+      const isTerminal = BOARD_TERMINAL_STATUSES.includes(col.id)
+      const windowed = isTerminal && windowMonths > 0
+        ? inCol.filter((r) => r.updated_at && new Date(r.updated_at) >= cutoff)
+        : inCol
+      const items = windowed.map((r) => ({
+        id: r.id, name: r.name, address: r.address,
+        propertyType: isRE ? r.property_type : null,
+        transactionType: r.transaction_type,
+        price: r.price != null ? Number(r.price) : null,
+      }))
+      const winP = new URLSearchParams({ view })
+      winP.append('f', `status|eq|${col.id}`)
+      return {
+        id: col.id, label: col.label, dot: col.dot, items,
+        sum: items.reduce((a, b) => a + (b.price ?? 0), 0),
+        windowNote: isTerminal && windowMonths > 0 && inCol.length !== windowed.length
+          ? `直近${windowMonths}ヶ月 ・ 全${inCol.length}件中${windowed.length}件`
+          : undefined,
+        moreHref: isTerminal && windowMonths > 0 && inCol.length !== windowed.length
+          ? `/properties?${winP.toString()}`
+          : undefined,
+      }
+    })
+  }
 
   const groupableFields = FIELDS.map((f) => ({ key: f.value, label: f.label }))
 
@@ -180,15 +240,15 @@ export default async function PropertiesPage({
         </div>
       </div>
 
-      {/* タブ */}
-      <div className="flex gap-1 mb-4 border-b border-zinc-200">
+      {/* タブ＋表示切替（パイプライン/リスト REQ-0067） */}
+      <div className="flex items-center gap-1 mb-4 border-b border-zinc-200">
         {[
           { value: 'real_estate', label: '不動産' },
           { value: 'other',       label: 'その他商品' },
         ].map(({ value, label }) => (
           <Link
             key={value}
-            href={`/properties?view=${value}`}
+            href={`/properties?view=${value}${mode === 'board' ? '&mode=board' : ''}`}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               view === value
                 ? 'border-blue-600 text-blue-600'
@@ -198,7 +258,29 @@ export default async function PropertiesPage({
             {label}
           </Link>
         ))}
+        <div className="ml-auto mb-1.5 inline-flex items-center rounded-lg border border-zinc-200 bg-zinc-50 p-0.5">
+          {([
+            { m: 'board', label: 'パイプライン', icon: <KanbanIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden /> },
+            { m: 'list',  label: 'リスト',       icon: <ListIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden /> },
+          ] as const).map(({ m, label }, i, arr) => (
+            <Link
+              key={m}
+              href={`/properties?view=${view}${m === 'board' ? '&mode=board' : ''}`}
+              title={label}
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                mode === m ? 'bg-white text-zinc-900 shadow-xs' : 'text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              {arr[i].icon}<span className="hidden sm:inline">{label}</span>
+            </Link>
+          ))}
+        </div>
       </div>
+
+      {mode === 'board' ? (
+        <PropertyBoard columns={boardColumns} canEdit={edit} newHrefBase={newHref} />
+      ) : (
+      <>
 
       <SavedViewsPanel
         objectType="properties"
@@ -288,6 +370,8 @@ export default async function PropertiesPage({
           filterParams={filterRaw}
           extraParams={{ view }}
         />
+      )}
+      </>
       )}
     </div>
   )
