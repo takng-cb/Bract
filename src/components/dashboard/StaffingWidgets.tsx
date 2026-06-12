@@ -1,15 +1,22 @@
 /**
  * staffing モジュールの状況ボード（#4 / #105）。
  * 案件総数・稼働中スタッフ数＋今後の業務日（直近の案件）を表示。/modules/staffing で使用。
+ * widgetPrefs（scope='module:staffing'）でウィジェットの表示/非表示・並びを制御できる。
  */
+import { Fragment, type ReactNode } from 'react'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { assignments, staff, accounts } from '@/lib/schema'
 import { eq, and, ne, count, asc, gte, isNotNull } from 'drizzle-orm'
 import { Package, UserRound } from 'lucide-react'
 import { todayLocal } from '@/lib/dateUtils'
+import type { DashboardWidgetPrefs } from '@/lib/dashboard/widgets'
+import { sortedVisibleModuleWidgets } from '@/lib/dashboard/moduleWidgets'
 
-export default async function StaffingWidgets() {
+export default async function StaffingWidgets({ widgetPrefs }: { widgetPrefs?: DashboardWidgetPrefs | null }) {
+  const visible = sortedVisibleModuleWidgets('staffing', widgetPrefs)
+  if (visible.length === 0) return null
+
   const today = todayLocal()
   const [asgCount, staffCount, upcoming] = await Promise.all([
     db.select({ c: count() }).from(assignments),
@@ -21,8 +28,9 @@ export default async function StaffingWidgets() {
       .orderBy(asc(assignments.service_date)).limit(12),
   ])
 
-  return (
-    <section className="mb-8 space-y-6">
+  // ウィジェット id → セクション（moduleWidgets.ts の定義と対）
+  const sections: Record<string, ReactNode> = {
+    'staffing-counts': (
       <div className="grid grid-cols-2 gap-4">
         <Link href="/assignments" className="bg-white border border-zinc-200 shadow-xs rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
           <div className="flex items-center gap-2 mb-2"><span className="grid place-items-center w-7 h-7 rounded-md bg-brand-50 text-brand-700 shrink-0"><Package className="w-4 h-4" strokeWidth={2.25} /></span><p className="text-sm text-zinc-500">案件</p></div>
@@ -33,7 +41,8 @@ export default async function StaffingWidgets() {
           <p className="text-3xl font-bold tabular-nums text-zinc-800">{Number(staffCount[0]?.c ?? 0).toLocaleString()}<span className="text-sm font-normal text-zinc-500 ml-1">名</span></p>
         </Link>
       </div>
-
+    ),
+    'staffing-upcoming-assignments': (
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-zinc-800">今後の業務日<span className="ml-2 text-zinc-400 font-normal text-sm">（直近の案件）</span></h2>
@@ -53,6 +62,12 @@ export default async function StaffingWidgets() {
           </div>
         )}
       </div>
+    ),
+  }
+
+  return (
+    <section className="mb-8 space-y-6">
+      {visible.map((w) => <Fragment key={w.id}>{sections[w.id]}</Fragment>)}
     </section>
   )
 }

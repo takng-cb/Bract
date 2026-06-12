@@ -1,14 +1,21 @@
 /**
  * real-estate モジュールの状況ボード（#4 / #105）。
  * 物件の総数・募集中件数＋最近更新の物件を表示。/modules/real-estate で使用。
+ * widgetPrefs（scope='module:real-estate'）でウィジェットの表示/非表示・並びを制御できる。
  */
+import { Fragment, type ReactNode } from 'react'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { properties } from '@/industries/real-estate/schema'
 import { eq, count, desc } from 'drizzle-orm'
 import { House } from 'lucide-react'
+import type { DashboardWidgetPrefs } from '@/lib/dashboard/widgets'
+import { sortedVisibleModuleWidgets } from '@/lib/dashboard/moduleWidgets'
 
-export default async function RealEstateWidgets() {
+export default async function RealEstateWidgets({ widgetPrefs }: { widgetPrefs?: DashboardWidgetPrefs | null }) {
+  const visible = sortedVisibleModuleWidgets('real-estate', widgetPrefs)
+  if (visible.length === 0) return null
+
   const [totalRows, openRows, recent] = await Promise.all([
     db.select({ c: count() }).from(properties),
     db.select({ c: count() }).from(properties).where(eq(properties.status, '募集中')),
@@ -16,8 +23,9 @@ export default async function RealEstateWidgets() {
       .from(properties).orderBy(desc(properties.updated_at)).limit(8),
   ])
 
-  return (
-    <section className="mb-8 space-y-6">
+  // ウィジェット id → セクション（moduleWidgets.ts の定義と対）
+  const sections: Record<string, ReactNode> = {
+    'real-estate-counts': (
       <div className="grid grid-cols-2 gap-4">
         <Link href="/properties" className="bg-white border border-zinc-200 shadow-xs rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
           <div className="flex items-center gap-2 mb-2"><span className="grid place-items-center w-7 h-7 rounded-md bg-brand-50 text-brand-700 shrink-0"><House className="w-4 h-4" strokeWidth={2.25} /></span><p className="text-sm text-zinc-500">物件</p></div>
@@ -28,7 +36,8 @@ export default async function RealEstateWidgets() {
           <p className="text-3xl font-bold tabular-nums text-blue-600">{Number(openRows[0]?.c ?? 0).toLocaleString()}<span className="text-sm font-normal text-zinc-500 ml-1">件</span></p>
         </Link>
       </div>
-
+    ),
+    'real-estate-recent-properties': (
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-zinc-800">最近更新された物件</h2>
@@ -48,6 +57,12 @@ export default async function RealEstateWidgets() {
           </div>
         )}
       </div>
+    ),
+  }
+
+  return (
+    <section className="mb-8 space-y-6">
+      {visible.map((w) => <Fragment key={w.id}>{sections[w.id]}</Fragment>)}
     </section>
   )
 }

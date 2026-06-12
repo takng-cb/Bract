@@ -18,9 +18,13 @@ type Props = {
   availableWidgets: WidgetMeta[]
   /** 現在のユーザー設定 (null なら全 default) */
   currentPrefs:     DashboardWidgetPrefs | null
+  /** 保存先 scope（省略時 'global' = /dashboard。モジュールホームは 'module:<id>'。#105） */
+  scope?:           string
+  /** 見出し（省略時は /settings 埋め込み用の「ホーム表示設定」） */
+  heading?:         string
 }
 
-export default function DashboardWidgetSettings({ availableWidgets, currentPrefs }: Props) {
+export default function DashboardWidgetSettings({ availableWidgets, currentPrefs, scope, heading }: Props) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -60,7 +64,7 @@ export default function DashboardWidgetSettings({ availableWidgets, currentPrefs
     const prefs: DashboardWidgetPrefs = {}
     order.forEach((id, idx) => { prefs[id] = { enabled: enabledMap[id], order: idx } })
     startTransition(async () => {
-      const r = await updateDashboardWidgetPrefs(prefs)
+      const r = await updateDashboardWidgetPrefs(prefs, scope)
       if (r.ok) {
         setMessage({ type: 'success', text: '保存しました' })
         router.refresh()
@@ -83,7 +87,7 @@ export default function DashboardWidgetSettings({ availableWidgets, currentPrefs
     <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="flex items-center gap-1.5 text-sm font-bold text-zinc-700"><NavIcon icon="📊" className="w-4 h-4" />ホーム表示設定</h2>
+          <h2 className="flex items-center gap-1.5 text-sm font-bold text-zinc-700"><NavIcon icon="📊" className="w-4 h-4" />{heading ?? 'ホーム表示設定'}</h2>
           <p className="text-xs text-zinc-400 mt-1">
             表示するウィジェットの選択と並び替え ({enabledCount} / {availableWidgets.length} 表示中)
           </p>

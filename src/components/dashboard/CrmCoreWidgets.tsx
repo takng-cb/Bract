@@ -1,15 +1,22 @@
 /**
  * crm-core モジュールの状況ボード（#4 / #105）。
  * 取引先・人物の件数＋最近更新レコードを表示。/modules/crm-core で使用。
+ * widgetPrefs（scope='module:crm-core'）でウィジェットの表示/非表示・並びを制御できる。
  */
+import { Fragment, type ReactNode } from 'react'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { accounts, contacts } from '@/lib/schema'
 import { ne, count, desc } from 'drizzle-orm'
 import { Building2, Users } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
+import type { DashboardWidgetPrefs } from '@/lib/dashboard/widgets'
+import { sortedVisibleModuleWidgets } from '@/lib/dashboard/moduleWidgets'
 
-export default async function CrmCoreWidgets() {
+export default async function CrmCoreWidgets({ widgetPrefs }: { widgetPrefs?: DashboardWidgetPrefs | null }) {
+  const visible = sortedVisibleModuleWidgets('crm-core', widgetPrefs)
+  if (visible.length === 0) return null
+
   const [accCount, conCount, recentAccounts, recentContacts] = await Promise.all([
     db.select({ c: count() }).from(accounts).where(ne(accounts.status, 'inactive')),
     db.select({ c: count() }).from(contacts),
@@ -22,8 +29,9 @@ export default async function CrmCoreWidgets() {
     ...recentContacts.map((r) => ({ type: '人物', icon: '👤', href: `/contacts/${r.id}`, title: r.full_name, sub: r.title ?? '', at: r.updated_at })),
   ].sort((a, b) => new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime()).slice(0, 8)
 
-  return (
-    <section className="mb-8 space-y-6">
+  // ウィジェット id → セクション（moduleWidgets.ts の定義と対）
+  const sections: Record<string, ReactNode> = {
+    'crm-core-counts': (
       <div className="grid grid-cols-2 gap-4">
         <Link href="/accounts" className="bg-white border border-zinc-200 shadow-xs rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all">
           <div className="flex items-center gap-2 mb-2"><span className="grid place-items-center w-7 h-7 rounded-md bg-brand-50 text-brand-700 shrink-0"><Building2 className="w-4 h-4" strokeWidth={2.25} /></span><p className="text-sm text-zinc-500">取引先</p></div>
@@ -34,7 +42,8 @@ export default async function CrmCoreWidgets() {
           <p className="text-3xl font-bold tabular-nums text-zinc-800">{Number(conCount[0]?.c ?? 0).toLocaleString()}<span className="text-sm font-normal text-zinc-500 ml-1">名</span></p>
         </Link>
       </div>
-
+    ),
+    'crm-core-recent-records': (
       <div>
         <h2 className="font-semibold text-zinc-800 mb-3">最近更新されたレコード</h2>
         {recent.length === 0 ? (
@@ -50,6 +59,12 @@ export default async function CrmCoreWidgets() {
           </div>
         )}
       </div>
+    ),
+  }
+
+  return (
+    <section className="mb-8 space-y-6">
+      {visible.map((w) => <Fragment key={w.id}>{sections[w.id]}</Fragment>)}
     </section>
   )
 }
