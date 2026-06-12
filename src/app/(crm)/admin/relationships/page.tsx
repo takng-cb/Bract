@@ -21,7 +21,7 @@ export default async function AdminRelationshipsPage() {
       <PageHeader
         icon="🔗"
         title="関係性管理"
-        description="オブジェクト間の多対多リレーションを定義します"
+        description="ブック間の多対多リレーションを定義します"
         actions={
           <Link
             href="/admin/relationships/new"

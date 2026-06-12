@@ -1,11 +1,11 @@
-import { getAllObjectDefs, getCustomObjectsForNav } from '@/lib/objectMetadata'
+import { getAllBookDefs, getCustomBooksForNav } from '@/lib/bookMetadata'
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
-import { deleteObjectDef } from '@/app/actions/objectDefinitions'
+import { deleteBookDef } from '@/app/actions/bookDefinitions'
 import DeleteButton from '@/components/DeleteButton'
 import NavOrderEditor from '@/components/NavOrderEditor'
 import { getNavOrderSettings } from '@/app/actions/navSettings'
-import { ALL_NAV_ITEMS, BOTTOM_NAV_ITEMS, customObjectsToNavItems, buildExtraNavItems } from '@/lib/navItems'
+import { ALL_NAV_ITEMS, BOTTOM_NAV_ITEMS, customBooksToNavItems, buildExtraNavItems } from '@/lib/navItems'
 import { buildNavGroups } from '@/lib/navOrder'
 import { activeIndustry } from '@/lib/industry'
 import ActivityTypesEditor from '@/components/ActivityTypesEditor'
@@ -43,13 +43,13 @@ const CATEGORY_COLOR: Record<ModuleCategory, string> = {
   industry: 'bg-amber-100 text-amber-700',
 }
 
-export default async function AdminObjectsPage() {
+export default async function AdminBooksPage() {
   await requireAdmin()
 
-  const [objects, { userOrder, systemOrder }, customObjects, activityTypes, enabledModules, lic, productBookCandidates, productBooks, approvalConfigs, approvalAdminData, approvalBooks, mobileNavSettings] = await Promise.all([
-    getAllObjectDefs(),
+  const [objects, { userOrder, systemOrder }, customBooksForNav, activityTypes, enabledModules, lic, productBookCandidates, productBooks, approvalConfigs, approvalAdminData, approvalBooks, mobileNavSettings] = await Promise.all([
+    getAllBookDefs(),
     getNavOrderSettings(),
-    getCustomObjectsForNav(),
+    getCustomBooksForNav(),
     getActivityTypes(),
     getEnabledModules(),
     getLicense(),
@@ -80,8 +80,8 @@ export default async function AdminObjectsPage() {
   const customBooks = objects.filter((o) => !moduleBookApis.has(o.api_name))
 
   // ナビ並び替えに渡すグループ構造（layout.tsx のサイドバー構築と同じ手順で組み、ドリフトを防ぐ）
-  const customNavItems = customObjectsToNavItems(
-    customObjects.filter((o) => o.nav_enabled),
+  const customNavItems = customBooksToNavItems(
+    customBooksForNav.filter((o) => o.nav_enabled),
     activeIndustry,
   )
   const navGroups = buildNavGroups(enabledModules, buildExtraNavItems(customNavItems, activeIndustry))
@@ -213,7 +213,7 @@ export default async function AdminObjectsPage() {
                     >
                       フィールド管理 →
                     </Link>
-                    {!obj.is_builtin && <ObjectDeleteButton id={obj.id} label={obj.label_plural} />}
+                    {!obj.is_builtin && <BookDeleteButton id={obj.id} label={obj.label_plural} />}
                   </div>
                 </div>
               ))}
@@ -339,9 +339,9 @@ export default async function AdminObjectsPage() {
   )
 }
 
-// deleteObjectDef を bind して Client Component に渡す
-async function ObjectDeleteButton({ id, label }: { id: string; label: string }) {
-  const action = deleteObjectDef.bind(null, id)
+// deleteBookDef を bind して Client Component に渡す
+async function BookDeleteButton({ id, label }: { id: string; label: string }) {
+  const action = deleteBookDef.bind(null, id)
   return (
     <DeleteButton
       action={action}

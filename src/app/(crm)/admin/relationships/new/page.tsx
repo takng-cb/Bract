@@ -24,15 +24,15 @@ export default async function NewRelationshipPage() {
         </Link>
         <h1 className="text-2xl font-bold text-zinc-900 mt-2">関係性を追加</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          オブジェクト間の多対多リレーションを定義します
+          ブック間の多対多リレーションを定義します
         </p>
       </div>
 
       <form action={handleCreate} className="bg-white rounded-lg border border-zinc-200 p-6 space-y-5">
-        {/* ソースオブジェクト */}
+        {/* ソースブック */}
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">
-            ソース（起点）オブジェクト <span className="text-red-500">*</span>
+            ソース（起点）ブック <span className="text-red-500">*</span>
           </label>
           <select
             name="source_object_type"
@@ -46,10 +46,10 @@ export default async function NewRelationshipPage() {
           </select>
         </div>
 
-        {/* ターゲットオブジェクト */}
+        {/* ターゲットブック */}
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1">
-            ターゲット（終点）オブジェクト <span className="text-red-500">*</span>
+            ターゲット（終点）ブック <span className="text-red-500">*</span>
           </label>
           <select
             name="target_object_type"

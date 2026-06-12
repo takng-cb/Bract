@@ -5,7 +5,7 @@ import { book_records } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions'
-import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
+import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { redirect } from 'next/navigation'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
@@ -16,13 +16,13 @@ import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 /** FormData から data JSON を構築して INSERT */
 export async function createCustomRecord(
-  objectApiName: string,
+  bookApiName: string,
   formData: FormData,
 ): Promise<void> {
-  await requirePermission(objectApiName, 'create')
+  await requirePermission(bookApiName, 'create')
 
-  const obj = await getObjectDef(objectApiName)
-  if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
+  const obj = await getBookDef(bookApiName)
+  if (!obj) throw new Error(`ブック "${bookApiName}" が見つかりません`)
 
   const fields = await getFieldDefs(obj.id)
   const data: Record<string, unknown> = {}
@@ -37,22 +37,22 @@ export async function createCustomRecord(
     .values({ object_id: obj.id, data, owner_id })
     .returning({ id: book_records.id })
 
-  revalidatePath(`/books/${objectApiName}`)
-  redirect(`/books/${objectApiName}/${rec.id}`)
+  revalidatePath(`/books/${bookApiName}`)
+  redirect(`/books/${bookApiName}/${rec.id}`)
 }
 
 /** FormData から data JSON を構築して UPDATE */
 export async function updateCustomRecord(
-  objectApiName: string,
+  bookApiName: string,
   recordId: string,
   formData: FormData,
 ): Promise<void> {
-  await requirePermission(objectApiName, 'update')
+  await requirePermission(bookApiName, 'update')
   // 承認待ち中は編集ロック（REQ-0023 / #131）。approvals.object_type はカスタムブックの api_name
-  await assertNotPendingApproval(objectApiName, recordId)
+  await assertNotPendingApproval(bookApiName, recordId)
 
-  const obj = await getObjectDef(objectApiName)
-  if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
+  const obj = await getBookDef(bookApiName)
+  if (!obj) throw new Error(`ブック "${bookApiName}" が見つかりません`)
 
   const fields = await getFieldDefs(obj.id)
   const data: Record<string, unknown> = {}
@@ -67,32 +67,32 @@ export async function updateCustomRecord(
     .set({ data, owner_id, updated_at: new Date() })
     .where(and(eq(book_records.id, recordId), eq(book_records.object_id, obj.id)))
 
-  revalidatePath(`/books/${objectApiName}/${recordId}`)
-  redirect(`/books/${objectApiName}/${recordId}`)
+  revalidatePath(`/books/${bookApiName}/${recordId}`)
+  redirect(`/books/${bookApiName}/${recordId}`)
 }
 
 /** 削除 */
 export async function deleteCustomRecord(
-  objectApiName: string,
+  bookApiName: string,
   recordId: string,
 ): Promise<void> {
-  await requirePermission(objectApiName, 'delete')
+  await requirePermission(bookApiName, 'delete')
   // 承認待ち中は削除も不可（REQ-0023 / #131）。approvals.object_type はカスタムブックの api_name
-  await assertNotPendingApproval(objectApiName, recordId)
+  await assertNotPendingApproval(bookApiName, recordId)
 
-  const obj = await getObjectDef(objectApiName)
-  if (!obj) throw new Error(`オブジェクト "${objectApiName}" が見つかりません`)
+  const obj = await getBookDef(bookApiName)
+  if (!obj) throw new Error(`ブック "${bookApiName}" が見つかりません`)
 
-  await trashRecord('book_records', recordId, obj.label_plural ?? objectApiName)  // 実削除の前にゴミ箱へ退避（REQ-0047）
+  await trashRecord('book_records', recordId, obj.label_plural ?? bookApiName)  // 実削除の前にゴミ箱へ退避（REQ-0047）
 
   // Phase 2: junction クリーンアップ。api_name 経由で参照されているため
-  // objectApiName (= book_definitions.api_name) を渡す。
-  await cleanupRelatedRecordsForParent(objectApiName, recordId)
+  // bookApiName (= book_definitions.api_name) を渡す。
+  await cleanupRelatedRecordsForParent(bookApiName, recordId)
   await db.delete(book_records)
     .where(and(eq(book_records.id, recordId), eq(book_records.object_id, obj.id)))
 
-  revalidatePath(`/books/${objectApiName}`)
-  redirect(`/books/${objectApiName}`)
+  revalidatePath(`/books/${bookApiName}`)
+  redirect(`/books/${bookApiName}`)
 }
 
 // ────────────────────────────────────────────────────────────────

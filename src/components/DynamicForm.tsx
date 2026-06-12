@@ -1,7 +1,7 @@
 'use client'
 import { useActionState, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import type { FieldDef } from '@/lib/objectMetadata'
+import type { FieldDef } from '@/lib/bookMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
 import FormFillModal from '@/components/FormFillModal'
 import SearchableSelect from '@/components/SearchableSelect'

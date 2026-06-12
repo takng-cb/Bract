@@ -1,7 +1,7 @@
 'use client'
 import { useState, useActionState } from 'react'
-import type { FieldDef } from '@/lib/objectMetadata'
-import { updateFieldDef, moveFieldDef } from '@/app/actions/objectDefinitions'
+import type { FieldDef } from '@/lib/bookMetadata'
+import { updateFieldDef, moveFieldDef } from '@/app/actions/bookDefinitions'
 
 const FIELD_TYPES = [
   { value: 'text',     label: 'テキスト' },
@@ -15,20 +15,20 @@ const FIELD_TYPES = [
 
 type Props = {
   field:          FieldDef
-  objectId:       string
+  bookId:       string
   isFirst:        boolean
   isLast:         boolean
   fieldTypLabels: Record<string, string>
-  deleteAction:   (fieldId: string, objectId: string) => Promise<void>
+  deleteAction:   (fieldId: string, bookId: string) => Promise<void>
 }
 
 export default function FieldEditRow({
-  field, objectId, isFirst, isLast, fieldTypLabels, deleteAction,
+  field, bookId, isFirst, isLast, fieldTypLabels, deleteAction,
 }: Props) {
   const [editing, setEditing] = useState(false)
 
-  const moveUp   = moveFieldDef.bind(null, field.id, objectId, 'up')
-  const moveDown = moveFieldDef.bind(null, field.id, objectId, 'down')
+  const moveUp   = moveFieldDef.bind(null, field.id, bookId, 'up')
+  const moveDown = moveFieldDef.bind(null, field.id, bookId, 'down')
 
   if (!editing) {
     return (
@@ -89,7 +89,7 @@ export default function FieldEditRow({
                 編集
               </button>
               <form
-                action={async () => { await deleteAction(field.id, objectId) }}
+                action={async () => { await deleteAction(field.id, bookId) }}
                 onSubmit={(e) => {
                   if (!confirm(`「${field.label}」を削除しますか？`)) e.preventDefault()
                 }}
@@ -108,7 +108,7 @@ export default function FieldEditRow({
   return (
     <FieldEditForm
       field={field}
-      objectId={objectId}
+      bookId={bookId}
       onCancel={() => setEditing(false)}
     />
   )
@@ -119,15 +119,15 @@ export default function FieldEditRow({
 // ──────────────────────────────────────────
 function FieldEditForm({
   field,
-  objectId,
+  bookId,
   onCancel,
 }: {
   field: FieldDef
-  objectId: string
+  bookId: string
   onCancel: () => void
 }) {
   const [fieldType, setFieldType] = useState(field.field_type)
-  const boundAction = updateFieldDef.bind(null, field.id, objectId)
+  const boundAction = updateFieldDef.bind(null, field.id, bookId)
 
   const [error, dispatch, isPending] = useActionState(
     async (_prev: unknown, fd: FormData) => {

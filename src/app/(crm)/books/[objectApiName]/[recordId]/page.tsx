@@ -1,4 +1,4 @@
-import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
+import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { db } from '@/lib/db'
 import { book_records, accounts, contacts, activities, tasks, expenses, change_logs } from '@/lib/schema'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo, batchResolveRelatedRecords } from '@/lib/relatedRecords'
@@ -37,7 +37,7 @@ export default async function CustomRecordDetailPage({
   await requireBookRead(objectApiName)  // RBAC: Read 権限ガード（ADR-0023）
 
   const [obj, edit, allUsers] = await Promise.all([
-    getObjectDef(objectApiName),
+    getBookDef(objectApiName),
     canEdit(),
     getAllUsers(),
   ])

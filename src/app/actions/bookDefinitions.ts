@@ -4,13 +4,13 @@ import { book_definitions, book_fields } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { isAdmin } from '@/lib/auth'
-import { CACHE_TAG_OBJECTS, CACHE_TAG_FIELDS } from '@/lib/objectMetadata'
+import { CACHE_TAG_BOOKS, CACHE_TAG_FIELDS } from '@/lib/bookMetadata'
 
 // ────────────────────────────────────────────────────────────────
-// オブジェクト定義 CRUD
+// ブック定義 CRUD
 // ────────────────────────────────────────────────────────────────
 
-export async function createObjectDef(formData: FormData) {
+export async function createBookDef(formData: FormData) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
   const api_name     = (formData.get('api_name')     as string).trim().toLowerCase().replace(/\s+/g, '_')
@@ -27,12 +27,12 @@ export async function createObjectDef(formData: FormData) {
     nav_enabled: true,
     sort_order:  100,
   })
-  revalidateTag(CACHE_TAG_OBJECTS, 'max')
+  revalidateTag(CACHE_TAG_BOOKS, 'max')
   revalidatePath('/admin/books')
   revalidatePath('/', 'layout')
 }
 
-export async function updateObjectDef(id: string, formData: FormData) {
+export async function updateBookDef(id: string, formData: FormData) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
   const label             = (formData.get('label')        as string).trim()
@@ -49,23 +49,23 @@ export async function updateObjectDef(id: string, formData: FormData) {
     .set({ label, label_plural, icon, nav_enabled, enable_activities, enable_tasks, enable_expenses, updated_at: new Date() })
     .where(eq(book_definitions.id, id))
 
-  revalidateTag(CACHE_TAG_OBJECTS, 'max')
+  revalidateTag(CACHE_TAG_BOOKS, 'max')
   revalidatePath('/admin/books')
   revalidatePath('/', 'layout')
 }
 
-export async function deleteObjectDef(id: string) {
+export async function deleteBookDef(id: string) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
   const obj = await db.select({ is_builtin: book_definitions.is_builtin })
     .from(book_definitions).where(eq(book_definitions.id, id))
     .then((r) => r[0])
 
-  if (!obj) throw new Error('オブジェクトが見つかりません')
-  if (obj.is_builtin) throw new Error('組み込みオブジェクトは削除できません')
+  if (!obj) throw new Error('ブックが見つかりません')
+  if (obj.is_builtin) throw new Error('組み込みブックは削除できません')
 
   await db.delete(book_definitions).where(eq(book_definitions.id, id))
-  revalidateTag(CACHE_TAG_OBJECTS, 'max')
+  revalidateTag(CACHE_TAG_BOOKS, 'max')
   revalidateTag(CACHE_TAG_FIELDS, 'max')
   revalidatePath('/admin/books')
   revalidatePath('/', 'layout')
@@ -75,7 +75,7 @@ export async function deleteObjectDef(id: string) {
 // フィールド定義 CRUD
 // ────────────────────────────────────────────────────────────────
 
-export async function createFieldDef(objectId: string, formData: FormData) {
+export async function createFieldDef(bookId: string, formData: FormData) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
   const api_name   = (formData.get('api_name')   as string).trim().toLowerCase().replace(/\s+/g, '_')
@@ -103,7 +103,7 @@ export async function createFieldDef(objectId: string, formData: FormData) {
   }
 
   await db.insert(book_fields).values({
-    object_id: objectId,
+    object_id: bookId,
     api_name, label, field_type,
     options,
     is_required,
@@ -112,10 +112,10 @@ export async function createFieldDef(objectId: string, formData: FormData) {
     sort_order: 100,
   })
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath(`/admin/books/${objectId}`)
+  revalidatePath(`/admin/books/${bookId}`)
 }
 
-export async function updateFieldDef(fieldId: string, objectId: string, formData: FormData) {
+export async function updateFieldDef(fieldId: string, bookId: string, formData: FormData) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
   const label      = (formData.get('label')      as string).trim()
@@ -139,21 +139,21 @@ export async function updateFieldDef(fieldId: string, objectId: string, formData
     .where(eq(book_fields.id, fieldId))
 
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath(`/admin/books/${objectId}`)
+  revalidatePath(`/admin/books/${bookId}`)
 }
 
 /**
  * フィールドを上下に移動する（隣接フィールドと sort_order を入れ替える）
  * direction: 'up' | 'down'
  */
-export async function moveFieldDef(fieldId: string, objectId: string, direction: 'up' | 'down') {
+export async function moveFieldDef(fieldId: string, bookId: string, direction: 'up' | 'down') {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
-  // 同オブジェクトの全フィールドを sort_order 順で取得
+  // 同ブックの全フィールドを sort_order 順で取得
   const all = await db
     .select({ id: book_fields.id, sort_order: book_fields.sort_order })
     .from(book_fields)
-    .where(eq(book_fields.object_id, objectId))
+    .where(eq(book_fields.object_id, bookId))
     .orderBy(book_fields.sort_order, book_fields.created_at)
 
   const idx = all.findIndex((f) => f.id === fieldId)
@@ -175,10 +175,10 @@ export async function moveFieldDef(fieldId: string, objectId: string, direction:
   ])
 
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath(`/admin/books/${objectId}`)
+  revalidatePath(`/admin/books/${bookId}`)
 }
 
-export async function deleteFieldDef(fieldId: string, objectId: string) {
+export async function deleteFieldDef(fieldId: string, bookId: string) {
   if (!(await isAdmin())) throw new Error('権限がありません')
 
   const field = await db.select({ is_builtin: book_fields.is_builtin })
@@ -190,5 +190,5 @@ export async function deleteFieldDef(fieldId: string, objectId: string) {
 
   await db.delete(book_fields).where(eq(book_fields.id, fieldId))
   revalidateTag(CACHE_TAG_FIELDS, 'max')
-  revalidatePath(`/admin/books/${objectId}`)
+  revalidatePath(`/admin/books/${bookId}`)
 }

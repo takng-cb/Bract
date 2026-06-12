@@ -13,11 +13,11 @@ const FIELD_TYPES = [
 ]
 
 type Props = {
-  objectId:     string
-  createAction: (objectId: string, formData: FormData) => Promise<void>
+  bookId:     string
+  createAction: (bookId: string, formData: FormData) => Promise<void>
 }
 
-export default function NewFieldForm({ objectId, createAction }: Props) {
+export default function NewFieldForm({ bookId, createAction }: Props) {
   const [fieldType, setFieldType] = useState('text')
   const isSection = fieldType === 'section'
   const isFormula = fieldType === 'formula'
@@ -28,7 +28,7 @@ export default function NewFieldForm({ objectId, createAction }: Props) {
       if (fd.get('field_type') === 'section') {
         fd.set('api_name', `section_${Date.now()}`)
       }
-      try { await createAction(objectId, fd); return null }
+      try { await createAction(bookId, fd); return null }
       catch (e: unknown) { return (e as Error).message }
     },
     null,

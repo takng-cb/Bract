@@ -76,7 +76,7 @@ export interface ModuleManifest {
   category: 'platform' | 'crm' | 'erp' | 'industry'
   dependsOn?: string[]                // 依存（例: inventory→['crm-core']）
   navItems: NavItemDef[]              // サイドバーに足す項目
-  objectSeeds?: ObjectSeed[]          // object_definitions に登録するマスタ（既存 seed と同方式）
+  objectSeeds?: ObjectSeed[]          // book_definitions に登録するマスタ（既存 seed と同方式）
   contracts?: ContractRef[]           // このモジュールが公開する入力コントラクト（§5）
 }
 ```

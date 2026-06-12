@@ -1,4 +1,4 @@
-import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
+import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { db } from '@/lib/db'
 import { book_records, accounts, contacts } from '@/lib/schema'
 import { eq, and, asc } from 'drizzle-orm'
@@ -22,7 +22,7 @@ export default async function EditCustomRecordPage({
   await requireBookRead(objectApiName)  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await canEdit())) redirect(`/books/${objectApiName}/${recordId}`)
 
-  const obj = await getObjectDef(objectApiName)
+  const obj = await getBookDef(objectApiName)
   if (!obj) notFound()
 
   const [record, fields] = await Promise.all([

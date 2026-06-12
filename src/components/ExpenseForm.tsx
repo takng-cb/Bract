@@ -82,7 +82,7 @@ export default function ExpenseForm({
             {/* 関連レコード（詳細ページと同じく左カラムの独立カード。Picker は children でそのまま差し込む） */}
             <CreateInfoCard dense title="関連レコード" fields={[]}>
               <div>
-                <span className="block text-[12px] text-zinc-500 mb-1">標準 / カスタムオブジェクトのレコードを複数選択できます</span>
+                <span className="block text-[12px] text-zinc-500 mb-1">標準 / カスタムブックのレコードを複数選択できます</span>
                 <RelatedRecordsPicker
                   name="related_records"
                   objectTypes={objectTypes}

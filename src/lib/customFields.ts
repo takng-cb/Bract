@@ -4,7 +4,7 @@
 import { db } from '@/lib/db'
 import { custom_field_values, book_fields, book_definitions } from '@/lib/schema'
 import { eq, and, inArray } from 'drizzle-orm'
-import type { FieldDef } from '@/lib/objectMetadata'
+import type { FieldDef } from '@/lib/bookMetadata'
 
 /** record_id に紐づくカスタムフィールド値を { api_name → value } の形で返す */
 export async function getCustomFieldValues(

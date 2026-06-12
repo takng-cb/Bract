@@ -1,4 +1,4 @@
-import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
+import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { db } from '@/lib/db'
 import { book_records, accounts, contacts } from '@/lib/schema'
 import { eq, desc, inArray, and, count } from 'drizzle-orm'
@@ -14,7 +14,7 @@ import CustomObjectTableView, { type SerializedFieldDef } from '@/components/tab
 import { parseFilterParams } from '@/lib/filterUtils'
 import { parseSortParams } from '@/lib/sortUtils'
 import type { FieldDef } from '@/components/FilterBuilder'
-import { parseFieldOptions } from '@/lib/objectMetadata'
+import { parseFieldOptions } from '@/lib/bookMetadata'
 import { getDefaultView } from '@/lib/savedViews'
 import { buildJsonbWhere, buildJsonbOrderBy } from '@/lib/jsonbFilterUtils'
 import { requireBookRead } from '@/lib/permissions'
@@ -44,7 +44,7 @@ export default async function CustomObjectListPage({
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView(objectApiName, uid) : null)
   const [obj, edit, _userId, dv] = await Promise.all([
-    getObjectDef(objectApiName),
+    getBookDef(objectApiName),
     canEdit(),
     userIdPromise,
     dvPromise,

@@ -6,14 +6,14 @@ import PwaInstallBanner from '@/components/PwaInstallBanner'
 import NavigationProgress from '@/components/NavigationProgress'
 import NavigationOverlay from '@/components/NavigationOverlay'
 import SuspenseRescuer from '@/components/SuspenseRescuer'
-import { ALL_NAV_ITEMS, BOTTOM_NAV_ITEMS, customObjectsToNavItems, buildExtraNavItems, type NavItem } from '@/lib/navItems'
+import { ALL_NAV_ITEMS, BOTTOM_NAV_ITEMS, customBooksToNavItems, buildExtraNavItems, type NavItem } from '@/lib/navItems'
 import { buildNavGroups, applyNavOrderToGroups, parseNavOrder } from '@/lib/navOrder'
 import { getSystemSettings } from '@/lib/systemSettings'
 import { db } from '@/lib/db'
 import { user_preferences } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
-import { getCustomObjectsForNav } from '@/lib/objectMetadata'
+import { getCustomBooksForNav } from '@/lib/bookMetadata'
 import { isAdmin, getSupabaseUser } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
@@ -33,7 +33,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   // ── Round 2: ユーザー ID が確定してから残りを並列実行 ─────────────────
   // user_preferences を1回のクエリで nav_order と display_name の両方を取得
   // system_settings も1回のクエリで nav_order と company_name の両方を取得
-  const [pref, sysSettings, customObjects, adminFlag] = await Promise.all([
+  const [pref, sysSettings, customBooks, adminFlag] = await Promise.all([
     user
       ? db.select({
           nav_order:    user_preferences.nav_order,
@@ -43,7 +43,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
           .then((r) => r[0] ?? null)
       : Promise.resolve(null),
     getSystemSettings(['nav_order', 'company_name', 'mobile_bottom_nav']),
-    getCustomObjectsForNav(),
+    getCustomBooksForNav(),
     isAdmin(),
   ])
 
@@ -56,18 +56,18 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   // 表示名の解決
   const displayName: string | null = pref?.display_name ?? user?.email ?? null
 
-  // カスタムオブジェクトをナビアイテムに変換
+  // カスタムブックをナビアイテムに変換
   // 業種オーバーレイで専用ルートを持つもの（real-estate の properties → /properties、
-  // auto-body の vehicles → /vehicles）は customObjectsToNavItems が自動的に業種別
+  // auto-body の vehicles → /vehicles）は customBooksToNavItems が自動的に業種別
   // URL を生成する。同じヘルパーを設定画面 (NavOrderEditor) でも使うことで href ドリフトを防止。
-  const customNavItems = customObjectsToNavItems(
-    customObjects.filter((o) => o.nav_enabled),
+  const customNavItems = customBooksToNavItems(
+    customBooks.filter((o) => o.nav_enabled),
     activeIndustry,
   )
 
   // ── モジュール基準ナビ（#22 / REQ-0015 / REQ-0035）─────────────────────
   // 有効モジュールの navItems から**直接**サイドバーを構成する（モジュールを有効化すれば
-  // その項目が出る）。モジュールに属さない既存項目（カスタムオブジェクト等）は「その他」へ。
+  // その項目が出る）。モジュールに属さない既存項目（カスタムブック等）は「その他」へ。
   // 保存済みのナビ順序（v2 = モジュール順＋モジュール内ブック順）を適用する。
   const enabledModules = await getEnabledModules()
 

@@ -15,7 +15,7 @@ import {
 import { properties } from '@/industries/real-estate/schema'
 import { and, eq, sql } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
+import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { buildAssignmentTitle } from '@/industries/staffing/lib/assignmentTitle'
 import type { CreateState, DupCandidate } from '@/lib/duplicateTypes'
 
@@ -100,9 +100,9 @@ const RULES: Record<string, (fd: FormData) => Promise<DupCandidate[]>> = {
   },
 }
 
-/** カスタムオブジェクト：先頭フィールド（主フィールド）の値が一致する既存レコードを探す */
-async function checkCustomDuplicates(objectApiName: string, fd: FormData): Promise<DupCandidate[]> {
-  const obj = await getObjectDef(objectApiName)
+/** カスタムブック：先頭フィールド（主フィールド）の値が一致する既存レコードを探す */
+async function checkCustomDuplicates(bookApiName: string, fd: FormData): Promise<DupCandidate[]> {
+  const obj = await getBookDef(bookApiName)
   if (!obj) return []
   const fields = await getFieldDefs(obj.id)
   const nameField = fields[0]   // sort_order 先頭＝主フィールド（一覧でリンク表示される名称）
@@ -114,7 +114,7 @@ async function checkCustomDuplicates(objectApiName: string, fd: FormData): Promi
       eq(book_records.object_id, obj.id),
       sql`lower(${book_records.data} ->> ${nameField.api_name}) = ${value.toLowerCase()}`,
     )).limit(LIMIT)
-  return rows.map((r) => ({ id: r.id, label: value, href: `/books/${objectApiName}/${r.id}` }))
+  return rows.map((r) => ({ id: r.id, label: value, href: `/books/${bookApiName}/${r.id}` }))
 }
 
 /**

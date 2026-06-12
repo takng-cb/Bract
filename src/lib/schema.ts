@@ -735,17 +735,17 @@ export const tagsRelations = relations(tags, ({ many }) => ({
   taggables: many(taggables),
 }))
 
-export const objectDefinitionsRelations = relations(book_definitions, ({ many }) => ({
+export const bookDefinitionsRelations = relations(book_definitions, ({ many }) => ({
   book_fields: many(book_fields),
   book_records:    many(book_records),
 }))
 
-export const fieldDefinitionsRelations = relations(book_fields, ({ one }) => ({
-  object_definition: one(book_definitions, { fields: [book_fields.object_id], references: [book_definitions.id] }),
+export const bookFieldsRelations = relations(book_fields, ({ one }) => ({
+  book_definition: one(book_definitions, { fields: [book_fields.object_id], references: [book_definitions.id] }),
 }))
 
-export const customRecordsRelations = relations(book_records, ({ one }) => ({
-  object_definition: one(book_definitions, { fields: [book_records.object_id], references: [book_definitions.id] }),
+export const bookRecordsRelations = relations(book_records, ({ one }) => ({
+  book_definition: one(book_definitions, { fields: [book_records.object_id], references: [book_definitions.id] }),
 }))
 
 // ----------------------------------------------------------------

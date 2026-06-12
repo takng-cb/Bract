@@ -122,8 +122,8 @@ export const activeIndustry: Industry = (() => {
 async redirects() {
   if (process.env.NEXT_PUBLIC_INDUSTRY === 'real-estate') return []
   return [
-    { source: '/properties/new', destination: '/objects/properties/new', permanent: false },
-    // ... 他の properties 系 URL を /objects/properties/* に転送
+    { source: '/properties/new', destination: '/books/properties/new', permanent: false },
+    // ... 他の properties 系 URL を /books/properties/* に転送
   ]
 }
 ```
@@ -393,18 +393,18 @@ cp ../../../.env.local .env.local  # worktree から見た親リポジトリの 
 
 2. `src/industries/medical/` を作成し、業種専用コードを置く
 
-3. 共通ルートで業種特化を出したい場合、`src/app/(crm)/<route>/page.tsx` の proxy に分岐を追加 + `next.config.ts` の `redirects()` も必要に応じて。`src/lib/navItems.ts` の `customObjectsToNavItems` ヘルパーにも業種別 URL 対応を追加（例: real-estate の properties → /properties、auto-body の vehicles → /vehicles）
+3. 共通ルートで業種特化を出したい場合、`src/app/(crm)/<route>/page.tsx` の proxy に分岐を追加 + `next.config.ts` の `redirects()` も必要に応じて。`src/lib/navItems.ts` の `customBooksToNavItems` ヘルパーにも業種別 URL 対応を追加（例: real-estate の properties → /properties、auto-body の vehicles → /vehicles）
 
 4. DB スキーマ追加（必要なら）: `src/lib/schema.ts` の該当テーブルに業種固有カラムを追加 + `supabase/migrations/<timestamp>_<name>.sql` 作成
 
-5. **業種専用オブジェクトのマスタデータを seed スクリプトに記述**:
-   業種専用のテーブル（例: `vehicles`）を `object_definitions` に登録しないと
-   `/admin/objects` に出ず、サイドバーのカスタムオブジェクト経由のリンクも生成されない。
+5. **業種専用ブックのマスタデータを seed スクリプトに記述**:
+   業種専用のテーブル（例: `vehicles`）を `book_definitions` に登録しないと
+   `/admin/books` に出ず、サイドバーのカスタムブック経由のリンクも生成されない。
    マイグレーションには入れず（他業種 Neon に不要なデータが入るため）、
    業種別 seed スクリプト `scripts/seed-<業種>.ts` の冒頭で **冪等な INSERT** として記述:
    ```ts
    await sql`
-     INSERT INTO object_definitions (
+     INSERT INTO book_definitions (
        api_name, label, label_plural, icon,
        is_builtin, nav_enabled, sort_order,
        enable_activities, enable_tasks, enable_expenses
@@ -439,7 +439,7 @@ cp ../../../.env.local .env.local  # worktree から見た親リポジトリの 
 | 制限 | 影響 | 回避策 |
 |---|---|---|
 | 業種ごとに別タイミングでリリースできない | main 1 本のため、push すると全業種 deploy が再ビルドされる | release tag による pinning、Vercel Preview による段階的 rollout 等を必要に応じて検討 |
-| カスタムフィールド絞り込みは URL filter で SQL 化されていない | 一覧ページで `cf_*` field を URL に指定すると JS フォールバックパスに落ちる | 当面 URL からのカスタムフィールド絞り込み機能は未提供。要件発生時に `field_definitions` を読んで SQL 化する実装を追加 |
+| カスタムフィールド絞り込みは URL filter で SQL 化されていない | 一覧ページで `cf_*` field を URL に指定すると JS フォールバックパスに落ちる | 当面 URL からのカスタムフィールド絞り込み機能は未提供。要件発生時に `book_fields` を読んで SQL 化する実装を追加 |
 | DB スキーマは全業種共通 | 一つの ALTER ですべての業種 Neon DB に流す必要がある（業種ごとに別 migration はできない） | 業種固有カラムは nullable/DEFAULT で base モードに無害化。完全分離が必要なら下記「将来検討事項」の schema 分割案を参照 |
 | `accounts` ブランチは Tagging 専用 (?) | 現状無関係。ブランチ整理時に削除候補 | — |
 
