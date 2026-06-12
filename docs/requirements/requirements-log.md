@@ -353,7 +353,13 @@
 ### REQ-0054  スクリーンショット付き操作マニュアル（HTML）
 - 2026-06-12 / 会話（「操作手順のマニュアルを作りたい。スクリーンショットも含めてマニュアルをhtmlで作ることはできますか？」→ 対象=全4業種＋管理者編）
 - 内容：`docs/manual/` に HTML マニュアル一式（index/共通編/管理者編/板金・整備編/不動産編/人材手配編＋共通CSS）。スクリーンショットは `scripts/manual-capture.ts`（Playwright）で dev 環境から自動撮影（業種ごとに production build + `next start -p 3100` → 撮影、61枚）。**機能更新後はサーバーを立てて同スクリプトを再実行すればスクショを最新化できる**。テストユーザーは seed-test-users.ts（パスワードは .env.local の TEST_USER_PASSWORD）。
-- 状態：実装・出荷済み（v1）。
+- 状態：実装・出荷済み（v1）。置き場所は REQ-0055 で `public/manual/` に移動（アプリから配信）。
+
+### REQ-0055  マニュアルをアプリ内から参照（使い方ページ＋ヘッダの「?」ボタン）
+- 2026-06-12 / 会話（「マニュアルを使い方ページから参照できるようにできますか？また、ベルマークの横にクエスチョンマークを置いて、そのページのマニュアルに飛べるようにしたい」）
+- 内容：マニュアル一式を `docs/manual/` → `public/manual/` に移動し `/manual/index.html` で配信（middleware が .html を通すため**ログイン必須**）。/about（使い方ページ）に「操作マニュアル」セクション（目次＋編別カード、別タブ）。Topbar の通知ベル左に HelpButton（CircleHelp アイコン）を追加し、現在の pathname から対応する章（common/admin/業種別の各アンカー）へ新規タブで遷移。マッピングは src/components/HelpButton.tsx の MANUAL_MAP。
+- 状態：実装・出荷済み。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

@@ -13,6 +13,7 @@ import { Search, Sprout, Loader2 } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 import { globalSearch, type SearchGroup } from '@/app/actions/search'
 import NotificationsBell from '@/components/NotificationsBell'
+import HelpButton from '@/components/HelpButton'
 
 export default function Topbar() {
   const router = useRouter()
@@ -126,6 +127,8 @@ export default function Topbar() {
         <span className="hidden lg:inline">クイック</span>
       </button>
       <div className="flex-1" />
+      {/* 現在ページのマニュアル章へ（REQ-0055） */}
+      <HelpButton />
       <NotificationsBell />
     </div>
   )
