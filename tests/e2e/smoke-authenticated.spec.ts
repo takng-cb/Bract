@@ -10,13 +10,12 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Authenticated smoke (admin)', () => {
-  test('ダッシュボード: KPI / 期間内 ToDo / 活動が表示される', async ({ page }) => {
+  test('ダッシュボード: ホーム（直近のやること / 期間内の活動）が表示される', async ({ page }) => {
     await page.goto('/dashboard')
-    // ヘッダ
-    await expect(page.locator('h1')).toContainText('ダッシュボード')
-    // KPI 4 枚（取引先 / ToDo / 商談 / 想定売上）
-    await expect(page.getByText(/アクティブな取引先/)).toBeVisible()
-    await expect(page.getByText(/期間内の.*Do/)).toBeVisible()
+    // ヘッダ（KPI カードは廃止。/dashboard は「ホーム」レイアウトに刷新）
+    await expect(page.locator('h1')).toContainText('ホーム')
+    await expect(page.getByText('直近のやること')).toBeVisible()
+    await expect(page.getByRole('heading', { name: '期間内の活動' })).toBeVisible()
   })
 
   test('取引先一覧: テーブルまたはカードが表示される', async ({ page }) => {

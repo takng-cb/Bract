@@ -14,28 +14,30 @@ import { getFirstRecordId, expectRedirectedTo } from './_helpers'
 
 test.describe('Role matrix: editor (編集可・admin 不可)', () => {
   // ── 1) 編集ボタン visible ─────────────────────────────────
-  test('/accounts/<id> で「編集」リンクが表示される', async ({ page }) => {
+  // 詳細ヘッダの「編集」は /edit へのリンクからインライン編集ボタン（InlineEditButton）に変更。
+  // editor には AuthGuard minRole="editor" で表示される。
+  test('/accounts/<id> で「編集」ボタンが表示される', async ({ page }) => {
     const id = await getFirstRecordId(page, '/accounts', 'accounts')
     test.skip(!id, 'accounts レコードが 0 件のため skip')
 
     await page.goto(`/accounts/${id}`)
-    await expect(page.getByRole('link', { name: /編集/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /編集/ }).first()).toBeVisible()
   })
 
-  test('/contacts/<id> で「編集」リンクが表示される', async ({ page }) => {
+  test('/contacts/<id> で「編集」ボタンが表示される', async ({ page }) => {
     const id = await getFirstRecordId(page, '/contacts', 'contacts')
     test.skip(!id, 'contacts レコードが 0 件のため skip')
 
     await page.goto(`/contacts/${id}`)
-    await expect(page.getByRole('link', { name: /編集/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /編集/ }).first()).toBeVisible()
   })
 
-  test('/opportunities/<id> で「編集」リンクが表示される', async ({ page }) => {
+  test('/opportunities/<id> で「編集」ボタンが表示される', async ({ page }) => {
     const id = await getFirstRecordId(page, '/opportunities', 'opportunities')
     test.skip(!id, 'opportunities レコードが 0 件のため skip')
 
     await page.goto(`/opportunities/${id}`)
-    await expect(page.getByRole('link', { name: /編集/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /編集/ }).first()).toBeVisible()
   })
 
   // ── 2) /admin/* に弾かれる ─────────────────────────────────

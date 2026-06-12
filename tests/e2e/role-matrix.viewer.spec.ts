@@ -16,12 +16,14 @@ import { getFirstRecordId, expectRedirectedTo } from './_helpers'
 
 test.describe('Role matrix: viewer (読み取り専用)', () => {
   // ── 1) 編集ボタン invisible ──────────────────────────────
-  test('/accounts/<id> で「編集」リンクが表示されない', async ({ page }) => {
+  test('/accounts/<id> で「編集」が表示されない', async ({ page }) => {
     const id = await getFirstRecordId(page, '/accounts', 'accounts')
     test.skip(!id, 'accounts レコードが 0 件のため skip')
 
     await page.goto(`/accounts/${id}`)
+    // 詳細ヘッダの「編集」はインライン編集ボタンに変更されたため、リンク・ボタン両方を確認
     await expect(page.getByRole('link', { name: /編集/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /編集/ })).toHaveCount(0)
   })
 
   test('/accounts/<id> で「削除」ボタンが表示されない', async ({ page }) => {
@@ -32,12 +34,13 @@ test.describe('Role matrix: viewer (読み取り専用)', () => {
     await expect(page.getByRole('button', { name: /削除/ })).toHaveCount(0)
   })
 
-  test('/contacts/<id> で「編集」リンクが表示されない', async ({ page }) => {
+  test('/contacts/<id> で「編集」が表示されない', async ({ page }) => {
     const id = await getFirstRecordId(page, '/contacts', 'contacts')
     test.skip(!id, 'contacts レコードが 0 件のため skip')
 
     await page.goto(`/contacts/${id}`)
     await expect(page.getByRole('link', { name: /編集/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /編集/ })).toHaveCount(0)
   })
 
   // ── 2) 新規作成 URL に弾かれる ─────────────────────────

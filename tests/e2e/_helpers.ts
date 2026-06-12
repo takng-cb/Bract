@@ -37,6 +37,23 @@ export async function getFirstRecordId(
 }
 
 /**
+ * hydration 前のクリックが捨てられても開くまでリトライする「クリック→出現確認」。
+ * クイック操作モーダルやモバイルドロワー等、クライアントイベントで開く UI に使う。
+ */
+export async function clickUntilVisible(
+  page: Page,
+  trigger: ReturnType<Page['locator']>,
+  target: ReturnType<Page['locator']>,
+  timeoutMs = 15_000,
+): Promise<void> {
+  await expect(trigger).toBeVisible()
+  await expect(async () => {
+    if (!(await target.isVisible())) await trigger.click()
+    await expect(target).toBeVisible({ timeout: 1_500 })
+  }).toPass({ timeout: timeoutMs })
+}
+
+/**
  * 一定時間以内に該当 URL に redirect されたことを確認。
  * Server Action の redirect('/dashboard') 等の検証で使う。
  */

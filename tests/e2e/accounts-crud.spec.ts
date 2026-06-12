@@ -25,19 +25,20 @@ test.describe('Accounts CRUD (admin)', () => {
     await page.getByRole('link', { name: /新規作成/ }).first().click()
     await expect(page).toHaveURL(/\/accounts\/new/)
 
-    // 2. 必須項目入力
+    // 2. 必須項目入力（REQ-0051: RecordHeader＋カード構成。保存はヘッダ右 or 最下部の「保存」）
     await page.locator('input[name="name"]').fill(ACCOUNT_NAME)
-    await page.locator('button[type="submit"]').first().click()
+    await page.getByRole('button', { name: '保存' }).first().click()
 
     // 3. 詳細画面に遷移、名前が表示される
     await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/, { timeout: 10_000 })
     await expect(page.locator('h1')).toContainText(ACCOUNT_NAME)
 
-    // 4. 編集ボタン → 名前変更 → 保存
-    await page.getByRole('link', { name: /編集/ }).first().click()
+    // 4. 編集ページへ → 名前変更 → 保存
+    //    （詳細ヘッダの「編集」はインライン編集ボタンに変わったため、/edit へは URL 直接遷移）
+    await page.goto(`${page.url()}/edit`)
     await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]{36}\/edit/)
     await page.locator('input[name="name"]').fill(RENAMED_NAME)
-    await page.locator('button[type="submit"]').first().click()
+    await page.getByRole('button', { name: '保存' }).first().click()
 
     // 5. 変更反映
     await page.waitForURL(/\/accounts\/[0-9a-f-]{36}$/, { timeout: 10_000 })
