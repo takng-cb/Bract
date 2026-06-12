@@ -13,7 +13,10 @@ import { canDo } from '@/lib/permissions'
 import { callAI } from '@/lib/ai/client'
 import { assertAiRateLimit } from '@/lib/ai/rateLimit'
 import { db } from '@/lib/db'
-import { accounts, contacts, opportunities, tasks, expenses, activities } from '@/lib/schema'
+import { accounts, contacts, opportunities, tasks, expenses, activities, vehicles } from '@/lib/schema'
+import { properties } from '@/industries/real-estate/schema'
+import { VEHICLE_STATUSES } from '@/industries/auto-body/lib/autoBodyService'
+import { isModuleEnabled } from '@/lib/modules/registry'
 import { eq, desc, sql, type SQL } from 'drizzle-orm'
 import { buildWhere, type FilterColumnResolver } from '@/lib/filterUtils'
 import { normalizeJaNumbers } from '@/lib/jaNumber'
@@ -75,7 +78,29 @@ const SEARCH_FIELDS: Record<string, SearchField[]> = {
     { field: 'type', label: '種別', type: 'text' },
     { field: 'occurred_at', label: '日時', type: 'date' },
   ],
+  properties: [
+    { field: 'name', label: '物件名', type: 'text' },
+    { field: 'address', label: '所在地', type: 'text' },
+    { field: 'property_type', label: '物件種別', type: 'select', options: ['土地・建物', '建物のみ', '土地のみ', 'その他'].map((v) => ({ value: v, label: v })) },
+    { field: 'transaction_type', label: '取引種別', type: 'select', options: [{ value: '売買', label: '売買' }, { value: '賃貸', label: '賃貸' }] },
+    { field: 'status', label: 'ステータス', type: 'select', options: ['募集中', '交渉中', '成約', '管理中', '終了'].map((v) => ({ value: v, label: v })) },
+    { field: 'price', label: '価格（円）', type: 'number' },
+    { field: 'area', label: '面積（㎡）', type: 'number' },
+  ],
+  vehicles: [
+    { field: 'maker', label: 'メーカー', type: 'text' },
+    { field: 'model', label: '車種', type: 'text' },
+    { field: 'year', label: '年式', type: 'number' },
+    { field: 'mileage', label: '走行距離', type: 'number' },
+    { field: 'color', label: '色', type: 'text' },
+    { field: 'license_plate', label: 'ナンバー', type: 'text' },
+    { field: 'status', label: 'ステータス', type: 'select', options: VEHICLE_STATUSES.map((v) => ({ value: v, label: v })) },
+    { field: 'sale_price', label: '販売価格', type: 'number' },
+  ],
 }
+
+/** 業種モジュール配下のブック（モジュール無効時は候補に出さない） */
+const BOOK_MODULE: Record<string, string> = { properties: 'real-estate', vehicles: 'auto-body' }
 
 /** AI 検索対応ブックか */
 export async function aiSearchSupported(apiName: string): Promise<boolean> {
@@ -157,6 +182,7 @@ function validateConditions(raw: unknown[], fields: SearchField[]): SearchCondit
 const BOOK_LABELS: Record<string, string> = {
   accounts: '取引先', contacts: '人物', opportunities: '商談',
   tasks: 'ToDo', expenses: '経費', activities: '活動履歴',
+  properties: '物件', vehicles: '車両',
 }
 
 /**
@@ -190,6 +216,7 @@ async function aiSearchTurnAutoImpl(
   // 閲覧権限のあるブックだけを候補にする（RBAC: read=false はナビ同様に見せない）
   const allowed: string[] = []
   for (const api of Object.keys(SEARCH_FIELDS)) {
+    if (BOOK_MODULE[api] && !(await isModuleEnabled(BOOK_MODULE[api]))) continue
     if (await canDo(api, 'read')) allowed.push(api)
   }
   if (allowed.length === 0) throw new Error('検索できるブックがありません')
@@ -218,6 +245,8 @@ async function aiSearchTurnAutoImpl(
     `- field は対象ブックの定義済みフィールドのみ。使える op: ${OPS.join(' / ')}。`,
     `- select 型は value（ラベルではなく value）。boolean は "true"/"false"。date は YYYY-MM-DD（相対日付は本日基準で具体化）。`,
     `- 日本語の数量単位は正確に数値化する: 「100万」=1000000、「1.5万」=15000、「3千」=3000、「1億」=100000000。桁を間違えない。`,
+    `- 「だいたい」「約」「〜前後」「〜くらい」の数値は、±15% 程度の範囲（gte と lte の2条件）に変換する（例: だいたい 60000000 → gte 51000000 と lte 69000000）。`,
+    `- 地名・人名・社名などの固有名詞は、発話の表記を一字も変えずそのまま value に使う（似た語に書き換えない）。`,
     `- 曖昧な量・程度（「高額」等）は条件化せず reply で確認。推測で埋めない。`,
     ``,
     `ブック候補と対象フィールド:`,
@@ -346,6 +375,39 @@ function previewDefs(): Record<string, PreviewDef> {
         return { total: cnt[0]?.c ?? 0, rows: rows.map((r) => ({ id: r.id, href: `/expenses/${r.id}`, title: r.title, sub: [yen(r.amount), r.d ?? ''].filter(Boolean).join(' / ') })) }
       },
     },
+    properties: {
+      resolver: {
+        name: { col: properties.name, type: 'text' }, address: { col: properties.address, type: 'text' },
+        property_type: { col: properties.property_type, type: 'select' },
+        transaction_type: { col: properties.transaction_type, type: 'select' },
+        status: { col: properties.status, type: 'select' },
+        price: { col: properties.price, type: 'number' }, area: { col: properties.area, type: 'number' },
+      },
+      fetch: async (where) => {
+        const [rows, cnt] = await Promise.all([
+          db.select({ id: properties.id, name: properties.name, address: properties.address, price: properties.price })
+            .from(properties).where(where).orderBy(desc(properties.created_at)).limit(PREVIEW_LIMIT),
+          db.select({ c: sql<number>`count(*)::int` }).from(properties).where(where),
+        ])
+        return { total: cnt[0]?.c ?? 0, rows: rows.map((r) => ({ id: r.id, href: `/properties/${r.id}`, title: r.name, sub: [yen(r.price), r.address ?? ''].filter(Boolean).join(' / ') })) }
+      },
+    },
+    vehicles: {
+      resolver: {
+        maker: { col: vehicles.maker, type: 'text' }, model: { col: vehicles.model, type: 'text' },
+        year: { col: vehicles.year, type: 'number' }, mileage: { col: vehicles.mileage, type: 'number' },
+        color: { col: vehicles.color, type: 'text' }, license_plate: { col: vehicles.license_plate, type: 'text' },
+        status: { col: vehicles.status, type: 'select' }, sale_price: { col: vehicles.sale_price, type: 'number' },
+      },
+      fetch: async (where) => {
+        const [rows, cnt] = await Promise.all([
+          db.select({ id: vehicles.id, maker: vehicles.maker, model: vehicles.model, status: vehicles.status, price: vehicles.sale_price })
+            .from(vehicles).where(where).orderBy(desc(vehicles.created_at)).limit(PREVIEW_LIMIT),
+          db.select({ c: sql<number>`count(*)::int` }).from(vehicles).where(where),
+        ])
+        return { total: cnt[0]?.c ?? 0, rows: rows.map((r) => ({ id: r.id, href: `/vehicles/${r.id}`, title: `${r.maker} ${r.model}`, sub: [r.status, yen(r.price)].filter(Boolean).join(' / ') })) }
+      },
+    },
     activities: {
       resolver: {
         subject: { col: activities.subject, type: 'text' }, type: { col: activities.type, type: 'text' },
@@ -380,6 +442,7 @@ export async function previewAiSearch(apiName: string, conditions: SearchConditi
 
 async function previewAiSearchImpl(apiName: string, conditions: SearchCondition[]): Promise<AiSearchPreview> {
   if (!(await canEdit())) throw new Error('権限がありません')
+  if (BOOK_MODULE[apiName] && !(await isModuleEnabled(BOOK_MODULE[apiName]))) throw new Error('このブックは現在のプランでは利用できません')
   if (!(await canDo(apiName, 'read'))) throw new Error('このブックの閲覧権限がありません')
   const def = previewDefs()[apiName]
   if (!def) throw new Error('このブックはプレビュー未対応です')
