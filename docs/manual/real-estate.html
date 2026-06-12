@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>不動産編 | Bract 操作マニュアル</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<header class="site">
+  <span class="logo">Bract 操作マニュアル</span>
+  <nav>
+    <a href="index.html">目次</a>
+    <a href="common.html">共通編</a>
+    <a href="admin.html">管理者編</a>
+    <a href="auto-body.html">板金・整備編</a>
+    <a href="real-estate.html" class="current">不動産編</a>
+    <a href="staffing.html">人材手配編</a>
+  </nav>
+</header>
+<main>
+  <h1>不動産 編</h1>
+  <p class="lead">物件管理と、不動産仲介に特化した商談（仲介手数料の自動計算）を説明します。基本操作は<a href="common.html">共通編</a>を参照してください。</p>
+
+  <div class="toc">
+    <b>この章の内容</b>
+    <ul>
+      <li><a href="#properties">1. 物件管理</a> / <a href="#properties-new">2. 物件の登録</a></li>
+      <li><a href="#opportunity">3. 商談の不動産情報（仲介手数料の自動計算）</a> / <a href="#financial">4. 財務サマリー</a></li>
+    </ul>
+  </div>
+
+  <h2 id="properties">1. 物件管理</h2>
+  <figure><img src="img/real-estate/properties-list.png" alt="物件一覧"><figcaption>物件の一覧。種別・取引区分・価格・ステータスで管理します</figcaption></figure>
+  <figure><img src="img/real-estate/properties-detail.png" alt="物件詳細"><figcaption>物件の詳細。所在地・面積・関連する商談を確認できます</figcaption></figure>
+  <p>
+    取り扱い物件の台帳です。売買 / 賃貸の取引区分、マンション・戸建てなどの種別、価格・面積を管理し、
+    商談と紐づけて案件を追跡します。不動産以外の商材を扱う場合は「その他商品」カテゴリも使えます。
+  </p>
+
+  <h2 id="properties-new">2. 物件の登録</h2>
+  <figure><img src="img/real-estate/properties-new.png" alt="物件の新規作成"><figcaption>物件の新規作成</figcaption></figure>
+  <ol class="steps">
+    <li>物件一覧の <span class="btn-label">＋ 新規作成</span> を押します。</li>
+    <li>物件名・所在地・取引区分（売買 / 賃貸）・価格などを入力します。売主（取引先）や担当者も紐づけられます。</li>
+    <li>保存後、物件詳細から商談を作成すると物件情報が引き継がれます。</li>
+  </ol>
+
+  <h2 id="opportunity">3. 商談の不動産情報（仲介手数料の自動計算）</h2>
+  <figure><img src="img/real-estate/opportunity-new-realestate.png" alt="商談の新規作成（不動産情報）"><figcaption>商談の新規作成。「不動産情報」セクションで仲介手数料が自動計算されます</figcaption></figure>
+  <table class="info">
+    <tr><th>取引区分</th><td><b>売買</b> / <b>賃貸</b>。金額欄のラベルが「金額（物件販売価格）」/「月額賃料」に切り替わります。</td></tr>
+    <tr><th>仲介手数料</th><td>金額を入れると<b>自動算出</b>されます（売買: 速算式 3%＋6万円、賃貸: 月額ベース）。手で書き換えると自動同期が止まり、<span class="btn-label">自動に戻す</span> で再計算に戻せます。欄の下に内訳・実効率も表示されます。</td></tr>
+    <tr><th>仲介種別</th><td>片手 / 両手 など。<b>両手の場合、利益は手数料 × 2</b> で計算されます。</td></tr>
+    <tr><th>その他利益</th><td>手数料以外の収益（広告料など）を加算できます。</td></tr>
+    <tr><th>利益（自動計算）</th><td>仲介手数料 ×（両手なら2）＋ その他利益 がその場で表示されます。</td></tr>
+  </table>
+
+  <h2 id="financial">4. 財務サマリー</h2>
+  <figure><img src="img/real-estate/opportunity-detail-realestate.png" alt="商談詳細（不動産）"><figcaption>商談の詳細。不動産情報と財務サマリー（想定売上・粗利）が表示されます</figcaption></figure>
+  <p>
+    商談の詳細では、入力した取引区分・手数料から<b>想定売上と粗利</b>が自動集計されて表示されます。
+    パイプライン（ボード）や売上予測にもこの金額が反映されるため、二重入力は不要です。
+  </p>
+
+  <p style="margin-top:48px"><a href="index.html">← 目次へ戻る</a></p>
+</main>
+<footer class="site">Bract 操作マニュアル — 不動産編</footer>
+</body>
+</html>

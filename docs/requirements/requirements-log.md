@@ -350,6 +350,10 @@
 - 内容：`main`＝開発・即時、顧客ごとに `release-<Customer>` を新設し各顧客の Vercel が追従。**ProjectID=板金のみ / Cactus=ERP＋不動産 / Yamamoto=人材手配** を有効化（コードは共通、差は NEXT_PUBLIC_INDUSTRY ＋ licenses.features.enabled_modules のランタイム設定）。Vercel/Neon は顧客ごとに分離して新設（ユーザー側で作成）。運用手順は docs/release-runbook.md に集約。
 - 状態：ADR-0024 採択・3ブランチ作成済み。コンテナ（Vercel/Neon/Supabase）の新設はユーザー側作業待ち。
 
+### REQ-0054  スクリーンショット付き操作マニュアル（HTML）
+- 2026-06-12 / 会話（「操作手順のマニュアルを作りたい。スクリーンショットも含めてマニュアルをhtmlで作ることはできますか？」→ 対象=全4業種＋管理者編）
+- 内容：`docs/manual/` に HTML マニュアル一式（index/共通編/管理者編/板金・整備編/不動産編/人材手配編＋共通CSS）。スクリーンショットは `scripts/manual-capture.ts`（Playwright）で dev 環境から自動撮影（業種ごとに production build + `next start -p 3100` → 撮影、61枚）。**機能更新後はサーバーを立てて同スクリプトを再実行すればスクショを最新化できる**。テストユーザーは seed-test-users.ts（パスワードは .env.local の TEST_USER_PASSWORD）。
+- 状態：実装・出荷済み（v1）。
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

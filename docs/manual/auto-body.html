@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>板金・自動車整備編 | Bract 操作マニュアル</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<header class="site">
+  <span class="logo">Bract 操作マニュアル</span>
+  <nav>
+    <a href="index.html">目次</a>
+    <a href="common.html">共通編</a>
+    <a href="admin.html">管理者編</a>
+    <a href="auto-body.html" class="current">板金・整備編</a>
+    <a href="real-estate.html">不動産編</a>
+    <a href="staffing.html">人材手配編</a>
+  </nav>
+</header>
+<main>
+  <h1>板金・自動車整備 編</h1>
+  <p class="lead">整備の受付から納車まで、車両・部品・売掛金の管理を説明します。一覧やレコードの基本操作は<a href="common.html">共通編</a>を参照してください。</p>
+
+  <div class="toc">
+    <b>この章の内容</b>
+    <ul>
+      <li><a href="#maintenance">1. 整備（受付〜納車）</a> / <a href="#maintenance-detail">2. 整備の詳細画面</a> / <a href="#maintenance-new">3. 受付の作成</a></li>
+      <li><a href="#customer-vehicles">4. 顧客車両</a> / <a href="#vehicles">5. 在庫車両（販売用）</a> / <a href="#parts">6. 部品</a></li>
+      <li><a href="#receivables">7. 売掛金</a> / <a href="#opportunity">8. 商談の整備情報</a></li>
+    </ul>
+  </div>
+
+  <h2 id="maintenance">1. 整備（受付〜納車）</h2>
+  <p>日々の整備は「整備」ブックで管理します。<b>ボード / リスト / カレンダー</b>の3表示を右上で切り替えられます。</p>
+  <figure><img src="img/auto-body/maintenance-board.png" alt="整備ボード"><figcaption>ボード表示。「予約 → 受付 → 作業中 → 部品待ち → …」の列でステータスを管理。上部に作業中台数・部品待ち・本日納車予定の KPI が出ます</figcaption></figure>
+  <figure><img src="img/auto-body/maintenance-list.png" alt="整備リスト"><figcaption>リスト表示。フィルタ・並べ替え・エクスポートは共通編と同じです</figcaption></figure>
+  <figure><img src="img/auto-body/maintenance-calendar.png" alt="整備カレンダー"><figcaption>カレンダー表示。入庫・納車の予定を月間で確認できます。予定クリックで概要ポップアップ → 詳細へ移動</figcaption></figure>
+  <div class="note">完了系の列は直近数ヶ月分のみ表示されます（管理者がシステム設定で期間を変更可）。過去分はリスト表示で確認してください。</div>
+
+  <h2 id="maintenance-detail">2. 整備の詳細画面</h2>
+  <figure><img src="img/auto-body/maintenance-detail.png" alt="整備詳細"><figcaption>整備の詳細。顧客・車両・代車の3カードと請求サマリー</figcaption></figure>
+  <table class="info">
+    <tr><th>顧客 / 車両 / 代車</th><td>3枚のカードで受付情報を管理します。カードの <span class="btn-label">編集</span> を押すと入力欄に切り替わり、<b>名前を入力すると既存データの検索候補が出て、無ければそのまま新規登録</b>できます（顧客・車両を事前登録しておく必要はありません）。</td></tr>
+    <tr><th>ステータス</th><td>上部のステータスバーをクリックして「受付 → 作業中 → 完了…」と進めます。</td></tr>
+    <tr><th>作業明細・請求</th><td>作業内容と金額を明細で積み上げ、請求合計は上部の KPI に表示されます。</td></tr>
+  </table>
+
+  <h2 id="maintenance-new">3. 受付の作成</h2>
+  <figure><img src="img/auto-body/maintenance-new.png" alt="整備の新規作成"><figcaption>受付の作成。詳細画面と同じ構成で入力します</figcaption></figure>
+  <ol class="steps">
+    <li>整備の一覧右上 <span class="btn-label">受付を作成</span> を押します。</li>
+    <li>顧客名・車両を入力します。入力中に既存の候補が表示されるので、リピート客はそのまま選択、新規客はそのまま入力を続ければ自動で登録されます。</li>
+    <li>入庫日・納車予定日・作業内容を入れて保存します。</li>
+  </ol>
+
+  <h2 id="customer-vehicles">4. 顧客車両</h2>
+  <figure><img src="img/auto-body/customer-vehicles-list.png" alt="顧客車両一覧"><figcaption>顧客車両の一覧。お客様の車両台帳です</figcaption></figure>
+  <figure><img src="img/auto-body/customer-vehicles-detail.png" alt="顧客車両詳細"><figcaption>顧客車両の詳細。車検満了日や整備履歴を確認できます</figcaption></figure>
+  <p>顧客車両は「どのお客様のどの車か」の台帳です。整備の受付と紐づくため、車両ごとの整備履歴が自動で蓄積されます。車検満了日を入れておくと案内のタイミングが分かります。</p>
+
+  <h2 id="vehicles">5. 在庫車両（販売用）</h2>
+  <figure><img src="img/auto-body/vehicles-list.png" alt="車両一覧"><figcaption>在庫車両の一覧。仕入れ〜販売のステータスで管理します</figcaption></figure>
+  <figure><img src="img/auto-body/vehicles-detail.png" alt="車両詳細"><figcaption>車両の詳細。仕入価格・販売価格・売却価格を記録します</figcaption></figure>
+  <p>販売用の在庫車両です。仕入価格と販売価格を持ち、車両販売の商談と紐づけると利益計算に使われます（<a href="#opportunity">8章</a>）。</p>
+
+  <h2 id="parts">6. 部品</h2>
+  <figure><img src="img/auto-body/parts-list.png" alt="部品一覧"><figcaption>部品の一覧。在庫数と入出庫を管理します</figcaption></figure>
+  <p>修理に使う部品の在庫台帳です。入庫・出庫（使用）を記録すると在庫数が自動計算されます。整備の作業明細から部品を使うと出庫が記録されます。</p>
+
+  <h2 id="receivables">7. 売掛金</h2>
+  <figure><img src="img/auto-body/receivables.png" alt="売掛金"><figcaption>売掛金の一覧。請求済み・入金済みを管理します</figcaption></figure>
+  <p>整備の請求から売掛金を管理します。未入金の一覧で回収漏れを確認し、入金があったら消し込みます。</p>
+
+  <h2 id="opportunity">8. 商談の整備情報</h2>
+  <figure><img src="img/auto-body/opportunity-new-autobody.png" alt="商談の新規作成（整備情報）"><figcaption>商談の新規作成。「自動車整備情報」セクションが表示されます</figcaption></figure>
+  <table class="info">
+    <tr><th>サービス区分</th><td>車両販売 / 板金塗装 / 車検 などの区分。</td></tr>
+    <tr><th>対象車両</th><td>在庫車両から選択。<b>「車両販売」で車両を選ぶと、部品仕入原価に車両の仕入価格が自動で入ります</b>。</td></tr>
+    <tr><th>利益（自動計算）</th><td>売上金額 − 部品仕入原価 がその場で計算・表示されます。</td></tr>
+  </table>
+
+  <p style="margin-top:48px"><a href="index.html">← 目次へ戻る</a></p>
+</main>
+<footer class="site">Bract 操作マニュアル — 板金・自動車整備編</footer>
+</body>
+</html>

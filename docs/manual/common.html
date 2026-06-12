@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>共通編 | Bract 操作マニュアル</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<header class="site">
+  <span class="logo">Bract 操作マニュアル</span>
+  <nav>
+    <a href="index.html">目次</a>
+    <a href="common.html" class="current">共通編</a>
+    <a href="admin.html">管理者編</a>
+    <a href="auto-body.html">板金・整備編</a>
+    <a href="real-estate.html">不動産編</a>
+    <a href="staffing.html">人材手配編</a>
+  </nav>
+</header>
+<main>
+  <h1>共通編 — 日常操作</h1>
+  <p class="lead">どの業種・どの契約でも共通の基本操作です。初めて使う方はこの順に読んでください。</p>
+
+  <div class="toc">
+    <b>この章の内容</b>
+    <ul>
+      <li><a href="#login">1. ログイン</a> / <a href="#layout">2. 画面の見かた</a> / <a href="#home">3. モジュールホーム</a></li>
+      <li><a href="#list">4. 一覧画面の操作</a> / <a href="#search">5. 全体検索</a></li>
+      <li><a href="#create">6. レコードの新規作成</a> / <a href="#ai-fill">7. テキストから入力（AI）</a> / <a href="#detail">8. 詳細画面と編集</a></li>
+      <li><a href="#export">9. エクスポート / インポート</a></li>
+      <li><a href="#opportunity">10. 商談（パイプライン）</a> / <a href="#forecast">11. 売上予測</a></li>
+      <li><a href="#workspace">12. 活動履歴と ToDo</a> / <a href="#approval">13. 承認</a> / <a href="#wiki">14. Wiki</a> / <a href="#expense">15. 経費</a></li>
+      <li><a href="#inventory">16. 在庫管理（商品・倉庫・入出庫）</a> / <a href="#trash">17. 削除とゴミ箱</a></li>
+    </ul>
+  </div>
+
+  <h2 id="login">1. ログイン</h2>
+  <figure><img src="img/base/login.png" alt="ログイン画面"><figcaption>ログイン画面</figcaption></figure>
+  <ol class="steps">
+    <li>管理者から案内された URL をブラウザ（Chrome 推奨）で開きます。</li>
+    <li>メールアドレスとパスワードを入力し、<span class="btn-label">メールでログイン</span> を押します。Google アカウント連携が有効な場合は <span class="btn-label">Google でログイン</span> も使えます。</li>
+  </ol>
+  <div class="note">
+    Bract は<b>招待制</b>です。自分でアカウントを作ることはできません。
+    ログインできない場合は、システム管理者にアカウントの招待（発行）を依頼してください。
+  </div>
+
+  <h2 id="layout">2. 画面の見かた</h2>
+  <figure><img src="img/base/dashboard.png" alt="ダッシュボード"><figcaption>ログイン直後のダッシュボード</figcaption></figure>
+  <table class="info">
+    <tr><th>左サイドバー</th><td>機能の入り口。「ワークスペース」「顧客管理」「商談管理」…の<b>モジュール</b>見出しの下に、各<b>ブック</b>（取引先・商談など）が並びます。モジュール名をクリックするとそのモジュールのホームに移動します。</td></tr>
+    <tr><th>上部の検索ボックス</th><td>全ブックを横断して検索します（<a href="#search">5章</a>）。</td></tr>
+    <tr><th>クイック</th><td>よく使う操作（新規作成・一覧・AI起票など）をまとめたメニューです。</td></tr>
+    <tr><th>右上のベル</th><td>通知（あなたが承認すべき申請、期限の近い ToDo）。未読があると赤いバッジが付き、開くと既読になります。</td></tr>
+    <tr><th>ダッシュボード</th><td>KPI・期間内の ToDo・最近の活動・最近のレコードを表示します。カードの並びはユーザーごとに変更できます。</td></tr>
+  </table>
+
+  <h2 id="home">3. モジュールホーム</h2>
+  <figure><img src="img/base/modules-home.png" alt="モジュールホーム"><figcaption>モジュールホーム（クイック操作）</figcaption></figure>
+  <p>サイドバーのモジュール名をクリックすると、そのモジュールの「クイック操作」（新規作成・一覧へのショートカット）が並ぶホーム画面が開きます。迷ったらまずここから操作できます。</p>
+
+  <h2 id="list">4. 一覧画面の操作</h2>
+  <p>どのブックの一覧も使い方は同じです。ここでは「取引先」を例にします。</p>
+  <figure><img src="img/base/accounts-list.png" alt="取引先一覧"><figcaption>取引先の一覧画面</figcaption></figure>
+  <table class="info">
+    <tr><th>フィルター</th><td><span class="btn-label">フィルター</span> を押すと「フィールド × 条件 × 値」で絞り込めます。条件は複数追加でき、すべてを満たすレコード（AND）が表示されます。テキスト項目は「含む / 含まない / 〜で始まる」など、日付・数値は「以降 / 以前」などが選べます。</td></tr>
+    <tr><th>グルーピング</th><td>ステータスや担当者などでまとめて表示します。</td></tr>
+    <tr><th>並べ替え</th><td>列見出しをクリックすると昇順 / 降順を切り替えます。</td></tr>
+    <tr><th>新規作成</th><td>右上の <span class="btn-label">＋ 新規作成</span> から（<a href="#create">6章</a>）。</td></tr>
+  </table>
+  <div class="tip">フィルタ条件は URL に保存されるため、絞り込んだ状態のままブックマークしたり、URL を共有したりできます。</div>
+  <figure><img src="img/base/contacts-list.png" alt="人物一覧"><figcaption>人物（担当者・個人顧客）の一覧。取引先と同じ操作です</figcaption></figure>
+
+  <h2 id="search">5. 全体検索</h2>
+  <figure><img src="img/base/global-search.png" alt="全体検索"><figcaption>上部の検索ボックスからの横断検索</figcaption></figure>
+  <p>
+    上部の検索ボックスに語句を入れると、全ブックを横断して候補が表示されます。
+    名前だけでなく<b>住所・電話番号・メモなどすべてのテキスト項目</b>が検索対象です。
+    候補をクリックするとそのレコードの詳細へ移動します。
+  </p>
+
+  <h2 id="create">6. レコードの新規作成</h2>
+  <figure><img src="img/base/accounts-new.png" alt="取引先の新規作成"><figcaption>新規作成画面（詳細画面と同じカード構成）</figcaption></figure>
+  <ol class="steps">
+    <li>一覧右上の <span class="btn-label">＋ 新規作成</span> を押します。</li>
+    <li>左のカードに分類・連絡先などの基本属性、右のカードに名前やメモを入力します。<b>*</b> 印は必須項目です。</li>
+    <li>画面右上または最下部の <span class="btn-label">保存</span> を押します。保存後は作成したレコードの詳細画面に移動します。</li>
+  </ol>
+  <div class="tip">同じ名前のレコードが既にある場合は、保存時に重複候補が表示されます。「既存を開く」か「このまま作成」を選べるので、二重登録を防げます。</div>
+
+  <h2 id="ai-fill">7. テキストから入力（AI アシスト）</h2>
+  <figure><img src="img/base/accounts-new-fill-modal.png" alt="テキストから入力"><figcaption>「テキストから入力」モーダル</figcaption></figure>
+  <ol class="steps">
+    <li>新規作成画面のカード右上にある <span class="btn-label">テキストから入力</span> を押します。</li>
+    <li>メール本文や名刺の文字起こしなど、元になるテキストを貼り付けて実行します。</li>
+    <li>AI が項目を読み取ってフォームに自動入力します。<b>内容を確認・修正してから</b>保存してください。</li>
+  </ol>
+
+  <h2 id="detail">8. 詳細画面と編集</h2>
+  <figure><img src="img/base/accounts-detail.png" alt="取引先詳細"><figcaption>レコード詳細画面</figcaption></figure>
+  <table class="info">
+    <tr><th>上部ヘッダ</th><td>レコード名・ステータス・主要情報。<span class="btn-label">編集</span>・<span class="btn-label">削除</span> などの操作ボタンもここにあります。</td></tr>
+    <tr><th>左カラム</th><td>基本情報・連絡先などのカード。カードの <span class="btn-label">編集</span> を押すと<b>その場で入力欄に切り替わり</b>、保存すると閲覧表示に戻ります（インライン編集）。</td></tr>
+    <tr><th>右カラム</th><td>メモ、関連レコード（商談・活動・ToDo など）、添付ファイル、変更履歴。</td></tr>
+  </table>
+  <div class="tip">インライン編集中は、<b>変更した項目だけ色が付きます</b>。保存前にどこを変えたか一目で確認できます。編集モードでも「テキストから入力」が使えます。</div>
+
+  <h2 id="export">9. エクスポート / インポート</h2>
+  <figure><img src="img/base/accounts-export-dialog.png" alt="エクスポートダイアログ"><figcaption>エクスポートの条件指定ダイアログ</figcaption></figure>
+  <h3>エクスポート（CSV 出力）</h3>
+  <ol class="steps">
+    <li>一覧右上の <span class="btn-label">↓ エクスポート</span> を押すとダイアログが開きます。</li>
+    <li>必要なら <span class="btn-label">＋ 条件を追加</span> で「フィールド × 条件 × 値」の絞り込みを指定します。</li>
+    <li><span class="btn-label">この条件でエクスポート</span> を押すと CSV がダウンロードされます。<b>条件を指定しなければ全件</b>です。</li>
+  </ol>
+  <h3>インポート（CSV / テキスト取り込み）</h3>
+  <ol class="steps">
+    <li>一覧右上の <span class="btn-label">インポート</span> を押します。</li>
+    <li>画面に表示される列フォーマットに合わせた CSV ファイル、またはテキストの貼り付けで取り込みます。</li>
+  </ol>
+  <div class="note">インポートはまとめてレコードを作成します。実行前にフォーマット（列の順序・選択肢の表記）をよく確認してください。</div>
+
+  <h2 id="opportunity">10. 商談（パイプライン）</h2>
+  <figure><img src="img/base/opportunities-board.png" alt="商談パイプライン"><figcaption>パイプライン（ボード）表示</figcaption></figure>
+  <p>
+    商談は「見込み → 要件確認 → 提案 → 交渉 → 受注 / 失注」のステージで管理します。
+    一覧右上の切替ボタンで <b>パイプライン / リスト / カレンダー</b> の3表示を切り替えられます。
+  </p>
+  <figure><img src="img/base/opportunities-list.png" alt="商談リスト"><figcaption>リスト表示</figcaption></figure>
+  <figure><img src="img/base/opportunities-calendar.png" alt="商談カレンダー"><figcaption>カレンダー表示（完了予定日ベース）。予定をクリックすると概要がポップアップし、詳細ページへ移動できます</figcaption></figure>
+  <figure><img src="img/base/opportunities-detail.png" alt="商談詳細"><figcaption>商談の詳細。上部のステージバーをクリックしてステージを進められます</figcaption></figure>
+  <div class="note">「受注」「失注」などの終端列は、ボードが膨らみすぎないよう<b>直近数ヶ月分のみ</b>表示されます（期間はシステム設定で変更可）。古いものはリスト表示やフィルタで確認できます。</div>
+  <div class="note">ステージの変更に<b>承認</b>が必要な設定になっている場合、ステージバーを押すと承認申請が作られ、承認されてからステージが変わります（<a href="#approval">13章</a>）。</div>
+
+  <h2 id="forecast">11. 売上予測</h2>
+  <figure><img src="img/base/forecast.png" alt="売上予測"><figcaption>売上予測。進行中の商談の金額×確度から見込みを集計します</figcaption></figure>
+
+  <h2 id="workspace">12. 活動履歴と ToDo</h2>
+  <figure><img src="img/base/activities-list.png" alt="活動履歴"><figcaption>活動履歴の一覧。電話・訪問・メールなどの記録を残します</figcaption></figure>
+  <p>
+    活動履歴は「いつ・誰と・何をしたか」の記録です。取引先・商談など<b>複数のレコードに紐づけて</b>残せます。
+    各レコードの詳細画面からも、その場で活動を記録できます。
+  </p>
+  <figure><img src="img/base/tasks-list.png" alt="ToDo一覧"><figcaption>ToDo の一覧。期限と優先度で管理します</figcaption></figure>
+  <figure><img src="img/base/tasks-calendar.png" alt="ToDoカレンダー"><figcaption>ToDo のカレンダー表示。期限の近い ToDo は通知ベルにも表示されます</figcaption></figure>
+
+  <h2 id="approval">13. 承認</h2>
+  <figure><img src="img/base/approvals.png" alt="承認一覧"><figcaption>承認の一覧。「自分が承認するもの」と「自分が申請したもの」が並びます</figcaption></figure>
+  <table class="info">
+    <tr><th>申請する</th><td>承認が必要に設定された操作（例: 経費の申請、商談ステージの変更）を行うと、自動的に承認申請が作られます。</td></tr>
+    <tr><th>承認 / 差戻し</th><td>サイドバーの「承認」を開くと、自分が承認すべき申請が一覧に出ます。その場で <span class="btn-label">承認</span> / <span class="btn-label">差戻し</span> できます。多段ルートの場合は全ステップの承認で完了します。</td></tr>
+    <tr><th>取り下げ</th><td>自分が出した申請は、承認が完了する前なら <span class="btn-label">取り下げ</span> できます。</td></tr>
+  </table>
+  <div class="tip">承認待ちの件数は右上の通知ベルにも表示されます。承認ルートの設定方法は<a href="admin.html">管理者編</a>を参照してください。</div>
+
+  <h2 id="wiki">14. Wiki（社内ドキュメント）</h2>
+  <figure><img src="img/base/wiki.png" alt="Wiki"><figcaption>Wiki の一覧。手順書や社内ルールを共有できます</figcaption></figure>
+  <p>
+    Wiki は Markdown 形式で書ける社内ドキュメントです。編集画面には<b>ツールバー</b>（見出し・太字・リスト・表など）が
+    あるので、Markdown の文法を覚えていなくてもボタンで書けます。右側のプレビューで仕上がりを確認しながら編集できます。
+  </p>
+
+  <h2 id="expense">15. 経費</h2>
+  <figure><img src="img/base/expenses-list.png" alt="経費一覧"><figcaption>経費の一覧</figcaption></figure>
+  <ol class="steps">
+    <li>「経費」の一覧から <span class="btn-label">＋ 新規作成</span>。日付・金額・カテゴリ・件名を入力して保存します。</li>
+    <li>経費は取引先や商談などに紐づけられるため、案件ごとの原価集計に使えます。</li>
+    <li>承認ルートが設定されている場合は、申請 → 承認の流れで確定します。<b>承認待ちの間は編集・削除できません</b>。</li>
+  </ol>
+
+  <h2 id="inventory">16. 在庫管理（商品・倉庫・入出庫）</h2>
+  <p>在庫管理モジュールが有効な契約では、サイドバーに「商品」「倉庫」「在庫移動」が表示されます。</p>
+  <figure><img src="img/base/products-list.png" alt="商品一覧"><figcaption>商品の一覧。SKU・売価・原価・在庫数を管理します</figcaption></figure>
+  <figure><img src="img/base/products-detail.png" alt="商品詳細"><figcaption>商品の詳細。在庫数や入出庫履歴を確認できます</figcaption></figure>
+  <figure><img src="img/base/warehouses-list.png" alt="倉庫一覧"><figcaption>倉庫の一覧。複数拠点の在庫を分けて管理できます</figcaption></figure>
+  <figure><img src="img/base/stock-movements.png" alt="在庫移動一覧"><figcaption>在庫移動（入出庫履歴）の一覧</figcaption></figure>
+  <figure><img src="img/base/stock-movements-new.png" alt="入出庫の登録"><figcaption>入出庫の登録。商品・倉庫・種別（入庫/出庫）・数量を入力します</figcaption></figure>
+  <ol class="steps">
+    <li>商品を仕入れたら「在庫移動」→ <span class="btn-label">＋ 入出庫を登録</span> で<b>入庫</b>を記録します。</li>
+    <li>販売・使用したら同様に<b>出庫</b>を記録します。在庫数は入出庫の積み上げで自動計算されます。</li>
+    <li>在庫が「発注しきい値」を下回ると、商品一覧で警告表示されます。</li>
+  </ol>
+
+  <h2 id="trash">17. 削除とゴミ箱</h2>
+  <figure><img src="img/base/trash.png" alt="ゴミ箱"><figcaption>ゴミ箱。削除したレコードを一定期間保管します</figcaption></figure>
+  <ol class="steps">
+    <li>レコードを削除すると、すぐには消えず<b>ゴミ箱</b>に移動します。</li>
+    <li>サイドバー下部の「ゴミ箱」から、<b>自分が削除したレコード</b>を確認・<span class="btn-label">復元</span> できます（管理者は全員分を見られます）。</li>
+    <li>保管期間（既定 30 日）を過ぎると自動的に完全削除されます。</li>
+  </ol>
+
+  <p style="margin-top:48px"><a href="index.html">← 目次へ戻る</a> ／ 次は <a href="admin.html">管理者編 →</a></p>
+</main>
+<footer class="site">Bract 操作マニュアル — 共通編</footer>
+</body>
+</html>
