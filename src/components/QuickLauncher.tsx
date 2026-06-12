@@ -12,7 +12,7 @@ import {
 
 /** 関連先紐づけを出すブック（quickAi.ts の linkable spec と一致） */
 const LINKABLE_BOOKS = new Set(['tasks', 'activities'])
-import { aiSearchToFilter, type AiSearchResult } from '@/app/actions/aiSearch'
+import AiSearchChat from '@/components/AiSearchChat'
 
 /**
  * グローバル「クイック操作」ウィザード（REQ-0022）
@@ -62,10 +62,6 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // AI 検索
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResult, setSearchResult] = useState<AiSearchResult | null>(null)
-
   // 関連先（活動/ToDo の AI 作成で紐づけ）
   const [relQuery, setRelQuery] = useState('')
   const [relResults, setRelResults] = useState<RelatedCandidate[]>([])
@@ -79,7 +75,6 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     setStep('root'); setMode('create'); setCreateMode('manual')
     setMod(null); setBook(null)
     setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setDups([]); setBusy(false); setError(null)
-    setSearchQuery(''); setSearchResult(null)
     setRelQuery(''); setRelResults([]); setRelSelected(null)
   }, [])
 
@@ -132,7 +127,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     setBook(b)
     if (mode === 'view') return go(b.listHref)
     if (mode === 'search') {
-      if (b.aiSearch) { setError(null); setSearchQuery(''); setSearchResult(null); setStep('aiSearch') }
+      if (b.aiSearch) { setError(null); setStep('aiSearch') }
       else setStep('aiNotSupported')
       return
     }
@@ -141,24 +136,6 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelQuery(''); setRelResults([]); setRelSelected(null); setStep('aiInput') }
     else if (b.aiWizardHref) go(b.aiWizardHref)
     else setStep('aiNotSupported')
-  }
-
-  const runSearch = async () => {
-    if (!book) return
-    setBusy(true); setError(null)
-    try {
-      setSearchResult(await aiSearchToFilter(book.apiName, searchQuery))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally { setBusy(false) }
-  }
-
-  const applySearch = () => {
-    if (!book || !searchResult) return
-    const params = new URLSearchParams()
-    for (const c of searchResult.conditions) params.append('f', `${c.field}|${c.op}|${c.value}`)
-    const qs = params.toString()
-    go(qs ? `${book.listHref}?${qs}` : book.listHref)
   }
 
   const onPickImage = (file: File | null) => {
@@ -242,7 +219,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
           onClick={close}
         >
           <div
-            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl max-h-[80vh] overflow-y-auto"
+            className={`w-full ${step === 'aiSearch' ? 'max-w-4xl' : 'max-w-lg'} rounded-2xl bg-white shadow-2xl max-h-[85vh] overflow-y-auto`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* ヘッダ（戻る + タイトル + 閉じる） */}
@@ -438,45 +415,10 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
               {/* AI未対応ブック */}
               {/* AI検索（自然文→フィルタ） */}
               {step === 'aiSearch' && book && (
-                <div className="space-y-3">
-                  <textarea
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    rows={3}
-                    placeholder={`例: ${book.apiName === 'tasks' ? '今週期限の未完了のToDo' : book.apiName === 'opportunities' ? '交渉中で100万以上の商談' : '先月以降に登録した有効な取引先'}`}
-                    className="w-full rounded-lg border border-zinc-300 p-3 text-sm focus:border-blue-400 focus:outline-none"
-                  />
-                  <button onClick={runSearch} disabled={busy || !searchQuery.trim()}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50">
-                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}{busy ? '解析中…' : 'AIで条件化'}
-                  </button>
-
-                  {searchResult && (
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 space-y-2">
-                      {searchResult.note && <p className="text-xs text-amber-700">補足: {searchResult.note}</p>}
-                      {searchResult.conditions.length > 0 ? (
-                        <>
-                          <p className="text-xs font-semibold text-zinc-600">抽出された条件</p>
-                          <ul className="space-y-1">
-                            {searchResult.conditions.map((c, i) => (
-                              <li key={i} className="text-xs text-zinc-700">
-                                <span className="font-medium">{c.label}</span>
-                                <span className="text-zinc-400"> {opLabel(c.op)} </span>
-                                <span className="font-mono">{c.value}</span>
-                              </li>
-                            ))}
-                          </ul>
-                          <button onClick={applySearch}
-                            className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                            <Eye className="w-4 h-4" />この条件で一覧表示
-                          </button>
-                        </>
-                      ) : (
-                        <p className="text-xs text-zinc-500">条件を抽出できませんでした。表現を変えてお試しください。{searchResult.note ? '' : ''}</p>
-                      )}
-                    </div>
-                  )}
-                  <p className="text-xs text-zinc-400">※ 抽出条件は一覧のフィルタとして適用され、画面上でさらに調整できます。</p>
+                <div className="space-y-2">
+                  {/* 会話形式の AI 検索（REQ-0059）。左=会話 / 右=結果プレビュー */}
+                  <AiSearchChat apiName={book.apiName} label={book.label} listHref={book.listHref} onNavigate={go} />
+                  <p className="text-xs text-zinc-400">※ 「一覧を開く」後も、画面上のフィルタでさらに調整できます。</p>
                 </div>
               )}
 
@@ -507,10 +449,6 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
       )}
     </>
   )
-}
-
-function opLabel(op: string): string {
-  return ({ contains: 'を含む', not_contains: 'を含まない', starts_with: 'で始まる', eq: '＝', neq: '≠', gte: '≧', lte: '≦' } as Record<string, string>)[op] ?? op
 }
 
 function BigChoice({ icon, label, desc, onClick, accent }: {
