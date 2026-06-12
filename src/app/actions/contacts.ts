@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 export async function createContact(formData: FormData): Promise<string> {
   await requirePermission('contacts', 'create')
@@ -34,6 +35,7 @@ export async function createContact(formData: FormData): Promise<string> {
 
 export async function updateContact(id: string, formData: FormData) {
   await requirePermission('contacts', 'update')
+  await assertNotPendingApproval('contacts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const full_name    = formData.get('full_name') as string
   const contact_type = (formData.get('contact_type') as string) || 'business'
   if (!full_name?.trim()) throw new Error('氏名は必須です')
@@ -81,6 +83,7 @@ export async function updateContact(id: string, formData: FormData) {
 
 export async function deleteContact(id: string) {
   await requirePermission('contacts', 'delete')
+  await assertNotPendingApproval('contacts', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('contacts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('contact', id)
   await db.delete(contacts).where(eq(contacts.id, id))

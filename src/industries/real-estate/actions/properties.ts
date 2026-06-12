@@ -8,6 +8,7 @@ import { properties } from '@/industries/real-estate/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 import {
   syncPropertyToCustomRecord,
   deletePropertyCustomRecord,
@@ -93,6 +94,7 @@ export async function createProperty(formData: FormData): Promise<string> {
  */
 export async function updatePropertyBasic(id: string, formData: FormData) {
   await requirePermission('properties', 'update')
+  await assertNotPendingApproval('properties', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const raw    = (k: string) => (formData.get(k) as string | null) ?? ''
   const numStr = (k: string) => { const v = raw(k); return v ? String(Number(v)) : null }
   const set: Record<string, unknown> = { updated_at: new Date() }
@@ -134,6 +136,7 @@ export async function updatePropertyBasic(id: string, formData: FormData) {
 
 export async function updateProperty(id: string, formData: FormData) {
   await requirePermission('properties', 'update')
+  await assertNotPendingApproval('properties', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const data = parseForm(formData)
   if (!data.name) throw new Error('物件名は必須です')
   const [row] = await db.update(properties)
@@ -150,6 +153,7 @@ export async function updateProperty(id: string, formData: FormData) {
 /** ステータスのみ更新（矢羽根 StageBar 用）。book_records ミラーも同期 */
 export async function setPropertyStatus(id: string, status: string) {
   await requirePermission('properties', 'update')
+  await assertNotPendingApproval('properties', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const [row] = await db.update(properties)
     .set({ status, updated_at: new Date() })
     .where(eq(properties.id, id))
@@ -161,6 +165,7 @@ export async function setPropertyStatus(id: string, status: string) {
 
 export async function deleteProperty(id: string) {
   await requirePermission('properties', 'delete')
+  await assertNotPendingApproval('properties', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('properties', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(properties).where(eq(properties.id, id))
   // book_records ミラー側も削除

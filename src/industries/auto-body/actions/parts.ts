@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { MOVEMENT_TYPES } from '@/industries/auto-body/lib/partsHelpers'
 import { requirePermission } from '@/lib/permissions'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 function s(formData: FormData, key: string): string | null {
   const v = formData.get(key)
@@ -50,6 +51,7 @@ export async function createPart(formData: FormData): Promise<string> {
 
 export async function updatePart(id: string, formData: FormData) {
   await requirePermission('parts', 'update')
+  await assertNotPendingApproval('parts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const partNumber = s(formData, 'part_number')
   const name       = s(formData, 'name')
   if (!partNumber) throw new Error('品番は必須です')
@@ -78,6 +80,7 @@ export async function updatePart(id: string, formData: FormData) {
  */
 export async function updatePartBasic(id: string, formData: FormData) {
   await requirePermission('parts', 'update')
+  await assertNotPendingApproval('parts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const set: Record<string, unknown> = { updated_at: new Date() }
   if (formData.has('category'))            set.category = s(formData, 'category')
   if (formData.has('supplier_account_id')) set.supplier_account_id = s(formData, 'supplier_account_id')
@@ -94,6 +97,7 @@ export async function updatePartBasic(id: string, formData: FormData) {
 
 export async function deletePart(id: string) {
   await requirePermission('parts', 'delete')
+  await assertNotPendingApproval('parts', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('parts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(parts).where(eq(parts.id, id))  // cascade で part_movements も削除
   revalidatePath('/parts')

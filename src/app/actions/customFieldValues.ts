@@ -4,6 +4,7 @@ import { custom_field_values, book_fields, book_definitions } from '@/lib/schema
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { canEdit } from '@/lib/auth'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 /**
  * 組み込みオブジェクトのレコードにカスタムフィールド値を一括保存する
@@ -15,6 +16,7 @@ export async function saveCustomFieldValues(
   formData: FormData,
 ): Promise<void> {
   if (!(await canEdit())) throw new Error('権限がありません')
+  await assertNotPendingApproval(objectApiName, recordId)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
   // object_definition から book_fields を取得
   const objRows = await db.select({ id: book_definitions.id })

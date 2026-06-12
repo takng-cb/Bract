@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { logChanges } from '@/lib/changeLog'
+import { assertNotPendingApproval } from '@/app/actions/approvals'
 import {
   syncVehicleToCustomRecord,
   deleteVehicleCustomRecord,
@@ -77,6 +78,7 @@ export async function createVehicle(formData: FormData): Promise<string> {
 
 export async function updateVehicle(id: string, formData: FormData) {
   await requirePermission('vehicles', 'update')
+  await assertNotPendingApproval('vehicles', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const maker = s(formData, 'maker')
   const model = s(formData, 'model')
   if (!maker) throw new Error('メーカーは必須です')
@@ -154,6 +156,7 @@ export async function updateVehicle(id: string, formData: FormData) {
  */
 export async function updateVehicleBasic(id: string, formData: FormData) {
   await requirePermission('vehicles', 'update')
+  await assertNotPendingApproval('vehicles', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const set: Record<string, unknown> = { updated_at: new Date() }
   // 文字列
   for (const k of ['color', 'license_plate', 'vin', 'purchase_date', 'supplier_account_id', 'sold_date', 'buyer_account_id', 'next_inspection_date', 'description', 'owner_id'] as const) {
@@ -185,6 +188,7 @@ export async function updateVehicleBasic(id: string, formData: FormData) {
 /** ステータスのみ更新（矢羽根 StageBar 用）。book_records ミラーも同期 */
 export async function setVehicleStatus(id: string, status: string) {
   await requirePermission('vehicles', 'update')
+  await assertNotPendingApproval('vehicles', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await db.update(vehicles).set({ status, updated_at: new Date() }).where(eq(vehicles.id, id))
   const [v] = await db.select({
     id: vehicles.id, maker: vehicles.maker, model: vehicles.model, year: vehicles.year,
@@ -198,6 +202,7 @@ export async function setVehicleStatus(id: string, status: string) {
 
 export async function deleteVehicle(id: string) {
   await requirePermission('vehicles', 'delete')
+  await assertNotPendingApproval('vehicles', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('vehicles', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await db.delete(vehicles).where(eq(vehicles.id, id))
   // book_records ミラー側も削除（cascade ではないので明示的に）
