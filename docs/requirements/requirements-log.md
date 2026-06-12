@@ -345,6 +345,11 @@
 - 2026-06-12 追記：人物/商談/ToDo/活動/商品/経費/物件（不動産）/車両（板金）/カスタムブックの 9 ブックに展開。フィルタ対象は各 export API の行に存在するカラムのみ（resolver 依存の担当者名・タグ等は対象外）。活動の occurred_at（timestamp）は route 側で日付文字列に変換して比較。カスタムブックは book_fields から動的にフィールド定義を導出。
 - 状態：実装・出荷済み（全主要ブック展開済み）。
 
+### REQ-0053  複数顧客リリースは顧客別 release ブランチ方式（#130 決定）
+- 2026-06-12 / Issue #130 オーナーコメント（「リリースブランチ方式にしましょう。release-ProjectID / release-Cactus / release-Yamamoto を作ってください」）
+- 内容：`main`＝開発・即時、顧客ごとに `release-<Customer>` を新設し各顧客の Vercel が追従。**ProjectID=板金のみ / Cactus=ERP＋不動産 / Yamamoto=人材手配** を有効化（コードは共通、差は NEXT_PUBLIC_INDUSTRY ＋ licenses.features.enabled_modules のランタイム設定）。Vercel/Neon は顧客ごとに分離して新設（ユーザー側で作成）。運用手順は docs/release-runbook.md に集約。
+- 状態：ADR-0024 採択・3ブランチ作成済み。コンテナ（Vercel/Neon/Supabase）の新設はユーザー側作業待ち。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

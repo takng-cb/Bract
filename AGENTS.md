@@ -14,7 +14,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 | ブランチ | 役割 |
 |---|---|
-| `main` | 本番（全業種の Vercel project が監視） |
+| `main` | 開発・即時反映（dev/カナリアの Vercel が監視） |
+| `release-<Customer>` | 顧客別の安定ブランチ（`release-ProjectID` / `release-Cactus` / `release-Yamamoto`）。各顧客の Vercel Production Branch が監視。**直接コミット禁止**・検証済み main を `--ff-only` で進めるだけ（ADR-0024、運用は [docs/release-runbook.md](./docs/release-runbook.md)） |
 | `develop` | 次期リリース統合 |
 | `feature/<name>` `fix/<name>` | 新規開発・修正。develop に向けてマージ |
 | `claude/<adjective-name-hash>` | Claude Code が worktree 用に作る一時ブランチ |

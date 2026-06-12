@@ -235,3 +235,16 @@
 
 
 
+
+### ADR-0024  リリースは「顧客別 release ブランチ（release train）」方式で運用
+- 2026-06-12 / **採用**（#130 オーナー決定。REQ-0053）
+- 文脈：複数顧客（1社=1 Vercel + 1 Neon + 1 Supabase）への継続リリース方式の決定。観点は ①リリース容易性 ②顧客ごとの順次展開・据え置き ③顧客間セキュリティ ④運用の楽さ。
+- 決定：
+  1. `main`＝開発・即時（dev/カナリアが追従）。顧客ごとに `release-<Customer>` ブランチを持ち、各顧客の Vercel Production Branch がそれを追従する。初期3顧客: **release-ProjectID（板金のみ）/ release-Cactus（ERP＋不動産）/ release-Yamamoto（人材手配）**。
+  2. **release ブランチはコードを分岐させない**（検証済み main の特定時点を指すポインタ。進めるのは `--ff-only` merge のみ。例外は重大 hotfix の cherry-pick）。
+  3. 顧客差分はブランチではなく**ランタイム設定**で表現: `NEXT_PUBLIC_INDUSTRY` ＋ `licenses.features.enabled_modules`（ADR-0001/0002 のモジュールレジストリ）。
+  4. マイグレーションは「**全 Neon 適用 → release を進める**」の順序を固定（据え置き顧客の Neon にも先に適用。後方互換マイグレ必須＝既存ルール維持）。
+  5. 据え置き＝release を進めない、ロールバック＝release を前タグへ reset。いずれも Vercel 設定や再ビルド不要。
+- 却下案：案A（全顧客 main 追従）＝据え置き不可・同時破壊リスク。案C（顧客別フォーク）＝ドリフトとマージ地獄。
+- 影響：ブランチ運用（AGENTS.md）/ docs/release-runbook.md（新設・運用手順の真実）/ 顧客コンテナ provisioning チェックリスト。
+- 残論点（#130 チェックリスト）：release train の周期、hotfix SLA の明文化、バージョン表記（フッタ vX.Y.Z）、顧客向けリリースノート運用。
