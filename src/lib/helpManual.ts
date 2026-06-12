@@ -24,8 +24,11 @@ export function isHelpPage(p: string): p is HelpPage {
   return p in HELP_PAGES
 }
 
-/** マニュアル HTML の <main> を抽出し、アプリ内リンクへ書き換えて返す（無ければ null） */
-export async function loadHelpContent(page: HelpPage): Promise<string | null> {
+/**
+ * マニュアル HTML の <main> を抽出し、アプリ内リンクへ書き換えて返す（無ければ null）。
+ * basePath: ページ間リンクの飛び先（全画面 /help、ポップアップ内 iframe は /help-embed）
+ */
+export async function loadHelpContent(page: HelpPage, basePath: '/help' | '/help-embed' = '/help'): Promise<string | null> {
   let html: string
   try {
     html = await readFile(resolve(process.cwd(), `public/manual/${page}.html`), 'utf8')
@@ -36,9 +39,9 @@ export async function loadHelpContent(page: HelpPage): Promise<string | null> {
   if (!m) return null
 
   return m[1]
-    // ページ間リンク: common.html#anchor → /help/common#anchor
+    // ページ間リンク: common.html#anchor → <basePath>/common#anchor
     .replace(/href="([a-z-]+)\.html(#[^"]*)?"/g, (_s, p: string, hash: string | undefined) =>
-      `href="/help/${p}${hash ?? ''}"`)
+      `href="${basePath}/${p}${hash ?? ''}"`)
     // 画像: img/... → /manual/img/...（静的アセットはそのまま配信）
     .replace(/src="img\//g, 'src="/manual/img/')
 }
