@@ -1,13 +1,14 @@
+import Link from 'next/link'
 import { NavIcon } from '@/lib/navIcon'
 import { BookOpen } from 'lucide-react'
 
-/** 操作マニュアル（public/manual/ の静的 HTML）への導線（REQ-0055） */
+/** 操作マニュアル（アプリ内 /help。REQ-0055/0056） */
 const MANUAL_PAGES = [
-  { href: '/manual/common.html',      title: '共通編',     desc: 'ログイン・一覧・検索・レコード作成/編集・エクスポート・商談・承認 など日常操作' },
-  { href: '/manual/admin.html',       title: '管理者編',   desc: 'ユーザー招待・ロール・ブック設定・承認ルート・システム設定' },
-  { href: '/manual/auto-body.html',   title: '板金・整備編', desc: '整備の受付〜納車・顧客車両・部品・売掛金' },
-  { href: '/manual/real-estate.html', title: '不動産編',   desc: '物件管理・仲介手数料の自動計算' },
-  { href: '/manual/staffing.html',    title: '人材手配編', desc: '案件・AIクイック起票・スタッフ・売上請求' },
+  { href: '/help/common',      title: '共通編',     desc: 'ログイン・一覧・検索・レコード作成/編集・エクスポート・商談・承認 など日常操作' },
+  { href: '/help/admin',       title: '管理者編',   desc: 'ユーザー招待・ロール・ブック設定・承認ルート・システム設定' },
+  { href: '/help/auto-body',   title: '板金・整備編', desc: '整備の受付〜納車・顧客車両・部品・売掛金' },
+  { href: '/help/real-estate', title: '不動産編',   desc: '物件管理・仲介手数料の自動計算' },
+  { href: '/help/staffing',    title: '人材手配編', desc: '案件・AIクイック起票・スタッフ・売上請求' },
 ]
 
 export default function AboutPage() {
@@ -96,30 +97,26 @@ export default function AboutPage() {
       {/* 操作マニュアル（スクリーンショット付き・別タブで開く） */}
       <section className="mb-12">
         <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-6">操作マニュアル</h2>
-        <a
-          href="/manual/index.html"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/help/index"
           className="flex items-center gap-4 p-5 mb-4 bg-brand-50 border border-brand-200 rounded-xl hover:border-brand-400 transition-colors"
         >
           <BookOpen className="w-8 h-8 text-brand-700 shrink-0" strokeWidth={2} aria-hidden />
           <div>
             <h3 className="text-sm font-semibold text-zinc-900 mb-0.5">スクリーンショット付き 操作マニュアルを開く</h3>
-            <p className="text-sm text-zinc-500">実際の画面の画像付きで、日常操作から管理者設定まで説明しています（別タブで開きます）</p>
+            <p className="text-sm text-zinc-500">実際の画面の画像付きで、日常操作から管理者設定まで説明しています</p>
           </div>
-        </a>
+        </Link>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {MANUAL_PAGES.map((m) => (
-            <a
+            <Link
               key={m.href}
               href={m.href}
-              target="_blank"
-              rel="noopener noreferrer"
               className="block p-4 bg-white border border-zinc-200 rounded-lg hover:border-zinc-300 transition-colors"
             >
               <h3 className="text-sm font-semibold text-zinc-900 mb-1">{m.title}</h3>
               <p className="text-xs text-zinc-500 leading-relaxed">{m.desc}</p>
-            </a>
+            </Link>
           ))}
         </div>
         <p className="mt-3 text-xs text-zinc-400">
