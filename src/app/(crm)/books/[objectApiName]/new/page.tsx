@@ -1,4 +1,4 @@
-import { getObjectDef, getFieldDefs } from '@/lib/objectMetadata'
+import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { canEdit } from '@/lib/auth'
@@ -24,7 +24,7 @@ export default async function NewCustomRecordPage({
   await requireBookRead(objectApiName)  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await canEdit())) redirect(`/books/${objectApiName}`)
 
-  const obj = await getObjectDef(objectApiName)
+  const obj = await getBookDef(objectApiName)
   if (!obj) notFound()
 
   const fields = await getFieldDefs(obj.id)

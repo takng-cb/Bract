@@ -25,7 +25,7 @@ Get-ChildItem supabase/migrations/*.sql | Sort-Object Name | ForEach-Object {
   npx tsx scripts/apply-migration.ts ("supabase/migrations/" + $_.Name)
 }
 
-# 2) 組み込みブック定義（object_definitions / field_definitions）
+# 2) 組み込みブック定義（book_definitions / book_fields）
 npx tsx scripts/seed-metadata.ts
 
 # 3) （auto-body のみ）整備パッケージ等の業種マスタ
@@ -80,7 +80,7 @@ $env:SUPABASE_ACCESS_TOKEN="sbp_xxx"; npx tsx scripts/apply-auth-redirect-urls.t
 - [ ] 実機チェックリスト（AGENTS.md「検証チェックリスト」§2）＋今回の新機能:
   - /admin/roles（ロール作成→割当→制限が効く）
   - 商談詳細の「商品」セクション（明細追加・合計）
-  - /admin/objects（ブック/モジュール管理）・/settings/system（提供者/管理者分離）
+  - /admin/books（ブック/モジュール管理）・/settings/system（提供者/管理者分離）
   - グローバル検索・関連レコード Picker（オンデマンド検索）
   - モバイル：レコード詳細ヘッダ／ステッパー型ステータスバー
 

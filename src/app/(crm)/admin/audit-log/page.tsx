@@ -123,7 +123,7 @@ export default async function AuditLogPage({
             />
           </div>
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">オブジェクト種別</label>
+            <label className="block text-xs text-zinc-500 mb-1">ブック種別</label>
             <select
               name="obj"
               defaultValue={sp.obj ?? ''}

@@ -12,7 +12,7 @@
 
 ## 1. データモデル（ADR-0018/0019 準拠）
 - ブック定義（旧 `object_definitions`）に `owning_module text` を追加。
-- 項目定義（`field_definitions`）に `owning_module text` を追加（拡張項目の所有。例：商談の不動産項目=real-estate）。
+- 項目定義（`book_fields`、旧 `field_definitions`）に `owning_module text` を追加（拡張項目の所有。例：商談の不動産項目=real-estate）。
 - `licenses.features` に `entitled_modules?: string[]` / `enabled_modules?: string[]`。
 - いずれも nullable/default で base 無害化、冪等マイグレ、全 Neon 適用、`check:schema` 緑。
 

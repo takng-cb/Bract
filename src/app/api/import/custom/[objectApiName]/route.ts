@@ -43,7 +43,7 @@ export async function POST(
     .from(book_definitions)
     .where(eq(book_definitions.api_name, objectApiName))
     .limit(1)
-  if (objRows.length === 0) return NextResponse.json({ error: 'オブジェクトが見つかりません' }, { status: 404 })
+  if (objRows.length === 0) return NextResponse.json({ error: 'ブックが見つかりません' }, { status: 404 })
   const objectId = objRows[0].id
 
   // フィールド定義取得（label → api_name マップ）

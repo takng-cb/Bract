@@ -47,7 +47,7 @@ function buildCustomRecordData(p: PropertyRow): Record<string, unknown> {
  *  ※ properties テーブルには owner_id カラムが無いため、book_records.owner_id は null。
  */
 export async function syncPropertyToCustomRecord(p: PropertyRow): Promise<void> {
-  const objId = await getPropertiesObjectId()
+  const objId = await getPropertiesBookId()
   if (!objId) return  // book_definitions に properties が無ければスキップ
 
   const data = buildCustomRecordData(p)
@@ -73,12 +73,12 @@ export async function deletePropertyCustomRecord(propertyId: string): Promise<vo
   await db.delete(book_records).where(eq(book_records.id, propertyId))
 }
 
-let _cachedObjectId: string | null = null
-async function getPropertiesObjectId(): Promise<string | null> {
-  if (_cachedObjectId) return _cachedObjectId
+let _cachedBookId: string | null = null
+async function getPropertiesBookId(): Promise<string | null> {
+  if (_cachedBookId) return _cachedBookId
   const rows = await db.select({ id: book_definitions.id })
     .from(book_definitions)
     .where(eq(book_definitions.api_name, PROPERTIES_API_NAME))
-  _cachedObjectId = rows[0]?.id ?? null
-  return _cachedObjectId
+  _cachedBookId = rows[0]?.id ?? null
+  return _cachedBookId
 }

@@ -201,7 +201,7 @@ export default function AISettingsForm({ initial, defaultPrompts }: Props) {
       <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-zinc-700">プロンプト</h2>
-          <p className="text-[10px] text-zinc-400">各オブジェクトの「まとめ」生成時に AI に渡すシステム指示</p>
+          <p className="text-[10px] text-zinc-400">各ブックの「まとめ」生成時に AI に渡すシステム指示</p>
         </div>
 
         <PromptField

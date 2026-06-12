@@ -58,7 +58,7 @@ export async function getRelatedRecordsPickerData(_kind: PickerKind): Promise<{
   // レコード本体はオンデマンド検索（/api/search/records）に移行（REQ-0026/性能改善）。
   // ここでは「選べるブック一覧」だけを返す。recordsByObject は旧 API 互換の空オブジェクト。
   // 紐付け先としては全カスタムオブジェクトを選べる（enable_* はセクション表示用でありゲートではない）。
-  const [customObjects, industryPicker] = await Promise.all([
+  const [customBooks, industryPicker] = await Promise.all([
     db.select({ id: book_definitions.id, api_name: book_definitions.api_name, label: book_definitions.label })
       .from(book_definitions)
       .where(eq(book_definitions.is_builtin, false))
@@ -71,7 +71,7 @@ export async function getRelatedRecordsPickerData(_kind: PickerKind): Promise<{
     { api: 'contact',     label: '人物' },
     { api: 'opportunity', label: '商談' },
     ...industryPicker.industryObjectTypes,
-    ...customObjects.map((o) => ({ api: o.api_name, label: o.label })),
+    ...customBooks.map((o) => ({ api: o.api_name, label: o.label })),
   ]
 
   return { objectTypes, recordsByObject: {} }

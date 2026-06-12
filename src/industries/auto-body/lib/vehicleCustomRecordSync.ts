@@ -42,7 +42,7 @@ export type VehicleSummary = {
 
 /** vehicles 行を book_records にミラーする（INSERT または UPDATE） */
 export async function syncVehicleToCustomRecord(v: VehicleSummary): Promise<void> {
-  const objId = await getVehiclesObjectId()
+  const objId = await getVehiclesBookId()
   if (!objId) return  // book_definitions に vehicles が無い → ミラー不要
 
   const data = {
@@ -79,12 +79,12 @@ export async function deleteVehicleCustomRecord(vehicleId: string): Promise<void
   await db.delete(book_records).where(eq(book_records.id, vehicleId))
 }
 
-let _cachedObjectId: string | null = null
-async function getVehiclesObjectId(): Promise<string | null> {
-  if (_cachedObjectId) return _cachedObjectId
+let _cachedBookId: string | null = null
+async function getVehiclesBookId(): Promise<string | null> {
+  if (_cachedBookId) return _cachedBookId
   const rows = await db.select({ id: book_definitions.id })
     .from(book_definitions)
     .where(eq(book_definitions.api_name, VEHICLES_API_NAME))
-  _cachedObjectId = rows[0]?.id ?? null
-  return _cachedObjectId
+  _cachedBookId = rows[0]?.id ?? null
+  return _cachedBookId
 }

@@ -1,14 +1,14 @@
 'use client'
 import { useActionState } from 'react'
-import type { ObjectDef } from '@/lib/objectMetadata'
+import type { BookDef } from '@/lib/bookMetadata'
 import { NavIcon } from '@/lib/navIcon'
 
 type Props = {
-  obj: ObjectDef
+  obj: BookDef
   updateAction: (id: string, formData: FormData) => Promise<void>
 }
 
-export default function ObjectEditForm({ obj, updateAction }: Props) {
+export default function BookEditForm({ obj, updateAction }: Props) {
   const [error, dispatch, isPending] = useActionState(
     async (_prev: unknown, fd: FormData) => {
       try { await updateAction(obj.id, fd); return null }

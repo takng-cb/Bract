@@ -1,12 +1,12 @@
 'use client'
 import { useActionState } from 'react'
-import { createObjectDef } from '@/app/actions/objectDefinitions'
+import { createBookDef } from '@/app/actions/bookDefinitions'
 import Link from 'next/link'
 
-export default function NewObjectPage() {
+export default function NewBookPage() {
   const [error, dispatch, isPending] = useActionState(
     async (_prev: unknown, fd: FormData) => {
-      try { await createObjectDef(fd); return null }
+      try { await createBookDef(fd); return null }
       catch (e: unknown) { return (e as Error).message }
     },
     null,
@@ -15,8 +15,8 @@ export default function NewObjectPage() {
   return (
     <div className="p-4 md:p-8 max-w-lg">
       <div className="mb-6">
-        <Link href="/admin/books" className="text-sm text-zinc-400 hover:text-zinc-600">← オブジェクト管理</Link>
-        <h1 className="text-2xl font-bold text-zinc-900 mt-2">新規オブジェクト作成</h1>
+        <Link href="/admin/books" className="text-sm text-zinc-400 hover:text-zinc-600">← ブック管理</Link>
+        <h1 className="text-2xl font-bold text-zinc-900 mt-2">新規ブック作成</h1>
       </div>
 
       <form action={dispatch} className="bg-white rounded-lg border border-zinc-200 p-6 space-y-5">

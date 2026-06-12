@@ -7,7 +7,7 @@
 export const dynamic = 'force-dynamic'
 
 import { requireAdmin } from '@/lib/auth'
-import { getAllObjectDefs } from '@/lib/objectMetadata'
+import { getAllBookDefs } from '@/lib/bookMetadata'
 import { listRolesWithPermissions, assignUserRole } from '@/app/actions/roles'
 import { listUsers } from '@/app/actions/userManagement'
 import PageHeader from '@/components/ui/PageHeader'
@@ -18,7 +18,7 @@ export default async function AdminRolesPage() {
 
   const [rolesList, books, userList] = await Promise.all([
     listRolesWithPermissions(),
-    getAllObjectDefs(),
+    getAllBookDefs(),
     listUsers(),
   ])
 

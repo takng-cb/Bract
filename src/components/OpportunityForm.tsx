@@ -12,7 +12,7 @@
  */
 import { useActionState, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import type { FieldDef } from '@/lib/objectMetadata'
+import type { FieldDef } from '@/lib/bookMetadata'
 import SearchableSelect from '@/components/SearchableSelect'
 import CustomFieldsFields from '@/components/CustomFieldsFields'
 import FormFillModal from '@/components/FormFillModal'

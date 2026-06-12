@@ -1,7 +1,7 @@
 /**
  * 組み込みオブジェクトの詳細ページに差し込むカスタムフィールド表示カード（表示専用）
  */
-import type { FieldDef } from '@/lib/objectMetadata'
+import type { FieldDef } from '@/lib/bookMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
 
 type Props = {

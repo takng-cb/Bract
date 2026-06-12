@@ -6,36 +6,36 @@ export type NavItem = {
   icon:  string
 }
 
-/** カスタムオブジェクト定義の最小スキーマ（NavItem 化に必要なフィールドのみ） */
-type ObjectForNav = {
+/** カスタムブック定義の最小スキーマ（NavItem 化に必要なフィールドのみ） */
+type BookForNav = {
   api_name:     string
   label_plural: string
   icon:         string
 }
 
 /**
- * カスタムオブジェクトを NavItem に変換する共通ヘルパー。
+ * カスタムブックを NavItem に変換する共通ヘルパー。
  *
- * 業種オーバーレイで業種専用ルートを持つオブジェクト
+ * 業種オーバーレイで業種専用ルートを持つブック
  * (例: real-estate モードの properties) は `/books/<api>` ではなく
  * 業種専用 URL (`/properties` 等) に向ける。
  *
  * これを共通化することで、サイドバー（layout.tsx）と
  * 並び替え画面（settings/page.tsx）の URL がドリフトしないようにする。
  */
-export function customObjectsToNavItems(
-  objects: ObjectForNav[],
+export function customBooksToNavItems(
+  books: BookForNav[],
   activeIndustry: Industry,
 ): NavItem[] {
-  return objects.map((o) => ({
-    href:  hrefForCustomObject(o.api_name, activeIndustry),
+  return books.map((o) => ({
+    href:  hrefForCustomBook(o.api_name, activeIndustry),
     label: o.label_plural,
     icon:  o.icon,
   }))
 }
 
-/** カスタムオブジェクトの api_name + 業種 → URL */
-function hrefForCustomObject(apiName: string, activeIndustry: Industry): string {
+/** カスタムブックの api_name + 業種 → URL */
+function hrefForCustomBook(apiName: string, activeIndustry: Industry): string {
   // 業種オーバーレイ専用ルートを持つものは overlay の URL に向ける
   if (activeIndustry === 'real-estate' && apiName === 'properties') return '/properties'
   if (activeIndustry === 'auto-body'   && apiName === 'vehicles')   return '/vehicles'
@@ -47,7 +47,7 @@ function hrefForCustomObject(apiName: string, activeIndustry: Industry): string 
  * 業種オーバーレイ専用ルートのナビ項目（book_definitions に行が無い場合のフォールバック）。
  * 初期セットアップ前でもサイドバーに表示できるようハードコードする。
  * layout.tsx（サイドバー）と並び替え画面（NavOrderEditor）で共用しドリフトを防ぐ。
- * 重複時は customObjectsToNavItems 由来の項目を優先（呼び出し側で href 重複排除）。
+ * 重複時は customBooksToNavItems 由来の項目を優先（呼び出し側で href 重複排除）。
  */
 export function industryFallbackNavItems(activeIndustry: Industry): NavItem[] {
   if (activeIndustry === 'auto-body') {
@@ -79,7 +79,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/activities',    label: '活動履歴',      icon: '🗓️' },
   { href: '/tasks',         label: 'ToDo',          icon: '✅' },
   { href: '/expenses',      label: '経費管理',      icon: '💰' },
-  // /properties はカスタムオブジェクト化のため削除。
+  // /properties はカスタムブック化のため削除。
   // DB の book_definitions (api_name='properties') から自動的にサイドバーに表示される。
 ]
 
@@ -123,7 +123,7 @@ export const ADMIN_LINKS: AdminLink[] = [
 
 /**
  * モジュールに属さない可能性のあるナビ項目の既定順リストを構築する
- * （静的ナビ → カスタムオブジェクト → 業種フォールバック。dashboard はグループ外なので除外）。
+ * （静的ナビ → カスタムブック → 業種フォールバック。dashboard はグループ外なので除外）。
  * buildNavGroups の extraItems としてサイドバー（layout.tsx）と
  * 並び替え画面（NavOrderEditor）の両方で使い、構造のドリフトを防ぐ。
  */

@@ -13,56 +13,56 @@ import { eq, asc } from 'drizzle-orm'
 import { parseFieldOptions as _parseFieldOptions } from '@/lib/fieldUtils'
 import { unstable_cache } from 'next/cache'
 
-export type ObjectDef = typeof book_definitions.$inferSelect
-export type FieldDef  = typeof book_fields.$inferSelect
+export type BookDef = typeof book_definitions.$inferSelect
+export type FieldDef = typeof book_fields.$inferSelect
 
 // ── キャッシュタグ定数 ─────────────────────────────────────────────
-export const CACHE_TAG_OBJECTS = 'book_definitions'
-export const CACHE_TAG_FIELDS  = 'book_fields'
+export const CACHE_TAG_BOOKS  = 'book_definitions'
+export const CACHE_TAG_FIELDS = 'book_fields'
 
-// ── 全オブジェクト定義（管理画面・ナビ用） ────────────────────────
-const _getAllObjectDefs = unstable_cache(
+// ── 全ブック定義（管理画面・ナビ用） ──────────────────────────────
+const _getAllBookDefs = unstable_cache(
   async () => db.select().from(book_definitions)
     .orderBy(asc(book_definitions.sort_order), asc(book_definitions.created_at)),
-  ['all_object_defs'],
-  { tags: [CACHE_TAG_OBJECTS], revalidate: 30 },
+  ['all_book_defs'],
+  { tags: [CACHE_TAG_BOOKS], revalidate: 30 },
 )
 
 /** api_name で 1 件取得 */
-export async function getObjectDef(apiName: string): Promise<ObjectDef | null> {
-  const all = await _getAllObjectDefs()
+export async function getBookDef(apiName: string): Promise<BookDef | null> {
+  const all = await _getAllBookDefs()
   return all.find((o) => o.api_name === apiName) ?? null
 }
 
 /** id で 1 件取得 */
-export async function getObjectDefById(id: string): Promise<ObjectDef | null> {
-  const all = await _getAllObjectDefs()
+export async function getBookDefById(id: string): Promise<BookDef | null> {
+  const all = await _getAllBookDefs()
   return all.find((o) => o.id === id) ?? null
 }
 
-/** ナビ表示が有効なカスタムオブジェクト（is_builtin=false）を取得 */
-export async function getCustomObjectsForNav(): Promise<ObjectDef[]> {
-  const all = await _getAllObjectDefs()
+/** ナビ表示が有効なカスタムブック（is_builtin=false）を取得 */
+export async function getCustomBooksForNav(): Promise<BookDef[]> {
+  const all = await _getAllBookDefs()
   return all.filter((o) => !o.is_builtin)
 }
 
-/** 全オブジェクト定義（管理画面用） */
-export async function getAllObjectDefs(): Promise<ObjectDef[]> {
-  return _getAllObjectDefs()
+/** 全ブック定義（管理画面用） */
+export async function getAllBookDefs(): Promise<BookDef[]> {
+  return _getAllBookDefs()
 }
 
-// ── フィールド定義（オブジェクトごと） ───────────────────────────
+// ── フィールド定義（ブックごと） ─────────────────────────────────
 const _getFieldDefsRaw = unstable_cache(
-  async (objectId: string) => db.select().from(book_fields)
-    .where(eq(book_fields.object_id, objectId))
+  async (bookId: string) => db.select().from(book_fields)
+    .where(eq(book_fields.object_id, bookId))
     .orderBy(asc(book_fields.sort_order), asc(book_fields.created_at)),
   ['field_defs'],
   { tags: [CACHE_TAG_FIELDS], revalidate: 30 },
 )
 
-/** object_id に紐づくフィールド定義を sort_order 順で取得 */
-export async function getFieldDefs(objectId: string): Promise<FieldDef[]> {
-  return _getFieldDefsRaw(objectId)
+/** ブック（book_fields.object_id）に紐づくフィールド定義を sort_order 順で取得 */
+export async function getFieldDefs(bookId: string): Promise<FieldDef[]> {
+  return _getFieldDefsRaw(bookId)
 }
 
 /** select フィールドの options を JSON パースして返す */

@@ -14,7 +14,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { SquarePen, X } from 'lucide-react'
 import SubmitButton from '@/components/SubmitButton'
 import FormFillModal from '@/components/FormFillModal'
-import type { FieldDef } from '@/lib/objectMetadata'
+import type { FieldDef } from '@/lib/bookMetadata'
 
 /** 「テキストから入力」（FormFillModal）の設定。指定すると編集モードのヘッダに出る */
 export type FillConfig = {

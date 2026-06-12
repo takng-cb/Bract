@@ -7,23 +7,23 @@ import { canEdit } from '@/lib/auth'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 /**
- * 組み込みオブジェクトのレコードにカスタムフィールド値を一括保存する
+ * 組み込みブックのレコードにカスタムフィールド値を一括保存する
  * FormData の各エントリが api_name → value に対応する
  */
 export async function saveCustomFieldValues(
-  objectApiName: string,
+  bookApiName: string,
   recordId: string,
   formData: FormData,
 ): Promise<void> {
   if (!(await canEdit())) throw new Error('権限がありません')
-  await assertNotPendingApproval(objectApiName, recordId)  // 承認待ち中は編集ロック（REQ-0023 / #131）
+  await assertNotPendingApproval(bookApiName, recordId)  // 承認待ち中は編集ロック（REQ-0023 / #131）
 
-  // object_definition から book_fields を取得
+  // book_definition から book_fields を取得
   const objRows = await db.select({ id: book_definitions.id })
     .from(book_definitions)
-    .where(eq(book_definitions.api_name, objectApiName))
+    .where(eq(book_definitions.api_name, bookApiName))
   const obj = objRows[0]
-  if (!obj) throw new Error('オブジェクトが見つかりません')
+  if (!obj) throw new Error('ブックが見つかりません')
 
   const fields = await db.select({ id: book_fields.id, api_name: book_fields.api_name, field_type: book_fields.field_type })
     .from(book_fields)
@@ -57,5 +57,5 @@ export async function saveCustomFieldValues(
     }
   }
 
-  revalidatePath(`/${objectApiName}`)
+  revalidatePath(`/${bookApiName}`)
 }

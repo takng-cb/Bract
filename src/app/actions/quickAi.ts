@@ -19,7 +19,7 @@ import { properties } from '@/industries/real-estate/schema'
 import { ilike } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
-import { getObjectDef, getFieldDefs, parseFieldOptions } from '@/lib/objectMetadata'
+import { getBookDef, getFieldDefs, parseFieldOptions } from '@/lib/bookMetadata'
 import { callAI } from '@/lib/ai/client'
 import { assertAiRateLimit } from '@/lib/ai/rateLimit'
 import { createAccount } from '@/app/actions/accounts'
@@ -221,7 +221,7 @@ export type QuickAiInput = { text?: string; image?: QuickAiImage; url?: string }
 /** AI 作成に対応するブックか（book_records ベース or typed CRM コア） */
 export async function quickAiSupported(apiName: string): Promise<boolean> {
   if (TYPED_SPECS[apiName]) return true
-  const obj = await getObjectDef(apiName)
+  const obj = await getBookDef(apiName)
   return Boolean(obj && !obj.is_builtin)
 }
 
@@ -241,7 +241,7 @@ export async function quickAiExtract(apiName: string, input: QuickAiInput): Prom
     label = typed.label
     specFields = typed.fields
   } else {
-    const obj = await getObjectDef(apiName)
+    const obj = await getBookDef(apiName)
     if (!obj) throw new Error(`ブック "${apiName}" が見つかりません`)
     if (obj.is_builtin) throw new Error('このブックは AI 作成に未対応です（手動入力をご利用ください）')
     const fdefs = await getFieldDefs(obj.id)
@@ -310,7 +310,7 @@ export async function quickAiCreate(apiName: string, values: Record<string, stri
   const typed = TYPED_SPECS[apiName]
   if (typed) return typed.create(values, related)
 
-  const obj = await getObjectDef(apiName)
+  const obj = await getBookDef(apiName)
   if (!obj) throw new Error(`ブック "${apiName}" が見つかりません`)
   if (obj.is_builtin) throw new Error('このブックは AI 作成に未対応です')
 

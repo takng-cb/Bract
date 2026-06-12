@@ -31,7 +31,7 @@
 | id | 名称 | 主な対象 | 既存ルート |
 |---|---|---|---|
 | `platform-core` | 基盤 | auth / users / 監査ログ / 通知 / ライセンス | `/admin/*`, `/auth/*` |
-| `custom-objects` | カスタムオブジェクト | object_definitions / field_definitions / relationships / custom_records | `/objects/*`, `/admin/objects`, `/admin/relationships` |
+| `custom-objects` | カスタムブック | book_definitions / book_fields / relationships / book_records | `/books/*`, `/admin/books`, `/admin/relationships` |
 | `tags` | タグ | tags / taggables | `/tags` |
 | `ai-assist` | AI 入力補助 | コントラクト駆動の draft-then-apply（§ai-input-assistant） | `/admin/ai`, 各フォームのAIボタン |
 
@@ -107,5 +107,5 @@ crm-core ─┬─ sales ─┬─ accounting
 3. テーブルが要るなら `src/lib/schema.ts` に追加 + `supabase/migrations/<ts>_<name>.sql`（冪等）。
 4. `src/modules/<id>/contracts.ts` に入力コントラクトを宣言（AI/UI/import 共通）。
 5. ルートを `src/modules/<id>/pages/` に置き、`src/app/(crm)/<route>/page.tsx` proxy で `isModuleEnabled` ゲート。
-6. object_definitions が要るマスタは `objectSeeds` + seed スクリプトで冪等登録。
+6. book_definitions が要るマスタは `objectSeeds` + seed スクリプトで冪等登録。
 7. 3業種 env でビルド + `check:schema` を緑に。

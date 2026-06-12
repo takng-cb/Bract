@@ -3,7 +3,7 @@
  * カスタムフィールド入力欄を既存フォームに埋め込むコンポーネント
  * フォームの <form> 内に配置し、cf_ プレフィックスで送信する
  */
-import type { FieldDef } from '@/lib/objectMetadata'
+import type { FieldDef } from '@/lib/bookMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
 
 type Props = {
