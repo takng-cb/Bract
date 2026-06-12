@@ -163,6 +163,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     needs: build
+    # secrets コンテキストは step の if では参照できない（参照するとワークフロー
+    # ファイル全体が実行前に invalid 扱いになり全 run が 0 秒 fail する。実例: 436連敗）。
+    # env に「有無フラグ」として写してから if で判定する。
+    env:
+      HAS_TEST_PW: ${{ secrets.TEST_USER_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -171,21 +176,21 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Skip if TEST_USER_PASSWORD secret not set
-        if: ${{ !secrets.TEST_USER_PASSWORD }}
+        if: env.HAS_TEST_PW != 'true'
         run: |
           echo "::warning::TEST_USER_PASSWORD secret 未設定のため E2E skip"
           exit 0
       - name: Install Playwright browsers
-        if: ${{ secrets.TEST_USER_PASSWORD }}
+        if: env.HAS_TEST_PW == 'true'
         run: npx playwright install --with-deps chromium
       - name: Run E2E
-        if: ${{ secrets.TEST_USER_PASSWORD }}
+        if: env.HAS_TEST_PW == 'true'
         env:
           BASE_URL: ${{ github.event.inputs.smoke_url || 'https://bract-crm.vercel.app' }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
         run: npm run test:e2e
       - name: Upload Playwright report
-        if: always() && secrets.TEST_USER_PASSWORD
+        if: always() && env.HAS_TEST_PW == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
