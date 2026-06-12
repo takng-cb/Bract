@@ -190,9 +190,13 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* フッター */}
-      <div className="border-t border-zinc-200 pt-6 text-xs text-zinc-400">
-        Bract — Built for those who make relationships bloom.
+      {/* フッター（バージョンは release タグと対応 #130） */}
+      <div className="border-t border-zinc-200 pt-6 text-xs text-zinc-400 flex items-center justify-between flex-wrap gap-2">
+        <span>Bract — Built for those who make relationships bloom.</span>
+        <span className="select-all">
+          v{process.env.NEXT_PUBLIC_APP_VERSION ?? 'dev'}
+          {process.env.NEXT_PUBLIC_GIT_SHA ? ` (${process.env.NEXT_PUBLIC_GIT_SHA})` : ''}
+        </span>
       </div>
     </div>
   )
