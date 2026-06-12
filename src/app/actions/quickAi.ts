@@ -20,6 +20,7 @@ import { ilike } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { canDo } from '@/lib/permissions'
+import { repairTextValue } from '@/lib/textGuard'
 import { getBookDef, getAllBookDefs, getFieldDefs, parseFieldOptions } from '@/lib/bookMetadata'
 import { callAI } from '@/lib/ai/client'
 import { assertAiRateLimit } from '@/lib/ai/rateLimit'
@@ -214,6 +215,8 @@ export type QuickAiDraft = {
   fields: QuickAiField[]
   /** AI が補足した注意点（曖昧さなど） */
   note?: string
+  /** テキストに登場した既存レコード（活動/ToDo の関連先として自動セット。REQ-0065） */
+  related?: RelatedCandidate | null
 }
 
 export type QuickAiImage = { mediaType: string; dataBase64: string }
@@ -282,7 +285,7 @@ async function quickAiExtractImpl(apiName: string, input: QuickAiInput): Promise
     `あなたは日本語の業務データ抽出アシスタントです。`,
     `「${label}」レコードの各フィールドを、与えられた情報（テキスト・名刺等の画像・Webサイト本文）から抽出します。`,
     `出力は厳密な JSON のみ。前後に説明文やコードフェンスを付けないこと。`,
-    `形式: {"fields": {"<api_name>": "<値の文字列>", ...}, "note": "<曖昧な点があれば短く。無ければ空文字>"}`,
+    `形式: {"fields": {"<api_name>": "<値の文字列>", ...}, "note": "<曖昧な点があれば短く。無ければ空文字>"${typed?.linkable ? ', "related_name": "<テキストに登場する取引先・人物・商談の名称（表記をそのまま）。無ければ空文字>"' : ''}}`,
     `ルール:`,
     `- 値が読み取れないフィールドは空文字 "" にする（推測で埋めない）。`,
     `- date 型は YYYY-MM-DD、number 型は数字のみ、boolean 型は "true"/"false"、select 型は選択肢のいずれかに正規化する。`,
@@ -312,9 +315,25 @@ async function quickAiExtractImpl(apiName: string, input: QuickAiInput): Promise
     return { apiName: f.apiName, label: f.label, fieldType: f.fieldType, value: raw == null ? '' : String(raw), options: f.options }
   })
 
+  // 関連先の自動セット（REQ-0065）: 言及された名称を既存レコードと照合
+  let related: RelatedCandidate | null = null
+  if (typed?.linkable) {
+    const rawName = typeof (parsed as Record<string, unknown> | null)?.related_name === 'string'
+      ? String((parsed as Record<string, unknown>).related_name).trim() : ''
+    if (rawName.length >= 2) {
+      const name = repairTextValue(rawName, text ?? '')  // AI の表記改変ガード
+      const hits = await relatedSearchImpl(name)
+      // 完全一致 > 名称が候補ラベルに含まれる中で最短ラベル > 先頭
+      related = hits.find((h) => h.label === name)
+        ?? hits.filter((h) => h.label.includes(name)).sort((a, b) => a.label.length - b.label.length)[0]
+        ?? hits[0] ?? null
+    }
+  }
+
   return {
     fields: draftFields,
     note: typeof parsed?.note === 'string' && parsed.note.trim() ? parsed.note.trim() : undefined,
+    related,
   }
 }
 
@@ -381,6 +400,10 @@ export type RelatedCandidate = { object_api: string; record_id: string; label: s
 /** 活動/ToDo の紐づけ先候補を横断検索（取引先/人物/商談）。 */
 export async function quickRelatedSearch(query: string): Promise<RelatedCandidate[]> {
   if (!(await canEdit())) return []
+  return relatedSearchImpl(query)
+}
+
+async function relatedSearchImpl(query: string): Promise<RelatedCandidate[]> {
   const q = query.trim()
   if (q.length < 1) return []
   const like = `%${q}%`
