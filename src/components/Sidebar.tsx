@@ -219,6 +219,11 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
               <div className="space-y-0.5">
                 {BOTTOM_NAV_ITEMS.map((it) => bottomLink(it, settingActive(it.href)))}
                 <SignOutButton collapsed={false} />
+                {/* バージョン表示（#130: release タグと突き合わせて版を特定する） */}
+                <p className="px-2 pt-1 text-[10px] text-zinc-600 select-all">
+                  Bract v{process.env.NEXT_PUBLIC_APP_VERSION ?? 'dev'}
+                  {process.env.NEXT_PUBLIC_GIT_SHA ? ` (${process.env.NEXT_PUBLIC_GIT_SHA})` : ''}
+                </p>
               </div>
             )}
           </>

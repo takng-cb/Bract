@@ -1,8 +1,18 @@
 import type { NextConfig } from "next";
 import withPWA from "@ducanh2912/next-pwa";
+import { version as appVersion } from "./package.json";
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  /**
+   * バージョン表示（#130）: package.json の version と git SHA をクライアントへ。
+   * release タグ（vX.Y.Z）を切る時は package.json の version を合わせて更新する
+   * （手順: docs/release-runbook.md §2）。SHA は Vercel が自動注入する env から取得。
+   */
+  env: {
+    NEXT_PUBLIC_APP_VERSION: appVersion,
+    NEXT_PUBLIC_GIT_SHA: (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7),
+  },
   /**
    * Client cache の TTL（Next.js 16）。
    *

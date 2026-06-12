@@ -38,7 +38,8 @@ main ──A──B──C──D──E──F──→（開発はここだけ
    git merge --ff-only origin/main     # ff できない状態は異常（release に直接コミットした事故）
    git push origin release-<Customer>
    ```
-3. **タグ**（全顧客一斉の節目のみで可）: `git tag vX.Y.Z && git push --tags`
+3. **タグ**（全顧客一斉の節目のみで可）: `package.json` の `version` を同じ値に更新してから `git tag vX.Y.Z && git push --tags`。
+   アプリのサイドバー（ユーザーメニュー下）と /about に `vX.Y.Z (SHA)` が表示されるので、顧客がどの版かはここで特定できる（#130）
 4. Vercel の deploy 緑を確認 → 顧客コンテナの主要ページを Chrome で目視（AGENTS.md の検証チェックリスト）
 
 - 顧客ごとに進めるタイミングを変えてよい（順次展開）。据え置きたい顧客は単に release ブランチを進めない。
