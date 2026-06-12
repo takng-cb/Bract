@@ -156,7 +156,10 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
         image: aiImage ? { mediaType: aiImage.mediaType, dataBase64: aiImage.dataBase64 } : undefined,
       })
       if (!r.ok) { setError(r.error); return }
-      setDraft(r.data); setStep('aiConfirm')
+      setDraft(r.data)
+      // テキストに登場した既存レコードを関連先に自動セット（REQ-0065。確認画面で変更可）
+      if (r.data.related) setRelSelected(r.data.related)
+      setStep('aiConfirm')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
