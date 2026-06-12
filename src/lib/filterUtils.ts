@@ -61,7 +61,12 @@ function matchesCondition(
     raw = record[cond.field]
   }
 
-  const fieldStr = raw != null ? String(raw) : ''
+  // timestamp カラムは Date オブジェクトで返るため、String(Date) の
+  // "Thu Jun 12 2026 ..." 形式では日付入力値（YYYY-MM-DD）と比較できない（#132）。
+  // JST の YYYY-MM-DD に正規化してから比較する（date カラムは元々この形式の文字列）。
+  const fieldStr = raw instanceof Date
+    ? raw.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+    : raw != null ? String(raw) : ''
   const val      = cond.value
 
   switch (cond.op) {

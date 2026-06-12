@@ -27,15 +27,10 @@ export async function GET(request: Request) {
       .from(activities)
       .orderBy(desc(activities.occurred_at))
 
-    // occurred_at は timestamptz（Date オブジェクト）のため、そのままでは applyFilters の
-    // 文字列比較（YYYY-MM-DD）と噛み合わない。比較用に日本時間の YYYY-MM-DD へ変換した
-    // 行を applyFilters に渡して判定し、CSV 出力には元の行を使う（filterUtils 側は変更しない）
-    const jstDate = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+    // occurred_at（timestamptz の Date オブジェクト）は applyFilters 側で
+    // JST の YYYY-MM-DD に正規化されて比較される（#132）
     const filtered = conditions.length > 0
-      ? data.filter((r) => applyFilters(
-          [{ ...r, occurred_at: r.occurred_at ? jstDate(new Date(r.occurred_at)) : null } as Record<string, unknown>],
-          conditions,
-        ).length > 0)
+      ? (applyFilters(data as unknown as Record<string, unknown>[], conditions) as unknown as typeof data)
       : data
 
     // junction 経由で関連レコード名を bulk fetch
