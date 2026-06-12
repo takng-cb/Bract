@@ -331,6 +331,11 @@
 - 内容：DB テーブルを改名 — object_definitions→**book_definitions**、field_definitions→**book_fields**、custom_records→**book_records**（migration `20260612120000`。過去マイグレは旧名のまま replay→最後に rename されるため Neon 立て直しでも安全）。ルートを /objects/*→**/books/***、/admin/objects→**/admin/books** に移設し、旧 URL は恒久リダイレクト。コード内のテーブル識別子・URL 文字列を全置換（44＋38ファイル）。**第2段階（別途）**: TS の型/関数名（ObjectDef・getObjectDef・objectApiName 等）と docs 内の旧名掃除。api_name の値・taggables/change_logs の object_type 値は変更しない。
 - 状態：実装・出荷済み（migration の全 Neon 適用が前提）。関連：#21 / ADR-0017/0018
 
+### REQ-0051  新規作成画面をレコード詳細と同じ見た目に（まず取引先）
+- 2026-06-12 / 会話（「各ブックの新規作成画面が閲覧画面と別の見た目。閲覧画面と同じ見た目にしたい。まずは取引先で」）
+- 内容：新規作成ページ用の共通カード `CreateInfoCard`（EditableInfoCard 編集モードと同一スタイル・dense 対応・form/ボタン非内蔵）を新設。取引先の新規作成/編集を詳細と同じ構成に刷新——RecordHeader（パンくず＋アバター＋タイトル＋ヘッダ右の保存/キャンセル、form 属性でフォーム紐付け）＋ RecordColumns（左=取引先情報 dense カード、右=会社情報・メモ＋カスタム項目）。AI入力（FormFillModal）・重複チェック（runCreate）フローは維持。**他ブックへの展開は取引先の見た目確認後**。
+- 状態：実装・出荷済み（取引先のみ。横展開待ち）。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
