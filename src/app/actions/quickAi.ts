@@ -14,7 +14,7 @@
 import net from 'node:net'
 import { lookup as dnsLookup } from 'node:dns/promises'
 import { db } from '@/lib/db'
-import { book_records, accounts, contacts, opportunities, tasks, activities, task_related_records, activity_related_records } from '@/lib/schema'
+import { book_records, accounts, contacts, opportunities, tasks, activities, expenses, task_related_records, activity_related_records, expense_related_records } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { ilike } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -144,6 +144,36 @@ const TYPED_SPECS: Record<string, TypedSpec> = {
         transaction_type: 'transaction_type', description: 'description',
       }))
       return { recordHref: `/properties/${id}` }
+    },
+  },
+  expenses: {
+    label: '経費',
+    linkable: true,
+    fields: [
+      { apiName: 'title',        label: '件名',           fieldType: 'text' },
+      { apiName: 'amount',       label: '金額（円）',     fieldType: 'number' },
+      { apiName: 'category',     label: 'カテゴリ',       fieldType: 'select', options: ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他'] },
+      { apiName: 'expense_date', label: '日付',           fieldType: 'date' },
+      { apiName: 'notes',        label: '備考',           fieldType: 'textarea' },
+    ],
+    async create(v, related) {
+      const amount = Number((v.amount ?? '').replace(/[^\d.]/g, ''))
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error('金額を入力してください')
+      const todayJst = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+      const [row] = await db.insert(expenses).values({
+        title: (v.title || '無題の経費').trim(),
+        amount: String(amount),
+        category: ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他'].includes(v.category) ? v.category : 'その他',
+        expense_date: v.expense_date?.trim() || todayJst,
+        notes: v.notes?.trim() || null,
+      }).returning({ id: expenses.id })
+      if (related?.object_api && related.record_id) {
+        await db.insert(expense_related_records)
+          .values({ expense_id: row.id, related_object_api: related.object_api, related_record_id: related.record_id })
+          .onConflictDoNothing()
+      }
+      revalidatePath('/expenses')
+      return { recordHref: `/expenses/${row.id}` }
     },
   },
   tasks: {
@@ -281,9 +311,11 @@ async function quickAiExtractImpl(apiName: string, input: QuickAiInput): Promise
     return `- ${f.apiName}: ${f.label}（型: ${f.fieldType}）${optStr}`
   }).join('\n')
 
+  const todayJst = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
   const system = [
     `あなたは日本語の業務データ抽出アシスタントです。`,
     `「${label}」レコードの各フィールドを、与えられた情報（テキスト・名刺等の画像・Webサイト本文）から抽出します。`,
+    `本日は ${todayJst}（日本時間）です。「明日」「来週金曜」「今月末」等の相対日付は本日基準で YYYY-MM-DD に変換してフィールドに入れる。`,
     `出力は厳密な JSON のみ。前後に説明文やコードフェンスを付けないこと。`,
     `形式: {"fields": {"<api_name>": "<値の文字列>", ...}, "note": "<曖昧な点があれば短く。無ければ空文字>"${typed?.linkable ? ', "related_name": "<テキストに登場する取引先・人物・商談の名称（表記をそのまま）。無ければ空文字>"' : ''}}`,
     `ルール:`,
@@ -321,8 +353,16 @@ async function quickAiExtractImpl(apiName: string, input: QuickAiInput): Promise
     const rawName = typeof (parsed as Record<string, unknown> | null)?.related_name === 'string'
       ? String((parsed as Record<string, unknown>).related_name).trim() : ''
     if (rawName.length >= 2) {
-      const name = repairTextValue(rawName, text ?? '')  // AI の表記改変ガード
-      const hits = await relatedSearchImpl(name)
+      const repaired = repairTextValue(rawName, text ?? '')  // AI の表記改変ガード
+      const name = repaired.replace(/(さん|様|氏|君|殿)$/u, '')  // 敬称を除去（「田中さん」→「田中」）
+      let hits = await relatedSearchImpl(name)
+      if (hits.length === 0 && name.length >= 2) {
+        // 「田中健太」 vs 「田中 健太」のようなスペース差を吸収:
+        // 先頭2文字で広く引いてから、スペースを除いた表記で照合する
+        const flat = (x: string) => x.replace(/[\s　]/g, '')
+        const broad = await relatedSearchImpl(name.slice(0, 2))
+        hits = broad.filter((h) => flat(h.label).includes(flat(name)) || flat(name).includes(flat(h.label)))
+      }
       // 完全一致 > 名称が候補ラベルに含まれる中で最短ラベル > 先頭
       related = hits.find((h) => h.label === name)
         ?? hits.filter((h) => h.label.includes(name)).sort((a, b) => a.label.length - b.label.length)[0]
@@ -565,6 +605,7 @@ async function quickAiClassifyBookImpl(input: { text?: string; url?: string }): 
     `- 確信が持てる場合のみ book に apiName を入れる。迷う場合は book を null にし、candidates に可能性の高い順で2〜3件入れる。`,
     `- テキストに種別が明示されている場合（「〜のタスク」「〜する活動」「経費として」等）は、その種別の book に確定する。`,
     `- 判断材料: 会社情報→取引先、人名・名刺→人物、車両情報→車両、商談・案件の金額や受注見込み→商談、やること・期限→ToDo、出来事の記録→活動履歴、領収書・金額の支出→経費 など。`,
+    `- 例: 「領収書: タクシー代 3,400円」→ expenses ／ 「明日までに◯◯へ見積送付」→ tasks ／ 「◯◯と電話で打ち合わせした」→ activities ／ 「株式会社◯◯ 営業部 △△ <メール>」→ contacts ／ 「トヨタ プリウス 2020年式」→ vehicles。`,
     `- apiName は下記の候補のみ。それ以外は使わない。`,
     ``,
     `候補:`,

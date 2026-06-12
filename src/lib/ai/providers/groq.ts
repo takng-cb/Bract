@@ -52,7 +52,12 @@ export const groqProvider: AIProvider = {
       const json = await res.json().catch(() => ({})) as GroqResponse
 
       if (!res.ok) {
-        const msg = json?.error?.message ?? `Groq API error (HTTP ${res.status})`
+        const rawMsg = json?.error?.message ?? `HTTP ${res.status}`
+        if (res.status === 429 || /rate.?limit/i.test(String(rawMsg))) {
+          console.warn('[ai] rate limited (groq):', rawMsg)
+          throw new AIProviderError('AI の利用上限に達しました。数分おいてからお試しください（続く場合は管理者に AI プランの見直しをご相談ください）。', 'groq', res.status)
+        }
+        const msg = rawMsg
         throw new AIProviderError(msg, 'groq', res.status)
       }
 
