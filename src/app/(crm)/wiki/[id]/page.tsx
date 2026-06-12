@@ -13,6 +13,7 @@ import RecordHeader, { type Crumb } from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import MarkdownView from '@/components/MarkdownView'
+import { extractHeadings } from '@/lib/markdownToc'
 import { resolveWikiLinks } from '@/lib/wiki'
 import { deleteWikiPage } from '@/app/actions/wiki'
 import { NavIcon } from '@/lib/navIcon'
@@ -58,6 +59,8 @@ export default async function WikiDetailPage({ params }: { params: Promise<{ id:
   ]
 
   const renderedBody = page.body ? resolveWikiLinks(page.body, titleToId) : ''
+  // 目次（#129）: 見出しが2つ以上ある時だけ表示
+  const toc = extractHeadings(renderedBody)
 
   async function handleDelete() {
     'use server'
@@ -85,6 +88,20 @@ export default async function WikiDetailPage({ params }: { params: Promise<{ id:
           </AuthGuard>
         }
       />
+
+      {/* 目次（見出しから自動生成 #129） */}
+      {toc.length >= 2 && (
+        <nav className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 mb-4" aria-label="目次">
+          <p className="text-xs font-semibold text-zinc-500 mb-2">目次</p>
+          <ul className="space-y-1">
+            {toc.map((h, i) => (
+              <li key={i} style={{ paddingLeft: `${(h.level - 1) * 14}px` }}>
+                <a href={`#${h.slug}`} className="text-sm text-blue-700 hover:underline">{h.text}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       {/* 本文 */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6 mb-6">
