@@ -233,6 +233,15 @@ export default async function ExpensesPage({
               'カテゴリ': ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他'],
             }}
             showImport={edit}
+            filterFields={[
+              { value: 'title', label: '件名', type: 'text' },
+              {
+                value: 'category', label: 'カテゴリ', type: 'select',
+                options: ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他'].map((v) => ({ value: v, label: v })),
+              },
+              { value: 'amount',       label: '金額（円）', type: 'number' },
+              { value: 'expense_date', label: '日付',       type: 'date' },
+            ]}
           />
           {edit && (
             <Link

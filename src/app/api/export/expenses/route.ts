@@ -4,11 +4,16 @@ import { eq, desc, inArray, and } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 import { requireApiUser } from '@/lib/apiAuth'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
-export async function GET() {
+export async function GET(request: Request) {
   // 認証確認（未ログインは 401）
   const denied = await requireApiUser()
   if (denied) return denied
+
+  // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
+  const filterRaw = new URL(request.url).searchParams.getAll('f')
+  const conditions = parseFilterParams(filterRaw)
 
   try {
     const data = await db.select({
@@ -22,7 +27,11 @@ export async function GET() {
       .from(expenses)
       .orderBy(desc(expenses.expense_date))
 
-    const ids = data.map((d) => d.id)
+    const filtered = conditions.length > 0
+      ? (applyFilters(data as unknown as Record<string, unknown>[], conditions) as unknown as typeof data)
+      : data
+
+    const ids = filtered.map((d) => d.id)
     const [accRows, oppRows] = await Promise.all([
       ids.length === 0 ? Promise.resolve([]) : db.select({
         host_id: expense_related_records.expense_id,
@@ -52,7 +61,7 @@ export async function GET() {
     const oppNamesById = namesByApi(oppRows)
 
     const headers = ['ID', '件名', '金額', 'カテゴリ', '日付', '取引先名', '商談名', '備考']
-    const rows = data.map((r) => [
+    const rows = filtered.map((r) => [
       r.id,
       r.title,
       r.amount,

@@ -206,6 +206,15 @@ export default async function ContactsPage({
             label="人物"
             csvFormat="ID,氏名,役職,部署,メール,電話番号,誕生日,取引先名,メモ"
             showImport={edit}
+            filterFields={[
+              { value: 'full_name',     label: '氏名',     type: 'text' },
+              { value: 'title',         label: '役職',     type: 'text' },
+              { value: 'department',    label: '部署',     type: 'text' },
+              { value: 'email',         label: 'メール',   type: 'text' },
+              { value: 'phone',         label: '電話番号', type: 'text' },
+              { value: 'birthday',      label: '誕生日',   type: 'date' },
+              { value: 'accounts.name', label: '取引先名', type: 'text' },
+            ]}
           />
           {edit && (
             <TextImportModal

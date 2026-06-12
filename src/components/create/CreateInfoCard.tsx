@@ -23,6 +23,10 @@ export type CreateField = {
   /** select の先頭に置く空選択肢のラベル（既定 '—'。null で空選択肢なし） */
   emptyOption?: string | null
   min?: number
+  /** number の刻み（小数の価格等は 0.01） */
+  step?: number | string
+  /** 入力欄の下に出す補足説明（スタッフの時給・スキル等） */
+  hint?: string
 }
 
 const INPUT = 'w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:border-blue-400 transition-colors'
@@ -41,7 +45,7 @@ function FieldInput({ f }: { f: CreateField }) {
     )
   }
   const type = f.kind === 'email' ? 'email' : f.kind === 'tel' ? 'tel' : f.kind === 'date' ? 'date' : f.kind === 'datetime' ? 'datetime-local' : f.kind === 'number' ? 'number' : 'text'
-  return <input type={type} name={f.name} defaultValue={String(dv)} required={f.required} placeholder={f.placeholder} min={f.min} className={INPUT} />
+  return <input type={type} name={f.name} defaultValue={String(dv)} required={f.required} placeholder={f.placeholder} min={f.min} step={f.step} className={INPUT} />
 }
 
 export default function CreateInfoCard({
@@ -74,6 +78,7 @@ export default function CreateInfoCard({
                 {f.label}{f.required && <span className="text-red-500"> *</span>}
               </span>
               <FieldInput f={f} />
+              {f.hint && <span className="block text-[10px] text-zinc-400 mt-0.5">{f.hint}</span>}
             </label>
           ))}
           {children}
@@ -98,6 +103,7 @@ export default function CreateInfoCard({
                 {f.label}{f.required && <span className="text-red-500"> *</span>}
               </span>
               <FieldInput f={f} />
+              {f.hint && <span className="block text-[10px] text-zinc-400 mt-0.5">{f.hint}</span>}
             </label>
           ))}
         </div>
@@ -108,6 +114,7 @@ export default function CreateInfoCard({
             {f.label}{f.required && <span className="text-red-500"> *</span>}
           </span>
           <FieldInput f={f} />
+          {f.hint && <span className="block text-[10px] text-zinc-400 mt-0.5">{f.hint}</span>}
         </label>
       ))}
       {children}

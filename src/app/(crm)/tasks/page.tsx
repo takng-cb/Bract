@@ -451,6 +451,25 @@ export default async function TasksPage({
               '完了': ['完了（済みの場合）', '空（未完了の場合）'],
             }}
             showImport={edit}
+            filterFields={[
+              { value: 'title', label: 'タイトル', type: 'text' },
+              {
+                value: 'priority', label: '優先度', type: 'select',
+                options: [
+                  { value: 'high',   label: '高' },
+                  { value: 'medium', label: '中' },
+                  { value: 'low',    label: '低' },
+                ],
+              },
+              {
+                value: 'done', label: '完了状態', type: 'select',
+                options: [
+                  { value: 'false', label: '未完了' },
+                  { value: 'true',  label: '完了済み' },
+                ],
+              },
+              { value: 'due_date', label: '期日', type: 'date' },
+            ]}
           />
           {edit && (
             <Link

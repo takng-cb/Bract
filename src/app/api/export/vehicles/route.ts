@@ -6,10 +6,10 @@
 import { NextResponse } from 'next/server'
 import { activeIndustry } from '@/lib/industry'
 
-export async function GET() {
+export async function GET(request: Request) {
   if (activeIndustry !== 'auto-body') {
     return NextResponse.json({ error: 'Not Found' }, { status: 404 })
   }
   const { GET: handler } = await import('@/industries/auto-body/api/export/vehicles/route')
-  return handler()
+  return handler(request)
 }

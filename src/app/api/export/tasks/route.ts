@@ -4,11 +4,16 @@ import { eq, asc, inArray, and } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 import { requireApiUser } from '@/lib/apiAuth'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
-export async function GET() {
+export async function GET(request: Request) {
   // 認証確認（未ログインは 401）
   const denied = await requireApiUser()
   if (denied) return denied
+
+  // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
+  const filterRaw = new URL(request.url).searchParams.getAll('f')
+  const conditions = parseFilterParams(filterRaw)
 
   try {
     const data = await db.select({
@@ -21,7 +26,11 @@ export async function GET() {
       .from(tasks)
       .orderBy(asc(tasks.done), asc(tasks.due_date))
 
-    const ids = data.map((d) => d.id)
+    const filtered = conditions.length > 0
+      ? (applyFilters(data as unknown as Record<string, unknown>[], conditions) as unknown as typeof data)
+      : data
+
+    const ids = filtered.map((d) => d.id)
     const [accRows, contRows, oppRows] = await Promise.all([
       ids.length === 0 ? Promise.resolve([]) : db.select({
         host_id: task_related_records.task_id,
@@ -61,7 +70,7 @@ export async function GET() {
     const PRIORITY_LABEL: Record<string, string> = { high: '高', medium: '中', low: '低' }
 
     const headers = ['ID', 'タイトル', '期日', '優先度', '完了', '取引先名', '担当者名', '商談名']
-    const rows = data.map((r) => [
+    const rows = filtered.map((r) => [
       r.id,
       r.title,
       r.due_date ?? '',

@@ -4,8 +4,13 @@ import { properties } from '@/industries/real-estate/schema'
 import { eq, desc } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
+import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
-export async function GET() {
+export async function GET(request: Request) {
+  // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
+  const filterRaw = new URL(request.url).searchParams.getAll('f')
+  const conditions = parseFilterParams(filterRaw)
+
   try {
     const data = await db.select({
       id:               properties.id,
@@ -61,6 +66,10 @@ export async function GET() {
       .leftJoin(contacts, eq(properties.contact_id, contacts.id))
       .orderBy(desc(properties.created_at))
 
+    const filtered = conditions.length > 0
+      ? (applyFilters(data as unknown as Record<string, unknown>[], conditions) as unknown as typeof data)
+      : data
+
     const headers = [
       // 基本 (0-8)
       'ID', 'カテゴリ', '件名', '物件種別', '取引種別', 'ステータス', '価格(円)', '取引先名', '担当者名',
@@ -80,7 +89,7 @@ export async function GET() {
 
     const bool = (v: boolean | null) => v ? '1' : '0'
 
-    const rows = data.map((r) => [
+    const rows = filtered.map((r) => [
       r.id,
       r.product_category === 'other' ? 'その他商品' : '不動産',
       r.name,

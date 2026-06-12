@@ -2,8 +2,10 @@ import { db } from '@/lib/db'
 import { expenses, expense_related_records } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { Receipt } from 'lucide-react'
 import ExpenseForm from '@/components/ExpenseForm'
-import Breadcrumbs from '@/components/Breadcrumbs'
+import RecordHeader from '@/components/RecordHeader'
 import { updateExpense } from '@/app/actions/expenses'
 import { requireEditor } from '@/lib/auth'
 import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
@@ -44,26 +46,44 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
   }))
 
   return (
-    <div className="p-4 md:p-8 max-w-2xl">
-      <Breadcrumbs items={[
-        { label: '経費管理', href: '/expenses' },
-        { label: expense.title, href: `/expenses/${id}` },
-        { label: '編集' },
-      ]} />
-      <h1 className="text-2xl font-bold text-zinc-900 mb-6">経費を編集</h1>
-        <ExpenseForm
-          action={updateExpenseAction}
-          cancelHref={`/expenses/${id}`}
-          objectTypes={objectTypes}
-          defaultValues={{
-            title:        expense.title,
-            amount:       expense.amount !== null ? Number(expense.amount) : null,
-            category:     expense.category,
-            expense_date: expense.expense_date ?? undefined,
-            notes:        expense.notes,
-            related_records: defaultRelated,
-          }}
-        />
+    <div className="p-4 md:p-8 max-w-7xl">
+      {/* 詳細ページと同じヒーローヘッダ（REQ-0051） */}
+      <RecordHeader
+        crumbs={[
+          { label: '経費管理', href: '/expenses' },
+          { label: expense.title, href: `/expenses/${id}` },
+          { label: '編集' },
+        ]}
+        avatar={<Receipt className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
+        title={`${expense.title} を編集`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link href={`/expenses/${id}`} className="px-4 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+              キャンセル
+            </Link>
+            <button
+              type="submit"
+              form="record-create-form"
+              className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              保存
+            </button>
+          </div>
+        }
+      />
+      <ExpenseForm
+        action={updateExpenseAction}
+        cancelHref={`/expenses/${id}`}
+        objectTypes={objectTypes}
+        defaultValues={{
+          title:        expense.title,
+          amount:       expense.amount !== null ? Number(expense.amount) : null,
+          category:     expense.category,
+          expense_date: expense.expense_date ?? undefined,
+          notes:        expense.notes,
+          related_records: defaultRelated,
+        }}
+      />
     </div>
   )
 }
