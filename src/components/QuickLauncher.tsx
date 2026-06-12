@@ -6,7 +6,7 @@ import { X, ChevronLeft, Sparkles, PencilLine, FilePlus2, Eye, ImagePlus, Loader
 import { NavIcon } from '@/lib/navIcon'
 import type { QuickModule, QuickBook } from '@/lib/modules/quick'
 import {
-  quickAiExtract, quickAiCreate, quickAiDupCandidates, quickRelatedSearch,
+  quickAiExtract, quickAiCreate, quickAiDupCandidates, quickRelatedSearch, quickAiClassifyBook,
   type QuickAiDup, type QuickAiField, type QuickAiDraft, type RelatedCandidate,
 } from '@/app/actions/quickAi'
 
@@ -24,7 +24,7 @@ import AiSearchChat from '@/components/AiSearchChat'
  *     手動入力 → モジュール選択 → ブック選択 → 新規入力画面へ遷移
  *   閲覧 → モジュール選択 → ブック選択 → 一覧へ遷移
  */
-type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiConfirm' | 'aiNotSupported' | 'aiSearch'
+type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook' | 'aiConfirm' | 'aiNotSupported' | 'aiSearch'
 type Mode = 'create' | 'view' | 'search'
 type CreateMode = 'ai' | 'manual'
 
@@ -34,9 +34,10 @@ function prevStep(step: Step, mode: Mode): Step {
     case 'createMode': return 'root'
     case 'module':     return mode === 'create' ? 'createMode' : 'root'
     case 'book':       return 'module'
-    case 'aiInput':
     case 'aiNotSupported': return 'book'
-    case 'aiSearch':       return 'root'   // 検索はブック選択を経ない（REQ-0060: 対象もAIが推論）
+    case 'aiInput':        return 'createMode'  // AI作成はブック選択を経ない（REQ-0061: 対象もAIが推論）
+    case 'aiPickBook':     return 'aiInput'
+    case 'aiSearch':       return 'root'        // 検索も同様（REQ-0060）
     case 'aiConfirm':  return 'aiInput'
     default:           return 'root'
   }
@@ -59,6 +60,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const [aiImage, setAiImage] = useState<{ mediaType: string; dataBase64: string; preview: string } | null>(null)
   const [draft, setDraft] = useState<QuickAiDraft | null>(null)
   const [dups, setDups] = useState<QuickAiDup[]>([])
+  const [bookCandidates, setBookCandidates] = useState<QuickBook[]>([])  // ブック未確定時の選択肢（REQ-0061）
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -145,16 +147,41 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     reader.readAsDataURL(file)
   }
 
-  const runExtract = async () => {
-    if (!book) return
+  const extractWith = async (b: QuickBook) => {
     setBusy(true); setError(null)
     try {
-      const d = await quickAiExtract(book.apiName, {
+      const d = await quickAiExtract(b.apiName, {
         text: aiText || undefined,
         url: aiUrl.trim() || undefined,
         image: aiImage ? { mediaType: aiImage.mediaType, dataBase64: aiImage.dataBase64 } : undefined,
       })
       setDraft(d); setStep('aiConfirm')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally { setBusy(false) }
+  }
+
+  const runExtract = async () => {
+    // ブック確定済み（候補から選択済み等）ならそのまま抽出
+    if (book) return extractWith(book)
+    // 入力からブックを推論（REQ-0061）。画像のみの場合は AI を呼ばず候補提示になる
+    setBusy(true); setError(null)
+    try {
+      const res = await quickAiClassifyBook({ text: aiText || undefined, url: aiUrl.trim() || undefined })
+      // 候補が1件に絞れている場合も確定扱い（1択の選択画面を出さない）
+      const decided = res.book ?? (res.candidates.length === 1 ? res.candidates[0].apiName : null)
+      const found = decided ? aiBooks.find((b) => b.apiName === decided) : undefined
+      if (found) {
+        setBook(found)
+        await extractWith(found)
+        return
+      }
+      // 未確定: 候補（クライアント側の利用可能ブックと突き合わせ。空なら全候補）を提示
+      const cands = res.candidates
+        .map((c) => aiBooks.find((b) => b.apiName === c.apiName))
+        .filter((b): b is QuickBook => Boolean(b))
+      setBookCandidates(cands.length > 0 ? cands : aiBooks)
+      setStep('aiPickBook')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
@@ -196,12 +223,21 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     step === 'createMode' ? 'レコード作成' :
     step === 'module' ? (mode === 'view' ? '閲覧するモジュール' : 'モジュールを選択') :
     step === 'book' ? `${mod?.name ?? ''} のブック` :
-    step === 'aiInput' ? `AI作成 — ${book?.label ?? ''}` :
+    step === 'aiInput' ? 'AI作成' :
+    step === 'aiPickBook' ? '作成先を選択' :
     step === 'aiConfirm' ? '内容を確認・編集' :
     step === 'aiSearch' ? 'AI検索' :
     mode === 'search' ? 'AI検索は準備中' : 'AI作成は準備中'
 
   const moduleList = modules.filter((m) => m.books.length > 0)
+
+  // AI 作成の対象候補（aiCreate 対応ブック REQ-0061）
+  const seenAiBook = new Set<string>()
+  const aiBooks = modules.flatMap((m) => m.books).filter((b) => {
+    if (!b.aiCreate || seenAiBook.has(b.apiName)) return false
+    seenAiBook.add(b.apiName)
+    return true
+  })
 
   // AI 検索の対象候補（aiSearch 対応ブック。nav 由来なので有効モジュール・権限を反映 REQ-0060）
   const seenSearchBook = new Set<string>()
@@ -254,8 +290,8 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
               {/* ② AI作成 / 手動入力 */}
               {step === 'createMode' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <BigChoice icon={<Sparkles className="w-6 h-6 text-violet-600" />} label="AI作成" desc="文章・画像から自動入力" accent="violet"
-                    onClick={() => { setCreateMode('ai'); setStep('module') }} />
+                  <BigChoice icon={<Sparkles className="w-6 h-6 text-violet-600" />} label="AI作成" desc="文章・画像から自動入力（対象もAIが判断）" accent="violet"
+                    onClick={() => { setCreateMode('ai'); setError(null); setBook(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelQuery(''); setRelResults([]); setRelSelected(null); setStep('aiInput') }} />
                   <BigChoice icon={<PencilLine className="w-6 h-6" />} label="手動入力" desc="フォームに直接入力"
                     onClick={() => { setCreateMode('manual'); setStep('module') }} />
                 </div>
@@ -297,44 +333,13 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
               )}
 
               {/* AI入力（自由入力 + 画像） */}
-              {step === 'aiInput' && book && (
+              {step === 'aiInput' && (
                 <div className="space-y-3">
-                  {LINKABLE_BOOKS.has(book.apiName) && (
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                      <label className="block text-xs font-semibold text-zinc-600 mb-1">関連先（任意・取引先/人物/商談に紐づけ）</label>
-                      {relSelected ? (
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">{relSelected.kind}: {relSelected.label}</span>
-                          <button type="button" onClick={() => { setRelSelected(null); setRelQuery(''); setRelResults([]) }} className="text-xs text-zinc-500 hover:text-red-600">変更</button>
-                        </div>
-                      ) : (
-                        <>
-                          <input value={relQuery} onChange={(e) => runRelSearch(e.target.value)} placeholder="取引先・人物・商談名で検索…"
-                            className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
-                          {relResults.length > 0 && (
-                            <ul className="mt-1 max-h-40 overflow-y-auto rounded-md border border-zinc-200 bg-white divide-y divide-zinc-100">
-                              {relResults.map((r) => (
-                                <li key={`${r.object_api}-${r.record_id}`}>
-                                  <button type="button" onClick={() => { setRelSelected(r); setRelResults([]) }}
-                                    className="block w-full px-2 py-1.5 text-left text-xs hover:bg-blue-50">
-                                    <span className="text-zinc-400">{r.kind}</span> {r.label}
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                          <p className="mt-1 text-[10px] text-zinc-400">未選択なら単独で作成します。</p>
-                        </>
-                      )}
-                    </div>
-                  )}
                   <textarea
                     value={aiText}
                     onChange={(e) => setAiText(e.target.value)}
                     rows={5}
-                    placeholder={LINKABLE_BOOKS.has(book.apiName)
-                      ? `「${book.label}」の内容を自由に入力（例: 明日15時に先方へ見積提出、電話で進捗確認 など）`
-                      : `「${book.label}」の内容を自由に入力（例: メモ・メール・FAX 文面・名刺の文字など）`}
+                    placeholder={'登録したい内容を自由に入力（例: 名刺の文字、メール文面、「明日15時に見積提出のToDo」など。どのブックに作るかはAIが判断します）'}
                     className="w-full rounded-lg border border-zinc-300 p-3 text-sm focus:border-blue-400 focus:outline-none"
                   />
                   <div>
@@ -373,9 +378,62 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                 </div>
               )}
 
-              {/* AI確認（編集可能） */}
-              {step === 'aiConfirm' && draft && (
+              {/* ブック候補の選択（推論で確定できなかった時 REQ-0061） */}
+              {step === 'aiPickBook' && (
                 <div className="space-y-3">
+                  <p className="text-sm text-zinc-600">入力内容から登録先を1つに絞れませんでした。どのブックに作成しますか？</p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {bookCandidates.map((b) => (
+                      <button key={b.apiName} onClick={() => { setBook(b); extractWith(b) }} disabled={busy}
+                        className="flex min-h-16 flex-col items-start gap-1 rounded-xl border border-zinc-200 p-3 text-left transition-colors hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50">
+                        <span className="text-sm font-semibold text-zinc-900">{b.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {busy && <p className="inline-flex items-center gap-1.5 text-sm text-zinc-400"><Loader2 className="w-4 h-4 animate-spin" /> 解析中…</p>}
+                </div>
+              )}
+
+              {/* AI確認（編集可能） */}
+              {step === 'aiConfirm' && draft && book && (
+                <div className="space-y-3">
+                  {/* 作成先（AIの推論結果。違ったら選び直せる） */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-zinc-500">作成先:</span>
+                    <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">{book.label}</span>
+                    <button onClick={() => { setBookCandidates(aiBooks); setStep('aiPickBook') }} disabled={busy}
+                      className="text-xs text-zinc-400 hover:text-zinc-700 underline">変更</button>
+                  </div>
+
+                  {LINKABLE_BOOKS.has(book.apiName) && (
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                      <label className="block text-xs font-semibold text-zinc-600 mb-1">関連先（任意・取引先/人物/商談に紐づけ）</label>
+                      {relSelected ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">{relSelected.kind}: {relSelected.label}</span>
+                          <button type="button" onClick={() => { setRelSelected(null); setRelQuery(''); setRelResults([]) }} className="text-xs text-zinc-500 hover:text-red-600">変更</button>
+                        </div>
+                      ) : (
+                        <>
+                          <input value={relQuery} onChange={(e) => runRelSearch(e.target.value)} placeholder="取引先・人物・商談名で検索…"
+                            className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
+                          {relResults.length > 0 && (
+                            <ul className="mt-1 max-h-40 overflow-y-auto rounded-md border border-zinc-200 bg-white divide-y divide-zinc-100">
+                              {relResults.map((r) => (
+                                <li key={`${r.object_api}-${r.record_id}`}>
+                                  <button type="button" onClick={() => { setRelSelected(r); setRelResults([]) }}
+                                    className="block w-full px-2 py-1.5 text-left text-xs hover:bg-blue-50">
+                                    <span className="text-zinc-400">{r.kind}</span> {r.label}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          <p className="mt-1 text-[10px] text-zinc-400">未選択なら単独で作成します。</p>
+                        </>
+                      )}
+                    </div>
+                  )}
                   {draft.note && (
                     <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">要確認: {draft.note}</div>
                   )}
