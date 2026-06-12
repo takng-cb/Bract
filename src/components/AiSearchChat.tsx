@@ -48,11 +48,8 @@ export default function AiSearchChat({ books, onNavigate }: Props) {
 
   const refreshPreview = async (api: string | null, conds: SearchCondition[]) => {
     if (!api) { setPreview(null); return }
-    try {
-      setPreview(await previewAiSearch(api, conds))
-    } catch {
-      setPreview(null)
-    }
+    const r = await previewAiSearch(api, conds)
+    setPreview(r.ok ? r.data : null)
   }
 
   const send = async () => {
@@ -64,14 +61,20 @@ export default function AiSearchChat({ books, onNavigate }: Props) {
     setBusy(true)
     setError(null)
     try {
-      const res = await aiSearchTurnAuto(nextTurns, conditions, book)
+      const r = await aiSearchTurnAuto(nextTurns, conditions, book)
+      if (!r.ok) {
+        setError(r.error)
+        setTurns(nextTurns)  // エラー時は発話だけ残す（再送可能）
+        return
+      }
+      const res = r.data
       setTurns([...nextTurns, { role: 'assistant', text: res.reply }])
       setBook(res.book)
       setConditions(res.conditions)
       await refreshPreview(res.book, res.conditions)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
-      setTurns(nextTurns)  // エラー時は発話だけ残す（再送可能）
+      setTurns(nextTurns)
     } finally {
       setBusy(false)
     }
