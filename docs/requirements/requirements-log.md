@@ -392,6 +392,12 @@
 - 対象外：専用ウィザード型の AI 起票（人材の案件 /quick/staffing）は従来どおり別導線。
 - 状態：実装・出荷済み（実 AI で 直接推論（ToDo）と候補提示（ToDo/人物の2択→タップ→確認画面）の両経路を実機検証）。
 
+### REQ-0062  AI 系アクションのエラーを本番でも正しく表示（エンベロープ化）
+- 2026-06-12 / 会話（本番で AI 作成に share.google の URL を貼ると「An error occurred in the Server Components render…」が表示される報告）
+- 原因2層：①Next.js は本番で server action の throw 文言をマスクする仕様のため、サーバー側の日本語エラーが定型文に置き換わっていた。②真のエラーは「share.google 短縮リンクはサーバーからの取得が HTTP 404 になる」（ブラウザ専用リンク）。
+- 内容：AI 系 server action（aiSearchTurnAuto / previewAiSearch / quickAiClassifyBook / quickAiExtract / quickAiCreate / quickAiDupCandidates）を **throw ではなく `{ok,data}|{ok,error}` の戻り値**でエラーを返す方式に変更（クライアントはインライン表示）。URL 取得失敗のメッセージは「短縮リンクは読めないことがある→本文コピペを案内」する文言に改善。
+- 状態：実装・出荷済み（ユーザーの URL で実再現→修正後は候補画面＋対処方法つきエラー表示になることを確認）。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

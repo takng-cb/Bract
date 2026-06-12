@@ -217,6 +217,16 @@ export type QuickAiDraft = {
 }
 
 export type QuickAiImage = { mediaType: string; dataBase64: string }
+/** server action の throw は本番で文言がマスクされるため、AI 系は戻り値でエラーを返す（REQ-0062） */
+export type QuickAiResult<T> = { ok: true; data: T } | { ok: false; error: string }
+
+async function envelope<T>(fn: () => Promise<T>): Promise<QuickAiResult<T>> {
+  try {
+    return { ok: true, data: await fn() }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
 export type QuickAiInput = { text?: string; image?: QuickAiImage; url?: string }
 
 /** AI 作成に対応するブックか（book_records ベース or typed CRM コア） */
@@ -230,7 +240,11 @@ export async function quickAiSupported(apiName: string): Promise<boolean> {
  * 自由入力／画像／URL から、ブックの各フィールド値を抽出して編集可能ドラフトを返す。
  * typed CRM コア（accounts/contacts）と カスタムオブジェクトの両方に対応（#49 / REQ-0022）。
  */
-export async function quickAiExtract(apiName: string, input: QuickAiInput): Promise<QuickAiDraft> {
+export async function quickAiExtract(apiName: string, input: QuickAiInput): Promise<QuickAiResult<QuickAiDraft>> {
+  return envelope(() => quickAiExtractImpl(apiName, input))
+}
+
+async function quickAiExtractImpl(apiName: string, input: QuickAiInput): Promise<QuickAiDraft> {
   if (!(await canEdit())) throw new Error('権限がありません')
   await assertAiRateLimit()
 
@@ -305,7 +319,11 @@ export async function quickAiExtract(apiName: string, input: QuickAiInput): Prom
 }
 
 /** 確定値でレコードを作成。typed は既存 create アクション、custom は book_records。related は活動/ToDo の紐づけ先。 */
-export async function quickAiCreate(apiName: string, values: Record<string, string>, related?: QuickAiRelated | null): Promise<{ recordHref: string }> {
+export async function quickAiCreate(apiName: string, values: Record<string, string>, related?: QuickAiRelated | null): Promise<QuickAiResult<{ recordHref: string }>> {
+  return envelope(() => quickAiCreateImpl(apiName, values, related))
+}
+
+async function quickAiCreateImpl(apiName: string, values: Record<string, string>, related?: QuickAiRelated | null): Promise<{ recordHref: string }> {
   if (!(await canEdit())) throw new Error('権限がありません')
 
   const typed = TYPED_SPECS[apiName]
@@ -333,7 +351,11 @@ export type QuickAiDup = { id: string; label: string; href: string }
  * AI/手動 作成前の重複候補（REQ-0018）。自然キー（取引先=名称 / 人物=氏名 / 物件=物件名）の
  * 部分一致候補を返す。候補があれば UI 側で「既存を開く / それでも作成」を提示する。
  */
-export async function quickAiDupCandidates(apiName: string, values: Record<string, string>): Promise<QuickAiDup[]> {
+export async function quickAiDupCandidates(apiName: string, values: Record<string, string>): Promise<QuickAiResult<QuickAiDup[]>> {
+  return envelope(() => quickAiDupCandidatesImpl(apiName, values))
+}
+
+async function quickAiDupCandidatesImpl(apiName: string, values: Record<string, string>): Promise<QuickAiDup[]> {
   if (!(await canEdit())) return []
   const like = (s: string) => `%${s.trim()}%`
   if (apiName === 'accounts' && values.name?.trim()) {
@@ -425,7 +447,10 @@ async function fetchUrlText(url: string): Promise<string> {
       break
     }
     if (!res) throw new Error('リダイレクトが多すぎます')
-    if (!res.ok) throw new Error(`Webサイト取得に失敗しました (HTTP ${res.status})`)
+    if (!res.ok) throw new Error(
+      `Webサイトを取得できませんでした (HTTP ${res.status})。` +
+      `共有用の短縮リンク（share.google や maps.app.goo.gl 等）はサーバーから読み取れないことがあります。` +
+      `ページを開いて本文をコピーし、テキスト欄に貼り付けてお試しください。`)
     const html = await res.text()
     const text = html
       .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -495,7 +520,11 @@ async function quickAiCreatableBooks(): Promise<QuickAiBookCandidate[]> {
  * - 曖昧なら book=null ＋ candidates（上位数件）を返し、UI が選択肢を提示する
  * - テキストが無い（画像のみ等）場合は AI を呼ばず全候補を返す
  */
-export async function quickAiClassifyBook(input: { text?: string; url?: string }): Promise<QuickAiClassifyResult> {
+export async function quickAiClassifyBook(input: { text?: string; url?: string }): Promise<QuickAiResult<QuickAiClassifyResult>> {
+  return envelope(() => quickAiClassifyBookImpl(input))
+}
+
+async function quickAiClassifyBookImpl(input: { text?: string; url?: string }): Promise<QuickAiClassifyResult> {
   if (!(await canEdit())) throw new Error('権限がありません')
   const allowed = await quickAiCreatableBooks()
   if (allowed.length === 0) throw new Error('作成できるブックがありません')

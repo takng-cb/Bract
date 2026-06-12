@@ -22,6 +22,11 @@ export type SearchCondition = { field: string; op: string; value: string; label:
 export type AiSearchResult = { conditions: SearchCondition[]; note?: string }
 export type AiSearchTurnInput = { role: 'user' | 'assistant'; text: string }
 export type AiSearchAutoResult = { book: string | null; conditions: SearchCondition[]; reply: string }
+/**
+ * server action の throw は本番で文言がマスクされる（Next.js の仕様）ため、
+ * AI 系はエラーを戻り値で返す（REQ-0062）。
+ */
+export type AiActionResult<T> = { ok: true; data: T } | { ok: false; error: string }
 export type AiSearchPreview = { total: number; rows: { id: string; href: string; title: string; sub: string }[] }
 
 const OPS = ['contains', 'not_contains', 'starts_with', 'eq', 'neq', 'gte', 'lte'] as const
@@ -161,6 +166,18 @@ const BOOK_LABELS: Record<string, string> = {
  * ものだけを候補に渡し、返値も同じホワイトリストで検証する。
  */
 export async function aiSearchTurnAuto(
+  history: AiSearchTurnInput[],
+  current: SearchCondition[],
+  currentBook: string | null,
+): Promise<AiActionResult<AiSearchAutoResult>> {
+  try {
+    return { ok: true, data: await aiSearchTurnAutoImpl(history, current, currentBook) }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function aiSearchTurnAutoImpl(
   history: AiSearchTurnInput[],
   current: SearchCondition[],
   currentBook: string | null,
@@ -353,7 +370,15 @@ function previewDefs(): Record<string, PreviewDef> {
  * 条件セットの結果プレビュー（総件数＋先頭8件）。
  * 一覧と同じ buildWhere（SQL 変換）を使うため、適用結果と件数が一致する。
  */
-export async function previewAiSearch(apiName: string, conditions: SearchCondition[]): Promise<AiSearchPreview> {
+export async function previewAiSearch(apiName: string, conditions: SearchCondition[]): Promise<AiActionResult<AiSearchPreview>> {
+  try {
+    return { ok: true, data: await previewAiSearchImpl(apiName, conditions) }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function previewAiSearchImpl(apiName: string, conditions: SearchCondition[]): Promise<AiSearchPreview> {
   if (!(await canEdit())) throw new Error('権限がありません')
   if (!(await canDo(apiName, 'read'))) throw new Error('このブックの閲覧権限がありません')
   const def = previewDefs()[apiName]

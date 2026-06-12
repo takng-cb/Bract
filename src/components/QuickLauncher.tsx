@@ -150,12 +150,13 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const extractWith = async (b: QuickBook) => {
     setBusy(true); setError(null)
     try {
-      const d = await quickAiExtract(b.apiName, {
+      const r = await quickAiExtract(b.apiName, {
         text: aiText || undefined,
         url: aiUrl.trim() || undefined,
         image: aiImage ? { mediaType: aiImage.mediaType, dataBase64: aiImage.dataBase64 } : undefined,
       })
-      setDraft(d); setStep('aiConfirm')
+      if (!r.ok) { setError(r.error); return }
+      setDraft(r.data); setStep('aiConfirm')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
@@ -167,7 +168,9 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     // 入力からブックを推論（REQ-0061）。画像のみの場合は AI を呼ばず候補提示になる
     setBusy(true); setError(null)
     try {
-      const res = await quickAiClassifyBook({ text: aiText || undefined, url: aiUrl.trim() || undefined })
+      const cls = await quickAiClassifyBook({ text: aiText || undefined, url: aiUrl.trim() || undefined })
+      if (!cls.ok) { setError(cls.error); return }
+      const res = cls.data
       // 候補が1件に絞れている場合も確定扱い（1択の選択画面を出さない）
       const decided = res.book ?? (res.candidates.length === 1 ? res.candidates[0].apiName : null)
       const found = decided ? aiBooks.find((b) => b.apiName === decided) : undefined
@@ -204,11 +207,13 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
       for (const f of draft.fields) values[f.apiName] = f.value
       // 重複確認（REQ-0018）: 自然キー一致候補があれば確認を出す
       if (!force) {
-        const candidates = await quickAiDupCandidates(book.apiName, values)
-        if (candidates.length > 0) { setDups(candidates); setBusy(false); return }
+        const dr = await quickAiDupCandidates(book.apiName, values)
+        if (!dr.ok) { setError(dr.error); setBusy(false); return }
+        if (dr.data.length > 0) { setDups(dr.data); setBusy(false); return }
       }
-      const { recordHref } = await quickAiCreate(book.apiName, values, relSelected ? { object_api: relSelected.object_api, record_id: relSelected.record_id } : null)
-      go(recordHref)
+      const cr = await quickAiCreate(book.apiName, values, relSelected ? { object_api: relSelected.object_api, record_id: relSelected.record_id } : null)
+      if (!cr.ok) { setError(cr.error); setBusy(false); return }
+      go(cr.data.recordHref)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setBusy(false)
