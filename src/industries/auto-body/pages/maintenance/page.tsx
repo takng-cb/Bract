@@ -234,13 +234,14 @@ export default async function MaintenanceListPage({
           initialGroup=""
           persistParams={{ view: 'board' }}
         />
-        <div className="flex flex-wrap gap-2.5 mb-4">
+        {/* KPI: スマホは2列の等幅グリッド（flex-wrap だと折返し幅が揃わない）、sm 以上は4列 */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
           {stats.map((s, i) => (
-            <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-zinc-200 rounded-lg shadow-xs">
+            <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-zinc-200 rounded-lg shadow-xs min-w-0">
               <span className={`grid place-items-center w-8 h-8 rounded-md shrink-0 ${s.iconCls}`}>{s.icon}</span>
-              <span>
+              <span className="min-w-0">
                 <span className="block text-xl font-bold text-zinc-900 tabular-nums leading-none">{s.value}</span>
-                <span className="block text-xs text-zinc-500 mt-1 whitespace-nowrap">{s.label}</span>
+                <span className="block text-xs text-zinc-500 mt-1 truncate">{s.label}</span>
               </span>
             </div>
           ))}
