@@ -12,6 +12,7 @@ import { accounts, contacts } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
 import { getAllUsers } from '@/lib/userUtils'
 import { requireBookRead } from '@/lib/permissions'
+import { NavIcon } from '@/lib/navIcon'
 
 const FORM_ID = 'record-create-form'
 
@@ -62,7 +63,7 @@ export default async function NewCustomRecordPage({
       {/* 詳細ページと同じヒーローヘッダ（REQ-0051）。保存はフォームに form 属性で紐付け */}
       <RecordHeader
         crumbs={[{ label: obj.label_plural, href: `/books/${objectApiName}` }, { label: '新規登録' }]}
-        avatar={<span className="text-2xl leading-none" aria-hidden>{obj.icon}</span>}
+        avatar={<NavIcon icon={obj.icon} className="w-6 h-6" />}
         title={`${obj.label}を新規登録`}
         actions={
           <div className="flex items-center gap-2">

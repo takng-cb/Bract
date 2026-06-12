@@ -17,6 +17,7 @@ import RecordHeader from '@/components/RecordHeader'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { Activity, CalendarClock, UserRound } from 'lucide-react'
+import { NavIcon } from '@/lib/navIcon'
 import { RecordColumns, Badge } from '@/components/record/RecordUI'
 import { requireBookRead } from '@/lib/permissions'
 
@@ -62,7 +63,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
         crumbs={[{ label: '活動履歴', href: '/activities' }, { label: activityRow.subject }]}
         avatar={<Activity className="w-6 h-6" strokeWidth={2.25} aria-hidden />}
         title={activityRow.subject}
-        badges={<Badge tone="info" dot>{typeConf.icon} {typeConf.label}</Badge>}
+        badges={<Badge tone="info" dot><NavIcon icon={typeConf.icon} className="w-3.5 h-3.5 shrink-0" />{typeConf.label}</Badge>}
         meta={[
           { icon: <CalendarClock className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: occurredLabel },
           ...(ownerName ? [{ icon: <UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '担当', value: ownerName }] : []),
@@ -90,7 +91,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
               action={saveActivityInline}
               fields={[
                 { label: '件名', name: 'subject', kind: 'text', value: activityRow.subject, fullWidth: true, view: activityRow.subject ?? '—' },
-                { label: '種別', name: 'type', kind: 'select', value: activityRow.type, options: activityTypes.map((t) => ({ value: t.value, label: t.label })), view: <span className="inline-flex items-center gap-1">{typeConf.icon} {typeConf.label}</span> },
+                { label: '種別', name: 'type', kind: 'select', value: activityRow.type, options: activityTypes.map((t) => ({ value: t.value, label: t.label })), view: <span className="inline-flex items-center gap-1"><NavIcon icon={typeConf.icon} className="w-3.5 h-3.5 shrink-0" />{typeConf.label}</span> },
                 { label: '日時', name: 'occurred_at', kind: 'datetime', value: activityRow.occurred_at ? new Date(activityRow.occurred_at).toISOString().slice(0, 16) : '', view: occurredLabel },
                 { label: '担当', name: 'owner_id', kind: 'select', value: activityRow.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
                 { label: '登録日', view: activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—' },
@@ -107,7 +108,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
               view={allRelated.length > 0 ? (
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
                   {allRelated.map((r, i) => (
-                    <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-brand-700 hover:underline">{r.icon} {r.label}</Link>
+                    <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-brand-700 hover:underline inline-flex items-center gap-1"><NavIcon icon={r.icon} className="w-3.5 h-3.5 shrink-0" />{r.label}</Link>
                   ))}
                 </div>
               ) : <p className="text-sm text-zinc-400">紐づくレコードなし</p>}

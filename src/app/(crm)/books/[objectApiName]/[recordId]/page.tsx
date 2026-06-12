@@ -92,8 +92,8 @@ export default async function CustomRecordDetailPage({
   ])
   const accountMap = new Map(accountRows.map((a) => [a.id, a.name]))
   const contactMap = new Map(contactRows.map((c) => [c.id, c.name]))
-  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
-  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = `${t.icon} ${t.label}`
+  const ACTIVITY_TYPE_LABELS: Record<string, { icon: string; label: string }> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = { icon: t.icon, label: t.label }
 
   const recordTitle = String(data.name ?? data.title ?? `${obj.label} #${recordId.slice(0, 8)}`)
   const returnTo    = `/books/${objectApiName}/${recordId}`
@@ -289,14 +289,14 @@ export default async function CustomRecordDetailPage({
             {activitiesList.map((act) => (
               <li key={act.id} className="flex gap-3 pb-3 border-b border-zinc-100 last:border-0 last:pb-0">
                 <span className="shrink-0 mt-0.5 text-zinc-400">
-                  <NavIcon icon={ACTIVITY_TYPE_LABELS[act.type]?.split(' ')[0] ?? '📋'} className="w-4.5 h-4.5" />
+                  <NavIcon icon={ACTIVITY_TYPE_LABELS[act.type]?.icon ?? '📋'} className="w-4.5 h-4.5" />
                 </span>
                 <div className="flex-1 min-w-0">
                   <Link href={`/activities/${act.id}`} className="text-sm font-medium text-zinc-900 hover:text-blue-600 truncate block">
                     {act.subject}
                   </Link>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    {ACTIVITY_TYPE_LABELS[act.type] ?? act.type}
+                    {ACTIVITY_TYPE_LABELS[act.type]?.label ?? act.type}
                     {act.occurred_at && (
                       <> · {new Date(act.occurred_at).toLocaleDateString('ja-JP')}</>
                     )}
@@ -436,8 +436,9 @@ export default async function CustomRecordDetailPage({
           ← {obj.label_plural}
         </Link>
         <div className="flex items-start justify-between mt-2 gap-4">
-          <h1 className="text-2xl font-bold text-zinc-900 break-words">
-            {obj.icon} {recordTitle}
+          <h1 className="text-2xl font-bold text-zinc-900 flex items-start gap-2">
+            <NavIcon icon={obj.icon} className="w-6 h-6 shrink-0 mt-1" />
+            <span className="min-w-0 wrap-break-word">{recordTitle}</span>
           </h1>
           {edit && (
             <div className="flex gap-2 shrink-0">

@@ -329,7 +329,7 @@ export default async function ActivitiesPage({
                 return (
                   <Link href={`/activities/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300 active:bg-zinc-50">
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${type.color}`}>{type.icon} {type.label}</span>
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-medium ${type.color}`}><NavIcon icon={type.icon} className="w-3.5 h-3.5 shrink-0" />{type.label}</span>
                       <span className="text-xs text-zinc-400">
                         {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
                       </span>

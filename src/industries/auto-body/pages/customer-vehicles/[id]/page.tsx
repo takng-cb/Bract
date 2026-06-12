@@ -179,7 +179,7 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
                 <div className="grid grid-cols-2 gap-2">
                   {consumables.map((c) => (
                     <Link key={c.categoryId} href={`/maintenance/${c.maintenanceId}`} className="block p-2.5 rounded-md border border-zinc-100 hover:border-brand-300 hover:bg-brand-50/30 transition">
-                      <div className="flex items-center gap-1.5 mb-0.5"><span className="text-sm">{c.icon}</span><span className="text-[11px] font-medium text-zinc-700">{c.label}</span></div>
+                      <div className="flex items-center gap-1.5 mb-0.5"><NavIcon icon={c.icon} className="w-4 h-4 shrink-0 text-zinc-500" /><span className="text-[11px] font-medium text-zinc-700">{c.label}</span></div>
                       <div className="text-[13px] text-zinc-800 font-semibold">{c.date ?? '—'}</div>
                       {c.mileage != null && <div className="text-[11px] text-zinc-500">{c.mileage.toLocaleString()} km</div>}
                     </Link>

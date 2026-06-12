@@ -16,6 +16,7 @@ import { getAllUsers } from '@/lib/userUtils'
 import { canEdit } from '@/lib/auth'
 import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { SquareCheckBig, CalendarClock, UserRound, Check } from 'lucide-react'
+import { NavIcon } from '@/lib/navIcon'
 import { RecordColumns, Badge, type BadgeTone } from '@/components/record/RecordUI'
 import { requireBookRead } from '@/lib/permissions'
 
@@ -115,7 +116,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
               view={allRelated.length > 0 ? (
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
                   {allRelated.map((r, i) => (
-                    <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-brand-700 hover:underline">{r.icon} {r.label}</Link>
+                    <Link key={`${r.href}-${i}`} href={r.href} className="text-sm text-brand-700 hover:underline inline-flex items-center gap-1"><NavIcon icon={r.icon} className="w-3.5 h-3.5 shrink-0" />{r.label}</Link>
                   ))}
                 </div>
               ) : <p className="text-sm text-zinc-400">紐づくレコードなし</p>}

@@ -10,6 +10,7 @@ import DynamicForm from '@/components/DynamicForm'
 import RecordHeader from '@/components/RecordHeader'
 import { getAllUsers } from '@/lib/userUtils'
 import { requireBookRead } from '@/lib/permissions'
+import { NavIcon } from '@/lib/navIcon'
 
 const FORM_ID = 'record-create-form'
 
@@ -69,7 +70,7 @@ export default async function EditCustomRecordPage({
           { label: `${obj.label}詳細`, href: `/books/${objectApiName}/${recordId}` },
           { label: '編集' },
         ]}
-        avatar={<span className="text-2xl leading-none" aria-hidden>{obj.icon}</span>}
+        avatar={<NavIcon icon={obj.icon} className="w-6 h-6" />}
         title={`${obj.label}を編集`}
         actions={
           <div className="flex items-center gap-2">

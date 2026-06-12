@@ -13,6 +13,7 @@ import BookEditForm from './BookEditForm'
 import ListViewColumnsForm from './ListViewColumnsForm'
 import { LIST_VIEW_COLS } from '@/lib/listViewDefs'
 import { getListViewColumns } from '@/lib/listViewSettings'
+import { NavIcon } from '@/lib/navIcon'
 
 const FIELD_TYPE_LABELS: Record<string, string> = {
   text:     'テキスト',
@@ -44,8 +45,8 @@ export default async function AdminBookDetailPage({
     <div className="p-4 md:p-8 max-w-4xl">
       <div className="mb-6">
         <Link href="/admin/books" className="text-sm text-zinc-400 hover:text-zinc-600">← ブック管理</Link>
-        <h1 className="text-2xl font-bold text-zinc-900 mt-2">
-          {obj.icon} {obj.label_plural}
+        <h1 className="text-2xl font-bold text-zinc-900 mt-2 flex items-center gap-2">
+          <NavIcon icon={obj.icon} className="w-6 h-6 shrink-0" /> {obj.label_plural}
         </h1>
         <p className="text-sm text-zinc-400 font-mono mt-0.5">api_name: {obj.api_name}</p>
       </div>
