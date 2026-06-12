@@ -10,7 +10,10 @@ import SalesWidgets from '@/components/dashboard/SalesWidgets'
 import RealEstateWidgets from '@/components/dashboard/RealEstateWidgets'
 import StaffingWidgets from '@/components/dashboard/StaffingWidgets'
 import InventoryWidgets from '@/components/dashboard/InventoryWidgets'
+import ModuleWidgetSettings from '@/components/dashboard/ModuleWidgetSettings'
 import { getDashboardWidgetPrefs } from '@/lib/dashboard/userPrefs'
+import { moduleWidgetPrefsScope } from '@/lib/dashboard/scopedPrefs'
+import { widgetsForModule } from '@/lib/dashboard/moduleWidgets'
 import { getCurrentUserId } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -31,23 +34,35 @@ export default async function ModuleDashboardPage({
   if (!(await isModuleEnabled(moduleId))) notFound()
 
   const headerIcon = mod.navItems?.[0]?.icon
-  const widgetPrefs = moduleId === 'auto-body' ? await getDashboardWidgetPrefs(await getCurrentUserId()) : null
+
+  // ウィジェット設定（#105）: scope='module:<id>' のユーザー設定を読む。
+  // auto-body は従来 /settings のグローバル設定で ON/OFF していたため、
+  // モジュール scope が未設定の間はグローバル設定にフォールバックする（後方互換）。
+  const userId = await getCurrentUserId()
+  let widgetPrefs = await getDashboardWidgetPrefs(userId, moduleWidgetPrefsScope(moduleId))
+  if (widgetPrefs === null && moduleId === 'auto-body') {
+    widgetPrefs = await getDashboardWidgetPrefs(userId)
+  }
+  const availableWidgets = widgetsForModule(moduleId)
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">
       <PageHeader icon={headerIcon} title={mod.name} description="モジュールのホーム" />
 
+      {/* 表示設定（歯車）: ウィジェットがあるモジュールのみ表示 */}
+      <ModuleWidgetSettings
+        moduleId={moduleId}
+        availableWidgets={availableWidgets}
+        currentPrefs={widgetPrefs}
+      />
+
       {/* このモジュールの状況ボード */}
-      {moduleId === 'auto-body' && (
-        <section className="mb-8">
-          <AutoBodyWidgets widgetPrefs={widgetPrefs} />
-        </section>
-      )}
-      {moduleId === 'crm-core' && <CrmCoreWidgets />}
-      {moduleId === 'sales' && <SalesWidgets />}
-      {moduleId === 'real-estate' && <RealEstateWidgets />}
-      {moduleId === 'staffing' && <StaffingWidgets />}
-      {moduleId === 'inventory' && <InventoryWidgets />}
+      {moduleId === 'auto-body' && <AutoBodyWidgets widgetPrefs={widgetPrefs} />}
+      {moduleId === 'crm-core' && <CrmCoreWidgets widgetPrefs={widgetPrefs} />}
+      {moduleId === 'sales' && <SalesWidgets widgetPrefs={widgetPrefs} />}
+      {moduleId === 'real-estate' && <RealEstateWidgets widgetPrefs={widgetPrefs} />}
+      {moduleId === 'staffing' && <StaffingWidgets widgetPrefs={widgetPrefs} />}
+      {moduleId === 'inventory' && <InventoryWidgets widgetPrefs={widgetPrefs} />}
 
       {/* クイック操作 */}
       {mod.quickActions && mod.quickActions.length > 0 && (

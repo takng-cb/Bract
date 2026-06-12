@@ -793,8 +793,10 @@ export const user_preferences = pgTable('user_preferences', {
   nav_order:          text('nav_order'),                  // JSON: string[] of hrefs
   display_name:       text('display_name'),               // サイドバー表示名
   // ダッシュボードウィジェットの ON/OFF と並び順 (ベース機能)
-  // 形式: { "widget_id": { "enabled": boolean, "order": number } }
-  // 未設定なら DASHBOARD_WIDGETS 定義の defaultEnabled に従う
+  // 形式 (#105 で scope 化): { "global": {...}, "module:<id>": {...} }
+  //   各 scope の中身: { "widget_id": { "enabled": boolean, "order": number } }
+  //   旧フラット形式（widget_id 直下）は global として読む（lib/dashboard/scopedPrefs.ts）
+  // 未設定なら DASHBOARD_WIDGETS / MODULE_WIDGETS 定義の defaultEnabled に従う
   dashboard_widgets:  jsonb('dashboard_widgets'),
   // 通知ベルを最後に開いた時刻（既読タイムスタンプ方式。REQ-0040）
   notifications_seen_at: timestamp('notifications_seen_at', { withTimezone: true }),

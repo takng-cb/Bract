@@ -10,6 +10,9 @@
  *
  * 設定はユーザー単位 (user_preferences.dashboard_widgets jsonb)。
  * 形式: { "widget_id": { enabled: boolean, order: number } }
+ * ※ #105 で jsonb 全体は scope 化された（'global' / 'module:<id>'）。
+ *   scope ごとの中身が上記形式。互換規則・解決は scopedPrefs.ts を参照。
+ *   モジュール別ダッシュボードのウィジェット定義は moduleWidgets.ts。
  *
  * 追加するときはここに 1 行足し、dashboard/page.tsx で
  * isWidgetEnabled('widget-id', prefs) ガードで括る。
