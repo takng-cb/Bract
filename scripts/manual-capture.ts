@@ -72,8 +72,8 @@ const COMMON: Shot[] = [
   { name: 'approvals', path: '/approvals' },
   { name: 'wiki', path: '/wiki' },
   { name: 'expenses-list', path: '/expenses' },
-  // ── モジュールホーム ──
-  { name: 'modules-home', path: '/modules' },
+  // ── モジュールホーム（/modules はルート無し。crm-core のホームを撮る） ──
+  { name: 'modules-home', path: '/modules/crm-core' },
 ]
 
 const ADMIN_SHOTS: Shot[] = [
@@ -132,6 +132,18 @@ const INDUSTRY_SHOTS: Record<string, Shot[]> = {
   ],
 }
 
+/**
+ * skeleton（loading.tsx の animate-pulse）が消えるまで待つ。
+ * リンククリックによるソフトナビゲーションでは waitForLoadState が即時解決して
+ * ローディング中のスクショになる（v1 の不具合）ため、描画完了をこれで判定する。
+ */
+async function settle(page: Page) {
+  await page
+    .waitForFunction(() => document.querySelectorAll('[class*="animate-pulse"]').length === 0, undefined, { timeout: 30_000 })
+    .catch(() => { console.warn('    （skeleton が残ったまま撮影）') })
+  await page.waitForTimeout(600)   // チャート・画像の描画待ち
+}
+
 async function main() {
   const industry = process.argv[2]
   if (!industry || !INDUSTRY_SHOTS[industry]) {
@@ -171,13 +183,17 @@ async function main() {
     try {
       if (shot.path) {
         await page.goto(shot.path, { waitUntil: 'networkidle', timeout: 45_000 })
-        await page.waitForTimeout(600)   // チャート・画像の描画待ち
+        await settle(page)
       }
       if (shot.firstDetailOf) {
-        const link = page.locator(`a[href^="${shot.firstDetailOf}"]:not([href$="/new"]):not([href*="view="])`).first()
-        await link.click()
-        await page.waitForLoadState('networkidle')
-        await page.waitForTimeout(600)
+        // 「UUID で終わる href」だけを詳細リンクとみなす（/new・/templates 等のサブページを除外）
+        const hrefs = await page
+          .locator(`a[href^="${shot.firstDetailOf}"]`)
+          .evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).getAttribute('href')))
+        const target = hrefs.find((h) => h && /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(h))
+        if (!target) throw new Error(`詳細リンクが見つかりません（${shot.firstDetailOf}<uuid>）`)
+        await page.goto(target, { waitUntil: 'networkidle', timeout: 45_000 })
+        await settle(page)
       }
       if (shot.actions) await shot.actions(page)
       await page.screenshot({ path: `${outDir}/${shot.name}.png`, fullPage: shot.fullPage ?? false })
