@@ -35,8 +35,8 @@ function prevStep(step: Step, mode: Mode): Step {
     case 'module':     return mode === 'create' ? 'createMode' : 'root'
     case 'book':       return 'module'
     case 'aiInput':
-    case 'aiSearch':
     case 'aiNotSupported': return 'book'
+    case 'aiSearch':       return 'root'   // 検索はブック選択を経ない（REQ-0060: 対象もAIが推論）
     case 'aiConfirm':  return 'aiInput'
     default:           return 'root'
   }
@@ -126,11 +126,6 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const pickBook = (b: QuickBook) => {
     setBook(b)
     if (mode === 'view') return go(b.listHref)
-    if (mode === 'search') {
-      if (b.aiSearch) { setError(null); setStep('aiSearch') }
-      else setStep('aiNotSupported')
-      return
-    }
     if (createMode === 'manual') return go(b.newHref)
     // createMode === 'ai'
     if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelQuery(''); setRelResults([]); setRelSelected(null); setStep('aiInput') }
@@ -199,14 +194,22 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const title =
     step === 'root' ? 'クイック操作' :
     step === 'createMode' ? 'レコード作成' :
-    step === 'module' ? (mode === 'view' ? '閲覧するモジュール' : mode === 'search' ? 'AI検索するモジュール' : 'モジュールを選択') :
+    step === 'module' ? (mode === 'view' ? '閲覧するモジュール' : 'モジュールを選択') :
     step === 'book' ? `${mod?.name ?? ''} のブック` :
     step === 'aiInput' ? `AI作成 — ${book?.label ?? ''}` :
     step === 'aiConfirm' ? '内容を確認・編集' :
-    step === 'aiSearch' ? `AI検索 — ${book?.label ?? ''}` :
+    step === 'aiSearch' ? 'AI検索' :
     mode === 'search' ? 'AI検索は準備中' : 'AI作成は準備中'
 
   const moduleList = modules.filter((m) => m.books.length > 0)
+
+  // AI 検索の対象候補（aiSearch 対応ブック。nav 由来なので有効モジュール・権限を反映 REQ-0060）
+  const seenSearchBook = new Set<string>()
+  const searchBooks = modules.flatMap((m) => m.books).filter((b) => {
+    if (!b.aiSearch || seenSearchBook.has(b.apiName)) return false
+    seenSearchBook.add(b.apiName)
+    return true
+  }).map((b) => ({ apiName: b.apiName, label: b.label, listHref: b.listHref }))
 
   return (
     <>
@@ -243,8 +246,8 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                     onClick={() => { setMode('create'); setStep('createMode') }} />
                   <BigChoice icon={<Eye className="w-6 h-6" />} label="レコード閲覧" desc="一覧を開いて確認"
                     onClick={() => { setMode('view'); setStep('module') }} />
-                  <BigChoice icon={<Search className="w-6 h-6 text-violet-600" />} label="AIで検索" desc="自然文で絞り込み" accent="violet"
-                    onClick={() => { setMode('search'); setStep('module') }} />
+                  <BigChoice icon={<Search className="w-6 h-6 text-violet-600" />} label="AIで検索" desc="会話で絞り込み（対象もAIが判断）" accent="violet"
+                    onClick={() => { setMode('search'); setError(null); setStep('aiSearch') }} />
                 </div>
               )}
 
@@ -413,11 +416,10 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
               )}
 
               {/* AI未対応ブック */}
-              {/* AI検索（自然文→フィルタ） */}
-              {step === 'aiSearch' && book && (
+              {/* AI検索（会話形式・対象ブックも推論 REQ-0059/0060） */}
+              {step === 'aiSearch' && (
                 <div className="space-y-2">
-                  {/* 会話形式の AI 検索（REQ-0059）。左=会話 / 右=結果プレビュー */}
-                  <AiSearchChat apiName={book.apiName} label={book.label} listHref={book.listHref} onNavigate={go} />
+                  <AiSearchChat books={searchBooks} onNavigate={go} />
                   <p className="text-xs text-zinc-400">※ 「一覧を開く」後も、画面上のフィルタでさらに調整できます。</p>
                 </div>
               )}
