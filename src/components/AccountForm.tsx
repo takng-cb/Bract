@@ -115,21 +115,21 @@ export default function AccountForm({ action, cancelHref, users = [], defaultVal
             <CustomFieldsFields fields={customFields} values={customValues} />
           </CreateInfoCard>
         )}
-
-        {/* フォーム末尾の保存/キャンセル（ヘッダと同じ動作） */}
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={pending}
-            className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {pending ? '保存中...' : '保存'}
-          </button>
-          <Link href={cancelHref} className="px-5 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
-            キャンセル
-          </Link>
-        </div>
       </RecordColumns>
+
+      {/* 保存/キャンセルはページ最下部（2カラムの外・全幅）に置く */}
+      <div className="mt-6 flex justify-center gap-3 border-t border-zinc-200 pt-5">
+        <button
+          type="submit"
+          disabled={pending}
+          className="px-8 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {pending ? '保存中...' : '保存'}
+        </button>
+        <Link href={cancelHref} className="px-6 py-2 border border-zinc-300 text-sm font-medium rounded-md hover:bg-zinc-50 transition-colors">
+          キャンセル
+        </Link>
+      </div>
     </form>
   )
 }
