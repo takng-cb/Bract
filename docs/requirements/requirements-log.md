@@ -436,6 +436,11 @@
 - 内容：整備ボード（/maintenance?view=board）上部の KPI 4カード（作業中の車両/部品待ち/本日納車予定/受付・予約）が `flex flex-wrap` で内容依存幅になっており、スマホで折り返すと幅が不揃いになる。スマホは 2列の等幅グリッド、sm 以上は 4列に変更（`grid grid-cols-2 sm:grid-cols-4`）。ラベルは truncate ではみ出し防止。
 - 状態：実装・出荷済み（モバイルビューポート 390×844 で 2列等幅を実機確認）。
 
+### REQ-0073  承認の導線改善（クイックアクセス閲覧に承認＋ホームに承認待ち）
+- 2026-06-13 / 会話（「クイックアクセスのレコード閲覧で、承認が出ていない」「ホームに承認待ちの一覧を出して」）
+- 内容：①クイック操作の「レコード閲覧」に承認（/approvals）が出ていなかった。workspace モジュールの books に approvals を追加し、VIEW_ONLY_BOOKS に登録（閲覧フローのみ表示・作成/AI 対象外）。②ホーム（dashboard）に「承認待ち」セクションを追加。自分が承認すべき申請（listApprovalsForUser の toDecide）を最上部に表示し、その場で承認/差戻し（decideApproval）＋詳細/承認一覧へのリンク。承認待ちが 0 件のときはセクション非表示。
+- 状態：実装・検証済み（feature/home-approvals。lint/tsc/base・auto-body ビルド/vitest 264 緑）。マイグレ不要（approvals テーブルは適用済み）。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
