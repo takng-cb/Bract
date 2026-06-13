@@ -80,6 +80,9 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
           amount:       expense.amount !== null ? Number(expense.amount) : null,
           category:     expense.category,
           expense_date: expense.expense_date ?? undefined,
+          vendor:         expense.vendor,
+          tax_rate:       expense.tax_rate !== null ? Number(expense.tax_rate) : null,
+          invoice_reg_no: expense.invoice_reg_no,
           notes:        expense.notes,
           related_records: defaultRelated,
         }}

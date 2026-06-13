@@ -33,6 +33,9 @@ type ExpenseFormProps = {
     amount?:          number | null
     category?:        string
     expense_date?:    string
+    vendor?:          string | null
+    tax_rate?:        number | null
+    invoice_reg_no?:  string | null
     notes?:           string | null
     related_records?: RelatedRecordSelection[]
   }
@@ -53,8 +56,8 @@ export default function ExpenseForm({
   const fillButton = (
     <FormFillModal
       formRef={formRef}
-      csvFormat="件名,金額,カテゴリ,日付,備考"
-      fieldMap={{ '件名': 'title', '金額': 'amount', 'カテゴリ': 'category', '日付': 'expense_date', '備考': 'notes' }}
+      csvFormat="件名,金額,カテゴリ,日付,支払先,税率,インボイス登録番号,備考"
+      fieldMap={{ '件名': 'title', '金額': 'amount', 'カテゴリ': 'category', '日付': 'expense_date', '支払先': 'vendor', '税率': 'tax_rate', 'インボイス登録番号': 'invoice_reg_no', '備考': 'notes' }}
     />
   )
 
@@ -76,6 +79,10 @@ export default function ExpenseForm({
                 { label: '日付', name: 'expense_date', kind: 'date', defaultValue: defaultValues.expense_date ?? today },
                 { label: '金額（円）', name: 'amount', kind: 'number', min: 1, defaultValue: defaultValues.amount, required: true, placeholder: '例: 15000' },
                 { label: 'カテゴリ', name: 'category', kind: 'select', defaultValue: defaultValues.category ?? 'その他', options: CATEGORIES.map(opt), emptyOption: null },
+                // レシート項目（#134 Phase A）。税率は記録のみ・計算しない
+                { label: '支払先', name: 'vendor', defaultValue: defaultValues.vendor, placeholder: '例: ○○タクシー' },
+                { label: '税率（%）', name: 'tax_rate', kind: 'number', min: 0, defaultValue: defaultValues.tax_rate, placeholder: '例: 10' },
+                { label: 'インボイス登録番号', name: 'invoice_reg_no', defaultValue: defaultValues.invoice_reg_no, placeholder: '例: T1234567890123' },
               ]}
             />
 
