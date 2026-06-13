@@ -11,7 +11,7 @@ import {
 } from '@/app/actions/quickAi'
 
 /** 関連先紐づけを出すブック（quickAi.ts の linkable spec と一致） */
-const LINKABLE_BOOKS = new Set(['tasks', 'activities'])
+const LINKABLE_BOOKS = new Set(['tasks', 'activities', 'expenses'])
 import AiSearchChat from '@/components/AiSearchChat'
 
 /**
@@ -419,7 +419,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                       {relSelected ? (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">{relSelected.kind}: {relSelected.label}</span>
-                          <button type="button" onClick={() => { setRelSelected(null); setRelQuery(''); setRelResults([]) }} className="text-xs text-zinc-500 hover:text-red-600">変更</button>
+                          <button type="button" onClick={() => { setRelSelected(null); setRelQuery(''); setRelResults([]) }} className="text-xs text-zinc-500 hover:text-red-600">変更・外す</button>
                         </div>
                       ) : (
                         <>
