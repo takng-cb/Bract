@@ -436,6 +436,11 @@
 - 内容：整備ボード（/maintenance?view=board）上部の KPI 4カード（作業中の車両/部品待ち/本日納車予定/受付・予約）が `flex flex-wrap` で内容依存幅になっており、スマホで折り返すと幅が不揃いになる。スマホは 2列の等幅グリッド、sm 以上は 4列に変更（`grid grid-cols-2 sm:grid-cols-4`）。ラベルは truncate ではみ出し防止。
 - 状態：実装・出荷済み（モバイルビューポート 390×844 で 2列等幅を実機確認）。
 
+### REQ-0072  業務報告 Phase 1（テンプレ集約レポート・案件/商談）
+- 2026-06-13 / 会話（「続きを進めて」← #88 / ADR-0025 確定済み事項の実装）
+- 内容：案件（assignments）・商談（opportunities）の詳細に「報告を作成」ボタンを追加。テンプレート選択＋期間指定 → 紐づく活動・ToDo を AI 要約（既存 summarizeActivitiesAndTasks 流用、systemPrompt をテンプレ body に差し替え）→ 編集可能な本文＋コピー（その場生成・保存なし）。テンプレは report_templates（個人＋全員共有の2層・共有作成/削除は admin のみ）。テンプレ 0 件でも DEFAULT_REPORT_PROMPT で動作。draft-then-apply の読み取り専用側で DB へは書かない。
+- 状態：実装・検証済み（feature/report-phase-1。lint/tsc/3業種ビルド/vitest 264 緑）。マージは report_templates マイグレを全 Neon（まず dev）適用後。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

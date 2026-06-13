@@ -16,7 +16,9 @@ import { Package, Users, Wallet, UserCheck, Send, FileText, Activity } from 'luc
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { deleteAssignment, updateAssignmentBasic } from '@/industries/staffing/actions/assignments'
-import { canEdit } from '@/lib/auth'
+import { canEdit, isAdmin } from '@/lib/auth'
+import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
+import ReportButton from '@/components/ReportButton'
 import EditableInfoCard, { type EditField } from '@/components/detail/EditableInfoCard'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import { getAllUsers } from '@/lib/userUtils'
@@ -69,6 +71,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
   if (!row) notFound()
   const a = row.a
   const editFlag = await canEdit()
+  const [aiEnabled, isAdminUser] = await Promise.all([isAIFeatureEnabled(), isAdmin()])
 
   async function handleDelete() { 'use server'; await deleteAssignment(id) }
   async function saveAssignmentInline(formData: FormData) { 'use server'; await updateAssignmentBasic(id, formData) }
@@ -141,6 +144,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2 shrink-0">
+              {aiEnabled && <ReportButton targetApi="assignment" recordId={id} targetLabel="案件" isAdmin={isAdminUser} />}
               <InlineEditButton event="bract:edit-assignment" />
               <DeleteButton action={handleDelete} confirmMessage="この案件を削除しますか？" />
             </div>
