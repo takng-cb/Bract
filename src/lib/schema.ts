@@ -231,6 +231,10 @@ export const expenses = pgTable('expenses', {
   category:     text('category').notNull().default('その他'),
   expense_date: date('expense_date').notNull(),
   notes:        text('notes'),
+  // レシート項目（#134 Phase A / ADR-0026）。税率は保持のみ・消費税の計算はしない
+  vendor:         text('vendor'),
+  tax_rate:       numeric('tax_rate'),
+  invoice_reg_no: text('invoice_reg_no'),
   created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:   timestamp('updated_at', { withTimezone: true }).defaultNow(),
   // 関連先は expense_related_records junction で管理（Phase 2 で FK 列撤廃）

@@ -36,6 +36,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
     db.select({
       id: expenses.id, title: expenses.title, amount: expenses.amount,
       category: expenses.category, expense_date: expenses.expense_date,
+      vendor: expenses.vendor, tax_rate: expenses.tax_rate, invoice_reg_no: expenses.invoice_reg_no,
       notes: expenses.notes, created_at: expenses.created_at,
     }).from(expenses).where(eq(expenses.id, id)).then((r) => r[0] ?? null),
     db.select({ object_api: expense_related_records.related_object_api, record_id: expense_related_records.related_record_id })
@@ -103,6 +104,10 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
                 { label: '日付', name: 'expense_date', kind: 'date', value: expense.expense_date ? String(expense.expense_date).slice(0, 10) : '', view: expense.expense_date ?? '—' },
                 { label: '金額', name: 'amount', kind: 'number', value: expense.amount != null ? String(expense.amount) : '', view: <span className="font-bold text-zinc-900">¥{Number(expense.amount).toLocaleString()}</span> },
                 { label: 'カテゴリ', name: 'category', kind: 'select', value: expense.category, options: CATEGORIES.map((c) => ({ value: c, label: c })), view: expense.category },
+                // レシート項目（#134 Phase A）。税率は記録のみ・計算しない（ADR-0026）
+                { label: '支払先', name: 'vendor', kind: 'text', value: expense.vendor ?? '', view: expense.vendor ?? '—' },
+                { label: '税率', name: 'tax_rate', kind: 'number', value: expense.tax_rate != null ? String(expense.tax_rate) : '', view: expense.tax_rate != null ? `${Number(expense.tax_rate)}%` : '—' },
+                { label: 'インボイス登録番号', name: 'invoice_reg_no', kind: 'text', value: expense.invoice_reg_no ?? '', view: expense.invoice_reg_no ?? '—' },
                 { label: '登録日', view: expense.created_at ? new Date(expense.created_at).toLocaleDateString('ja-JP') : '—' },
               ]}
             />

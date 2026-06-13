@@ -25,6 +25,20 @@ function parseRelatedRecords(formData: FormData): { object_api: string; record_i
   return out
 }
 
+/**
+ * レシート項目（#134 Phase A）の正規化。税率は 0〜100 のみ、
+ * インボイス登録番号は T+13桁の形式チェックのみ（不正形式はエラー。ADR-0026）。
+ */
+function parseReceiptFields(formData: FormData): { vendor: string | null; tax_rate: string | null; invoice_reg_no: string | null } {
+  const vendor = (formData.get('vendor') as string)?.trim() || null
+  const taxRaw = (formData.get('tax_rate') as string)?.trim() || ''
+  const tax = Number(taxRaw)
+  if (taxRaw && (!Number.isFinite(tax) || tax < 0 || tax > 100)) throw new Error('税率は 0〜100 の数値で入力してください')
+  const regRaw = (formData.get('invoice_reg_no') as string)?.replace(/[\s-]/g, '').toUpperCase() || ''
+  if (regRaw && !/^T\d{13}$/.test(regRaw)) throw new Error('インボイス登録番号は「T+数字13桁」の形式で入力してください（例: T1234567890123）')
+  return { vendor, tax_rate: taxRaw ? String(tax) : null, invoice_reg_no: regRaw || null }
+}
+
 async function syncExpenseRelatedRecords(
   expenseId: string,
   selections: { object_api: string; record_id: string }[],
@@ -68,6 +82,7 @@ export async function createExpense(formData: FormData) {
     category:     (formData.get('category') as string) || 'その他',
     expense_date: expense_date || new Date().toISOString().slice(0, 10),
     notes:        (formData.get('notes') as string) || null,
+    ...parseReceiptFields(formData),
   }).returning({ id: expenses.id })
 
   await syncExpenseRelatedRecords(row.id, selections)
@@ -100,6 +115,12 @@ export async function updateExpenseBasic(id: string, formData: FormData) {
   if (formData.has('category'))     set.category = (formData.get('category') as string) || 'その他'
   if (formData.has('expense_date')) set.expense_date = (formData.get('expense_date') as string) || new Date().toISOString().slice(0, 10)
   if (formData.has('notes'))        set.notes = (formData.get('notes') as string) || null
+  if (formData.has('vendor') || formData.has('tax_rate') || formData.has('invoice_reg_no')) {
+    const receipt = parseReceiptFields(formData)
+    if (formData.has('vendor'))         set.vendor = receipt.vendor
+    if (formData.has('tax_rate'))       set.tax_rate = receipt.tax_rate
+    if (formData.has('invoice_reg_no')) set.invoice_reg_no = receipt.invoice_reg_no
+  }
   await db.update(expenses).set(set).where(eq(expenses.id, id))
   redirect(withSaveToast(`/expenses/${id}`, 'saved'))
 }
@@ -120,6 +141,7 @@ export async function updateExpense(id: string, formData: FormData) {
     category:     (formData.get('category') as string) || 'その他',
     expense_date: (formData.get('expense_date') as string) || new Date().toISOString().slice(0, 10),
     notes:        (formData.get('notes') as string) || null,
+    ...parseReceiptFields(formData),
     updated_at:   new Date(),
   }).where(eq(expenses.id, id))
 
