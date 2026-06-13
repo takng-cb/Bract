@@ -8,6 +8,11 @@ import PeriodSelector from '@/components/PeriodSelector'
 import { formatDateLocal, todayLocal, lastOfMonth } from '@/lib/dateUtils'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { NavIcon } from '@/lib/navIcon'
+import { ShieldAlert, ArrowRight } from 'lucide-react'
+import { getCurrentUserId } from '@/lib/auth'
+import { getCurrentPermissions } from '@/lib/permissions'
+import { listApprovalsForUser, getUserLabels } from '@/lib/approvals'
+import { decideApproval } from '@/app/actions/approvals'
 
 // 色は semantic tone トークンで統一（ADR-0021）
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -165,6 +170,12 @@ export default async function DashboardPage({
     .sort((a, b) => new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime())
     .slice(0, 8)
 
+  // 承認待ち（自分が承認すべき申請）。承認運用が無ければ空配列で、セクションは出ない。
+  const userId = await getCurrentUserId()
+  const perms = userId ? await getCurrentPermissions() : null
+  const toDecide = userId && perms ? (await listApprovalsForUser(userId, perms.roleName)).toDecide : []
+  const requesterLabels = toDecide.length > 0 ? await getUserLabels(toDecide.map((i) => i.requestedBy)) : {}
+
   return (
     <div className="p-4 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
@@ -174,6 +185,43 @@ export default async function DashboardPage({
         </div>
         <PeriodSelector from={from} to={to} />
       </div>
+
+      {/* 承認待ち（自分が承認すべき申請。あるときだけ最上部に出す） */}
+      {toDecide.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-amber-500" strokeWidth={2.25} aria-hidden /> 承認待ち
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{toDecide.length}</span>
+            </h2>
+            <Link href="/approvals" className="text-xs text-blue-600 hover:text-blue-800">承認一覧 →</Link>
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-lg divide-y divide-zinc-100 overflow-hidden">
+            {toDecide.slice(0, 8).map((item) => (
+              <div key={item.approvalId} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <Link href={item.href} className="text-sm font-semibold text-zinc-900 hover:text-blue-700 hover:underline truncate block">{item.recordLabel}</Link>
+                  <p className="mt-0.5 text-xs text-zinc-500 truncate">
+                    {item.bookLabel}
+                    {item.transition && <>・<b>{item.transition.from || '—'}</b> → <b>{item.transition.to || '—'}</b></>}
+                    {item.totalSteps > 1 && <>・{item.currentStep}/{item.totalSteps} 段階目</>}
+                    <span className="ml-1 text-zinc-400">申請: {requesterLabels[item.requestedBy] ?? '—'}</span>
+                  </p>
+                </div>
+                <form className="flex items-center gap-1.5 shrink-0">
+                  <button formAction={decideApproval.bind(null, item.approvalId, 'approved')}
+                    className="rounded-md bg-green-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-green-700">承認</button>
+                  <button formAction={decideApproval.bind(null, item.approvalId, 'rejected')}
+                    className="rounded-md border border-red-300 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100">差戻し</button>
+                </form>
+                <Link href={item.href} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline shrink-0">
+                  詳細 <ArrowRight className="h-3 w-3" aria-hidden />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 直近のやること（ホームの主役・期間に依存しない） */}
       <section className="mb-8">

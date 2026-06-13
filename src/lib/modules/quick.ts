@@ -68,7 +68,7 @@ const AI_TYPED_BOOKS = new Set(['accounts', 'contacts', 'vehicles', 'parts', 'pr
 const AI_SEARCH_BOOKS = new Set(['accounts', 'contacts', 'opportunities', 'tasks', 'expenses', 'activities', 'properties', 'vehicles'])
 
 /** 閲覧専用ブック（作成・検索の対象外。閲覧フローでのみ表示） */
-const VIEW_ONLY_BOOKS = new Set(['forecast'])
+const VIEW_ONLY_BOOKS = new Set(['forecast', 'approvals'])
 
 /**
  * 有効モジュール群 → 「モジュール → ブック」ツリー。

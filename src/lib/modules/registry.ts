@@ -51,6 +51,7 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     books: [
       { apiName: 'activities', label: '活動履歴' },
       { apiName: 'tasks',      label: 'ToDo' },
+      { apiName: 'approvals',  label: '承認' },
       { apiName: 'wiki_pages', label: 'Wiki' },
     ],
     quickActions: [
