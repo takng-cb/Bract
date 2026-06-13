@@ -14,9 +14,11 @@
 import net from 'node:net'
 import { lookup as dnsLookup } from 'node:dns/promises'
 import { db } from '@/lib/db'
-import { book_records, accounts, contacts, opportunities, tasks, activities, expenses, task_related_records, activity_related_records, expense_related_records } from '@/lib/schema'
+import { book_records, accounts, contacts, opportunities, tasks, activities, expenses, task_related_records, activity_related_records, expense_related_records, maintenance_records, customer_vehicles, assignments } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
-import { ilike } from 'drizzle-orm'
+import { ilike, or, eq, desc } from 'drizzle-orm'
+import { isModuleEnabled } from '@/lib/modules/registry'
+import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 import { revalidatePath } from 'next/cache'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { canDo } from '@/lib/permissions'
@@ -456,7 +458,7 @@ async function quickAiDupCandidatesImpl(apiName: string, values: Record<string, 
 
 export type RelatedCandidate = { object_api: string; record_id: string; label: string; kind: string }
 
-/** 活動/ToDo の紐づけ先候補を横断検索（取引先/人物/商談）。 */
+/** 活動/ToDo/経費 の紐づけ先候補を横断検索（取引先/人物/商談＋有効モジュールの整備/案件）。 */
 export async function quickRelatedSearch(query: string): Promise<RelatedCandidate[]> {
   if (!(await canEdit())) return []
   return relatedSearchImpl(query)
@@ -466,15 +468,52 @@ async function relatedSearchImpl(query: string): Promise<RelatedCandidate[]> {
   const q = query.trim()
   if (q.length < 1) return []
   const like = `%${q}%`
-  const [acc, con, opp] = await Promise.all([
+  // 整備（auto-body）・案件（staffing）はモジュール有効時のみ候補に出す（REQ-0071）
+  const [abOn, stOn] = await Promise.all([isModuleEnabled('auto-body'), isModuleEnabled('staffing')])
+  const [acc, con, opp, mnt, asg] = await Promise.all([
     db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(ilike(accounts.name, like)).limit(5),
     db.select({ id: contacts.id, name: contacts.full_name }).from(contacts).where(ilike(contacts.full_name, like)).limit(5),
     db.select({ id: opportunities.id, name: opportunities.name }).from(opportunities).where(ilike(opportunities.name, like)).limit(5),
+    // 整備は表示名（受付日_顧客_車種）が合成値のため、顧客名・車名で検索して同じ表示名を組み立てる
+    abOn
+      ? db.select({
+          id:          maintenance_records.id,
+          intake_date: maintenance_records.intake_date,
+          acc_name:    accounts.name,
+          con_name:    contacts.full_name,
+          car_model:   customer_vehicles.car_model,
+          car_name:    customer_vehicles.car_name,
+        })
+          .from(maintenance_records)
+          .leftJoin(accounts, eq(maintenance_records.account_id, accounts.id))
+          .leftJoin(contacts, eq(maintenance_records.contact_id, contacts.id))
+          .leftJoin(customer_vehicles, eq(maintenance_records.customer_vehicle_id, customer_vehicles.id))
+          .where(or(ilike(accounts.name, like), ilike(contacts.full_name, like), ilike(customer_vehicles.car_model, like), ilike(customer_vehicles.car_name, like)))
+          .orderBy(desc(maintenance_records.intake_date))
+          .limit(5)
+      : Promise.resolve([]),
+    stOn
+      ? db.select({ id: assignments.id, title: assignments.title, no: assignments.assignment_no })
+          .from(assignments)
+          .where(or(ilike(assignments.title, like), ilike(assignments.assignment_no, like)))
+          .orderBy(desc(assignments.created_at))
+          .limit(5)
+      : Promise.resolve([]),
   ])
   return [
     ...acc.map((r) => ({ object_api: 'account', record_id: r.id, label: r.name, kind: '取引先' })),
     ...con.map((r) => ({ object_api: 'contact', record_id: r.id, label: r.name, kind: '人物' })),
     ...opp.map((r) => ({ object_api: 'opportunity', record_id: r.id, label: r.name, kind: '商談' })),
+    ...mnt.map((r) => ({
+      object_api: 'maintenance', record_id: r.id, kind: '整備',
+      label: maintenanceDisplayName(
+        { intake_date: r.intake_date },
+        r.acc_name ? { name: r.acc_name } : null,
+        r.con_name ? { full_name: r.con_name } : null,
+        (r.car_model || r.car_name) ? { car_model: r.car_model, car_name: r.car_name } : null,
+      ),
+    })),
+    ...asg.map((r) => ({ object_api: 'assignment', record_id: r.id, label: r.title ?? r.no, kind: '案件' })),
   ]
 }
 

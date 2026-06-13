@@ -20,7 +20,7 @@ import {
   accounts, contacts, opportunities,
   book_records, book_definitions,
   activity_related_records, task_related_records, expense_related_records,
-  maintenance_records, customer_vehicles,
+  maintenance_records, customer_vehicles, assignments,
 } from '@/lib/schema'
 import { inArray, eq, and } from 'drizzle-orm'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
@@ -168,10 +168,11 @@ const STANDARD_META: Record<string, { icon: string; hrefPrefix: string }> = {
   account:            { icon: '🏢', hrefPrefix: '/accounts/' },
   contact:            { icon: '👤', hrefPrefix: '/contacts/' },
   opportunity:        { icon: '💼', hrefPrefix: '/opportunities/' },
-  // 業種オーバーレイ (auto-body) の専用ルートを持つオブジェクト。
+  // 業種オーバーレイ (auto-body / staffing) の専用ルートを持つオブジェクト。
   // /books/<api>/<id> ではなく業種専用 URL に向ける。
   maintenance:        { icon: '🔧', hrefPrefix: '/maintenance/' },
   'customer-vehicle': { icon: '🚙', hrefPrefix: '/customer-vehicles/' },
+  assignment:         { icon: '📋', hrefPrefix: '/assignments/' },
 }
 
 /**
@@ -275,6 +276,15 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
             setLabel('maintenance', r.id, label)
           }
         })
+    )
+  }
+  // 案件（staffing）。quickRegister の活動紐づけ・経費の関連先（REQ-0071）で参照される
+  const assignmentIds = idsByApi.get('assignment')
+  if (assignmentIds && assignmentIds.size > 0) {
+    fetches.push(
+      db.select({ id: assignments.id, title: assignments.title, no: assignments.assignment_no })
+        .from(assignments).where(inArray(assignments.id, [...assignmentIds]))
+        .then((rows) => { for (const r of rows) setLabel('assignment', r.id, r.title ?? r.no) })
     )
   }
   const customerVehicleIds = idsByApi.get('customer-vehicle')
