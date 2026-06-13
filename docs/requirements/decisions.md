@@ -259,6 +259,7 @@
 - 却下/保留：案C（LINE/メール転送の外部入力）は運用・セキュリティ整理が重く見送り。
 - 根拠：オーナー方針「報告は案件単位・活動にためて要約をレポート出力」（#88 コメント）と draft-then-apply 原則（CLAUDE.md）に整合。
 - 影響：report_templates（新規）/ src/lib/ai/summarize.ts の流用 / quickAi 系の分割抽出拡張 / 独立ページ＋モバイル下部タブ候補。
+- 進捗（2026-06-13）：**Phase 1 実装済み**（REQ-0072 / feature/report-phase-1）。report_templates＋generateReport＋ReportButton を案件・商談詳細に配置。Phase 2（一括報告インボックス）は未着手。
 
 ### ADR-0026  会計は「本格会計」をやらず「前処理＋会計ソフト連携」で実装
 - 2026-06-13 / **採用**（REQ-0068。オーナー決定「本格会計はやめて、Phase D でいきましょう」）

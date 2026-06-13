@@ -1171,3 +1171,20 @@ export const approval_decisions = pgTable('approval_decisions', {
 }, (t) => [
   index('approval_decisions_approval_idx').on(t.approval_id),
 ])
+
+// ----------------------------------------------------------------
+// report_templates（業務報告テンプレート）— #88 Phase 1 / ADR-0025
+//   body = レポート生成時に AI へ渡す書式（システムプロンプト断片）。
+//   owner_id = NULL は全員共有テンプレ（編集は admin のみ・アプリ層で制御）。
+//   テンプレ 0 件でもコード側にデフォルト 1 本を内蔵するため、本テーブルは任意。
+// ----------------------------------------------------------------
+export const report_templates = pgTable('report_templates', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  name:       text('name').notNull(),
+  body:       text('body').notNull(),
+  owner_id:   uuid('owner_id'),   // NULL = 全員共有
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('report_templates_owner_idx').on(t.owner_id),
+])

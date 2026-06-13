@@ -24,10 +24,11 @@ import AuthGuard from '@/components/AuthGuard'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
 import { getAllUsers } from '@/lib/userUtils'
-import { canEdit } from '@/lib/auth'
+import { canEdit, isAdmin } from '@/lib/auth'
 import RecordHeader from '@/components/RecordHeader'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import AISummaryButton from '@/components/AISummaryButton'
+import ReportButton from '@/components/ReportButton'
 import { NavIcon } from '@/lib/navIcon'
 import { summarizeOpportunity } from '@/app/actions/ai'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
@@ -216,6 +217,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   stream.sort((a, b) => b.sort - a.sort)
   const interactionCount = activitiesList.length + tasksList.length + expensesList.length
   const aiEnabled = await isAIFeatureEnabled()
+  const isAdminUser = await isAdmin()
 
   const composer = (
     <AuthGuard minRole="editor">
@@ -328,6 +330,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         actions={
           <AuthGuard minRole="editor">
             <div className="flex items-center gap-2">
+              {aiEnabled && <ReportButton targetApi="opportunity" recordId={id} targetLabel="商談" isAdmin={isAdminUser} />}
               {aiEnabled && <AISummaryButton label="AIで活動をまとめる" action={handleSummarize} />}
               <InlineEditButton />
               <DeleteButton action={handleDelete} confirmMessage="この商談を削除しますか？" />

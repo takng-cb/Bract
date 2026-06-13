@@ -446,6 +446,11 @@
 - 内容：AI 作成確認画面の関連先検索（quickRelatedSearch）の対象に、整備（顧客名・車名で検索、表示名は受付日_顧客_車種）と案件（タイトル・案件Noで検索）を追加。モジュール有効時のみ候補に出す（auto-body / staffing を isModuleEnabled でゲート）。あわせて関連レコードのラベル解決（resolveRelatedRecords）に assignment を追加（従来は案件への紐づけが「削除済み」表示になる既存ギャップがあった）。
 - 状態：実装済み（feature/accounting-phase-a。#134 Phase A と同梱で出荷予定）。
 
+### REQ-0072  業務報告 Phase 1（テンプレ集約レポート・案件/商談）
+- 2026-06-13 / 会話（「続きを進めて」← #88 / ADR-0025 確定済み事項の実装）
+- 内容：案件（assignments）・商談（opportunities）の詳細に「報告を作成」ボタンを追加。テンプレート選択＋期間指定 → 紐づく活動・ToDo を AI 要約（既存 summarizeActivitiesAndTasks 流用、systemPrompt をテンプレ body に差し替え）→ 編集可能な本文＋コピー（その場生成・保存なし）。テンプレは report_templates（個人＋全員共有の2層・共有作成/削除は admin のみ）。テンプレ 0 件でも DEFAULT_REPORT_PROMPT で動作。draft-then-apply の読み取り専用側で DB へは書かない。
+- 状態：実装・検証済み（feature/report-phase-1。lint/tsc/3業種ビルド/vitest 264 緑）。マージは report_templates マイグレを全 Neon（まず dev）適用後。
+
 ### REQ-0073  承認の導線改善（クイックアクセス閲覧に承認＋ホームに承認待ち）
 - 2026-06-13 / 会話（「クイックアクセスのレコード閲覧で、承認が出ていない」「ホームに承認待ちの一覧を出して」）
 - 内容：①クイック操作の「レコード閲覧」に承認（/approvals）が出ていなかった。workspace モジュールの books に approvals を追加し、VIEW_ONLY_BOOKS に登録（閲覧フローのみ表示・作成/AI 対象外）。②ホーム（dashboard）に「承認待ち」セクションを追加。自分が承認すべき申請（listApprovalsForUser の toDecide）を最上部に表示し、その場で承認/差戻し（decideApproval）＋詳細/承認一覧へのリンク。承認待ちが 0 件のときはセクション非表示。
