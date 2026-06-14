@@ -276,3 +276,18 @@
   3. 仕訳（journal_entries）は「会計ソフトに渡す前の**中間表現**」として設計し、将来方針が変わっても同じ土台を使えるようにする。
   4. `accounting` モジュール（category: 'erp'）として実装し、`enabled_modules` でランタイム ON/OFF。AI は draft-then-apply 原則を維持。
 - 影響：#134（実装 umbrella）/ docs/design-134-accounting.md（設計）/ expenses へのレシート項目追加（vendor / tax_rate / invoice_reg_no）。
+
+
+### ADR-0027  DB バックアップは「GitHub Actions 日次 → age 暗号化 → 段階的に GitHub artifact→R2＋顧客Drive」で運用
+- 2026-06-14 / **採用**（#24。会話で方式を比較・厳しめレビュー込みで決定）
+- 文脈：無料 Neon（リリース時に有料化予定）下で、リリース必須のバックアップ運用をどう実現するか。観点は ①簡単・無料 ②非ローカル・オフサイト ③復元の確実性・改ざん耐性 ④多顧客への拡張。
+- 決定：
+  1. **自動化＝GitHub Actions の `schedule`（日次）**。pg_dump バイナリを動かせる無料・既存の仕組み。Vercel/CF Workers の cron は pg_dump 不可、自前VM/SaaS は重い/有料のため不採用。
+  2. **暗号化＝age 非対称**。公開鍵のみ CI（`AGE_RECIPIENT`）、**秘密鍵は CI に置かず手元オフライン二重保管**（PWマネージャ＋封緘）。CI 侵害でも過去 dump は復号されない。鍵は当面全社共通→顧客増で per-tenant 分割。
+  3. **保存先は段階移行**：段階1（アーリー・現在）＝暗号化 dump を **GitHub Actions artifact（30日）**（無料・非ローカル・Neon と別事業者）。段階2（本格リリース）＝**R2（Object-Lock 不変）主＋顧客指定 Drive へ暗号化副コピー（3-2-1）＋Neon 有料 PITR を一次復旧**。保存先は抽象化して差し替え。
+  4. **ローカルのみ保存は不採用**（単一コピーはバックアップでない）。**顧客 Drive を唯一の保存先にしない**（可用性が顧客環境依存＝復元できないリスク）。機密性は暗号化で担保できるため主は自社管理側が安全。
+  5. **多テナント**：現状は repo secret `DATABASE_URL_*`（schema-check と共通）＋matrix。顧客増時は **GitHub Environments（`tenant-<slug>`）＋matrix** にスコープ分離。tenant=1フォルダ/1プレフィクス。
+  6. **監視**：失敗時 Webhook 通知（`BACKUP_ALERT_WEBHOOK`）。「当日未着」は外部ハートビート（cron-job.org→`repository_dispatch`、`schedule` の60日自動無効化対象外）で補完。
+  7. **復元リハ月1必須**（#24）。手順は docs/backup-runbook.md。
+- 却下/代替：Vercel Cron・Cloudflare Workers（pg_dump 不可）/ 自前 VM・MinIO（運用重・独立性低）/ 管理型 SaaS（費用＋第三者に DB 認証情報）。
+- 影響：.github/workflows/backup.yml（既存に age 暗号化＋失敗通知を追加）/ docs/backup-runbook.md（新規・生きた手順）/ docs/release-neon-rebuild.md §7（参照）。

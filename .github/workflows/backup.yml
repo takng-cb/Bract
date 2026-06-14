@@ -1,10 +1,18 @@
-# 日次 DB バックアップ（リリース判定 go/no-go の必須項目 #24）
+# 日次 DB バックアップ（リリース判定 go/no-go の必須項目 #24・ADR-0027）
 #
-# 各テナント Neon を pg_dump し、GitHub Actions の artifact として保存（30日保持）。
-# - Secrets は schema-check と同じ DATABASE_URL_* を使用（未設定のターゲットはスキップ）
+# 各テナント Neon を pg_dump → gzip → age 公開鍵で暗号化 → GitHub Actions artifact（30日保持）。
+# - 顧客データを平文で GitHub に置かない（age 非対称暗号。秘密鍵は CI に置かず手元オフライン保管）
+# - Secrets:
+#     DATABASE_URL_REAL_ESTATE / DATABASE_URL_AUTO_BODY / DATABASE_URL_BASE … 各 Neon 接続文字列
+#       （未設定のターゲットはスキップ＝そのテナントはまだ運用していない）
+#     AGE_RECIPIENT … age 公開鍵（age1... で始まる1行）。DB Secret があるのに未設定だと「明示エラー」
+#       （平文アップロードを防ぐため。鍵生成は docs/backup-runbook.md を参照）
+#     BACKUP_ALERT_WEBHOOK（任意）… 失敗時に通知する Discord/Slack 互換 Webhook URL
 # - Neon 立て直し時は Secrets を新 Neon の接続文字列に更新すること
-# - 月1回のリストア・リハーサルは手動（docs/release-neon-rebuild.md §7）：
-#   artifact をダウンロード → 空 DB に `gunzip -c dump.sql.gz | psql <url>` → check:schema
+# - 復元（月1リハ必須）: artifact を取得 → 手元の age 秘密鍵で復号 → 空 DB に restore。手順は docs/backup-runbook.md §復元
+#
+# 現状=アーリー（GitHub artifact 保存）。本格リリース時は ADR-0027 に沿って
+# R2(Object-Lock)＋顧客Drive副コピー＋Neon PITR へ拡張する（保存先を差し替えるだけ）。
 name: DB Backup
 
 on:
@@ -30,18 +38,24 @@ jobs:
           - target: base
             secret: DATABASE_URL_BASE
     steps:
-      - name: Check secret configured
+      - name: Check secrets configured
         id: check
         env:
           DB_URL: ${{ secrets[matrix.secret] }}
+          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
         run: |
           if [ -z "$DB_URL" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::${{ matrix.secret }} 未設定のためスキップ"
+            echo "::notice::${{ matrix.secret }} 未設定のためスキップ（このテナントは未運用）"
+            exit 0
+          fi
+          if [ -z "$AGE_RECIPIENT" ]; then
+            echo "::error::${{ matrix.secret }} は設定済みですが AGE_RECIPIENT（暗号鍵）が未設定です。平文バックアップを防ぐため失敗させます。docs/backup-runbook.md を参照して公開鍵を設定してください。"
+            exit 1
           fi
 
       # Neon の PostgreSQL バージョン（17 系）に合わせ pgdg から最新クライアントを入れる
-      - name: Install postgresql-client 17
+      - name: Install postgresql-client 17 and age
         if: steps.check.outputs.skip != 'true'
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
@@ -51,23 +65,47 @@ jobs:
             http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17
+          sudo apt-get install -y -qq postgresql-client-17 age
 
-      - name: pg_dump
+      - name: pg_dump and encrypt (age)
         if: steps.check.outputs.skip != 'true'
         env:
           DB_URL: ${{ secrets[matrix.secret] }}
+          AGE_RECIPIENT: ${{ secrets.AGE_RECIPIENT }}
         run: |
+          set -euo pipefail
           ts=$(date -u +%Y%m%dT%H%M%SZ)
-          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --no-owner --no-privileges \
-            | gzip > "bract-${{ matrix.target }}-$ts.sql.gz"
-          ls -la ./*.sql.gz
+          base="bract-${{ matrix.target }}-$ts.sql.gz"
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --no-owner --no-privileges | gzip > "$base"
+          # 公開鍵で暗号化（復号には手元オフラインの秘密鍵が必要。CI では復号できない）
+          age -r "$AGE_RECIPIENT" -o "$base.age" "$base"
+          rm -f "$base"   # 平文 gz は残さない
+          ls -la ./*.sql.gz.age
 
-      - name: Upload artifact (30日保持)
+      - name: Upload encrypted artifact (30日保持)
         if: steps.check.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ matrix.target }}-${{ github.run_id }}
-          path: '*.sql.gz'
+          path: '*.sql.gz.age'
           retention-days: 30
           if-no-files-found: error
+
+  # 失敗時アラート（当日未着の検知は別途・外部ハートビート推奨＝docs/backup-runbook.md §監視）
+  notify-failure:
+    name: Notify on failure
+    needs: dump
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post alert if webhook configured
+        env:
+          WEBHOOK: ${{ secrets.BACKUP_ALERT_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "::warning::バックアップが失敗しましたが BACKUP_ALERT_WEBHOOK 未設定のため通知できません"
+            exit 0
+          fi
+          msg="⚠️ Bract DB backup 失敗: run ${{ github.run_id }} (${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            -d "{\"content\": \"$msg\"}" "$WEBHOOK" || echo "::warning::Webhook 送信に失敗"
