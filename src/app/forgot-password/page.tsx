@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { requestPasswordReset } from '@/app/actions/auth'
 import Image from 'next/image'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 
 export default function ForgotPasswordPage() {
@@ -30,7 +31,7 @@ export default function ForgotPasswordPage() {
               href="/login"
               className="inline-block mt-2 text-sm text-blue-600 hover:underline"
             >
-              ← ログイン画面に戻る
+              <span className="inline-flex items-center gap-1"><ArrowLeft className="w-4 h-4" strokeWidth={2.25} aria-hidden />ログイン画面に戻る</span>
             </Link>
           </div>
         </div>
@@ -84,7 +85,7 @@ export default function ForgotPasswordPage() {
 
           <div className="text-center">
             <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-700">
-              ← ログイン画面に戻る
+              <span className="inline-flex items-center gap-1"><ArrowLeft className="w-4 h-4" strokeWidth={2.25} aria-hidden />ログイン画面に戻る</span>
             </Link>
           </div>
         </div>

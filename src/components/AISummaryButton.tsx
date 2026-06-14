@@ -15,6 +15,7 @@
  *   ```
  */
 import { useState, useTransition } from 'react'
+import { X } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 
 type SummaryActionResult =
@@ -100,7 +101,7 @@ export default function AISummaryButton({ label, action, defaultFrom, defaultTo 
                 className="text-zinc-400 hover:text-zinc-600"
                 aria-label="閉じる"
               >
-                ✕
+                <X className="w-4 h-4" strokeWidth={2.25} aria-hidden />
               </button>
             </div>
 

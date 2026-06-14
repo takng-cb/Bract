@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { X } from 'lucide-react'
 
 // ============================================================
 // 型定義
@@ -223,7 +224,7 @@ export default function FilterBuilder({
                   title="この条件を削除"
                   className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                 >
-                  ✕
+                  <X className="w-4 h-4" strokeWidth={2.25} aria-hidden />
                 </button>
               </div>
             )
