@@ -461,6 +461,12 @@
 - 内容：既存 backup.yml（日次 pg_dump→artifact）に **age 公開鍵暗号化**（平文を GitHub に置かない・鍵未設定なら明示エラー）と **失敗時 Webhook 通知**を追加。アーリーは GitHub artifact（30日・無料・オフサイト）、本格リリースで R2(Object-Lock)＋顧客Drive副コピー＋Neon PITR へ拡張（ADR-0027）。鍵は age 非対称・秘密鍵は手元オフライン二重保管。手順は docs/backup-runbook.md。
 - 状態：workflow・ADR・runbook 実装済み（feature/backup-early）。**要・初回セットアップ**（age 鍵生成→AGE_RECIPIENT/DATABASE_URL_* Secret 設定→workflow_dispatch で疎通＋復元リハ1回）。
 
+### REQ-0075  本番2本（real-estate / auto-body）を新リポ takng-cb/Bract に移行
+- 2026-06-14 / 会話（「旧Bract2本を新に移行したい」）
+- 内容：本番 real-estate（Vercel `bract-crm`）/ auto-body（Vercel `bract-crm-car`）の Connected Git を 旧 `Bract-CRM` → 新 `takng-cb/Bract`（Production Branch=main）へ張り替え、統合版を本番化。事前に両本番 Neon の `check:schema` で欠落を検出 → スナップショット＋当日バックアップの上で欠落分の冪等マイグレを適用（デモ `seed_data.sql` は除外、wiki の `DO $$` は専用適用）→ check:schema 緑 → Git 張り替え → 空コミット再デプロイ → 両本番スモーク 36/36。OPEN-D1 を解決、ADR-0014 を本2本につき Supersede。
+- 状態：実装・反映済み（両本番デプロイ Ready 確認）。
+- 関連：ADR-0028 / ADR-0014(Supersede) / #18 / OPEN-D1
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
@@ -474,7 +480,7 @@
 | #15 | [staffing] Phase1 スキーマ+マスタ | REQ-0005, ADR-0008/0010 |
 | #16 | [staffing] Phase3 クイック登録(AI) | REQ-0004/0008, ADR-0012/0013 |
 | #17 | [ops] dev環境 残作業 | REQ-0009, ADR-0014, OPEN-D3 |
-| #18 | [ops] 旧Bract-CRMの扱い・本番移行 | OPEN-D1, ADR-0006 |
+| #18 | [ops] 旧Bract-CRMの扱い・本番移行 → **完了(2026-06-14)** | REQ-0075, ADR-0028, OPEN-D1 |
 | #19 | [chore] 複製残骸クリーンアップ | — |
 | #21 | [platform] 「オブジェクト」呼称の全面リネーム | REQ-0010, ADR-0017 |
 | #22 | [platform] ダッシュボードのユーザー別カスタマイズ強化 | REQ-0012 |
@@ -484,7 +490,7 @@
 
 ## 未決（運用・デプロイ）
 
-- **OPEN-D1**：既存 `Bract-CRM`（旧リポ）と本番2デプロイ（real-estate/auto-body）の今後。推奨：旧リポはアーカイブ扱い、新 `Bract` を唯一の真実とし、本番は準備が整い次第 新リポへ寄せる（時期は別途）。
+- ~~**OPEN-D1**：既存 `Bract-CRM`（旧リポ）と本番2デプロイ（real-estate/auto-body）の今後~~ → **決定・実行（2026-06-14）：本番2本を新リポ `takng-cb/Bract` へ移行（Git 張り替え＋欠落マイグレ適用）、旧リポはアーカイブ扱い。ADR-0028 / REQ-0075 / #18**。
 - ~~**OPEN-D2**：統合版の最初の実サーバー化の方式~~ → **決定：統合版は dev 環境として専用 Neon＋専用 Vercel で立てる。ADR-0014**
 - ~~**OPEN-B5**：権限区分~~ → **決定：既存ロール（admin/editor/viewer）流用（推奨採用）**
 - ~~**OPEN-C1**：単価モデル~~ → **決定：案件固定単価を主・登録後も変更可。時給は任意。ADR-0010**

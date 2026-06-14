@@ -124,7 +124,7 @@
 - 代替案：DB 固定（既存 /admin/ai） → 顧客自身が鍵を交換する運用が必要になれば移行（providers 抽象で安価）。
 
 ### ADR-0014  統合版 Bract は当面「開発(dev)環境」として運用
-- 2026-06-07 / **採用**（OPEN-D2）
+- 2026-06-07 / **採用**（OPEN-D2）／ **2026-06-14 本番2本については ADR-0028 で Supersede**（real-estate/auto-body を新リポ本番化。dev 環境の位置づけ自体は base/検証用として残る）
 - 文脈：統合版 `takng-cb/Bract` を実サーバーで動かすにあたり、本番か検証用かを決める必要があった。
 - 決定：統合版 Bract は当面 **開発/検証(dev)環境**として 1 つ立てる。**専用の dev Neon ＋ 専用 Vercel project**。既存2本番（real-estate `bract-crm` / auto-body `bract-crm-auto-body`）は**触らず**現行のまま。
 - 理由：本番に無影響でモジュラー化・人材手配を検証できる。dev データは使い捨て可能で安全。
@@ -291,3 +291,18 @@
   7. **復元リハ月1必須**（#24）。手順は docs/backup-runbook.md。
 - 却下/代替：Vercel Cron・Cloudflare Workers（pg_dump 不可）/ 自前 VM・MinIO（運用重・独立性低）/ 管理型 SaaS（費用＋第三者に DB 認証情報）。
 - 影響：.github/workflows/backup.yml（既存に age 暗号化＋失敗通知を追加）/ docs/backup-runbook.md（新規・生きた手順）/ docs/release-neon-rebuild.md §7（参照）。
+
+### ADR-0028  本番2本（real-estate / auto-body）を新リポ takng-cb/Bract に移行（OPEN-D1 決定・ADR-0014 を一部 Supersede）
+- 2026-06-14 / **採用・実行済み**（#18 / OPEN-D1。ユーザー指示で当日実行）
+- 文脈：ADR-0014 で統合版 `takng-cb/Bract` は「dev 環境」とし既存2本番（旧リポ `Bract-CRM` 由来）は触らない方針だった（OPEN-D1＝本番寄せ替えは時期別途）。新リポが十分成熟し、本番を統合版へ寄せる判断が出た。
+- 決定：本番 real-estate（Vercel `bract-crm`）/ auto-body（Vercel `bract-crm-car`）の **Connected Git を 旧 `Bract-CRM` → 新 `takng-cb/Bract`（Production Branch=main）へ張り替え**、統合版を本番化する。**ADR-0014 の「本番は触らない／統合版は dev 専用」を本2テナントについて Supersede**（統合版が本番の真実）。
+- 実行手順（当日・安全策込み）：
+  1. **事前にスキーマ整合を検証**：本番2 Neon に対し新リポ `schema.ts` で `check:schema` → 大きく遅れを検出（RE 13件 / AB 26件のテーブル・カラム欠落）。
+  2. 各 Neon に**適用直前スナップショット**（`snapshot-db.ts`）＋当日の暗号化バックアップ（復号検証済み, ADR-0027）。
+  3. **欠落分の冪等マイグレを `apply-migration.ts` で適用**（20260508+。`DO $$` を含む wiki.sql のみ `$$` 対応で別適用）。**デモデータ `seed_data.sql` は除外**（ライブ顧客 DB に架空レコードを入れない）。`seed-metadata` / `seed-maintenance-templates` を投入。
+  4. `check:schema` 緑（両 exit 0。AB に無害な dbOnly 余剰列 `custom_record_id` のみ残存）→ `vercel-build` ゲート通過を担保。
+  5. Vercel で Git 張り替え → 空コミットで再デプロイ → 両本番スモーク 36/36 pass。
+- 理由：新リポを唯一の真実にし、旧 `Bract-CRM` の二重管理を解消。`vercel-build` の check:schema ゲートが未適用 DB へのデプロイをブロックするため、マイグレ先行で安全に寄せられる。
+- ロールバック：Vercel の Connected Git を旧 `Bract-CRM` に戻して再デプロイ（DB 変更は加算的なので旧コードでも動作）。
+- 留意：本番 URL は real-estate=`bract-crm.vercel.app` / auto-body=`bract-crm-car.vercel.app`（旧 `bract-car.vercel.app` は無効エイリアス）。旧リポ `Bract-CRM` は今後アーカイブ扱い（push しない）。
+- 影響：Issue #18 / docs/deployment-runbook.md / README.md デプロイ表 / AGENTS.md（旧リポ非push 規律）。base 用 Neon・将来テナントは未移行（個別に同手順）。
