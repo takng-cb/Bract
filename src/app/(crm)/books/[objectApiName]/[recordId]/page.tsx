@@ -6,6 +6,7 @@ import OtherRelationsChips from '@/components/OtherRelationsChips'
 import { eq, and, inArray, desc, asc, count } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Check } from 'lucide-react'
 import { canEdit } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
 import { deleteCustomRecord, updateCustomRecord } from '@/app/actions/customRecords'
@@ -338,7 +339,7 @@ export default async function CustomRecordDetailPage({
                           task.done ? 'bg-green-500 border-green-500' : 'border-zinc-300 hover:border-green-400'
                         }`}
                       >
-                        {task.done && <span className="text-white text-xs font-bold">✓</span>}
+                        {task.done && <Check className="w-3 h-3 text-white" strokeWidth={3} aria-hidden />}
                       </button>
                     </form>
                     <Link href={`/tasks/${task.id}`} className={`flex-1 text-sm ${task.done ? 'line-through text-zinc-400' : 'text-zinc-800'}`}>

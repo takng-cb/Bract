@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { Briefcase, Building2, Wallet, CalendarDays, UserRound, Tag, Activity, Link2, TrendingUp, Folder } from 'lucide-react'
+import { Briefcase, Building2, Wallet, CalendarDays, UserRound, Tag, Activity, Link2, TrendingUp, Folder, Check } from 'lucide-react'
 import { opportunities, accounts, contacts, activities, tasks, attachments, expenses, change_logs, opportunity_products } from '@/lib/schema'
 import { getProductPickerOptions } from '@/lib/opportunityProductBooks'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
@@ -199,7 +199,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     const pr = PRIORITY_BADGE[t.priority] ?? PRIORITY_BADGE.medium
     const overdueT = !t.done && t.due_date && new Date(t.due_date).getTime() < NOW
     stream.push({ id: `t-${t.id}`, kind: 'todo', typeLabel: 'ToDo', time: hm(d), day: dayLabel(d), sort: d.getTime(),
-      leading: <AuthGuard minRole="editor"><form action={toggleTask}><input type="hidden" name="task_id" value={t.id} /><input type="hidden" name="done" value={(!t.done).toString()} /><button type="submit" className={`w-4.5 h-4.5 rounded-md border-[1.5px] grid place-items-center ${t.done ? 'bg-brand-600 border-brand-600 text-white' : 'border-zinc-300 hover:border-brand-400'}`}>{t.done && <span className="text-[10px] leading-none">✓</span>}</button></form></AuthGuard>,
+      leading: <AuthGuard minRole="editor"><form action={toggleTask}><input type="hidden" name="task_id" value={t.id} /><input type="hidden" name="done" value={(!t.done).toString()} /><button type="submit" className={`w-4.5 h-4.5 rounded-md border-[1.5px] grid place-items-center ${t.done ? 'bg-brand-600 border-brand-600 text-white' : 'border-zinc-300 hover:border-brand-400'}`}>{t.done && <Check className="w-3 h-3" strokeWidth={3} aria-hidden />}</button></form></AuthGuard>,
       body: <div className="flex items-center gap-2 flex-wrap"><Link href={`/tasks/${t.id}`} className={`font-semibold hover:text-brand-700 ${t.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>{t.title}</Link><Badge tone={pr.tone}>{pr.label}</Badge>{t.due_date && <span className={`text-[12px] ${overdueT ? 'text-rose-600' : 'text-zinc-400'}`}>期限 {new Date(t.due_date).toLocaleDateString('ja-JP')}</span>}</div> })
   }
   for (const e of expensesList) {
