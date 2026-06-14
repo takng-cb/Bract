@@ -54,8 +54,9 @@ jobs:
             exit 1
           fi
 
-      # Neon の PostgreSQL バージョン（17 系）に合わせ pgdg から最新クライアントを入れる
-      - name: Install postgresql-client 17 and age
+      # pgdg から PostgreSQL クライアント 18 を入れる（新しい pg_dump は古いサーバも dump 可＝
+      # develop が PG18・real-estate/auto-body が PG17 でも 18 クライアントで全部カバーできる）
+      - name: Install postgresql-client 18 and age
         if: steps.check.outputs.skip != 'true'
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
@@ -65,7 +66,7 @@ jobs:
             http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17 age
+          sudo apt-get install -y -qq postgresql-client-18 age
 
       - name: pg_dump and encrypt (age)
         if: steps.check.outputs.skip != 'true'
@@ -76,7 +77,7 @@ jobs:
           set -euo pipefail
           ts=$(date -u +%Y%m%dT%H%M%SZ)
           base="bract-${{ matrix.target }}-$ts.sql.gz"
-          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --no-owner --no-privileges | gzip > "$base"
+          /usr/lib/postgresql/18/bin/pg_dump "$DB_URL" --no-owner --no-privileges | gzip > "$base"
           # 公開鍵で暗号化（復号には手元オフラインの秘密鍵が必要。CI では復号できない）
           age -r "$AGE_RECIPIENT" -o "$base.age" "$base"
           rm -f "$base"   # 平文 gz は残さない
