@@ -135,11 +135,11 @@ export default function NavigationProgress() {
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-[100] h-1 pointer-events-none"
+      className="fixed top-0 left-0 right-0 z-[100] h-1.5 pointer-events-none"
       aria-hidden="true"
     >
       <div
-        className="relative h-full bg-linear-to-r from-blue-600 via-blue-500 to-blue-400 shadow-[0_0_12px_rgba(37,99,235,0.9),0_0_4px_rgba(37,99,235,0.7)]"
+        className="relative h-full bg-linear-to-r from-blue-600 via-blue-500 to-sky-400 shadow-[0_0_18px_rgba(37,99,235,1),0_0_8px_rgba(37,99,235,0.85)]"
         style={{
           width: `${progress}%`,
           opacity: progress >= 100 ? 0 : 1,
@@ -149,7 +149,7 @@ export default function NavigationProgress() {
         }}
       >
         {/* 先端の光る head（動いている感を強調） */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 h-2 w-20 -mr-2 rounded-full bg-blue-300 blur-[3px] opacity-90" />
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-28 -mr-3 rounded-full bg-sky-200 blur-xs opacity-95" />
       </div>
     </div>
   )
