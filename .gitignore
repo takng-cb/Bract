@@ -47,6 +47,11 @@ next-env.d.ts
 # DB バックアップダンプ（本番データ含むため git 管理外）
 /backups
 
+# age バックアップ秘密鍵（絶対にコミットしない。失うと全 dump が復号不能）
+bract-backup-key.txt
+*.age
+*.sql.gz.age
+
 # Playwright E2E
 /playwright-report
 /test-results

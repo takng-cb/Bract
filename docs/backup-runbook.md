@@ -51,6 +51,9 @@ Actions → **DB Backup** → `Run workflow`（workflow_dispatch）→ 各テナ
 
 > ⚠ 復号には手元オフラインの秘密鍵が要る。CI/GitHub 上では復号できない（設計どおり）。
 
+### リハーサル履歴
+- **2026-06-14**: run 27491302302 の3テナント artifact を手元の秘密鍵で復号 → 有効な PG18 dump を確認（develop 57 / real-estate 51 / auto-body 41 テーブル、gzip・age 復号とも正常）。**空 DB への restore + check:schema は次回（要・空 Neon）**＝復号〜dump 健全性まで検証済み、フル restore は未。
+
 ## 監視（当日未着の検知）
 
 - workflow 失敗時は `BACKUP_ALERT_WEBHOOK` に通知（`notify-failure` ジョブ）。

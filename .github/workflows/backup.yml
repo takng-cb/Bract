@@ -85,7 +85,7 @@ jobs:
 
       - name: Upload encrypted artifact (30日保持)
         if: steps.check.outputs.skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ matrix.target }}-${{ github.run_id }}
           path: '*.sql.gz.age'
