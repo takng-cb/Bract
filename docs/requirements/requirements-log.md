@@ -456,6 +456,11 @@
 - 内容：①クイック操作の「レコード閲覧」に承認（/approvals）が出ていなかった。workspace モジュールの books に approvals を追加し、VIEW_ONLY_BOOKS に登録（閲覧フローのみ表示・作成/AI 対象外）。②ホーム（dashboard）に「承認待ち」セクションを追加。自分が承認すべき申請（listApprovalsForUser の toDecide）を最上部に表示し、その場で承認/差戻し（decideApproval）＋詳細/承認一覧へのリンク。承認待ちが 0 件のときはセクション非表示。
 - 状態：実装・検証済み（feature/home-approvals。lint/tsc/base・auto-body ビルド/vitest 264 緑）。マイグレ不要（approvals テーブルは適用済み）。
 
+### REQ-0074  DB バックアップ運用（アーリー：日次 pg_dump→age暗号化→GitHub artifact＋失敗通知）
+- 2026-06-14 / 会話（バックアップ方式の相談→決定）
+- 内容：既存 backup.yml（日次 pg_dump→artifact）に **age 公開鍵暗号化**（平文を GitHub に置かない・鍵未設定なら明示エラー）と **失敗時 Webhook 通知**を追加。アーリーは GitHub artifact（30日・無料・オフサイト）、本格リリースで R2(Object-Lock)＋顧客Drive副コピー＋Neon PITR へ拡張（ADR-0027）。鍵は age 非対称・秘密鍵は手元オフライン二重保管。手順は docs/backup-runbook.md。
+- 状態：workflow・ADR・runbook 実装済み（feature/backup-early）。**要・初回セットアップ**（age 鍵生成→AGE_RECIPIENT/DATABASE_URL_* Secret 設定→workflow_dispatch で疎通＋復元リハ1回）。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
