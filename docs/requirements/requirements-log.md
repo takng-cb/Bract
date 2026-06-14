@@ -467,6 +467,12 @@
 - 状態：実装・反映済み（両本番デプロイ Ready 確認）。
 - 関連：ADR-0028 / ADR-0014(Supersede) / #18 / OPEN-D1
 
+### REQ-0076  本番のメール送信対応（パスワード再設定・招待等を独自SMTP/Resendで）
+- 2026-06-14 / 会話（「メール送信対応。パスワード忘れなど含めて」）
+- 内容：パスワード再設定は現状 `supabase.auth.resetPasswordForEmail`（Supabase 既定メール）に依存し、独自 SMTP（Resend 等）未設定でレート制限・到達性が本番不十分。Supabase Auth に Custom SMTP を設定し、送信元ドメイン認証（SPF/DKIM/DMARC）＋日本語テンプレ整備。対象は パスワード再設定 / ユーザー招待・確認 /（将来）通知系。各テナントへ反映＋本番疎通テスト。ADR-0011（リマインドは MVP 外）の延長で送信基盤を正式判断（新 ADR 候補）。
+- 状態：未着手（Issue 起票のみ）。
+- 関連：#137 / ADR-0011 / src/app/actions/auth.ts
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
@@ -485,6 +491,7 @@
 | #21 | [platform] 「オブジェクト」呼称の全面リネーム | REQ-0010, ADR-0017 |
 | #22 | [platform] ダッシュボードのユーザー別カスタマイズ強化 | REQ-0012 |
 | #134 | [erp] 経費の前処理＋会計ソフト連携 Phase A〜D (umbrella) | REQ-0068, ADR-0026 |
+| #137 | [ops] 本番のメール送信対応（パスワード再設定・招待等を独自SMTP/Resend） | REQ-0076, ADR-0011 |
 
 > 設計PR: #20（feature/erp-modular-design → develop）。Git運用は Gitflow（ADR-0015）。
 
