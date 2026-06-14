@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { Building2, Factory, UserRound, CalendarDays, Phone, Globe, MapPin, Tag, TrendingUp, Activity, SquareCheckBig, ExternalLink, Link2 } from 'lucide-react'
+import { Building2, Factory, UserRound, CalendarDays, Phone, Globe, MapPin, Tag, TrendingUp, Activity, SquareCheckBig, ExternalLink, Link2, Check } from 'lucide-react'
 import { accounts, contacts, opportunities, activities, tasks, expenses, attachments, change_logs } from '@/lib/schema'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
@@ -159,7 +159,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
           <form action={toggleTask}>
             <input type="hidden" name="task_id" value={t.id} />
             <input type="hidden" name="done" value={(!t.done).toString()} />
-            <button type="submit" className={`w-4.5 h-4.5 rounded-md border-[1.5px] grid place-items-center ${t.done ? 'bg-brand-600 border-brand-600 text-white' : 'border-zinc-300 hover:border-brand-400'}`}>{t.done && <span className="text-[10px] leading-none">✓</span>}</button>
+            <button type="submit" className={`w-4.5 h-4.5 rounded-md border-[1.5px] grid place-items-center ${t.done ? 'bg-brand-600 border-brand-600 text-white' : 'border-zinc-300 hover:border-brand-400'}`}>{t.done && <Check className="w-3 h-3" strokeWidth={3} aria-hidden />}</button>
           </form>
         </AuthGuard>
       ),

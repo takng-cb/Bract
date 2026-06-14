@@ -15,7 +15,7 @@
  * クリック時に FormData(id, done) を組み立てて呼ぶ。
  */
 import { useState, useEffect, useTransition } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Check } from 'lucide-react'
 
 export default function TaskDoneToggle({
   taskId,
@@ -65,7 +65,7 @@ export default function TaskDoneToggle({
       {pending ? (
         <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
       ) : optimistic ? (
-        <span className="text-xs leading-none">✓</span>
+        <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden />
       ) : null}
     </button>
   )
