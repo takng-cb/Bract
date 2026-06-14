@@ -3,7 +3,7 @@
 # 各テナント Neon を pg_dump → gzip → age 公開鍵で暗号化 → GitHub Actions artifact（30日保持）。
 # - 顧客データを平文で GitHub に置かない（age 非対称暗号。秘密鍵は CI に置かず手元オフライン保管）
 # - Secrets:
-#     DATABASE_URL_REAL_ESTATE / DATABASE_URL_AUTO_BODY / DATABASE_URL_BASE … 各 Neon 接続文字列
+#     DATABASE_URL_REAL_ESTATE / DATABASE_URL_AUTO_BODY / DATABASE_URL_DEVELOP … 各 Neon 接続文字列
 #       （未設定のターゲットはスキップ＝そのテナントはまだ運用していない）
 #     AGE_RECIPIENT … age 公開鍵（age1... で始まる1行）。DB Secret があるのに未設定だと「明示エラー」
 #       （平文アップロードを防ぐため。鍵生成は docs/backup-runbook.md を参照）
@@ -35,8 +35,8 @@ jobs:
             secret: DATABASE_URL_REAL_ESTATE
           - target: auto-body
             secret: DATABASE_URL_AUTO_BODY
-          - target: base
-            secret: DATABASE_URL_BASE
+          - target: develop
+            secret: DATABASE_URL_DEVELOP
     steps:
       - name: Check secrets configured
         id: check
