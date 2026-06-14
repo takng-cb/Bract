@@ -8,6 +8,7 @@ import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import { parseSortParams, applySort } from '@/lib/sortUtils'
 import { toggleTaskDone } from '@/app/actions/tasks'
+import TaskDoneToggle from '@/components/TaskDoneToggle'
 import CsvToolbar from '@/components/CsvToolbar'
 import Pagination from '@/components/Pagination'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
@@ -329,14 +330,7 @@ export default async function TasksPage({
                 return (
                   <tr key={task.id} className={`hover:bg-zinc-50 transition-colors ${task.done ? 'opacity-50' : ''}`}>
                     <td className="px-4 py-3 text-center">
-                      <form action={toggleDone}>
-                        <input type="hidden" name="id" value={task.id} />
-                        <input type="hidden" name="done" value={(!task.done).toString()} />
-                        <button type="submit" title={task.done ? '未完了に戻す' : '完了にする'}
-                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors mx-auto ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
-                          {task.done && <span className="text-xs leading-none">✓</span>}
-                        </button>
-                      </form>
+                      <TaskDoneToggle taskId={task.id} done={task.done} action={toggleDone} className="mx-auto" />
                     </td>
                     <td className="px-4 py-3 font-medium">
                       <Link href={`/tasks/${task.id}`} className={`hover:text-blue-600 ${task.done ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>{task.title}</Link>
@@ -382,14 +376,7 @@ export default async function TasksPage({
               return (
                 <div key={task.id} className={`bg-white rounded-lg border border-zinc-200 px-4 py-3 flex gap-3 ${task.done ? 'opacity-60' : ''}`}>
                   <div className="pt-0.5 shrink-0">
-                    <form action={toggleDone}>
-                      <input type="hidden" name="id" value={task.id} />
-                      <input type="hidden" name="done" value={(!task.done).toString()} />
-                      <button type="submit"
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
-                        {task.done && <span className="text-xs leading-none">✓</span>}
-                      </button>
-                    </form>
+                    <TaskDoneToggle taskId={task.id} done={task.done} action={toggleDone} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
@@ -535,14 +522,7 @@ export default async function TasksPage({
                 return (
                   <div className={`bg-white rounded-lg border border-zinc-200 px-4 py-3 flex gap-3 ${task.done ? 'opacity-60' : ''}`}>
                     <div className="pt-0.5 shrink-0">
-                      <form action={toggleDone}>
-                        <input type="hidden" name="id" value={task.id} />
-                        <input type="hidden" name="done" value={(!task.done).toString()} />
-                        <button type="submit"
-                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${task.done ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 hover:border-blue-400'}`}>
-                          {task.done && <span className="text-xs leading-none">✓</span>}
-                        </button>
-                      </form>
+                      <TaskDoneToggle taskId={task.id} done={task.done} action={toggleDone} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
