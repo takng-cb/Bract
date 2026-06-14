@@ -156,5 +156,5 @@ Phase 1〜の機能完成後に、**新しい Vercel project** で：
 ## 7. ロールバック / 注意
 
 - env 変更（特に `NEXT_PUBLIC_*`）は **再ビルドしないと反映されない**。Redeploy 時は Environment=Production を明示。
-- 既存2本番（real-estate/auto-body）は当面 **旧リポ運用のまま**。統合版へ寄せる判断は別途（ADR-0014）。
+- ~~既存2本番（real-estate/auto-body）は当面 旧リポ運用のまま~~ → **2026-06-14 に新リポ `takng-cb/Bract` へ移行済み**（real-estate=`bract-crm` / auto-body=`bract-crm-car`、ADR-0028 / #18）。旧リポ `Bract-CRM` はアーカイブ扱い・push しない。
 - 問題時は Vercel の前デプロイへ Rollback（Deployments → 該当 → Promote/Rollback）。
