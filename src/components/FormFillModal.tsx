@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { X } from 'lucide-react'
 import type { FieldDef } from '@/lib/bookMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
 
@@ -249,7 +250,7 @@ ${selectSection}
             {/* ヘッダー */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 shrink-0">
               <h2 className="text-base font-bold text-zinc-900">テキストから入力</h2>
-              <button onClick={close} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">×</button>
+              <button onClick={close} aria-label="閉じる" className="text-zinc-400 hover:text-zinc-600"><X className="w-5 h-5" strokeWidth={2.25} aria-hidden /></button>
             </div>
 
             {/* 本文 */}
