@@ -1,13 +1,16 @@
 'use client'
 
 /**
- * ページ遷移時に画面上部に表示する細い進捗バー。
+ * ページ遷移・フォーム送信時に画面上部に表示する細い進捗バー。
  *
  * 動作:
  *   - <a> / <Link> クリック時に即 表示開始（クリックから 0ms で「動いた」感）
+ *   - <form> 送信（Server Action 含む）時にも即 表示開始（保存/削除/各種操作の体感改善）
  *   - 90% まで自動アニメ（実際のロード時間にあわせて緩やかに進む）
  *   - usePathname() が変わったタイミングで 100% にして 300ms 後に消える
+ *   - フォーム送信は遷移しない（revalidate のみ）こともあるため、フォールバックタイマで必ず閉じる
  *   - クリックされたリンクが同一 URL / 外部リンク / target=_blank の場合は出さない
+ *   - data-no-progress 属性を付けた要素/フォームは対象外
  *
  * 目的: コードでの実速度改善とは別に「クリック → 何も起きない」体感を消す。
  * Phase A perceived performance 改善 (#40 Sprint 3+)。
@@ -15,12 +18,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
+// フォーム送信時、遷移が起きなくてもこの時間で確実にバーを閉じる（体感の安全弁）
+const SUBMIT_FALLBACK_MS = 2500
+
 export default function NavigationProgress() {
   const pathname = usePathname()
   const [progress, setProgress] = useState(0)
   const [visible, setVisible] = useState(false)
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const submitFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navigatingRef = useRef(false)
 
   // 1. <a> / <Link> クリックを documentレベルで補足
@@ -60,6 +67,35 @@ export default function NavigationProgress() {
     return () => document.removeEventListener('click', handler, true)
   }, [])
 
+  // 1b. <form> 送信（Server Action 含む）を documentレベルで補足
+  //     遷移しないアクション（revalidate のみ）でも「押した瞬間」にバーを出す。
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const form = e.target as HTMLElement | null
+      if (!form || (form as HTMLFormElement).tagName !== 'FORM') return
+      if (form.closest('[data-no-progress]')) return
+
+      // 送信開始 — 即時に小さい進捗から表示
+      navigatingRef.current = true
+      setVisible(true)
+      setProgress((p) => (p > 15 ? p : 15))
+
+      // 遷移が起きない（revalidate のみ）場合の安全弁: 一定時間で必ず閉じる
+      if (submitFallbackRef.current) clearTimeout(submitFallbackRef.current)
+      submitFallbackRef.current = setTimeout(() => {
+        setProgress(100)
+        if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
+        fadeTimerRef.current = setTimeout(() => {
+          setVisible(false)
+          setProgress(0)
+          navigatingRef.current = false
+        }, 300)
+      }, SUBMIT_FALLBACK_MS)
+    }
+    document.addEventListener('submit', handler, true)
+    return () => document.removeEventListener('submit', handler, true)
+  }, [])
+
   // 2. progress 表示中は 90% まで緩やかに自動進行
   useEffect(() => {
     if (!visible) return
@@ -80,6 +116,8 @@ export default function NavigationProgress() {
   // 3. usePathname() の変化を navigation 完了とみなす
   useEffect(() => {
     if (!navigatingRef.current) return
+    // 遷移で完了したので送信フォールバックは解除
+    if (submitFallbackRef.current) clearTimeout(submitFallbackRef.current)
     // 100% まで進めて、300ms 後にバーを消す
     setProgress(100)
     if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
