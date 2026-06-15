@@ -6,6 +6,21 @@
 > 詳細設計は [`docs/erp-architecture.md`](./docs/erp-architecture.md) / [`docs/migration-roadmap.md`](./docs/migration-roadmap.md)、
 > 日々の運用ルールは [`AGENTS.md`](./AGENTS.md) を参照。本節はそれらの上位にある「方針」を固定する。
 
+## 0. 進め方は「ループ」で（標準の協働モデル）
+
+一問一答のプロンプトではなく、**ゴールを受け取ったら Claude がループを回す**。ユーザーは **ゴール設定と承認** を担い、Claude は **DISCOVER → PLAN → EXECUTE → VERIFY → ITERATE** を自走する（"write loops, not prompts"）。
+
+1. **DISCOVER**：着手前に現状を実地調査（grep / Read / `check:schema` / 実機 / Issue）。**推測で進めない**。
+2. **PLAN**：非自明なら設計を先に（§1 設計ファーストと整合）。**スライスに割り、各スライスを独立リリース可能**に。
+3. **EXECUTE**：ブランチを切って実装。**本番反映・本番 DB 変更・外向き/不可逆操作は人間の明示承認を必須**とする（closed-loop ゲート）。
+4. **VERIFY**：既存ゲートで自己検証（§4：3 業種ビルド / `check:schema`×3 Neon / smoke 32+ ページ / E2E）。さらに **「作る人」と別に「確認する人」** を立てる（subagent / 別観点での adversarial 検証。例：`/code-review` の finder+verifier）。
+5. **ITERATE**：VERIFY で落ちたら DISCOVER に戻る。**緑になるまで回す**。完了したら要点を報告し、長時間・離席時は **通知**（push）。
+
+- **既定は closed-loop**：ゴール・ステップ・終了条件・各ステップの評価を**先に定義**してから回す。品質ゲート無しの開放ループで回さない。
+- **single-agent 既定**。複数エージェント（Workflow / 艦隊）は**トークン消費が大きいためユーザー明示の opt-in 時のみ**（"ultracode" 等）。調査・レビューは builder/verifier の**最小 fleet**が有効。
+- **外部メモリ**：ループの「何を試した／通った／残り」は `docs/requirements`（REQ/ADR/spec）と GitHub Issues に残す（§3.5 と整合）。毎回ゼロから始めない。
+- **「Go 押すだけ」にならない**：ループは理解の代替ではない。判断の根拠（なぜ）を ADR/Issue に残す。
+
 ## 1. 基本姿勢：設計ファースト → ストラングラー式の段階実装
 
 1. **設計ファースト**：非自明な変更は、まず `docs/` に設計を書き、合意してから実装する。
