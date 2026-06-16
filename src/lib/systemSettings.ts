@@ -1,6 +1,8 @@
+import { cache } from 'react'
 import { db } from '@/lib/db'
 import { system_settings } from '@/lib/schema'
 import { inArray } from 'drizzle-orm'
+import { DEFAULT_TIMEZONE, isValidTimeZone } from '@/lib/datetime'
 
 // ----------------------------------------------------------------
 // 設定キーとデフォルト値
@@ -20,6 +22,8 @@ export const SYSTEM_DEFAULTS = {
   board_closed_window_months: '3',
   // ゴミ箱の保持日数（過ぎると自動で完全削除。REQ-0047）
   trash_retention_days: '30',
+  // 表示タイムゾーン（IANA 名。日時の表示整形に使う。サーバ描画が UTC で出る問題対策。REQ-0081）
+  timezone: 'Asia/Tokyo',
 } as const
 
 export type SystemSettingKey = keyof typeof SYSTEM_DEFAULTS
@@ -55,3 +59,12 @@ export async function getSystemSetting(key: SystemSettingKey): Promise<string> {
   const result = await getSystemSettings([key])
   return result[key]
 }
+
+// ----------------------------------------------------------------
+// 表示タイムゾーン（REQ-0081）。サーバコンポーネントの日時整形で使う。
+// リクエスト内メモ化（react cache）。不正値は既定 Asia/Tokyo にフォールバック。
+// ----------------------------------------------------------------
+export const getAppTimeZone = cache(async (): Promise<string> => {
+  const tz = await getSystemSetting('timezone')
+  return isValidTimeZone(tz) ? tz : DEFAULT_TIMEZONE
+})

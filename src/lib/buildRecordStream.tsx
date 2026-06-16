@@ -10,6 +10,7 @@ import { Check } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import { Badge, type BadgeTone } from '@/components/record/RecordUI'
 import type { StreamEvent } from '@/components/record/ActivityStream'
+import { DEFAULT_TIMEZONE, fmtTime, ymdInTz } from '@/lib/datetime'
 
 export const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
   high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
@@ -21,7 +22,7 @@ type ExpenseRow  = { id: string; title: string; amount: unknown; expense_date: s
 type ChangeLog   = { id: string; field_label: string; old_value: string | null; new_value: string | null; changed_at: Date | string | null }
 
 export function buildRecordStream({
-  activities, tasks, expenses, changeLogs, activityTypeLabels, toggleTask,
+  activities, tasks, expenses, changeLogs, activityTypeLabels, toggleTask, tz = DEFAULT_TIMEZONE,
 }: {
   activities: ActivityRow[]
   tasks: TaskRow[]
@@ -29,15 +30,19 @@ export function buildRecordStream({
   changeLogs: ChangeLog[]
   activityTypeLabels: Record<string, string>
   toggleTask: (formData: FormData) => Promise<void>
+  /** 表示タイムゾーン（REQ-0081）。サーバ側で getAppTimeZone() を渡す */
+  tz?: string
 }): { stream: (StreamEvent & { sort: number })[]; interactionCount: number } {
   const NOW = Date.now()
+  const todayYmd = ymdInTz(NOW, tz)
+  const yestYmd  = ymdInTz(NOW - 86400000, tz)
   const dayLabel = (d: Date) => {
-    const t0 = new Date(NOW); t0.setHours(0, 0, 0, 0); const d0 = new Date(d); d0.setHours(0, 0, 0, 0)
-    const diff = Math.round((t0.getTime() - d0.getTime()) / 86400000)
-    if (diff === 0) return '今日'; if (diff === 1) return '昨日'
-    return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
+    const ymd = ymdInTz(d, tz)
+    if (ymd === todayYmd) return '今日'
+    if (ymd === yestYmd) return '昨日'
+    return new Intl.DateTimeFormat('ja-JP', { timeZone: tz, month: 'long', day: 'numeric' }).format(d)
   }
-  const hm = (d: Date) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  const hm = (d: Date) => fmtTime(d, tz)
   const stream: (StreamEvent & { sort: number })[] = []
   for (const a of activities) {
     const d = a.occurred_at ? new Date(a.occurred_at) : a.created_at ? new Date(a.created_at) : null

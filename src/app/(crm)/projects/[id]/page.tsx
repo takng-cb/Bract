@@ -29,6 +29,7 @@ import { canEdit } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
 import { updateProject, updateProjectStatus, deleteProject } from '@/app/actions/projects'
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -77,9 +78,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     await toggleTaskDone(formData.get('task_id') as string, formData.get('done') === 'true', `/projects/${id}`)
   }
 
+  const tz = await getAppTimeZone()
   const { stream, interactionCount } = buildRecordStream({
     activities: activitiesList, tasks: tasksList, expenses: expensesList, changeLogs,
-    activityTypeLabels: ACTIVITY_TYPE_LABELS, toggleTask,
+    activityTypeLabels: ACTIVITY_TYPE_LABELS, toggleTask, tz,
   })
 
   const composer = (

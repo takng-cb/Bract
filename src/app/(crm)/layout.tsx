@@ -23,6 +23,7 @@ import { buildModuleBooks } from '@/lib/modules/quick'
 import QuickLauncher from '@/components/QuickLauncher'
 import ToastHost from '@/components/Toast'
 import ThemeApply from '@/components/ThemeApply'
+import { TimeZoneProvider } from '@/components/TimeZoneProvider'
 import { normalizeTheme } from '@/lib/theme'
 import { Suspense } from 'react'
 import Topbar from '@/components/Topbar'
@@ -48,7 +49,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
           .where(eq(user_preferences.user_id, user.id))
           .then((r) => r[0] ?? null)
       : Promise.resolve(null),
-    getSystemSettings(['nav_order', 'company_name', 'mobile_bottom_nav']),
+    getSystemSettings(['nav_order', 'company_name', 'mobile_bottom_nav', 'timezone']),
     getCustomBooksForNav(),
     isAdmin(),
   ])
@@ -158,7 +159,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <div className="sticky top-0 z-20">
           <Topbar />
         </div>
-        {children}
+        <TimeZoneProvider tz={sysSettings.timezone}>{children}</TimeZoneProvider>
       </main>
       <div className="print:hidden">
         <BottomNav items={bottomNavItems.slice(0, 4)} />

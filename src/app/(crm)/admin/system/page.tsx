@@ -18,7 +18,7 @@ export default async function AdminSystemPage() {
 
   const systemSettings = await getSystemSettings([
     'company_name', 'password_min_length',
-    'session_timeout_minutes', 'allow_self_registration', 'fiscal_year_start',
+    'session_timeout_minutes', 'allow_self_registration', 'fiscal_year_start', 'timezone',
   ])
 
   return (
@@ -36,6 +36,7 @@ export default async function AdminSystemPage() {
           session_timeout_minutes: systemSettings.session_timeout_minutes,
           allow_self_registration: systemSettings.allow_self_registration,
           fiscal_year_start:       systemSettings.fiscal_year_start,
+          timezone:                systemSettings.timezone,
         }}
       />
 

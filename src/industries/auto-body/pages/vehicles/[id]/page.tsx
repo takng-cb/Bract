@@ -28,6 +28,7 @@ import { requestStatusChange } from '@/app/actions/approvals'
 import ApprovalSection from '@/components/approvals/ApprovalSection'
 import { daysUntilInspection, calcAutoBodyProfit } from '@/industries/auto-body/lib/autoBodyService'
 import { getActivityTypes } from '@/lib/activityTypes'
+import { getAppTimeZone } from '@/lib/systemSettings'
 import { RecordColumns, KpiBand, RefCard, Badge, RecordTable, RecordTableEmpty, type KpiItem } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream from '@/components/record/ActivityStream'
@@ -87,9 +88,10 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
   for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = t.label
 
   // stream（活動 / ToDo / 経費 / 履歴）は共通ヘルパで構築
+  const tz = await getAppTimeZone()
   const { stream, interactionCount } = buildRecordStream({
     activities: activitiesList, tasks: tasksList, expenses: expensesList, changeLogs,
-    activityTypeLabels: ACTIVITY_TYPE_LABELS, toggleTask,
+    activityTypeLabels: ACTIVITY_TYPE_LABELS, toggleTask, tz,
   })
 
   const composer = (
