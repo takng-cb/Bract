@@ -14,8 +14,25 @@
 import { db } from '@/lib/db'
 import { book_definitions } from '@/lib/schema'
 import { asc, eq } from 'drizzle-orm'
-import { activeIndustry } from '@/lib/industry'
+import { getEnabledModules } from '@/lib/modules/registry'
 import type { ObjectTypeOption, RecordOption } from '@/components/RelatedRecordsPicker'
+
+/**
+ * モジュール専用の型付きオブジェクト（dedicated route を持ち book_records ではない）。
+ * 当該モジュールが有効なときだけ関連先の選択肢に出す。api は resolveRelatedRecords /
+ * /api/search/records / recordHref の語彙と一致させる（REQ-0078）。
+ */
+const TYPED_LINK_TYPES: { api: string; label: string; icon: string; module: string }[] = [
+  { api: 'maintenance',      label: '整備',     icon: '🔧',  module: 'auto-body' },
+  { api: 'customer-vehicle', label: '顧客車両', icon: '🚙',  module: 'auto-body' },
+  { api: 'vehicle',          label: '車両',     icon: '🚗',  module: 'auto-body' },
+  { api: 'part',             label: '部品',     icon: '🪛',  module: 'auto-body' },
+  { api: 'product',          label: '商品',     icon: '📦',  module: 'inventory' },
+  { api: 'warehouse',        label: '倉庫',     icon: '🏬',  module: 'inventory' },
+  { api: 'staff',            label: 'スタッフ', icon: '🧑‍💼', module: 'staffing' },
+  { api: 'assignment',       label: '案件',     icon: '📋',  module: 'staffing' },
+  { api: 'wiki',             label: 'Wiki',     icon: '📖',  module: 'workspace' },
+]
 
 export type IndustryPickerData = {
   /** objectTypes に追加する選択肢 */
@@ -29,20 +46,14 @@ export type IndustryPickerData = {
  * auto-body のとき: maintenance / customer-vehicle を追加。
  */
 export async function getIndustryPickerData(): Promise<IndustryPickerData> {
-  if (activeIndustry !== 'auto-body') {
-    return { industryObjectTypes: [], industryRecordsByObject: {} }
-  }
-
-  // レコード本体はオンデマンド検索（/api/search/records）に移行したため、
-  // ここでは選択肢（オブジェクト種別）のみ返す。
-  return {
-    industryObjectTypes: [
-      { api: 'maintenance',      label: '整備' },
-      { api: 'customer-vehicle', label: '顧客車両' },
-      { api: 'vehicle',          label: '車両' },
-    ],
-    industryRecordsByObject: {},
-  }
+  // 有効モジュールに属する型付きオブジェクトだけを選択肢に出す（REQ-0078）。
+  // レコード本体はオンデマンド検索（/api/search/records）に委譲し、ここでは種別のみ。
+  const modules = await getEnabledModules()
+  const enabled = new Set(modules.map((m) => m.id))
+  const industryObjectTypes: ObjectTypeOption[] = TYPED_LINK_TYPES
+    .filter((t) => enabled.has(t.module))
+    .map((t) => ({ api: t.api, label: t.label, icon: t.icon }))
+  return { industryObjectTypes, industryRecordsByObject: {} }
 }
 
 export type PickerKind = 'activities' | 'tasks' | 'expenses'

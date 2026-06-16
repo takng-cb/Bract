@@ -12,6 +12,7 @@ import RecordHeader from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import { computeStockBalance, isBelowReorder } from '@/lib/inventory'
 import { deleteProduct, updateProductBasic } from '@/app/actions/inventory'
 import { canEdit } from '@/lib/auth'
@@ -160,6 +161,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <RecordTabPanel
           tabs={[{ id: 'moves', label: '在庫移動履歴', icon: <Boxes />, count: movementRows.length, content: movementTab }]}
         />
+        <div className="mt-4"><RecordLinksSection selfApi="product" selfId={id} /></div>
         <div className="mt-4 text-right"><RecordId id={id} /></div>
       </RecordColumns>
     </div>

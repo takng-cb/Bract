@@ -17,6 +17,7 @@ import { quickCreateActivity } from '@/app/actions/activities'
 import { quickCreateExpense } from '@/app/actions/expenses'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { deleteStaff, updateStaffBasic } from '@/industries/staffing/actions/staff'
@@ -157,6 +158,7 @@ export default async function StaffDetailPage({ params }: { params: Promise<{ id
           { id: 'assign', label: 'アサイン履歴', icon: <Briefcase />, count: history.length, content: historyTab },
           { id: 'flow', label: 'アクティビティ', icon: <Activity />, count: interactionCount, content: <ActivityStream events={stream} composer={composer} /> },
         ]} />
+        <div className="mt-4"><RecordLinksSection selfApi="staff" selfId={id} /></div>
         <div className="mt-4 text-right"><RecordId id={id} /></div>
       </RecordColumns>
     </div>

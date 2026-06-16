@@ -13,6 +13,7 @@ import { db } from '@/lib/db'
 import {
   accounts, contacts, opportunities, book_definitions, book_records,
   maintenance_records, customer_vehicles, vehicles,
+  parts, products, staff, assignments, warehouses, wiki_pages,
 } from '@/lib/schema'
 import { ilike, notInArray, inArray, and, or, eq, desc, sql, type SQL } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
@@ -33,6 +34,12 @@ function normalize(objectType: string): string {
     opportunity: 'opportunities', opportunities: 'opportunities',
     maintenance: 'maintenance', 'customer-vehicle': 'customer-vehicle',
     vehicle: 'vehicle', vehicles: 'vehicle',
+    part: 'part', parts: 'part',
+    product: 'product', products: 'product',
+    staff: 'staff',
+    assignment: 'assignment', assignments: 'assignment',
+    warehouse: 'warehouse', warehouses: 'warehouse',
+    wiki: 'wiki', wiki_pages: 'wiki',
   }
   return map[objectType] ?? objectType
 }
@@ -42,6 +49,11 @@ function bookFor(normalized: string): string {
   if (normalized === 'maintenance') return 'maintenance_records'
   if (normalized === 'customer-vehicle') return 'customer_vehicles'
   if (normalized === 'vehicle') return 'vehicles'
+  if (normalized === 'part') return 'parts'
+  if (normalized === 'product') return 'products'
+  if (normalized === 'assignment') return 'assignments'
+  if (normalized === 'warehouse') return 'warehouses'
+  if (normalized === 'wiki') return 'wiki_pages'
   return normalized
 }
 
@@ -202,6 +214,78 @@ export async function GET(req: NextRequest) {
           label: [v.maker, v.model].filter(Boolean).join(' '),
           sub: v.license_plate ?? undefined,
         }))
+        break
+      }
+
+      case 'part': {
+        const conds: (SQL | undefined)[] = [
+          q ? or(ilike(parts.name, pattern), ilike(parts.part_number, pattern)) : undefined,
+          excludeIds.length > 0 ? notInArray(parts.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(parts.id, ids) : undefined,
+        ]
+        const rows = await db.select({ id: parts.id, name: parts.name, part_number: parts.part_number })
+          .from(parts).where(and(...conds.filter(Boolean) as SQL[])).orderBy(desc(parts.updated_at)).limit(limit)
+        results = rows.map((r) => ({ id: r.id, label: r.name, sub: r.part_number ?? undefined }))
+        break
+      }
+
+      case 'product': {
+        const conds: (SQL | undefined)[] = [
+          q ? or(ilike(products.name, pattern), ilike(products.sku, pattern)) : undefined,
+          excludeIds.length > 0 ? notInArray(products.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(products.id, ids) : undefined,
+        ]
+        const rows = await db.select({ id: products.id, name: products.name, sku: products.sku })
+          .from(products).where(and(...conds.filter(Boolean) as SQL[])).orderBy(desc(products.updated_at)).limit(limit)
+        results = rows.map((r) => ({ id: r.id, label: r.name, sub: r.sku ?? undefined }))
+        break
+      }
+
+      case 'staff': {
+        const conds: (SQL | undefined)[] = [
+          q ? or(ilike(staff.name, pattern), ilike(staff.name_kana, pattern), ilike(staff.email, pattern)) : undefined,
+          excludeIds.length > 0 ? notInArray(staff.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(staff.id, ids) : undefined,
+        ]
+        const rows = await db.select({ id: staff.id, name: staff.name, status: staff.status })
+          .from(staff).where(and(...conds.filter(Boolean) as SQL[])).orderBy(desc(staff.updated_at)).limit(limit)
+        results = rows.map((r) => ({ id: r.id, label: r.name, sub: r.status ?? undefined }))
+        break
+      }
+
+      case 'assignment': {
+        const conds: (SQL | undefined)[] = [
+          q ? or(ilike(assignments.title, pattern), ilike(assignments.assignment_no, pattern)) : undefined,
+          excludeIds.length > 0 ? notInArray(assignments.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(assignments.id, ids) : undefined,
+        ]
+        const rows = await db.select({ id: assignments.id, title: assignments.title, assignment_no: assignments.assignment_no })
+          .from(assignments).where(and(...conds.filter(Boolean) as SQL[])).orderBy(desc(assignments.created_at)).limit(limit)
+        results = rows.map((r) => ({ id: r.id, label: r.title ?? r.assignment_no, sub: r.title ? r.assignment_no : undefined }))
+        break
+      }
+
+      case 'warehouse': {
+        const conds: (SQL | undefined)[] = [
+          q ? or(ilike(warehouses.name, pattern), ilike(warehouses.code, pattern)) : undefined,
+          excludeIds.length > 0 ? notInArray(warehouses.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(warehouses.id, ids) : undefined,
+        ]
+        const rows = await db.select({ id: warehouses.id, name: warehouses.name, code: warehouses.code })
+          .from(warehouses).where(and(...conds.filter(Boolean) as SQL[])).orderBy(desc(warehouses.updated_at)).limit(limit)
+        results = rows.map((r) => ({ id: r.id, label: r.name, sub: r.code ?? undefined }))
+        break
+      }
+
+      case 'wiki': {
+        const conds: (SQL | undefined)[] = [
+          q ? ilike(wiki_pages.title, pattern) : undefined,
+          excludeIds.length > 0 ? notInArray(wiki_pages.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(wiki_pages.id, ids) : undefined,
+        ]
+        const rows = await db.select({ id: wiki_pages.id, title: wiki_pages.title })
+          .from(wiki_pages).where(and(...conds.filter(Boolean) as SQL[])).orderBy(desc(wiki_pages.updated_at)).limit(limit)
+        results = rows.map((r) => ({ id: r.id, label: r.title }))
         break
       }
 

@@ -7,6 +7,7 @@
  */
 import { db } from '@/lib/db'
 import { trashRecord } from '@/lib/trash'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { products, warehouses, stock_movements } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -131,6 +132,7 @@ export async function deleteProduct(id: string): Promise<void> {
   await requirePermission('products', 'delete')
   await assertNotPendingApproval('products', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('products', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
+  await cleanupRecordLinksForParent('product', id)
   await db.delete(products).where(eq(products.id, id)) // cascade で stock_movements も削除
   revalidatePath('/products')
   redirect(withSaveToast('/products', 'deleted'))
@@ -181,6 +183,7 @@ export async function deleteWarehouse(id: string): Promise<void> {
   await assertNotPendingApproval('warehouses', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('warehouses', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   // 移動の warehouse_id は ON DELETE SET NULL（移動履歴自体は残る）
+  await cleanupRecordLinksForParent('warehouse', id)
   await db.delete(warehouses).where(eq(warehouses.id, id))
   revalidatePath('/warehouses')
   redirect(withSaveToast('/warehouses', 'deleted'))

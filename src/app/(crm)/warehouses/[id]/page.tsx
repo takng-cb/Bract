@@ -12,6 +12,7 @@ import RecordHeader from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import { computeStockBalance } from '@/lib/inventory'
 import { deleteWarehouse, updateWarehouseBasic } from '@/app/actions/inventory'
 import { canEdit } from '@/lib/auth'
@@ -104,6 +105,7 @@ export default async function WarehouseDetailPage({ params }: { params: Promise<
         }
       >
         <RecordTabPanel tabs={[{ id: 'stock', label: 'この倉庫の在庫', icon: <Boxes />, count: stockList.length, content: stockTab }]} />
+        <div className="mt-4"><RecordLinksSection selfApi="warehouse" selfId={id} /></div>
         <div className="mt-4 text-right"><RecordId id={id} /></div>
       </RecordColumns>
     </div>

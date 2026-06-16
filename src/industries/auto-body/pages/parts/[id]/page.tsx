@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { toggleTaskDone, quickCreateTask } from '@/app/actions/tasks'
@@ -161,6 +162,7 @@ export default async function PartDetailPage({ params }: { params: Promise<{ id:
             { id: 'moves', label: '入出庫', icon: <Package />, count: movementRows.length, content: moveTab },
           ]}
         />
+        <div className="mt-4"><RecordLinksSection selfApi="part" selfId={id} /></div>
         <div className="mt-4 text-right"><RecordId id={id} /></div>
       </RecordColumns>
     </div>

@@ -34,6 +34,12 @@ export function bookForObjectApi(objectApi: string): string {
     case 'vehicle':          return 'vehicles'
     case 'maintenance':      return 'maintenance_records'
     case 'customer-vehicle': return 'customer_vehicles'
+    case 'part':             return 'parts'
+    case 'product':          return 'products'
+    case 'staff':            return 'staff'
+    case 'assignment':       return 'assignments'
+    case 'warehouse':        return 'warehouses'
+    case 'wiki':             return 'wiki_pages'
     default:                 return objectApi // カスタムブックは api_name そのもの
   }
 }

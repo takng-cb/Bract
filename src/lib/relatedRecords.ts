@@ -21,6 +21,7 @@ import {
   book_records, book_definitions,
   activity_related_records, task_related_records, expense_related_records,
   maintenance_records, customer_vehicles, assignments, vehicles,
+  parts, products, staff, warehouses, wiki_pages,
 } from '@/lib/schema'
 import { inArray, eq, and } from 'drizzle-orm'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
@@ -174,6 +175,12 @@ const STANDARD_META: Record<string, { icon: string; hrefPrefix: string }> = {
   'customer-vehicle': { icon: '🚙', hrefPrefix: '/customer-vehicles/' },
   vehicle:            { icon: '🚗', hrefPrefix: '/vehicles/' },
   assignment:         { icon: '📋', hrefPrefix: '/assignments/' },
+  // 在庫・板金・人材・Wiki の専用テーブル（REQ-0078 汎用リンクの対象）
+  part:               { icon: '🪛', hrefPrefix: '/parts/' },
+  product:            { icon: '📦', hrefPrefix: '/products/' },
+  staff:              { icon: '🧑‍💼', hrefPrefix: '/staff/' },
+  warehouse:          { icon: '🏬', hrefPrefix: '/warehouses/' },
+  wiki:               { icon: '📖', hrefPrefix: '/wiki/' },
 }
 
 /**
@@ -318,6 +325,52 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
             setLabel('vehicle', r.id, label)
           }
         })
+    )
+  }
+
+  // 部品（auto-body）
+  const partIds = idsByApi.get('part')
+  if (partIds && partIds.size > 0) {
+    fetches.push(
+      db.select({ id: parts.id, name: parts.name, part_number: parts.part_number })
+        .from(parts).where(inArray(parts.id, [...partIds]))
+        .then((rows) => { for (const r of rows) setLabel('part', r.id, r.name || r.part_number || '部品') })
+    )
+  }
+  // 商品（inventory）
+  const productIds = idsByApi.get('product')
+  if (productIds && productIds.size > 0) {
+    fetches.push(
+      db.select({ id: products.id, name: products.name, sku: products.sku })
+        .from(products).where(inArray(products.id, [...productIds]))
+        .then((rows) => { for (const r of rows) setLabel('product', r.id, r.name || r.sku || '商品') })
+    )
+  }
+  // スタッフ（staffing）
+  const staffIds = idsByApi.get('staff')
+  if (staffIds && staffIds.size > 0) {
+    fetches.push(
+      db.select({ id: staff.id, name: staff.name })
+        .from(staff).where(inArray(staff.id, [...staffIds]))
+        .then((rows) => { for (const r of rows) setLabel('staff', r.id, r.name || 'スタッフ') })
+    )
+  }
+  // 倉庫（inventory）
+  const warehouseIds = idsByApi.get('warehouse')
+  if (warehouseIds && warehouseIds.size > 0) {
+    fetches.push(
+      db.select({ id: warehouses.id, name: warehouses.name, code: warehouses.code })
+        .from(warehouses).where(inArray(warehouses.id, [...warehouseIds]))
+        .then((rows) => { for (const r of rows) setLabel('warehouse', r.id, r.name || r.code || '倉庫') })
+    )
+  }
+  // Wiki（workspace）
+  const wikiIds = idsByApi.get('wiki')
+  if (wikiIds && wikiIds.size > 0) {
+    fetches.push(
+      db.select({ id: wiki_pages.id, title: wiki_pages.title })
+        .from(wiki_pages).where(inArray(wiki_pages.id, [...wikiIds]))
+        .then((rows) => { for (const r of rows) setLabel('wiki', r.id, r.title || 'Wiki') })
     )
   }
 
