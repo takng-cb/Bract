@@ -21,6 +21,8 @@ import { getEnabledModules } from '@/lib/modules/registry'
 import { filterNavByRead } from '@/lib/permissions'
 import { buildModuleBooks } from '@/lib/modules/quick'
 import QuickLauncher from '@/components/QuickLauncher'
+import { hasFeature } from '@/lib/license'
+import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import ToastHost from '@/components/Toast'
 import ThemeApply from '@/components/ThemeApply'
 import { TimeZoneProvider } from '@/components/TimeZoneProvider'
@@ -139,6 +141,12 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   // AI 機能のライセンス状態を先に解決 (Sidebar / MobileNav に boolean で渡すため)
   const aiEnabled = await isAIFeatureEnabled()
 
+  // クイック操作の PLAUD 複数案件取込（REQ-0077）用：有効フラグと関連先候補
+  const [plaudEnabled, plaudPicker] = await Promise.all([
+    hasFeature('plaud_import'),
+    getRelatedRecordsPickerData('activities'),
+  ])
+
   return (
     <div className="flex min-h-screen bg-zinc-50 print:bg-white print:min-h-0">
       <ThemeApply color={theme.color} mode={theme.mode} />
@@ -165,7 +173,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
         <BottomNav items={bottomNavItems.slice(0, 4)} />
         <PwaInstallBanner />
       </div>
-      <QuickLauncher modules={quickModules} />
+      <QuickLauncher modules={quickModules} plaudEnabled={plaudEnabled} plaudObjectTypes={plaudPicker.objectTypes} />
       <Suspense fallback={null}><ToastHost /></Suspense>
       {impersonation && (
         <div className="print:hidden">
