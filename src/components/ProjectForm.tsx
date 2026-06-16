@@ -80,7 +80,7 @@ export default function ProjectForm({
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">ステータス</label>
-              <select name="status" defaultValue={defaultValues.status ?? '計画'} className={`${inputClass} bg-white`}>
+              <select name="status" defaultValue={defaultValues.status ?? '企画'} className={`${inputClass} bg-white`}>
                 {PROJECT_STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>

@@ -30,7 +30,7 @@ function num(formData: FormData, key: string): string | null {
 function valuesFrom(formData: FormData) {
   return {
     name:             s(formData, 'name'),
-    status:           s(formData, 'status') ?? '計画',
+    status:           s(formData, 'status') ?? '企画',
     project_type:     s(formData, 'project_type'),
     account_id:       s(formData, 'account_id'),
     contact_id:       s(formData, 'contact_id'),

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
-import { accounts, change_logs, projects } from '@/lib/schema'
-import { eq, and, asc, desc } from 'drizzle-orm'
+import { accounts, change_logs, projects, activities, tasks, expenses } from '@/lib/schema'
+import { eq, and, asc, desc, inArray } from 'drizzle-orm'
 import Link from 'next/link'
-import { Building2, Wallet, TrendingUp, CalendarClock, MapPin, UserRound, Tag } from 'lucide-react'
+import { Building2, Wallet, TrendingUp, CalendarClock, MapPin, UserRound, Tag, Activity, Folder } from 'lucide-react'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
 import RecordLinksSection from '@/components/RecordLinksSection'
@@ -15,6 +15,15 @@ import StageBar from '@/components/StageBar'
 import TagsSection from '@/components/TagsSection'
 import { PROJECT_STAGES, PROJECT_TYPES } from '@/lib/statusStages'
 import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, type KpiItem, type BadgeTone } from '@/components/record/RecordUI'
+import RecordTabPanel from '@/components/record/RecordTabPanel'
+import ActivityStream from '@/components/record/ActivityStream'
+import InlineComposer from '@/components/record/InlineComposer'
+import { buildRecordStream } from '@/lib/buildRecordStream'
+import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/lib/relatedRecords'
+import { getActivityTypes } from '@/lib/activityTypes'
+import { toggleTaskDone, quickCreateTask } from '@/app/actions/tasks'
+import { quickCreateActivity } from '@/app/actions/activities'
+import { quickCreateExpense } from '@/app/actions/expenses'
 import { NavIcon } from '@/lib/navIcon'
 import { canEdit } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
@@ -23,7 +32,7 @@ import { requireBookRead } from '@/lib/permissions'
 import { updateProject, updateProjectStatus, deleteProject } from '@/app/actions/projects'
 
 const STATUS_TONE: Record<string, BadgeTone> = {
-  計画: 'neutral', 用地取得: 'info', 設計: 'ai', 施工: 'warn', 完了: 'pos', 中止: 'danger',
+  企画: 'neutral', 計画: 'info', 進行中: 'warn', 完了: 'pos', 保留: 'ai', 中止: 'danger',
 }
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,7 +40,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (!(await isModuleEnabled('projects'))) notFound()
   const { id } = await params
 
-  const [project, allUsers, accountsList, changeLogs] = await Promise.all([
+  const [project, allUsers, accountsList, activitiesList, tasksList, expensesList, activityTypes, changeLogs] = await Promise.all([
     db.select({
       id: projects.id, name: projects.name, status: projects.status, project_type: projects.project_type,
       location: projects.location, start_date: projects.start_date, end_date: projects.end_date,
@@ -44,6 +53,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       .where(eq(projects.id, id)).then((r) => r[0] ?? null),
     getAllUsers(),
     db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    db.select().from(activities).where(inArray(activities.id, activityIdsRelatedTo('project', id))).orderBy(desc(activities.occurred_at)),
+    db.select().from(tasks).where(inArray(tasks.id, taskIdsRelatedTo('project', id))).orderBy(asc(tasks.done), asc(tasks.due_date)),
+    db.select().from(expenses).where(inArray(expenses.id, expenseIdsRelatedTo('project', id))).orderBy(desc(expenses.expense_date)),
+    getActivityTypes(),
     db.select().from(change_logs).where(and(eq(change_logs.object_type, 'project'), eq(change_logs.object_id, id))).orderBy(desc(change_logs.changed_at)).limit(40),
   ])
 
@@ -53,9 +66,35 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const account = project.account?.id ? project.account : null
   const ownerName = project.owner_id ? (allUsers.find((u) => u.id === project.owner_id)?.name ?? null) : null
 
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
+  for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = t.label
+
   async function saveProjectInline(formData: FormData) { 'use server'; await updateProject(id, formData) }
   async function changeStatus(status: string) { 'use server'; await updateProjectStatus(id, status) }
   async function handleDelete() { 'use server'; await deleteProject(id) }
+  async function toggleTask(formData: FormData) {
+    'use server'
+    await toggleTaskDone(formData.get('task_id') as string, formData.get('done') === 'true', `/projects/${id}`)
+  }
+
+  const { stream, interactionCount } = buildRecordStream({
+    activities: activitiesList, tasks: tasksList, expenses: expensesList, changeLogs,
+    activityTypeLabels: ACTIVITY_TYPE_LABELS, toggleTask,
+  })
+
+  const composer = (
+    <AuthGuard minRole="editor">
+      <InlineComposer
+        relatedToken={`project:${id}`}
+        revalidate={`/projects/${id}`}
+        activityTypes={activityTypes.map((t) => ({ value: t.value, label: t.label }))}
+        userInitial={(ownerName ?? project.name).trim()[0]}
+        createActivity={quickCreateActivity}
+        createTask={quickCreateTask}
+        createExpense={quickCreateExpense}
+      />
+    </AuthGuard>
+  )
 
   // eslint-disable-next-line react-hooks/purity
   const NOW = Date.now()
@@ -141,22 +180,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </>
         }
       >
-        <RecordLinksSection selfApi="project" selfId={id} className="mb-4" />
-
-        {changeLogs.length > 0 && (
-          <section className="bg-white border border-zinc-200 rounded-lg shadow-xs p-5">
-            <h2 className="text-sm font-bold text-zinc-700 mb-3">変更履歴</h2>
-            <ul className="space-y-1.5 text-sm">
-              {changeLogs.map((c) => (
-                <li key={c.id} className="text-zinc-600">
-                  {c.changed_at && <span className="text-xs text-zinc-400 mr-2">{new Date(c.changed_at).toLocaleString('ja-JP')}</span>}
-                  {c.field_label}を <span className="text-zinc-900 font-medium">{c.old_value ?? '—'}</span> → <span className="text-zinc-900 font-medium">{c.new_value ?? '—'}</span> に変更
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
+        <RecordTabPanel
+          tabs={[
+            { id: 'flow', label: 'アクティビティ', icon: <Activity />, count: interactionCount, content: <ActivityStream events={stream} composer={composer} /> },
+            { id: 'related', label: '関連情報', icon: <Folder />, content: <div className="space-y-4"><RecordLinksSection selfApi="project" selfId={id} /></div> },
+          ]}
+        />
         <div className="mt-4 text-right"><RecordId id={id} /></div>
       </RecordColumns>
     </div>
