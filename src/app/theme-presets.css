@@ -1,0 +1,105 @@
+/* ============================================================================
+   Bract — テーマカラープリセット（REQ-0079）
+   ----------------------------------------------------------------------------
+   ユーザーが選んだ `data-theme` を <html> に付与すると brand スケールを差し替える。
+   既定（green）は globals.css の @theme がそのまま使われるため data-theme は付かない。
+
+   セレクタは `html[data-theme="…"]`（特定度 0,1,1）で @theme の `:root`（0,1,0）に勝つ。
+   ダークは `html.dark[data-theme="…"]`（0,2,1）で globals.css の `.dark`（0,1,0）に勝つ。
+   blue-* 等のエイリアスは brand-* を間接参照しているため、ここを変えれば全画面に波及する。
+   ============================================================================ */
+
+/* ---- Blue / オーシャン ---- */
+html[data-theme="blue"] {
+  --color-brand-50:  oklch(0.965 0.020 255);
+  --color-brand-100: oklch(0.928 0.045 255);
+  --color-brand-200: oklch(0.875 0.075 255);
+  --color-brand-300: oklch(0.785 0.110 255);
+  --color-brand-500: oklch(0.660 0.150 255);
+  --color-brand-600: oklch(0.540 0.165 255);
+  --color-brand-700: oklch(0.475 0.150 258);
+  --color-brand-800: oklch(0.405 0.125 260);
+}
+html.dark[data-theme="blue"] {
+  --color-brand-50:  oklch(0.300 0.060 258);
+  --color-brand-100: oklch(0.355 0.080 257);
+  --color-brand-200: oklch(0.430 0.100 256);
+  --color-brand-600: oklch(0.680 0.150 255);
+  --color-brand-700: oklch(0.820 0.110 252);
+}
+
+/* ---- Violet / バイオレット ---- */
+html[data-theme="violet"] {
+  --color-brand-50:  oklch(0.966 0.020 292);
+  --color-brand-100: oklch(0.930 0.045 292);
+  --color-brand-200: oklch(0.878 0.075 292);
+  --color-brand-300: oklch(0.790 0.110 292);
+  --color-brand-500: oklch(0.660 0.150 292);
+  --color-brand-600: oklch(0.535 0.165 292);
+  --color-brand-700: oklch(0.470 0.150 293);
+  --color-brand-800: oklch(0.400 0.125 294);
+}
+html.dark[data-theme="violet"] {
+  --color-brand-50:  oklch(0.300 0.060 292);
+  --color-brand-100: oklch(0.355 0.082 292);
+  --color-brand-200: oklch(0.430 0.100 292);
+  --color-brand-600: oklch(0.675 0.150 292);
+  --color-brand-700: oklch(0.820 0.105 292);
+}
+
+/* ---- Rose / ローズ ---- */
+html[data-theme="rose"] {
+  --color-brand-50:  oklch(0.967 0.020 14);
+  --color-brand-100: oklch(0.932 0.045 14);
+  --color-brand-200: oklch(0.880 0.075 14);
+  --color-brand-300: oklch(0.792 0.115 14);
+  --color-brand-500: oklch(0.660 0.165 14);
+  --color-brand-600: oklch(0.555 0.170 14);
+  --color-brand-700: oklch(0.485 0.155 13);
+  --color-brand-800: oklch(0.410 0.130 12);
+}
+html.dark[data-theme="rose"] {
+  --color-brand-50:  oklch(0.305 0.065 14);
+  --color-brand-100: oklch(0.360 0.085 14);
+  --color-brand-200: oklch(0.435 0.105 14);
+  --color-brand-600: oklch(0.680 0.160 14);
+  --color-brand-700: oklch(0.825 0.090 16);
+}
+
+/* ---- Amber / アンバー（白文字の可読性のため 600 は深め） ---- */
+html[data-theme="amber"] {
+  --color-brand-50:  oklch(0.968 0.022 70);
+  --color-brand-100: oklch(0.945 0.050 70);
+  --color-brand-200: oklch(0.900 0.085 68);
+  --color-brand-300: oklch(0.820 0.120 62);
+  --color-brand-500: oklch(0.700 0.150 58);
+  --color-brand-600: oklch(0.580 0.150 55);
+  --color-brand-700: oklch(0.500 0.130 52);
+  --color-brand-800: oklch(0.420 0.105 50);
+}
+html.dark[data-theme="amber"] {
+  --color-brand-50:  oklch(0.305 0.055 60);
+  --color-brand-100: oklch(0.360 0.075 60);
+  --color-brand-200: oklch(0.435 0.090 58);
+  --color-brand-600: oklch(0.720 0.150 65);
+  --color-brand-700: oklch(0.840 0.110 70);
+}
+
+/* ---- Teal / ティール ---- */
+html[data-theme="teal"] {
+  --color-brand-50:  oklch(0.966 0.020 192);
+  --color-brand-100: oklch(0.928 0.040 190);
+  --color-brand-200: oklch(0.875 0.065 190);
+  --color-brand-300: oklch(0.785 0.090 192);
+  --color-brand-500: oklch(0.665 0.110 192);
+  --color-brand-600: oklch(0.560 0.110 192);
+  --color-brand-700: oklch(0.485 0.095 193);
+  --color-brand-800: oklch(0.410 0.078 194);
+}
+html.dark[data-theme="teal"] {
+  --color-brand-50:  oklch(0.300 0.050 192);
+  --color-brand-100: oklch(0.355 0.065 192);
+  --color-brand-200: oklch(0.430 0.080 192);
+  --color-brand-600: oklch(0.700 0.110 190);
+  --color-brand-700: oklch(0.835 0.080 188);
+}

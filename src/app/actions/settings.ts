@@ -62,6 +62,36 @@ export async function updateProfile(
 }
 
 // ----------------------------------------------------------------
+// テーマ設定（カラープリセット＋ライト/ダーク）の保存（REQ-0079）
+//   即時プレビューはクライアントで行うため、ここでは DB 永続化と
+//   SSR 用 cookie の更新のみ（クロスデバイス追従の真実は DB）。
+// ----------------------------------------------------------------
+export async function updateTheme(color: string, mode: string): Promise<{ ok: boolean; error?: string }> {
+  const { isValidColor, isValidMode, serializeTheme, THEME_COOKIE } = await import('@/lib/theme')
+  if (!isValidColor(color) || !isValidMode(mode)) {
+    return { ok: false, error: '不正なテーマ指定です' }
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: '認証が必要です' }
+
+  await db.insert(user_preferences)
+    .values({ user_id: user.id, theme_color: color, theme_mode: mode })
+    .onConflictDoUpdate({
+      target: user_preferences.user_id,
+      set:    { theme_color: color, theme_mode: mode, updated_at: new Date() },
+    })
+
+  const { cookies } = await import('next/headers')
+  ;(await cookies()).set(THEME_COOKIE, serializeTheme(color, mode), {
+    path: '/', maxAge: 31536000, sameSite: 'lax',
+  })
+
+  return { ok: true }
+}
+
+// ----------------------------------------------------------------
 // システム設定の保存
 // ----------------------------------------------------------------
 export async function saveSystemSettings(

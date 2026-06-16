@@ -3,6 +3,8 @@ import { Trash2, ChevronRight } from 'lucide-react'
 import PasswordForm from '@/components/PasswordForm'
 import ProfileForm from '@/components/ProfileForm'
 import DashboardWidgetSettings from '@/components/DashboardWidgetSettings'
+import ThemeSettings from '@/components/ThemeSettings'
+import { normalizeTheme } from '@/lib/theme'
 import { getSystemSettings, SYSTEM_DEFAULTS } from '@/lib/systemSettings'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { db } from '@/lib/db'
@@ -26,12 +28,18 @@ export default async function SettingsPage() {
   const [systemSettings, userPref] = await Promise.all([
     getSystemSettings(['password_min_length']),
     user
-      ? db.select({ display_name: user_preferences.display_name })
+      ? db.select({
+          display_name: user_preferences.display_name,
+          theme_color:  user_preferences.theme_color,
+          theme_mode:   user_preferences.theme_mode,
+        })
           .from(user_preferences)
           .where(eq(user_preferences.user_id, user.id))
           .then((r) => r[0] ?? null)
       : null,
   ])
+
+  const theme = normalizeTheme(userPref?.theme_color, userPref?.theme_mode)
 
   const passwordMinLen = parseInt(
     systemSettings.password_min_length ?? SYSTEM_DEFAULTS.password_min_length, 10
@@ -54,6 +62,8 @@ export default async function SettingsPage() {
         currentDisplayName={userPref?.display_name ?? null}
         email={user?.email ?? ''}
       />
+
+      <ThemeSettings currentColor={theme.color} currentMode={theme.mode} />
 
       {/* ログイン方法 */}
       <div className="bg-white border border-zinc-200 rounded-lg shadow-xs p-6">
