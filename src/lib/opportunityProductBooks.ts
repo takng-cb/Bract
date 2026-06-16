@@ -33,9 +33,14 @@ export async function getProductBookCandidates(): Promise<ProductBookCandidate[]
     .from(book_definitions)
     .where(eq(book_definitions.is_builtin, false))
     .orderBy(asc(book_definitions.sort_order), asc(book_definitions.label))
+  // typed 候補と同じ api を持つカスタムブック（例: properties は組み込み候補かつ
+  // ナビ用に book_definitions 行も持つ）は二重表示になるため除外する。
+  const typedApis = new Set(TYPED_CANDIDATES.map((c) => c.api))
   return [
     ...TYPED_CANDIDATES,
-    ...customs.map((c) => ({ api: c.api_name, label: c.label, builtin: false })),
+    ...customs
+      .filter((c) => !typedApis.has(c.api_name))
+      .map((c) => ({ api: c.api_name, label: c.label, builtin: false })),
   ]
 }
 
