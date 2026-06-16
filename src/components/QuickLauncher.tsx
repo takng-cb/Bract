@@ -30,27 +30,14 @@ type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook'
 type Mode = 'create' | 'view' | 'search'
 type CreateMode = 'ai' | 'manual'
 
-/** ウィザードの1段前のステップ（戻る/履歴トラップ共通） */
-function prevStep(step: Step, mode: Mode): Step {
-  switch (step) {
-    case 'createMode': return 'root'
-    case 'module':     return mode === 'create' ? 'createMode' : 'root'
-    case 'book':       return 'module'
-    case 'aiNotSupported': return 'book'
-    case 'aiInput':        return 'createMode'  // AI作成はブック選択を経ない（REQ-0061: 対象もAIが推論）
-    case 'aiPickBook':     return 'aiInput'
-    case 'aiSearch':       return 'root'        // 検索も同様（REQ-0060）
-    case 'aiConfirm':  return 'aiInput'
-    default:           return 'root'
-  }
-}
-
 export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
   // ウィザード状態
   const [step, setStep] = useState<Step>('root')
+  // 実際にたどった経路を積む履歴スタック（戻るボタン/ブラウザ戻るで1段ずつ戻す）
+  const [history, setHistory] = useState<Step[]>([])
   const [mode, setMode] = useState<Mode>('create')
   const [createMode, setCreateMode] = useState<CreateMode>('manual')
   const [mod, setMod] = useState<QuickModule | null>(null)
@@ -76,10 +63,16 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
 
   // 戻る（ブラウザ/OS）トラップ用に最新値を参照する ref（同期は effect 側で行う）
   const stepRef = useRef<Step>(step)
-  const modeRef = useRef<Mode>(mode)
+  const historyRef = useRef<Step[]>(history)
+
+  // 1段進む（現在のステップを履歴に積んでから遷移）
+  const pushStep = useCallback((next: Step) => {
+    setHistory((h) => [...h, stepRef.current])
+    setStep(next)
+  }, [])
 
   const reset = useCallback(() => {
-    setStep('root'); setMode('create'); setCreateMode('manual')
+    setStep('root'); setHistory([]); setMode('create'); setCreateMode('manual')
     setMod(null); setBook(null)
     setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setDups([]); setBusy(false); setError(null)
     setRelQuery(''); setRelResults([]); setRelSelected(null)
@@ -102,10 +95,10 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     return () => window.removeEventListener('bract:quick-open', onOpen)
   }, [reset])
 
-  // 最新の step/mode を ref に同期（popstate ハンドラがクロージャ越しに最新を参照するため）
+  // 最新の step/history を ref に同期（popstate ハンドラがクロージャ越しに最新を参照するため）
   useEffect(() => {
     stepRef.current = step
-    modeRef.current = mode
+    historyRef.current = history
   })
 
   // 戻る（ブラウザ/OS）でポップアップ裏の画面が遷移しないようにする。
@@ -114,9 +107,11 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     if (!open) return
     window.history.pushState({ bractQuick: true }, '')
     const onPop = () => {
-      if (stepRef.current === 'root') { close(); return }
+      const h = historyRef.current
+      if (h.length === 0) { close(); return }   // 最初の画面ならポップアップを閉じる
       setError(null)
-      setStep(prevStep(stepRef.current, modeRef.current))
+      setStep(h[h.length - 1])
+      setHistory(h.slice(0, -1))
       window.history.pushState({ bractQuick: true }, '')
     }
     window.addEventListener('popstate', onPop)
@@ -128,16 +123,16 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   // ── 遷移ハンドラ ───────────────────────────────────────────────
   const go = (href: string) => { close(); router.push(href) }
 
-  const pickModule = (m: QuickModule) => { setMod(m); setStep('book') }
+  const pickModule = (m: QuickModule) => { setMod(m); pushStep('book') }
 
   const pickBook = (b: QuickBook) => {
     setBook(b)
     if (mode === 'view') return go(b.listHref)
     if (createMode === 'manual') return go(b.newHref)
     // createMode === 'ai'
-    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setPlaudItems([]); setCreatedHref(null); setRelQuery(''); setRelResults([]); setRelSelected(null); setStep('aiInput') }
+    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setPlaudItems([]); setCreatedHref(null); setRelQuery(''); setRelResults([]); setRelSelected(null); pushStep('aiInput') }
     else if (b.aiWizardHref) go(b.aiWizardHref)
-    else setStep('aiNotSupported')
+    else pushStep('aiNotSupported')
   }
 
   // PLAUD エクスポート（.md/.txt）を読み込み、活動の確認画面を直接プリフィル＋アクションを保持（#143）
@@ -161,7 +156,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
         ],
       })
       setPlaudItems(res.actionItems.map((a) => ({ ...a, selected: true })))
-      setStep('aiConfirm')
+      pushStep('aiConfirm')
     } finally {
       setBusy(false)
     }
@@ -191,7 +186,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
       setDraft(r.data)
       // テキストに登場した既存レコードを関連先に自動セット（REQ-0065。確認画面で変更可）
       if (r.data.related) setRelSelected(r.data.related)
-      setStep('aiConfirm')
+      pushStep('aiConfirm')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
@@ -219,7 +214,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
         .map((c) => aiBooks.find((b) => b.apiName === c.apiName))
         .filter((b): b is QuickBook => Boolean(b))
       setBookCandidates(cands.length > 0 ? cands : aiBooks)
-      setStep('aiPickBook')
+      pushStep('aiPickBook')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
@@ -249,7 +244,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
       const cr = await quickAiCreate(book.apiName, values, relSelected ? { object_api: relSelected.object_api, record_id: relSelected.record_id } : null)
       if (!cr.ok) { setError(cr.error); setBusy(false); return }
       // PLAUD のアクションがあれば、遷移前に ToDo 化の確認を挟む（#143）
-      if (plaudItems.length > 0) { setCreatedHref(cr.data.recordHref); setBusy(false); setStep('plaudTodos'); return }
+      if (plaudItems.length > 0) { setCreatedHref(cr.data.recordHref); setBusy(false); pushStep('plaudTodos'); return }
       go(cr.data.recordHref)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -272,8 +267,23 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     }
   }
 
-  // ── 戻る ───────────────────────────────────────────────────────
-  const back = () => { setError(null); setStep(prevStep(step, mode)) }
+  // ── 戻る（履歴スタックを1段ポップして実際に来た画面へ）────────────────
+  const back = () => {
+    setError(null)
+    const h = historyRef.current
+    if (h.length === 0) { setStep('root'); return }
+    setStep(h[h.length - 1])
+    setHistory(h.slice(0, -1))
+  }
+
+  // 「入力に戻る」: 経路途中の aiInput まで戻す（履歴も整合させる）
+  const backToInput = () => {
+    setError(null)
+    const h = historyRef.current
+    const i = h.lastIndexOf('aiInput')
+    setHistory(i >= 0 ? h.slice(0, i) : h)
+    setStep('aiInput')
+  }
 
   const title =
     step === 'root' ? 'クイック操作' :
@@ -337,11 +347,11 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
               {step === 'root' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <BigChoice icon={<FilePlus2 className="w-6 h-6" />} label="レコード作成" desc="新しいデータを登録"
-                    onClick={() => { setMode('create'); setStep('createMode') }} />
+                    onClick={() => { setMode('create'); pushStep('createMode') }} />
                   <BigChoice icon={<Eye className="w-6 h-6" />} label="レコード閲覧" desc="一覧を開いて確認"
-                    onClick={() => { setMode('view'); setStep('module') }} />
+                    onClick={() => { setMode('view'); pushStep('module') }} />
                   <BigChoice icon={<Search className="w-6 h-6 text-violet-600" />} label="AIで検索" desc="会話で絞り込み（対象もAIが判断）" accent="violet"
-                    onClick={() => { setMode('search'); setError(null); setStep('aiSearch') }} />
+                    onClick={() => { setMode('search'); setError(null); pushStep('aiSearch') }} />
                 </div>
               )}
 
@@ -349,9 +359,9 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
               {step === 'createMode' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <BigChoice icon={<Sparkles className="w-6 h-6 text-violet-600" />} label="AI作成" desc="文章・画像から自動入力（対象もAIが判断）" accent="violet"
-                    onClick={() => { setCreateMode('ai'); setError(null); setBook(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelQuery(''); setRelResults([]); setRelSelected(null); setStep('aiInput') }} />
+                    onClick={() => { setCreateMode('ai'); setError(null); setBook(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelQuery(''); setRelResults([]); setRelSelected(null); pushStep('aiInput') }} />
                   <BigChoice icon={<PencilLine className="w-6 h-6" />} label="手動入力" desc="フォームに直接入力"
-                    onClick={() => { setCreateMode('manual'); setStep('module') }} />
+                    onClick={() => { setCreateMode('manual'); pushStep('module') }} />
                 </div>
               )}
 
@@ -529,7 +539,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-zinc-500">作成先:</span>
                     <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">{book.label}</span>
-                    <button onClick={() => { setBookCandidates(aiBooks); setStep('aiPickBook') }} disabled={busy}
+                    <button onClick={() => { setBookCandidates(aiBooks); pushStep('aiPickBook') }} disabled={busy}
                       className="text-xs text-zinc-400 hover:text-zinc-700 underline">変更</button>
                   </div>
 
@@ -595,7 +605,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                         {busy && <Loader2 className="w-4 h-4 animate-spin" />}
                         {busy ? '作成中…' : 'この内容で作成'}
                       </button>
-                      <button onClick={() => setStep('aiInput')} disabled={busy} className="text-sm text-zinc-500 hover:text-zinc-800">入力に戻る</button>
+                      <button onClick={backToInput} disabled={busy} className="text-sm text-zinc-500 hover:text-zinc-800">入力に戻る</button>
                     </div>
                   )}
                 </div>
