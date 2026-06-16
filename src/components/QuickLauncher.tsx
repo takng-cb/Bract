@@ -15,6 +15,7 @@ import type { PlaudActionItem } from '@/lib/plaud/markdown'
 /** 関連先紐づけを出すブック（quickAi.ts の linkable spec と一致） */
 const LINKABLE_BOOKS = new Set(['tasks', 'activities', 'expenses'])
 import AiSearchChat from '@/components/AiSearchChat'
+import PlaudMultiImport from '@/components/PlaudMultiImport'
 
 /**
  * グローバル「クイック操作」ウィザード（REQ-0022）
@@ -30,7 +31,15 @@ type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook'
 type Mode = 'create' | 'view' | 'search'
 type CreateMode = 'ai' | 'manual'
 
-export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
+export default function QuickLauncher({
+  modules,
+  plaudEnabled = false,
+  plaudObjectTypes = [],
+}: {
+  modules: QuickModule[]
+  plaudEnabled?: boolean
+  plaudObjectTypes?: import('@/components/RelatedRecordsPicker').ObjectTypeOption[]
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
@@ -345,13 +354,23 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
 
               {/* ① 作成 / 閲覧 */}
               {step === 'root' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <BigChoice icon={<FilePlus2 className="w-6 h-6" />} label="レコード作成" desc="新しいデータを登録"
-                    onClick={() => { setMode('create'); pushStep('createMode') }} />
-                  <BigChoice icon={<Eye className="w-6 h-6" />} label="レコード閲覧" desc="一覧を開いて確認"
-                    onClick={() => { setMode('view'); pushStep('module') }} />
-                  <BigChoice icon={<Search className="w-6 h-6 text-violet-600" />} label="AIで検索" desc="会話で絞り込み（対象もAIが判断）" accent="violet"
-                    onClick={() => { setMode('search'); setError(null); pushStep('aiSearch') }} />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <BigChoice icon={<FilePlus2 className="w-6 h-6" />} label="レコード作成" desc="新しいデータを登録"
+                      onClick={() => { setMode('create'); pushStep('createMode') }} />
+                    <BigChoice icon={<Eye className="w-6 h-6" />} label="レコード閲覧" desc="一覧を開いて確認"
+                      onClick={() => { setMode('view'); pushStep('module') }} />
+                    <BigChoice icon={<Search className="w-6 h-6 text-violet-600" />} label="AIで検索" desc="会話で絞り込み（対象もAIが判断）" accent="violet"
+                      onClick={() => { setMode('search'); setError(null); pushStep('aiSearch') }} />
+                  </div>
+                  {plaudEnabled && (
+                    <PlaudMultiImport
+                      objectTypes={plaudObjectTypes}
+                      onDone={close}
+                      triggerClassName="w-full flex items-center gap-2 rounded-xl border border-violet-200 p-4 text-left transition-colors hover:border-violet-400 hover:bg-violet-50"
+                      triggerContent={<><AudioLines className="w-6 h-6 text-violet-600" /><span><span className="block text-sm font-semibold text-zinc-900">PLAUD から複数案件を取込</span><span className="block text-xs text-zinc-500">議事録を AI が案件ごとに分割し、活動として一括作成</span></span></>}
+                    />
+                  )}
                 </div>
               )}
 

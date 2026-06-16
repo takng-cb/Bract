@@ -53,7 +53,19 @@ function segToState(s: PlaudSegment): Seg {
   }
 }
 
-export default function PlaudMultiImport({ objectTypes }: { objectTypes: ObjectTypeOption[] }) {
+export default function PlaudMultiImport({
+  objectTypes,
+  triggerClassName,
+  triggerContent,
+  onDone,
+}: {
+  objectTypes: ObjectTypeOption[]
+  /** トリガーボタンの見た目を上書き（クイック操作内など） */
+  triggerClassName?: string
+  triggerContent?: React.ReactNode
+  /** 作成完了時に呼ばれる（呼び出し側の閉じる処理など） */
+  onDone?: () => void
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [fileName, setFileName] = useState('')
@@ -105,6 +117,8 @@ export default function PlaudMultiImport({ objectTypes }: { objectTypes: ObjectT
       // 選択された ToDo をまとめて作成（既存仕様：説明に担当者を付記）
       const todos = chosen.flatMap((s) => s.items.filter((it) => it.selected && it.task.trim()).map((it) => ({ task: it.task, person: it.person })))
       if (todos.length > 0) await createTasksFromPlaud(todos)
+      close()
+      onDone?.()
       router.push(res.firstHref ?? '/activities')
       router.refresh()
     })
@@ -117,9 +131,9 @@ export default function PlaudMultiImport({ objectTypes }: { objectTypes: ObjectT
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="px-3 py-2 text-sm text-violet-700 border border-violet-200 rounded-md hover:bg-violet-50 transition-colors inline-flex items-center gap-1.5"
+        className={triggerClassName ?? 'px-3 py-2 text-sm text-violet-700 border border-violet-200 rounded-md hover:bg-violet-50 transition-colors inline-flex items-center gap-1.5'}
       >
-        <AudioLines className="w-4 h-4" aria-hidden /> PLAUDから複数案件
+        {triggerContent ?? <><AudioLines className="w-4 h-4" aria-hidden /> PLAUDから複数案件</>}
       </button>
 
       {open && (
