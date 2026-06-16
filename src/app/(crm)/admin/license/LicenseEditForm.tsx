@@ -41,6 +41,7 @@ const FEATURE_DEFS: {
   type: 'boolean' | 'number' | 'string-list';
 }[] = [
   { key: 'ai_summary',        label: 'AI まとめ機能',        description: '商談・物件の活動を AI が要約 (+¥5,000/月)', type: 'boolean' },
+  { key: 'plaud_import',      label: 'PLAUD 取り込み',       description: '活動記録に PLAUD Note 共有リンクを貼り文字起こし/要約を AI 転記 (#143)', type: 'boolean' },
   { key: 'line_integration',  label: 'LINE 連携',           description: '受信→活動化、送信 (+¥3,000/月)', type: 'boolean' },
   { key: 'custom_documents',  label: 'カスタム帳票',         description: 'プラン以外の独自帳票テンプレ', type: 'boolean' },
   { key: 'extra_industries',  label: '追加業種',             description: 'メイン業種以外の業種オーバーレイ (カンマ区切り)', type: 'string-list' },
