@@ -16,6 +16,7 @@ import DynamicForm from '@/components/DynamicForm'
 import InlineFormToggle from '@/components/detail/InlineFormToggle'
 import InlineEditButton from '@/components/detail/InlineEditButton'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import ChangeLogSection from '@/components/ChangeLogSection'
 import RecordTabs, { type TabDef } from '@/components/RecordTabs'
 import { evalFormula } from '@/lib/formulaEval'
@@ -249,6 +250,9 @@ export default async function CustomRecordDetailPage({
         recordId={recordId}
         pagePath={returnTo}
       />
+
+      {/* 関連先（汎用リンク。REQ-0078） */}
+      <RecordLinksSection selfApi={objectApiName} selfId={recordId} />
     </>
   )
 

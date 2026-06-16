@@ -483,8 +483,8 @@
 ### REQ-0078  関連先（関連レコード）UI の統一＋汎用リンク `record_links`
 - 2026-06-16 / 会話（「関連先の選択機能を AI 検索の UI に寄せたい」「商談などのレコードページに関連レコード設定 UI が無い→同じ仕組みに」「/tasks/new で車両名検索が効かない」）
 - 内容：① RelatedRecordsPicker を**統一検索ボックス＋カード**へ刷新（許可種別を横断検索／実装済み）。② 在庫車両(vehicle)を関連先・横断検索に追加（実装済み 41218a1）。③ **任意レコード↔任意レコードの汎用リンク** `record_links` を新設し、どの詳細ページからも事前定義なしで関連付け可能にする（既存の `*_related_records` junction と `relationship_*` は役割が違うため残置）。
-- 設計：`record_links(id, a_object_api, a_record_id, b_object_api, b_record_id, created_by, created_at)`。双方向を `object_api:id` 昇順で正規化して 1 行（unique）、両端 index、FK なし（多態性・アプリ層で掃除）、冪等マイグレを全 Neon へ。ER 図＋詳細は docs/data-model.md。
-- 状態：①② 完了。③ ER 図合意済み・実装着手予定。
+- 設計：`record_links(id, a_object_api, a_record_id, b_object_api, b_record_id, created_by, created_at)`。双方向を `object_api:id` 昇順で正規化して 1 行（unique）、両端 index、FK なし（多態性・アプリ層で掃除）、冪等マイグレを全 Neon へ（base は破棄予定のため対象外）。ER 図＋詳細は docs/data-model.md。
+- 状態：①②③ 実装済み（feature/record-links）。詳細ページ「関連先」セクションを accounts/contacts/opportunities/vehicles/books[api] に設置。lib/recordLinks・actions/recordLinks・RecordLinksEditor/Section。親削除時の掃除あり。tsc/eslint/3業種ビルド緑、dev に migration 20260616120000 適用・check:schema 緑（57テーブル）。**未了**：real-estate/auto-body Neon への migration 適用（merge 前提）。
 
 ### REQ-0079  ユーザーごとのテーマ（カラープリセット＋ライト/ダーク）
 - 2026-06-16 / 会話（「ユーザーごとにテーマカラーを変える機能がほしい」→ プリセット＋ダーク対応）

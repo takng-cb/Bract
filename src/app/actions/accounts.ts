@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache'
 import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -132,6 +133,7 @@ export async function deleteAccount(id: string) {
   // 関連活動・ToDo・経費の junction 行を明示削除する（活動・ToDo・経費の
   // 本体は他の関連先があれば残存する新仕様）。
   await cleanupRelatedRecordsForParent('account', id)
+  await cleanupRecordLinksForParent('account', id)
   await db.delete(accounts).where(eq(accounts.id, id))
   redirect(withSaveToast('/accounts', 'deleted'))
 }
