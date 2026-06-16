@@ -115,7 +115,9 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
     ],
   },
   'projects': {
-    id: 'projects', name: 'プロジェクト管理', category: 'erp', dependsOn: ['crm-core'],
+    // category='crm'：プロジェクト管理は業種非依存で広く使えるべきため、'erp' ではなく 'crm' に分類。
+    // これで 'crm' プロファイルのデプロイ（ERP 除外ビルド）でも enabled_modules に入れれば有効化できる。
+    id: 'projects', name: 'プロジェクト管理', category: 'crm', dependsOn: ['crm-core'],
     navItems: [{ href: '/projects', label: 'プロジェクト', icon: '🏗️' }],
     books: [{ apiName: 'projects', label: 'プロジェクト' }],
     quickActions: [
