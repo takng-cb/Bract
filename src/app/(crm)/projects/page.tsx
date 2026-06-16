@@ -20,8 +20,8 @@ import { PROJECT_STAGES, PROJECT_TYPES } from '@/lib/statusStages'
 const PAGE_SIZE = 20
 const STATUS_VALUES = PROJECT_STAGES.map((s) => s.value)
 const STATUS_COLOR: Record<string, string> = {
-  計画: 'bg-zinc-100 text-zinc-700', 用地取得: 'bg-sky-100 text-sky-700', 設計: 'bg-violet-100 text-violet-700',
-  施工: 'bg-amber-100 text-amber-700', 完了: 'bg-emerald-100 text-emerald-700', 中止: 'bg-rose-100 text-rose-700',
+  企画: 'bg-zinc-100 text-zinc-700', 計画: 'bg-sky-100 text-sky-700', 進行中: 'bg-amber-100 text-amber-700',
+  完了: 'bg-emerald-100 text-emerald-700', 保留: 'bg-violet-100 text-violet-700', 中止: 'bg-rose-100 text-rose-700',
 }
 
 export default async function ProjectsListPage({

@@ -41,14 +41,14 @@ export const PROPERTY_STAGES: StageConfig[] = [
  *  client-reference になり .map 等が落ちるため。REQ-0080）。 */
 export const PROJECT_TYPES = ['分譲開発', '賃貸開発', 'リノベーション', '仲介', '管理受託', 'その他'] as const
 
-/** 不動産・プロジェクト（projects.status） */
+/** プロジェクト（projects.status）— 企画→実行のプロジェクト管理ライフサイクル */
 export const PROJECT_STAGES: StageConfig[] = [
-  { value: '計画',     label: '計画',     activeColor: '#475569', pastColor: '#cbd5e1' },
-  { value: '用地取得', label: '用地取得', activeColor: '#0369a1', pastColor: '#7dd3fc' },
-  { value: '設計',     label: '設計',     activeColor: '#7c3aed', pastColor: '#c4b5fd' },
-  { value: '施工',     label: '施工',     activeColor: '#b45309', pastColor: '#fcd34d' },
-  { value: '完了',     label: '完了',     activeColor: '#047857', pastColor: '#6ee7b7' },
-  { value: '中止',     label: '中止',     activeColor: '#be123c', pastColor: '#fda4af' },
+  { value: '企画',   label: '企画',   activeColor: '#475569', pastColor: '#cbd5e1' },
+  { value: '計画',   label: '計画',   activeColor: '#0369a1', pastColor: '#7dd3fc' },
+  { value: '進行中', label: '進行中', activeColor: '#b45309', pastColor: '#fcd34d' },
+  { value: '完了',   label: '完了',   activeColor: '#047857', pastColor: '#6ee7b7' },
+  { value: '保留',   label: '保留',   activeColor: '#6d28d9', pastColor: '#c4b5fd' },
+  { value: '中止',   label: '中止',   activeColor: '#be123c', pastColor: '#fda4af' },
 ]
 
 /** 車両・在庫（vehicles.status） */
