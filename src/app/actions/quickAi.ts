@@ -26,6 +26,8 @@ import { repairTextValue } from '@/lib/textGuard'
 import { getBookDef, getAllBookDefs, getFieldDefs, parseFieldOptions } from '@/lib/bookMetadata'
 import { callAI } from '@/lib/ai/client'
 import { assertAiRateLimit } from '@/lib/ai/rateLimit'
+import { hasFeature } from '@/lib/license'
+import { extractPlaudToken, fetchPlaudContent } from '@/lib/plaud'
 import { createAccount } from '@/app/actions/accounts'
 import { createContact } from '@/app/actions/contacts'
 import { createVehicle } from '@/industries/auto-body/actions/vehicles'
@@ -545,6 +547,15 @@ async function assertPublicHost(hostname: string): Promise<void> {
 }
 
 async function fetchUrlText(url: string): Promise<string> {
+  // PLAUD 共有リンクは専用の公開 API で文字起こし/AI要約を取得（機能 ON のコンテナのみ。#143）
+  if (extractPlaudToken(url) && (await hasFeature('plaud_import'))) {
+    const c = await fetchPlaudContent(url)
+    return [
+      c.title ? `# ${c.title}` : '',
+      c.summary ? `【AI要約】\n${c.summary}` : '',
+      c.transcript ? `【文字起こし】\n${c.transcript}` : '',
+    ].filter(Boolean).join('\n\n').slice(0, 12000)
+  }
   let u: URL
   try { u = new URL(url) } catch { throw new Error('URL の形式が正しくありません') }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('http(s) の URL を指定してください')
