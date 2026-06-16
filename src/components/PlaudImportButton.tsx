@@ -162,9 +162,21 @@ export default function PlaudImportButton({
 
                   {parsed.items.length > 0 ? (
                     <div>
-                      <p className="text-xs text-zinc-600 mb-1.5">
-                        アクションアイテム → ToDo 化（<b>必要なものだけ</b>チェック。担当者/顧客が混在します）
-                      </p>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-xs text-zinc-600">
+                          アクションアイテム → ToDo 化（<b>必要なものだけ</b>チェック。担当者/顧客が混在します）
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const all = parsed.items.every((x) => x.selected)
+                            setParsed((p) => (p ? { ...p, items: p.items.map((x) => ({ ...x, selected: !all })) } : p))
+                          }}
+                          className="text-xs text-blue-600 hover:underline shrink-0 ml-2"
+                        >
+                          {parsed.items.every((x) => x.selected) ? '全解除' : '全選択'}
+                        </button>
+                      </div>
                       <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                         {parsed.items.map((it, idx) => (
                           <li key={idx} className="flex items-start gap-2 rounded-md border border-zinc-200 px-2.5 py-1.5">

@@ -449,6 +449,17 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                   <p className="text-sm text-zinc-600">
                     作成しました。検出したアクションを ToDo 化できます（担当者/顧客が混在するので<b>必要なものだけ</b>選択）。
                   </p>
+                  {plaudItems.length > 0 && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => { const all = plaudItems.every((x) => x.selected); setPlaudItems((arr) => arr.map((x) => ({ ...x, selected: !all }))) }}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        {plaudItems.every((x) => x.selected) ? '全解除' : '全選択'}
+                      </button>
+                    </div>
+                  )}
                   {plaudItems.length > 0 ? (
                     <ul className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                       {plaudItems.map((it, idx) => (
