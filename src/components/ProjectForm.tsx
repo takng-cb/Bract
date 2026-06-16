@@ -6,9 +6,7 @@ import SearchableSelect from '@/components/SearchableSelect'
 import CreateFeedback from '@/components/CreateFeedback'
 import FormSection from '@/components/FormSection'
 import type { CreateAction } from '@/lib/duplicateTypes'
-import { PROJECT_STAGES } from '@/lib/statusStages'
-
-export const PROJECT_TYPES = ['分譲開発', '賃貸開発', 'リノベーション', '仲介', '管理受託', 'その他'] as const
+import { PROJECT_STAGES, PROJECT_TYPES } from '@/lib/statusStages'
 
 type Account    = { id: string; name: string }
 type UserOption = { id: string; name: string }

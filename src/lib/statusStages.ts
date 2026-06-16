@@ -35,6 +35,12 @@ export const PROPERTY_STAGES: StageConfig[] = [
   { value: '終了',   label: '終了',   activeColor: '#71717a', pastColor: '#d4d4d8' },
 ]
 
+/** プロジェクトの種別（projects.project_type）。
+ *  サーバ/クライアント両方から import されるため、'use client' コンポーネントではなく
+ *  この server-safe モジュールに置く（client モジュールから値を server import すると
+ *  client-reference になり .map 等が落ちるため。REQ-0080）。 */
+export const PROJECT_TYPES = ['分譲開発', '賃貸開発', 'リノベーション', '仲介', '管理受託', 'その他'] as const
+
 /** 不動産・プロジェクト（projects.status） */
 export const PROJECT_STAGES: StageConfig[] = [
   { value: '計画',     label: '計画',     activeColor: '#475569', pastColor: '#cbd5e1' },
