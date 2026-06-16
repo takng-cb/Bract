@@ -13,8 +13,9 @@
   --n-300: oklch(0.855 0.0075 82); --n-400: oklch(0.730 0.0085 80); --n-500: oklch(0.605 0.0090 79);
   --n-600: oklch(0.505 0.0090 77); --n-700: oklch(0.405 0.0090 75); --n-800: oklch(0.300 0.0085 73);
   --n-900: oklch(0.225 0.0075 72); --n-950: oklch(0.165 0.0065 70);
-  /* sidebar dark warm */
-  --side-bg: oklch(0.235 0.010 80); --side-bg-2: oklch(0.205 0.010 80); --side-border: oklch(0.315 0.012 80);
+  /* sidebar — アクセント色の濃いトーンに連動（REQ-0079。--color-side と同式。brand-800 由来で
+     プリセット/ダーク横断で安定）。MobileNav ドロワーが var(--side-bg) で参照する。 */
+  --side-bg: color-mix(in oklab, var(--color-brand-800), black 28%); --side-bg-2: color-mix(in oklab, var(--color-brand-800), black 46%); --side-border: color-mix(in oklab, var(--color-brand-800), white 16%);
   --side-text: oklch(0.760 0.012 82); --side-text-dim: oklch(0.600 0.012 82); --side-heading: oklch(0.520 0.014 82);
   /* semantic */
   --danger: oklch(0.555 0.190 27); --danger-strong: oklch(0.470 0.170 27); --danger-bg: oklch(0.965 0.022 30); --danger-border: oklch(0.890 0.055 30); --danger-text: oklch(0.470 0.150 27);

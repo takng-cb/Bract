@@ -21,6 +21,7 @@ import { quickCreateExpense } from '@/app/actions/expenses'
 import DeleteButton from '@/components/DeleteButton'
 import TagsSection from '@/components/TagsSection'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import AuthGuard from '@/components/AuthGuard'
 import RecordHeader from '@/components/RecordHeader'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
@@ -219,6 +220,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
             <RefCard title="タグ" icon={<Tag />}>
               <TagsSection objectType="property" objectId={id} revalidatePath={`/properties/${id}`} />
             </RefCard>
+
+            <RecordLinksSection selfApi="properties" selfId={id} />
           </>
         }
       >
