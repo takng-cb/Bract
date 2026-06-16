@@ -45,7 +45,17 @@ export default function RootLayout({
     <html
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} ${notoSansJp.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* テーマ初期適用（REQ-0079）。描画前に cookie からブランド色＋ライト/ダークを
+            <html> に反映して FOUC を防ぐ。cookie 形式は `${color}:${mode}`。 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=document.cookie.match(/(?:^|; )bract_theme=([^;]+)/);var v=m?decodeURIComponent(m[1]):'';var p=v.split(':');var c=p[0]||'green';var mode=p[1]||'system';var d=document.documentElement;if(c&&c!=='green')d.setAttribute('data-theme',c);else d.removeAttribute('data-theme');var dark=mode==='dark'||(mode==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);d.classList.toggle('dark',dark);}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <SwUnregister />
         {children}

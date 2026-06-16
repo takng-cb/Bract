@@ -480,6 +480,18 @@
 - 状態：実装済み（feature/plaud-markdown・3業種ビルド＋ユニットテスト緑）。**有効化はコンテナ別**（license `features.plaud_import=true` /admin/license、または env `PLAUD_IMPORT_ENABLED=true`）。
 - 関連：#143 / src/lib/plaud/markdown.ts, src/app/actions/plaud.ts, src/components/PlaudImportButton.tsx
 
+### REQ-0078  関連先（関連レコード）UI の統一＋汎用リンク `record_links`
+- 2026-06-16 / 会話（「関連先の選択機能を AI 検索の UI に寄せたい」「商談などのレコードページに関連レコード設定 UI が無い→同じ仕組みに」「/tasks/new で車両名検索が効かない」）
+- 内容：① RelatedRecordsPicker を**統一検索ボックス＋カード**へ刷新（許可種別を横断検索／実装済み）。② 在庫車両(vehicle)を関連先・横断検索に追加（実装済み 41218a1）。③ **任意レコード↔任意レコードの汎用リンク** `record_links` を新設し、どの詳細ページからも事前定義なしで関連付け可能にする（既存の `*_related_records` junction と `relationship_*` は役割が違うため残置）。
+- 設計：`record_links(id, a_object_api, a_record_id, b_object_api, b_record_id, created_by, created_at)`。双方向を `object_api:id` 昇順で正規化して 1 行（unique）、両端 index、FK なし（多態性・アプリ層で掃除）、冪等マイグレを全 Neon へ。ER 図＋詳細は docs/data-model.md。
+- 状態：①② 完了。③ ER 図合意済み・実装着手予定。
+
+### REQ-0079  ユーザーごとのテーマ（カラープリセット＋ライト/ダーク）
+- 2026-06-16 / 会話（「ユーザーごとにテーマカラーを変える機能がほしい」→ プリセット＋ダーク対応）
+- 内容：個人設定 `/settings` に「テーマ」セクション。**アクセント色プリセット**（green=既定/blue/violet/rose/amber/teal）＋**表示モード**（light/dark/**system**=OS追従）。選択で即時プレビュー（`<html>` の `data-theme` と `dark` クラス切替）。
+- 設計：色は `theme-presets.css` の `html[data-theme="<key>"]` が `--color-brand-*` を差し替え（blue-* 等のエイリアス経由で全画面に波及）。ダークは既存 `.dark` を流用。FOUC 防止に layout.tsx のインラインスクリプトが cookie `bract_theme=${color}:${mode}` から描画前適用。永続は `user_preferences.theme_color/theme_mode`（真実＝DB、クロスデバイスは `ThemeApply` が追従）。migration 20260616100000（全 Neon・nullable・冪等）。
+- 状態：実装済み（feature/user-theme-color・base ビルド緑／tsc・lint 緑）。**マイグレ未適用**（全 Neon 適用が merge 前提）。
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

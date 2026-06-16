@@ -13,6 +13,8 @@
 @import "tailwindcss";
 /* Claude Design 移植のデザインシステム（トークン＋コンポーネントクラス＋シェル） */
 @import "./design-system.css";
+/* ユーザー選択のカラープリセット（REQ-0079。html[data-theme] で brand を差し替え） */
+@import "./theme-presets.css";
 
 /* ダークは class 戦略（<html class="dark">）。 */
 @custom-variant dark (&:where(.dark, .dark *));

@@ -804,6 +804,10 @@ export const user_preferences = pgTable('user_preferences', {
   dashboard_widgets:  jsonb('dashboard_widgets'),
   // 通知ベルを最後に開いた時刻（既読タイムスタンプ方式。REQ-0040）
   notifications_seen_at: timestamp('notifications_seen_at', { withTimezone: true }),
+  // テーマ設定（REQ-0079）。theme_color = ブランド色プリセットキー（未設定=green）、
+  // theme_mode = 'light'|'dark'|'system'（未設定=system）。
+  theme_color:        text('theme_color'),
+  theme_mode:         text('theme_mode'),
   created_at:         timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at:         timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })

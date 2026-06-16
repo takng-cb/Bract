@@ -22,6 +22,8 @@ import { filterNavByRead } from '@/lib/permissions'
 import { buildModuleBooks } from '@/lib/modules/quick'
 import QuickLauncher from '@/components/QuickLauncher'
 import ToastHost from '@/components/Toast'
+import ThemeApply from '@/components/ThemeApply'
+import { normalizeTheme } from '@/lib/theme'
 import { Suspense } from 'react'
 import Topbar from '@/components/Topbar'
 
@@ -40,6 +42,8 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
       ? db.select({
           nav_order:    user_preferences.nav_order,
           display_name: user_preferences.display_name,
+          theme_color:  user_preferences.theme_color,
+          theme_mode:   user_preferences.theme_mode,
         }).from(user_preferences)
           .where(eq(user_preferences.user_id, user.id))
           .then((r) => r[0] ?? null)
@@ -57,6 +61,9 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   // 表示名の解決
   const displayName: string | null = pref?.display_name ?? user?.email ?? null
+
+  // テーマ（カラープリセット＋ライト/ダーク）。DB を真実としてクライアントで追従させる（REQ-0079）
+  const theme = normalizeTheme(pref?.theme_color, pref?.theme_mode)
 
   // カスタムブックをナビアイテムに変換
   // 業種オーバーレイで専用ルートを持つもの（real-estate の properties → /properties、
@@ -133,6 +140,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-zinc-50 print:bg-white print:min-h-0">
+      <ThemeApply color={theme.color} mode={theme.mode} />
       {/* 画面上部の進捗バー + 中央スピナー（perceived perf）*/}
       <div className="print:hidden">
         <NavigationProgress />
