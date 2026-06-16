@@ -30,6 +30,7 @@ import { getAllUsers } from '@/lib/userUtils'
 import { isModuleEnabled } from '@/lib/modules/registry'
 import { requireBookRead } from '@/lib/permissions'
 import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate } from '@/lib/datetime'
 import { updateProject, updateProjectStatus, deleteProject } from '@/app/actions/projects'
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -164,7 +165,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 { label: '想定売上', name: 'expected_revenue', kind: 'number', value: project.expected_revenue != null ? String(project.expected_revenue) : '', view: revenue != null ? `¥${revenue.toLocaleString()}` : '—' },
                 { label: '実績原価', name: 'actual_cost', kind: 'number', value: project.actual_cost != null ? String(project.actual_cost) : '', view: `¥${cost.toLocaleString()}` },
                 { label: '担当者', name: 'owner_id', kind: 'select', value: project.owner_id ?? '', options: userOptions, view: ownerName ?? '—' },
-                { label: '登録日', view: project.created_at ? new Date(project.created_at).toLocaleDateString('ja-JP') : '—' },
+                { label: '登録日', view: fmtDate(project.created_at, tz) },
                 { label: '概要・メモ', name: 'description', kind: 'textarea', value: project.description, fullWidth: true, view: project.description ? project.description : <span className="text-zinc-300">—</span> },
               ]}
             />

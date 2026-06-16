@@ -20,10 +20,13 @@ import { Activity, CalendarClock, UserRound } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 import { RecordColumns, Badge } from '@/components/record/RecordUI'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate, fmtDateTime } from '@/lib/datetime'
 
 export default async function ActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
+  const tz = await getAppTimeZone()
 
   const [activityRow, relatedPairs, allUsers] = await Promise.all([
     db.select({
@@ -55,7 +58,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
   async function saveActivityInline(formData: FormData) { 'use server'; await updateActivityBasic(id, formData) }
   async function saveActivityRelated(formData: FormData) { 'use server'; await updateActivityRelatedRecords(id, formData) }
 
-  const occurredLabel = activityRow.occurred_at ? new Date(activityRow.occurred_at).toLocaleString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+  const occurredLabel = fmtDateTime(activityRow.occurred_at, tz)
 
   return (
     <div className="p-4 md:p-8 max-w-7xl">
@@ -94,7 +97,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
                 { label: '種別', name: 'type', kind: 'select', value: activityRow.type, options: activityTypes.map((t) => ({ value: t.value, label: t.label })), view: <span className="inline-flex items-center gap-1"><NavIcon icon={typeConf.icon} className="w-3.5 h-3.5 shrink-0" />{typeConf.label}</span> },
                 { label: '日時', name: 'occurred_at', kind: 'datetime', value: activityRow.occurred_at ? new Date(activityRow.occurred_at).toISOString().slice(0, 16) : '', view: occurredLabel },
                 { label: '担当', name: 'owner_id', kind: 'select', value: activityRow.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
-                { label: '登録日', view: activityRow.created_at ? new Date(activityRow.created_at).toLocaleDateString('ja-JP') : '—' },
+                { label: '登録日', view: fmtDate(activityRow.created_at, tz) },
               ]}
             />
 

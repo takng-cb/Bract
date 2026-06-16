@@ -24,6 +24,8 @@ import { requireBookRead } from '@/lib/permissions'
 import { hasFeature } from '@/lib/license'
 import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import PlaudMultiImport from '@/components/PlaudMultiImport'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate, fmtDateTime, ymdInTz } from '@/lib/datetime'
 
 const PAGE_SIZE = 20
 
@@ -45,9 +47,9 @@ export default async function ActivitiesPage({
   await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('activities', uid) : null)
-  const [sp, edit, colConfig, , activityTypes, dv, plaudEnabled, pickerData] = await Promise.all([
+  const [sp, edit, colConfig, , activityTypes, dv, plaudEnabled, pickerData, tz] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('activities'), userIdPromise, getActivityTypes(), dvPromise,
-    hasFeature('plaud_import'), getRelatedRecordsPickerData('activities'),
+    hasFeature('plaud_import'), getRelatedRecordsPickerData('activities'), getAppTimeZone(),
   ])
 
   const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
@@ -159,18 +161,17 @@ export default async function ActivitiesPage({
     const calYear  = monthMatch ? Number(monthMatch[1]) : now.getFullYear()
     const calMonth = monthMatch ? Number(monthMatch[2]) : now.getMonth() + 1
 
-    // occurred_at は timestamptz。日本時間の日付に丸めてカレンダーに割り当てる
-    const jstDate = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+    // occurred_at は timestamptz。設定タイムゾーンの日付に丸めてカレンダーに割り当てる（REQ-0081）
     const events: CalendarEvent[] = sorted
       .filter((a) => a.occurred_at)
       .map((a) => ({
-        date: jstDate(new Date(a.occurred_at!)),
+        date: ymdInTz(a.occurred_at!, tz),
         href: `/activities/${a.id}`,
         label: a.subject,
         className: TYPE_CONFIG[a.type]?.color ?? 'bg-zinc-50 text-zinc-700',
         details: [
           { label: '種別', value: TYPE_CONFIG[a.type]?.label ?? a.type },
-          { label: '日時', value: new Date(a.occurred_at!).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+          { label: '日時', value: fmtDateTime(a.occurred_at!, tz) },
           ...(a.accounts ? [{ label: '取引先', value: a.accounts.name }] : []),
           ...(a.body ? [{ label: '内容', value: a.body.length > 60 ? `${a.body.slice(0, 60)}…` : a.body }] : []),
         ],
@@ -336,7 +337,7 @@ export default async function ActivitiesPage({
                     <div className="flex items-center justify-between gap-2">
                       <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-medium ${type.color}`}><NavIcon icon={type.icon} className="w-3.5 h-3.5 shrink-0" />{type.label}</span>
                       <span className="text-xs text-zinc-400">
-                        {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
+                        {a.occurred_at ? fmtDate(a.occurred_at, tz) : '—'}
                       </span>
                     </div>
                     <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>

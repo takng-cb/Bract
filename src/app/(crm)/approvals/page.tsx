@@ -15,6 +15,8 @@ import { getCurrentPermissions } from '@/lib/permissions'
 import { listApprovalsForUser, getUserLabels, type ApprovalListItem } from '@/lib/approvals'
 import { decideApproval, cancelApproval } from '@/app/actions/approvals'
 import PageHeader from '@/components/ui/PageHeader'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDateTime } from '@/lib/datetime'
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   pending:   { label: '承認待ち', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -23,11 +25,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   cancelled: { label: '取下げ',   cls: 'bg-zinc-100 text-zinc-500 border-zinc-200' },
 }
 
-function fmt(iso: string): string {
-  return new Date(iso).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-function ItemHead({ item }: { item: ApprovalListItem }) {
+function ItemHead({ item, tz }: { item: ApprovalListItem; tz: string }) {
   return (
     <div className="min-w-0 flex-1">
       <Link href={item.href} className="text-sm font-semibold text-zinc-900 hover:text-blue-700 hover:underline">
@@ -37,7 +35,7 @@ function ItemHead({ item }: { item: ApprovalListItem }) {
         {item.bookLabel}
         {item.transition && <>・ステータス変更 <b>{item.transition.from || '—'}</b> → <b>{item.transition.to || '—'}</b></>}
         {item.totalSteps > 1 && <>・{item.currentStep}/{item.totalSteps} 段階目</>}
-        <span className="ml-1 text-zinc-400">{fmt(item.requestedAt)}</span>
+        <span className="ml-1 text-zinc-400">{fmtDateTime(item.requestedAt, tz)}</span>
       </p>
     </div>
   )
@@ -49,6 +47,7 @@ export default async function ApprovalsPage() {
   const perms = await getCurrentPermissions()
   const { toDecide, mine } = await listApprovalsForUser(userId, perms.roleName)
   const requesterLabels = await getUserLabels(toDecide.map((i) => i.requestedBy))
+  const tz = await getAppTimeZone()
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-8 space-y-6">
@@ -71,7 +70,7 @@ export default async function ApprovalsPage() {
           <ul className="divide-y divide-zinc-100">
             {toDecide.map((item) => (
               <li key={item.approvalId} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <ItemHead item={item} />
+                <ItemHead item={item} tz={tz} />
                 <span className="text-xs text-zinc-400">申請: {requesterLabels[item.requestedBy] ?? '—'}</span>
                 <form className="flex items-center gap-1.5">
                   <button
@@ -110,7 +109,7 @@ export default async function ApprovalsPage() {
               const badge = STATUS_BADGE[item.status] ?? STATUS_BADGE.pending
               return (
                 <li key={item.approvalId} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <ItemHead item={item} />
+                  <ItemHead item={item} tz={tz} />
                   <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${badge.cls}`}>{badge.label}</span>
                   {item.status === 'pending' && (
                     <form action={cancelApproval.bind(null, item.approvalId)}>

@@ -13,6 +13,8 @@ import { getCurrentUserId } from '@/lib/auth'
 import { getCurrentPermissions } from '@/lib/permissions'
 import { listApprovalsForUser, getUserLabels } from '@/lib/approvals'
 import { decideApproval } from '@/app/actions/approvals'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate } from '@/lib/datetime'
 
 // 色は semantic tone トークンで統一（ADR-0021）
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -36,6 +38,7 @@ export default async function DashboardPage({
   searchParams: Promise<{ from?: string; to?: string }>
 }) {
   const sp = await searchParams
+  const tz = await getAppTimeZone()
   const now = new Date()
   // 既定期間: 今月（ローカルタイムの月初〜月末）
   const year      = now.getFullYear()
@@ -300,7 +303,7 @@ export default async function DashboardPage({
                               )}
                             </td>
                             <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-sm">
-                              {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}
+                              {a.occurred_at ? fmtDate(a.occurred_at, tz) : '—'}
                             </td>
                           </tr>
                         )
@@ -317,7 +320,7 @@ export default async function DashboardPage({
                       <Link key={a.id} href={`/activities/${a.id}`} className="block bg-white rounded-lg border border-zinc-200 px-4 py-3 hover:border-zinc-300">
                         <div className="flex items-center justify-between gap-2">
                           <span className={`text-xs px-1.5 py-0.5 rounded font-medium inline-flex items-center gap-1 ${type.color}`}><NavIcon icon={type.icon} className="w-4 h-4 shrink-0" />{type.label}</span>
-                          <span className="text-xs text-zinc-400">{a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('ja-JP') : '—'}</span>
+                          <span className="text-xs text-zinc-400">{a.occurred_at ? fmtDate(a.occurred_at, tz) : '—'}</span>
                         </div>
                         <p className="font-medium text-zinc-900 text-sm mt-1.5 leading-snug">{a.subject}</p>
                         {rel.accounts.length > 0 && (

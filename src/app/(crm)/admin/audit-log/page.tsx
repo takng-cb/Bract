@@ -4,6 +4,8 @@ import { requireAdmin } from '@/lib/auth'
 import { desc, eq, and, gte, lte, count, type SQL } from 'drizzle-orm'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDateTime } from '@/lib/datetime'
 
 const PAGE_SIZE = 50
 
@@ -53,6 +55,7 @@ export default async function AuditLogPage({
 }) {
   await requireAdmin()
   const sp = await searchParams
+  const tz = await getAppTimeZone()
 
   const from     = parseDate(sp.from)
   const to       = parseDate(sp.to)
@@ -172,9 +175,7 @@ export default async function AuditLogPage({
                   return (
                     <tr key={r.id} className="hover:bg-zinc-50">
                       <td className="px-4 py-2 text-xs text-zinc-500 whitespace-nowrap">
-                        {r.changed_at
-                          ? new Date(r.changed_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
-                          : '—'}
+                        {fmtDateTime(r.changed_at, tz)}
                       </td>
                       <td className="px-4 py-2">
                         {href ? (
@@ -215,9 +216,7 @@ export default async function AuditLogPage({
                       <span className="text-xs font-semibold text-zinc-600">{meta?.label ?? r.object_type}</span>
                     )}
                     <span className="text-xs text-zinc-400">
-                      {r.changed_at
-                        ? new Date(r.changed_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
-                        : '—'}
+                      {fmtDateTime(r.changed_at, tz)}
                     </span>
                   </div>
                   <p className="text-sm text-zinc-800 mt-1.5">{r.field_label}</p>

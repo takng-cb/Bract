@@ -19,6 +19,8 @@ import { resolveWikiLinks } from '@/lib/wiki'
 import { deleteWikiPage } from '@/app/actions/wiki'
 import { NavIcon } from '@/lib/navIcon'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate } from '@/lib/datetime'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,7 +70,8 @@ export default async function WikiDetailPage({ params }: { params: Promise<{ id:
     await deleteWikiPage(id)
   }
 
-  const updated = page.updated_at ? new Date(page.updated_at).toLocaleDateString('ja-JP') : '—'
+  const tz = await getAppTimeZone()
+  const updated = fmtDate(page.updated_at, tz)
 
   return (
     <div className="p-4 md:p-8 max-w-4xl">

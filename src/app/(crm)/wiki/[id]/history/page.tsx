@@ -18,6 +18,8 @@ import AuthGuard from '@/components/AuthGuard'
 import { diffLines, collapseUnchanged } from '@/lib/textDiff'
 import { restoreWikiBody } from '@/app/actions/wiki'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDateTime } from '@/lib/datetime'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,9 +61,8 @@ export default async function WikiHistoryPage({ params }: { params: Promise<{ id
   ])
   if (!page) notFound()
 
-  const fmt = (d: Date | null) => d
-    ? new Date(d).toLocaleString('ja-JP', { dateStyle: 'medium', timeStyle: 'short' })
-    : '—'
+  const tz = await getAppTimeZone()
+  const fmt = (d: Date | null) => fmtDateTime(d, tz)
 
   return (
     <div className="p-4 md:p-8 max-w-4xl">
