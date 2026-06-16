@@ -80,37 +80,9 @@ export const properties = pgTable('properties', {
 })
 
 // ----------------------------------------------------------------
-// projects（不動産プロジェクト）— 用地取得〜開発〜販売/引渡を束ねる案件単位。
-//   商談・物件などを横断して紐づける（関連先＝record_links）。UI は商談を参考。
-// ----------------------------------------------------------------
-export const projects = pgTable('projects', {
-  id:               uuid('id').primaryKey().defaultRandom(),
-  name:             text('name').notNull(),                                  // プロジェクト名
-  status:           text('status').notNull().default('計画'),                // PROJECT_STAGES
-  project_type:     text('project_type'),                                    // 分譲開発/賃貸開発/リノベ/仲介/管理受託/その他
-  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }), // 施主・地主・関連取引先
-  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }), // 窓口担当
-  location:         text('location'),                                        // 所在地
-  start_date:       date('start_date'),                                      // 着手日
-  end_date:         date('end_date'),                                        // 完了予定日
-  budget:           numeric('budget'),                                       // 予算・総事業費（円）
-  expected_revenue: numeric('expected_revenue'),                             // 想定売上（円）
-  actual_cost:      numeric('actual_cost').notNull().default('0'),           // 実績原価（円）
-  description:      text('description'),                                     // 概要・メモ
-  owner_id:         uuid('owner_id'),                                        // 社内担当
-  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
-})
-
-// ----------------------------------------------------------------
 // Relations
 // ----------------------------------------------------------------
 export const propertiesRelations = relations(properties, ({ one }) => ({
   accounts: one(accounts, { fields: [properties.account_id], references: [accounts.id] }),
   contacts: one(contacts, { fields: [properties.contact_id], references: [contacts.id] }),
-}))
-
-export const projectsRelations = relations(projects, ({ one }) => ({
-  account: one(accounts, { fields: [projects.account_id], references: [accounts.id] }),
-  contact: one(contacts, { fields: [projects.contact_id], references: [contacts.id] }),
 }))

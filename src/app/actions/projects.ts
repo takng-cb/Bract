@@ -1,15 +1,15 @@
 'use server'
 
 /**
- * projects（不動産プロジェクト）CRUD（REQ-0080）。
- * UI は商談を参考にした専用リッチ画面。インライン編集・編集フォームともに
- * updateProject（全項目）を使う（フォームは全フィールドを送る前提）。
+ * projects（プロジェクト管理モジュール）CRUD（REQ-0080）。
+ * 業種非依存の ERP モジュール。UI は商談を参考にした専用リッチ画面。
+ * インライン編集・編集フォームともに updateProject（全項目）を使う（フォームは全送信前提）。
  */
 import { requirePermission } from '@/lib/permissions'
 import { trashRecord } from '@/lib/trash'
 import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { db } from '@/lib/db'
-import { projects } from '@/industries/real-estate/schema'
+import { projects } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'

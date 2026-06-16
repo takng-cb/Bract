@@ -1,8 +1,6 @@
--- 不動産プロジェクト（REQ-0080）。real-estate オーバーレイの案件単位。
--- 商談を参考にした専用リッチ画面で扱う。FK は accounts/contacts に set null。
--- properties と同じく industry 専用テーブル（src/industries/real-estate/schema.ts）で、
--- check:schema（src/lib/schema.ts のみ走査）の対象外。冪等。
--- 運用 Neon に適用（dev / real-estate / auto-body。base は破棄予定のため対象外）。
+-- プロジェクト管理モジュール（REQ-0080）。用地取得〜開発〜販売を束ねる案件単位。
+-- inventory 同様の業種非依存 ERP モジュール。src/lib/schema.ts に定義＝check:schema 追跡対象。
+-- そのため全運用 Neon に適用が必要（dev / real-estate / auto-body。base は破棄予定のため対象外）。冪等。
 
 CREATE TABLE IF NOT EXISTS projects (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -21,9 +21,8 @@ import {
   book_records, book_definitions,
   activity_related_records, task_related_records, expense_related_records,
   maintenance_records, customer_vehicles, assignments, vehicles,
-  parts, products, staff, warehouses, wiki_pages,
+  parts, products, staff, warehouses, wiki_pages, projects,
 } from '@/lib/schema'
-import { projects } from '@/industries/real-estate/schema'
 import { inArray, eq, and } from 'drizzle-orm'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
 

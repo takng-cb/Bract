@@ -107,17 +107,18 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
   'real-estate': {
     id: 'real-estate', name: '不動産管理', category: 'industry',
     dependsOn: ['crm-core', 'sales'], industry: 'real-estate',
-    navItems: [
-      { href: '/properties', label: '物件',       icon: '🏠' },
-      { href: '/projects',   label: 'プロジェクト', icon: '🏗️' },
-    ],
-    books: [
-      { apiName: 'properties', label: '物件' },
-      { apiName: 'projects',   label: 'プロジェクト' },
-    ],
+    navItems: [{ href: '/properties', label: '物件', icon: '🏠' }],
+    books: [{ apiName: 'properties', label: '物件' }],
     quickActions: [
       { label: '物件の新規作成', icon: '🏠', kind: 'create', href: '/properties/new', book: 'properties' },
       { label: '物件の一覧',     icon: '🏠', kind: 'list',   href: '/properties',     book: 'properties' },
+    ],
+  },
+  'projects': {
+    id: 'projects', name: 'プロジェクト管理', category: 'erp', dependsOn: ['crm-core'],
+    navItems: [{ href: '/projects', label: 'プロジェクト', icon: '🏗️' }],
+    books: [{ apiName: 'projects', label: 'プロジェクト' }],
+    quickActions: [
       { label: 'プロジェクトの新規作成', icon: '🏗️', kind: 'create', href: '/projects/new', book: 'projects' },
       { label: 'プロジェクトの一覧',     icon: '🏗️', kind: 'list',   href: '/projects',     book: 'projects' },
     ],

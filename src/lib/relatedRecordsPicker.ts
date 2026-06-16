@@ -32,7 +32,7 @@ const TYPED_LINK_TYPES: { api: string; label: string; icon: string; module: stri
   { api: 'staff',            label: 'スタッフ', icon: '🧑‍💼', module: 'staffing' },
   { api: 'assignment',       label: '案件',     icon: '📋',  module: 'staffing' },
   { api: 'wiki',             label: 'Wiki',     icon: '📖',  module: 'workspace' },
-  { api: 'project',          label: 'プロジェクト', icon: '🏗️', module: 'real-estate' },
+  { api: 'project',          label: 'プロジェクト', icon: '🏗️', module: 'projects' },
 ]
 
 export type IndustryPickerData = {

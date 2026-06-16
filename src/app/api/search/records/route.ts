@@ -13,9 +13,8 @@ import { db } from '@/lib/db'
 import {
   accounts, contacts, opportunities, book_definitions, book_records,
   maintenance_records, customer_vehicles, vehicles,
-  parts, products, staff, assignments, warehouses, wiki_pages,
+  parts, products, staff, assignments, warehouses, wiki_pages, projects,
 } from '@/lib/schema'
-import { projects } from '@/industries/real-estate/schema'
 import { ilike, notInArray, inArray, and, or, eq, desc, sql, type SQL } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'

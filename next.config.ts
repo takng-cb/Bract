@@ -75,17 +75,13 @@ const nextConfig: NextConfig = {
       { source: '/admin/objects',        destination: '/admin/books',        permanent: true },
     )
 
-    // properties / projects: real-estate のみ overlay。それ以外は /books/* へ
+    // properties: real-estate のみ overlay。それ以外は /books/properties へ
     if (industry !== 'real-estate') {
       rules.push(
         { source: '/properties/new',      destination: '/books/properties/new',       permanent: false },
         { source: '/properties/:id/edit', destination: '/books/properties/:id/edit',  permanent: false },
         { source: '/properties/:id',      destination: '/books/properties/:id',       permanent: false },
         { source: '/properties',          destination: '/books/properties',           permanent: false },
-        { source: '/projects/new',        destination: '/books/projects/new',         permanent: false },
-        { source: '/projects/:id/edit',   destination: '/books/projects/:id/edit',    permanent: false },
-        { source: '/projects/:id',        destination: '/books/projects/:id',         permanent: false },
-        { source: '/projects',            destination: '/books/projects',             permanent: false },
       )
     }
 

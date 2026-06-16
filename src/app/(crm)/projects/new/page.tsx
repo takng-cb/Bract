@@ -1,10 +1,45 @@
 import { notFound } from 'next/navigation'
+import { db } from '@/lib/db'
+import { accounts } from '@/lib/schema'
+import { eq, asc } from 'drizzle-orm'
+import Link from 'next/link'
+import ProjectForm from '@/components/ProjectForm'
+import { createProject } from '@/app/actions/projects'
+import { getAllUsers } from '@/lib/userUtils'
+import { requireEditor } from '@/lib/auth'
 import { isModuleEnabled } from '@/lib/modules/registry'
-import NewRealEstateProjectPage from '@/industries/real-estate/pages/projects/new/page'
-import { requireBookRead } from '@/lib/permissions'
+import { runCreate } from '@/lib/duplicateCheck'
+import type { CreateState } from '@/lib/duplicateTypes'
 
 export default async function NewProjectPage() {
-  await requireBookRead('projects')  // RBAC: Read 権限ガード（ADR-0023）
-  if (!(await isModuleEnabled('real-estate'))) notFound()
-  return <NewRealEstateProjectPage />
+  await requireEditor()
+  if (!(await isModuleEnabled('projects'))) notFound()
+  const [accountsList, users] = await Promise.all([
+    db.select({ id: accounts.id, name: accounts.name })
+      .from(accounts).where(eq(accounts.status, 'active')).orderBy(asc(accounts.name)),
+    getAllUsers(),
+  ])
+
+  async function action(_: CreateState, formData: FormData): Promise<CreateState> {
+    'use server'
+    return runCreate({
+      objectKey: 'projects',
+      objectLabel: 'プロジェクト',
+      formData,
+      create: () => createProject(formData),
+      redirectTo: (id) => `/projects/${id}`,
+    })
+  }
+
+  return (
+    <div className="p-4 md:p-8 max-w-2xl">
+      <div className="text-sm text-zinc-400 mb-4">
+        <Link href="/projects" className="hover:text-zinc-600">プロジェクト</Link>
+        <span className="mx-2">/</span>
+        <span className="text-zinc-700">新規追加</span>
+      </div>
+      <h1 className="text-2xl font-bold text-zinc-900 mb-6">プロジェクトを追加</h1>
+      <ProjectForm action={action} cancelHref="/projects" accounts={accountsList} users={users} />
+    </div>
+  )
 }

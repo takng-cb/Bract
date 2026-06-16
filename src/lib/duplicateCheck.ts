@@ -10,9 +10,9 @@
  */
 import { db } from '@/lib/db'
 import {
-  accounts, contacts, opportunities, assignments, vehicles, parts, book_records,
+  accounts, contacts, opportunities, assignments, vehicles, parts, book_records, projects,
 } from '@/lib/schema'
-import { properties, projects } from '@/industries/real-estate/schema'
+import { properties } from '@/industries/real-estate/schema'
 import { and, eq, sql } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { withSaveToast } from '@/lib/saveToast'
