@@ -44,6 +44,8 @@ import ActivityStream, { type StreamEvent } from '@/components/record/ActivitySt
 import RelatedSegments, { type RelatedSegment } from '@/components/record/RelatedSegments'
 import OpportunityProductsEditor, { type ProductOption } from '@/components/opportunity/OpportunityProductsEditor'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate, fmtTime, dayLabelInTz } from '@/lib/datetime'
 
 const OPPORTUNITY_STAGES: StageConfig[] = [
   { value: 'prospecting',   label: '見込み',   activeColor: '#71717a', pastColor: '#d4d4d8' },
@@ -144,6 +146,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   async function handleSummarize(from: string, to: string) { 'use server'; return summarizeOpportunity(id, from, to) }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const tz = await getAppTimeZone()
   // eslint-disable-next-line react-hooks/purity
   const NOW = Date.now()
 
@@ -179,14 +182,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   ]
 
   // ── activity stream ─────────────────────────────────────────────
-  const dayLabel = (d: Date) => {
-    const t0 = new Date(NOW); t0.setHours(0, 0, 0, 0)
-    const d0 = new Date(d); d0.setHours(0, 0, 0, 0)
-    const diff = Math.round((t0.getTime() - d0.getTime()) / 86400000)
-    if (diff === 0) return '今日'; if (diff === 1) return '昨日'
-    return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
-  }
-  const hm = (d: Date) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  const dayLabel = (d: Date) => dayLabelInTz(d, NOW, tz)
+  const hm = (d: Date) => fmtTime(d, tz)
   const stream: (StreamEvent & { sort: number })[] = []
   for (const a of activitiesList) {
     const d = a.occurred_at ? new Date(a.occurred_at) : a.created_at ? new Date(a.created_at) : null
@@ -296,7 +293,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 <tr key={f.id} className="hover:bg-zinc-50">
                   <td className="px-4 py-2.5 border-b border-zinc-100 font-semibold text-zinc-900"><a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">{f.file_name}</a></td>
                   <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{formatFileSize(f.file_size)}</td>
-                  <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</td>
+                  <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? fmtDate(f.created_at, tz) : ''}</td>
                   <td className="px-4 py-2.5 border-b border-zinc-100 text-right"><AuthGuard minRole="editor"><form action={deleteFile}><input type="hidden" name="attach_id" value={f.id} /><input type="hidden" name="storage_path" value={f.storage_path} /><button type="submit" className="text-xs text-rose-400 hover:text-rose-600">削除</button></form></AuthGuard></td>
                 </tr>
               ))}
@@ -364,7 +361,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 { label: isReal && opportunity.transaction_type === '賃貸' ? '月額賃料' : '金額', name: 'amount', kind: 'number', value: opportunity.amount != null ? String(opportunity.amount) : '', view: opportunity.amount ? `¥${Number(opportunity.amount).toLocaleString()}` : '—' },
                 { label: '確度', name: 'probability', kind: 'number', value: opportunity.probability != null ? String(opportunity.probability) : '', view: opportunity.probability != null ? `${opportunity.probability}%` : '—' },
                 { label: '担当者', name: 'owner_id', kind: 'select', value: opportunity.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
-                { label: '登録日', view: opportunity.created_at ? new Date(opportunity.created_at).toLocaleDateString('ja-JP') : '—' },
+                { label: '登録日', view: opportunity.created_at ? fmtDate(opportunity.created_at, tz) : '—' },
                 { label: '概要・メモ', name: 'description', kind: 'textarea', value: opportunity.description, fullWidth: true, view: opportunity.description ? opportunity.description : <span className="text-zinc-300">—</span> },
               ]}
             />

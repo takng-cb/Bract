@@ -3,7 +3,7 @@
  * UTC 保存値を指定タイムゾーンで整形できること・不正値/不正TZの扱いを検証。
  */
 import { describe, it, expect } from 'vitest'
-import { fmtDate, fmtDateTime, fmtTime, ymdInTz, isValidTimeZone, DEFAULT_TIMEZONE } from './datetime'
+import { fmtDate, fmtDateTime, fmtTime, ymdInTz, dayLabelInTz, isValidTimeZone, DEFAULT_TIMEZONE } from './datetime'
 
 // 2026-06-16T20:00:00Z = Asia/Tokyo(+9) で 2026-06-17 05:00
 const UTC = '2026-06-16T20:00:00Z'
@@ -50,6 +50,27 @@ describe('null/空の扱い', () => {
     expect(fmtDate(null)).toBe('—')
     expect(fmtDateTime(undefined)).toBe('—')
     expect(fmtTime('')).toBe('—')
+  })
+})
+
+describe('dayLabelInTz', () => {
+  // now = 2026-06-17 05:00 JST（UTC の 2026-06-16T20:00Z）
+  const NOW = new Date(UTC).getTime()
+  it('当日は「今日」', () => {
+    expect(dayLabelInTz('2026-06-17T01:00:00Z', NOW, 'Asia/Tokyo')).toBe('今日') // JST 10:00 同日
+  })
+  it('前日は「昨日」', () => {
+    expect(dayLabelInTz('2026-06-16T01:00:00Z', NOW, 'Asia/Tokyo')).toBe('昨日') // JST 6/16 10:00
+  })
+  it('それ以前は M月D日', () => {
+    expect(dayLabelInTz('2026-06-10T01:00:00Z', NOW, 'Asia/Tokyo')).toBe('6月10日')
+  })
+  it('タイムゾーンで判定が変わる', () => {
+    // now=6/16 20:00Z（JST 6/17 / UTC 6/16）。値 6/16 10:00Z は…
+    //   JST: 6/16 19:00 → JST の当日は 6/17 なので「昨日」
+    //   UTC: 6/16 → UTC の当日 6/16 と同じなので「今日」
+    expect(dayLabelInTz('2026-06-16T10:00:00Z', NOW, 'Asia/Tokyo')).toBe('昨日')
+    expect(dayLabelInTz('2026-06-16T10:00:00Z', NOW, 'UTC')).toBe('今日')
   })
 })
 

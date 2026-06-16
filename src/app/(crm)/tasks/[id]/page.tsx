@@ -19,6 +19,8 @@ import { SquareCheckBig, CalendarClock, UserRound, Check } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 import { RecordColumns, Badge, type BadgeTone } from '@/components/record/RecordUI'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate } from '@/lib/datetime'
 
 const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
   high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
@@ -46,6 +48,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     getRelatedRecordsPickerData('tasks'),
   ])
   const priority = PRIORITY_BADGE[task.priority] ?? PRIORITY_BADGE.medium
+  const tz = await getAppTimeZone()
   // eslint-disable-next-line react-hooks/purity
   const NOW = Date.now()
   const overdue = !task.done && task.due_date && new Date(task.due_date).getTime() < NOW
@@ -102,7 +105,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 { label: '期限', name: 'due_date', kind: 'date', value: task.due_date ? String(task.due_date).slice(0, 10) : '', view: task.due_date ? <span className={overdue ? 'text-rose-600 font-medium' : ''}>{new Date(task.due_date).toLocaleDateString('ja-JP')}{overdue && ' (超過)'}</span> : '—' },
                 { label: '優先度', name: 'priority', kind: 'select', value: task.priority, options: [{ value: 'high', label: '高' }, { value: 'medium', label: '中' }, { value: 'low', label: '低' }], view: priority.label },
                 { label: '担当', name: 'owner_id', kind: 'select', value: task.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
-                { label: '登録日', view: task.created_at ? new Date(task.created_at).toLocaleDateString('ja-JP') : '—' },
+                { label: '登録日', view: fmtDate(task.created_at, tz) },
               ]}
             />
 

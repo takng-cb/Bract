@@ -60,3 +60,17 @@ export function ymdInTz(value: Date | string | number, tz = DEFAULT_TIMEZONE): s
   // en-CA は YYYY-MM-DD 形式
   return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d)
 }
+
+/**
+ * アクティビティストリーム用の日付ラベル（指定タイムゾーン基準）。
+ * 今日 → 「今日」、昨日 → 「昨日」、それ以外 → 「M月D日」。
+ * @param nowMs 「今日」判定の基準時刻（呼び出し側で Date.now() を渡す。purity ルール回避のため引数化）
+ */
+export function dayLabelInTz(value: Date | string | number, nowMs: number, tz = DEFAULT_TIMEZONE): string {
+  const d = toDate(value)
+  if (!d) return '—'
+  const ymd = ymdInTz(d, tz)
+  if (ymd === ymdInTz(nowMs, tz)) return '今日'
+  if (ymd === ymdInTz(nowMs - 86400000, tz)) return '昨日'
+  return new Intl.DateTimeFormat(LOCALE, { timeZone: tz, month: 'long', day: 'numeric' }).format(d)
+}

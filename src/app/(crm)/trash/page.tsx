@@ -13,13 +13,15 @@ import { restoreTrashRecord, purgeTrashRecord } from '@/app/actions/trash'
 import { getUserLabels } from '@/lib/approvals'
 import PageHeader from '@/components/ui/PageHeader'
 import DeleteButton from '@/components/DeleteButton'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDateTime } from '@/lib/datetime'
 
 export default async function TrashPage() {
   const { rows, isAdmin, retention } = await listTrash()
   const userLabels = await getUserLabels(rows.map((r) => r.deleted_by ?? '').filter(Boolean))
+  const tz = await getAppTimeZone()
 
-  const fmt = (d: Date | null) =>
-    d ? new Date(d).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmt = (d: Date | null) => fmtDateTime(d, tz)
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">

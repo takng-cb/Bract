@@ -28,6 +28,8 @@ import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, RecordTable, RecordTa
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate, fmtTime, dayLabelInTz } from '@/lib/datetime'
 
 const PRIORITY_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
   high: { label: '高', tone: 'danger' }, medium: { label: '中', tone: 'warn' }, low: { label: '低', tone: 'pos' },
@@ -91,6 +93,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const tz = await getAppTimeZone()
   // eslint-disable-next-line react-hooks/purity
   const NOW = Date.now()
   const openTasks = tasksList.filter((t) => !t.done)
@@ -98,20 +101,14 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   const expSum = expensesList.reduce((s, e) => s + Number(e.amount), 0)
 
   const kpis: KpiItem[] = [
-    { icon: <Activity />, label: '活動', value: <>{activitiesList.length}<small> 件</small></>, sub: activitiesList[0]?.occurred_at ? `最終 ${new Date(activitiesList[0].occurred_at!).toLocaleDateString('ja-JP')}` : '—' },
+    { icon: <Activity />, label: '活動', value: <>{activitiesList.length}<small> 件</small></>, sub: activitiesList[0]?.occurred_at ? `最終 ${fmtDate(activitiesList[0].occurred_at, tz)}` : '—' },
     { icon: <SquareCheckBig />, label: '未完了ToDo', value: <>{openTasks.length}<small> 件</small></>, sub: overdue ? `期限超過 ${overdue}` : '期限内', subTone: overdue ? 'down' : 'mut' },
     { icon: <Receipt />, label: '経費', value: expSum ? `¥${expSum.toLocaleString()}` : '¥0', sub: `${expensesList.length} 件` },
   ]
 
   // ── stream ──────────────────────────────────────────────────────
-  const dayLabel = (d: Date) => {
-    const t0 = new Date(NOW); t0.setHours(0, 0, 0, 0)
-    const d0 = new Date(d); d0.setHours(0, 0, 0, 0)
-    const diff = Math.round((t0.getTime() - d0.getTime()) / 86400000)
-    if (diff === 0) return '今日'; if (diff === 1) return '昨日'
-    return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
-  }
-  const hm = (d: Date) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  const dayLabel = (d: Date) => dayLabelInTz(d, NOW, tz)
+  const hm = (d: Date) => fmtTime(d, tz)
   const stream: (StreamEvent & { sort: number })[] = []
   for (const a of activitiesList) {
     const d = a.occurred_at ? new Date(a.occurred_at) : a.created_at ? new Date(a.created_at) : null
@@ -165,7 +162,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             <tr key={f.id} className="hover:bg-zinc-50">
               <td className="px-4 py-2.5 border-b border-zinc-100 font-semibold text-zinc-900"><a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">{f.file_name}</a></td>
               <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{formatFileSize(f.file_size)}</td>
-              <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</td>
+              <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? fmtDate(f.created_at, tz) : ''}</td>
               <td className="px-4 py-2.5 border-b border-zinc-100 text-right"><AuthGuard minRole="editor"><form action={deleteFile}><input type="hidden" name="attach_id" value={f.id} /><input type="hidden" name="storage_path" value={f.storage_path} /><button type="submit" className="text-xs text-rose-400 hover:text-rose-600">削除</button></form></AuthGuard></td>
             </tr>
           ))}
@@ -191,7 +188,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           ...(isBiz && account ? [{ icon: <Building2 className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '取引先', value: account.name }] : []),
           ...(isBiz && [contact.title, contact.department].filter(Boolean).length > 0 ? [{ icon: <Briefcase className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, value: [contact.title, contact.department].filter(Boolean).join(' / ') }] : []),
           ...(ownerName ? [{ icon: <UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '担当', value: ownerName }] : []),
-          ...(contact.created_at ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '登録', value: new Date(contact.created_at).toLocaleDateString('ja-JP') }] : []),
+          ...(contact.created_at ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '登録', value: fmtDate(contact.created_at, tz) }] : []),
         ]}
         actions={
           <AuthGuard minRole="editor">
@@ -226,7 +223,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                 { label: 'メール', name: 'email', kind: 'email' as const, value: contact.email, view: contact.email ? <a href={`mailto:${contact.email}`} className="text-brand-700 hover:underline">{contact.email}</a> : '—' },
                 { label: '電話', name: 'phone', kind: 'tel' as const, value: contact.phone, view: contact.phone ?? '—' },
                 { label: '担当者', name: 'owner_id', kind: 'select' as const, value: contact.owner_id ?? '', options: allUsers.map((u) => ({ value: u.id, label: u.name })), view: ownerName ?? '—' },
-                { label: '登録日', view: contact.created_at ? new Date(contact.created_at).toLocaleDateString('ja-JP') : '—' },
+                { label: '登録日', view: contact.created_at ? fmtDate(contact.created_at, tz) : '—' },
                 { label: 'メモ', name: 'description', kind: 'textarea' as const, value: contact.description, fullWidth: true, view: contact.description ? contact.description : <span className="text-zinc-300">—</span> },
               ]}
             />

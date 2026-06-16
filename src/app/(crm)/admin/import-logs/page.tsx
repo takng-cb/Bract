@@ -4,6 +4,8 @@ import { requireAdmin } from '@/lib/auth'
 import { desc } from 'drizzle-orm'
 import PageHeader from '@/components/ui/PageHeader'
 import { NavIcon } from '@/lib/navIcon'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDateTime } from '@/lib/datetime'
 
 const ROUTE_LABELS: Record<string, string> = {
   '/api/import/properties':     '物件',
@@ -19,6 +21,7 @@ const ROUTE_LABELS: Record<string, string> = {
 
 export default async function AdminImportLogsPage() {
   await requireAdmin()
+  const tz = await getAppTimeZone()
 
   const logs = await db
     .select()
@@ -64,9 +67,7 @@ export default async function AdminImportLogsPage() {
                     )}
                   </div>
                   <span className="text-xs text-zinc-400">
-                    {log.created_at
-                      ? new Date(log.created_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
-                      : '—'}
+                    {fmtDateTime(log.created_at, tz)}
                   </span>
                 </div>
 

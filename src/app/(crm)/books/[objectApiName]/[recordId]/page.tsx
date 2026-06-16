@@ -23,6 +23,8 @@ import { evalFormula } from '@/lib/formulaEval'
 import { getActivityTypes } from '@/lib/activityTypes'
 import { NavIcon } from '@/lib/navIcon'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate, fmtDateTime } from '@/lib/datetime'
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   high:   { label: '高', color: 'text-red-600 bg-red-50' },
@@ -37,6 +39,7 @@ export default async function CustomRecordDetailPage({
 }) {
   const { objectApiName, recordId } = await params
   await requireBookRead(objectApiName)  // RBAC: Read 権限ガード（ADR-0023）
+  const tz = await getAppTimeZone()
 
   const [obj, edit, allUsers] = await Promise.all([
     getBookDef(objectApiName),
@@ -238,8 +241,8 @@ export default async function CustomRecordDetailPage({
           {record.owner_id && (
             <span>担当者: {allUsers.find((u) => u.id === record.owner_id)?.name ?? '—'}</span>
           )}
-          <span>作成: {record.created_at ? new Date(record.created_at).toLocaleString('ja-JP') : '—'}</span>
-          <span>更新: {record.updated_at ? new Date(record.updated_at).toLocaleString('ja-JP') : '—'}</span>
+          <span>作成: {fmtDateTime(record.created_at, tz)}</span>
+          <span>更新: {fmtDateTime(record.updated_at, tz)}</span>
         </div>
       </div>
       } />
@@ -303,7 +306,7 @@ export default async function CustomRecordDetailPage({
                   <p className="text-xs text-zinc-400 mt-0.5">
                     {ACTIVITY_TYPE_LABELS[act.type]?.label ?? act.type}
                     {act.occurred_at && (
-                      <> · {new Date(act.occurred_at).toLocaleDateString('ja-JP')}</>
+                      <> · {fmtDate(act.occurred_at, tz)}</>
                     )}
                   </p>
                   {act.body && <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{act.body}</p>}

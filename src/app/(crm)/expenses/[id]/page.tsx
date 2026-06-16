@@ -22,6 +22,8 @@ import { RecordColumns, Badge, type BadgeTone } from '@/components/record/Record
 import { requireBookRead } from '@/lib/permissions'
 import ApprovalSection from '@/components/approvals/ApprovalSection'
 import { hasPendingApproval } from '@/lib/approvals'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate } from '@/lib/datetime'
 
 const CATEGORIES = ['交通費', '接待費', '通信費', '消耗品費', '広告費', '外注費', 'その他']
 const CATEGORY_TONE: Record<string, BadgeTone> = {
@@ -31,6 +33,7 @@ const CATEGORY_TONE: Record<string, BadgeTone> = {
 export default async function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireBookRead('expenses')  // RBAC: Read 権限ガード（ADR-0023）
   const { id } = await params
+  const tz = await getAppTimeZone()
 
   const [expense, relatedPairs] = await Promise.all([
     db.select({
@@ -108,7 +111,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
                 { label: '支払先', name: 'vendor', kind: 'text', value: expense.vendor ?? '', view: expense.vendor ?? '—' },
                 { label: '税率', name: 'tax_rate', kind: 'number', value: expense.tax_rate != null ? String(expense.tax_rate) : '', view: expense.tax_rate != null ? `${Number(expense.tax_rate)}%` : '—' },
                 { label: 'インボイス登録番号', name: 'invoice_reg_no', kind: 'text', value: expense.invoice_reg_no ?? '', view: expense.invoice_reg_no ?? '—' },
-                { label: '登録日', view: expense.created_at ? new Date(expense.created_at).toLocaleDateString('ja-JP') : '—' },
+                { label: '登録日', view: fmtDate(expense.created_at, tz) },
               ]}
             />
 

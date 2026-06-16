@@ -33,6 +33,8 @@ import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
 import RelatedSegments, { type RelatedSegment } from '@/components/record/RelatedSegments'
 import { requireBookRead } from '@/lib/permissions'
+import { getAppTimeZone } from '@/lib/systemSettings'
+import { fmtDate, fmtTime, dayLabelInTz } from '@/lib/datetime'
 
 const ACCOUNT_TYPES = ['顧客', '見込み客', 'パートナー', '競合他社', 'その他']
 const ACCOUNT_INDUSTRIES = [
@@ -113,6 +115,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   const ownerName = account.owner_id ? (allUsers.find((u) => u.id === account.owner_id)?.name ?? null) : null
 
   // ── KPI band ────────────────────────────────────────────────────
+  const tz = await getAppTimeZone()
   // eslint-disable-next-line react-hooks/purity
   const NOW = Date.now()
   const openOpps = opportunitiesList.filter((o) => OPEN_STAGES.has(o.stage))
@@ -125,19 +128,12 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     { icon: <TrendingUp />, label: '進行中商談', value: <>{openOpps.length}<small> 件</small></>, sub: openOppSum ? `想定 ¥${openOppSum.toLocaleString()}` : '—', subTone: 'up' },
     { icon: <UserRound />, label: '人物', value: <>{contactsList.length}<small> 名</small></>, sub: '紐づく連絡先' },
     { icon: <SquareCheckBig />, label: '未完了ToDo', value: <>{openTasks.length}<small> 件</small></>, sub: overdue ? `期限超過 ${overdue}` : '期限内', subTone: overdue ? 'down' : 'mut' },
-    { icon: <Activity />, label: '活動', value: <>{activitiesList.length}<small> 件</small></>, sub: lastActivity ? `最終 ${new Date(lastActivity).toLocaleDateString('ja-JP')}` : '—' },
+    { icon: <Activity />, label: '活動', value: <>{activitiesList.length}<small> 件</small></>, sub: lastActivity ? `最終 ${fmtDate(lastActivity, tz)}` : '—' },
   ]
 
   // ── activity stream（活動 / ToDo / 経費 / 履歴 を統合）──────────────
-  const dayLabel = (d: Date) => {
-    const t0 = new Date(NOW); t0.setHours(0, 0, 0, 0)
-    const d0 = new Date(d); d0.setHours(0, 0, 0, 0)
-    const diff = Math.round((t0.getTime() - d0.getTime()) / 86400000)
-    if (diff === 0) return '今日'
-    if (diff === 1) return '昨日'
-    return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })
-  }
-  const hm = (d: Date) => d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  const dayLabel = (d: Date) => dayLabelInTz(d, NOW, tz)
+  const hm = (d: Date) => fmtTime(d, tz)
 
   const stream: (StreamEvent & { sort: number })[] = []
   for (const a of activitiesList) {
@@ -259,7 +255,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 <tr key={f.id} className="hover:bg-zinc-50">
                   <td className="px-4 py-2.5 border-b border-zinc-100 font-semibold text-zinc-900"><a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">{f.file_name}</a></td>
                   <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{formatFileSize(f.file_size)}</td>
-                  <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? new Date(f.created_at).toLocaleDateString('ja-JP') : ''}</td>
+                  <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? fmtDate(f.created_at, tz) : ''}</td>
                   <td className="px-4 py-2.5 border-b border-zinc-100 text-right">
                     <AuthGuard minRole="editor"><form action={deleteFile}><input type="hidden" name="attach_id" value={f.id} /><input type="hidden" name="storage_path" value={f.storage_path} /><button type="submit" className="text-xs text-rose-400 hover:text-rose-600">削除</button></form></AuthGuard>
                   </td>
@@ -295,7 +291,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
         meta={[
           ...(industryLabel ? [{ icon: <Factory className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '業種', value: industryLabel }] : []),
           ...(ownerName ? [{ icon: <UserRound className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '担当', value: ownerName }] : []),
-          ...(account.created_at ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '登録', value: new Date(account.created_at).toLocaleDateString('ja-JP') }] : []),
+          ...(account.created_at ? [{ icon: <CalendarDays className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />, label: '登録', value: fmtDate(account.created_at, tz) }] : []),
         ]}
         actions={
           <AuthGuard minRole="editor">
