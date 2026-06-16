@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db'
 import { trashRecord } from '@/lib/trash'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { parts, part_movements } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -100,6 +101,7 @@ export async function deletePart(id: string) {
   await requirePermission('parts', 'delete')
   await assertNotPendingApproval('parts', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('parts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
+  await cleanupRecordLinksForParent('part', id)
   await db.delete(parts).where(eq(parts.id, id))  // cascade で part_movements も削除
   revalidatePath('/parts')
   redirect(withSaveToast('/parts', 'deleted'))

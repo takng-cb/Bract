@@ -7,6 +7,7 @@
  */
 import { db } from '@/lib/db'
 import { trashRecord } from '@/lib/trash'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { wiki_pages, change_logs } from '@/lib/schema'
 import { eq, and } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
@@ -108,6 +109,7 @@ export async function deleteWikiPage(id: string): Promise<void> {
   await requirePermission('wiki_pages', 'delete')
   await trashRecord('wiki_pages', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   // 子ページの parent_id は FK の ON DELETE SET NULL で自動的に NULL になる
+  await cleanupRecordLinksForParent('wiki', id)
   await db.delete(wiki_pages).where(eq(wiki_pages.id, id))
   revalidatePath('/wiki')
   redirect(withSaveToast('/wiki', 'deleted'))

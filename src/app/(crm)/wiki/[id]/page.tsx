@@ -13,6 +13,7 @@ import RecordHeader, { type Crumb } from '@/components/RecordHeader'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import MarkdownView from '@/components/MarkdownView'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import { extractHeadings } from '@/lib/markdownToc'
 import { resolveWikiLinks } from '@/lib/wiki'
 import { deleteWikiPage } from '@/app/actions/wiki'
@@ -139,6 +140,8 @@ export default async function WikiDetailPage({ params }: { params: Promise<{ id:
           </ul>
         </div>
       )}
+
+      <div className="mb-6"><RecordLinksSection selfApi="wiki" selfId={id} /></div>
 
       <div className="mt-6 text-right text-xs text-zinc-400 font-mono">
         <NavIcon icon="📖" className="w-3 h-3 inline mr-1" />{id}

@@ -5,6 +5,7 @@
  */
 import { db } from '@/lib/db'
 import { trashRecord } from '@/lib/trash'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { assignments, assignment_staff, accounts } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -129,6 +130,7 @@ export async function deleteAssignment(id: string) {
   await requirePermission('assignments', 'delete')
   await assertNotPendingApproval('assignments', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('assignments', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
+  await cleanupRecordLinksForParent('assignment', id)
   await db.delete(assignments).where(eq(assignments.id, id))
   revalidatePath('/assignments')
   redirect(withSaveToast('/assignments', 'deleted'))

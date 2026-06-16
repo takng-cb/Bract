@@ -12,6 +12,7 @@ import { activityIdsRelatedTo, taskIdsRelatedTo, expenseIdsRelatedTo } from '@/l
 import { eq, or, ne, asc, desc, and, inArray } from 'drizzle-orm'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import { Package, Users, Wallet, UserCheck, Send, FileText, Activity } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
@@ -170,6 +171,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
             ...(a.raw_message ? [{ id: 'raw', label: '依頼原文', icon: <FileText />, content: <div className="px-4 py-4"><p className="text-sm text-zinc-600 whitespace-pre-wrap">{a.raw_message}</p></div> }] : []),
           ]}
         />
+        <div className="mt-4"><RecordLinksSection selfApi="assignment" selfId={id} /></div>
         <div className="mt-4 text-right"><RecordId id={id} /></div>
       </RecordColumns>
     </div>

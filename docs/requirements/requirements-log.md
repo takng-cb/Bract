@@ -484,7 +484,9 @@
 - 2026-06-16 / 会話（「関連先の選択機能を AI 検索の UI に寄せたい」「商談などのレコードページに関連レコード設定 UI が無い→同じ仕組みに」「/tasks/new で車両名検索が効かない」）
 - 内容：① RelatedRecordsPicker を**統一検索ボックス＋カード**へ刷新（許可種別を横断検索／実装済み）。② 在庫車両(vehicle)を関連先・横断検索に追加（実装済み 41218a1）。③ **任意レコード↔任意レコードの汎用リンク** `record_links` を新設し、どの詳細ページからも事前定義なしで関連付け可能にする（既存の `*_related_records` junction と `relationship_*` は役割が違うため残置）。
 - 設計：`record_links(id, a_object_api, a_record_id, b_object_api, b_record_id, created_by, created_at)`。双方向を `object_api:id` 昇順で正規化して 1 行（unique）、両端 index、FK なし（多態性・アプリ層で掃除）、冪等マイグレを全 Neon へ（base は破棄予定のため対象外）。ER 図＋詳細は docs/data-model.md。
-- 状態：①②③ 実装済み（feature/record-links）。詳細ページ「関連先」セクションを accounts/contacts/opportunities/vehicles/books[api] に設置。lib/recordLinks・actions/recordLinks・RecordLinksEditor/Section。親削除時の掃除あり。tsc/eslint/3業種ビルド緑、dev に migration 20260616120000 適用・check:schema 緑（57テーブル）。**未了**：real-estate/auto-body Neon への migration 適用（merge 前提）。
+- 状態：①②③ 完了・本番反映済み。migration 20260616120000 を dev/real-estate/auto-body に適用（base は破棄）。詳細ページ「関連先」を **取引先/人物/商談/車両/物件/整備/顧客車両/部品/商品/スタッフ/案件/在庫/Wiki/全カスタム** に設置（全主要レコード型を双方向対応）。
+- 拡張（2026-06-16）：専用テーブル系（part/product/staff/assignment/warehouse/wiki）を汎用リンクのエンドポイント化＝resolveRelatedRecords＋/api/search/records＋picker（getIndustryPickerData を**有効モジュール基準**へ刷新：auto-body/inventory/staffing/workspace で出し分け）＋recordHref＋recordLinks.bookForObjectApi を拡張。検索は名前＋主要コード（part_number/sku/assignment_no/warehouse code/staff name_kana・email）。親削除時の record_links 掃除を accounts/contacts/opportunities/customRecords/vehicles/inventory/wiki/parts/assignments/staff に実装。
+- サイドバー（REQ-0079 連動）：`--color-side*`/`--side-*` を brand-800 由来 color-mix にしてアクセント色の濃いトーンに連動（Sidebar/MobileNav、ライト/ダーク共通）。
 
 ### REQ-0079  ユーザーごとのテーマ（カラープリセット＋ライト/ダーク）
 - 2026-06-16 / 会話（「ユーザーごとにテーマカラーを変える機能がほしい」→ プリセット＋ダーク対応）
