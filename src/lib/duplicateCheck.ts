@@ -10,7 +10,7 @@
  */
 import { db } from '@/lib/db'
 import {
-  accounts, contacts, opportunities, assignments, vehicles, parts, book_records,
+  accounts, contacts, opportunities, assignments, vehicles, parts, book_records, projects,
 } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { and, eq, sql } from 'drizzle-orm'
@@ -98,6 +98,14 @@ const RULES: Record<string, (fd: FormData) => Promise<DupCandidate[]>> = {
     const rows = await db.select({ id: properties.id, name: properties.name }).from(properties)
       .where(eq(sql`lower(${properties.name})`, name.toLowerCase())).limit(LIMIT)
     return rows.map((r) => ({ id: r.id, label: r.name, href: `/properties/${r.id}` }))
+  },
+
+  projects: async (fd) => {
+    const name = s(fd, 'name')
+    if (!name) return []
+    const rows = await db.select({ id: projects.id, name: projects.name }).from(projects)
+      .where(eq(sql`lower(${projects.name})`, name.toLowerCase())).limit(LIMIT)
+    return rows.map((r) => ({ id: r.id, label: r.name, href: `/projects/${r.id}` }))
   },
 }
 

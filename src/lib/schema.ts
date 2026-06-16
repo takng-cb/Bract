@@ -1059,6 +1059,33 @@ export const record_links = pgTable('record_links', {
 ])
 
 // ----------------------------------------------------------------
+// projects（プロジェクト管理モジュール。REQ-0080）
+//   用地取得〜開発〜販売/引渡を束ねる案件単位。商談を参考にした専用画面で扱う。
+//   inventory 同様の ERP モジュール（業種非依存。enabled_modules で ON/OFF）。
+// ----------------------------------------------------------------
+export const projects = pgTable('projects', {
+  id:               uuid('id').primaryKey().defaultRandom(),
+  name:             text('name').notNull(),
+  status:           text('status').notNull().default('計画'),                // PROJECT_STAGES
+  project_type:     text('project_type'),
+  account_id:       uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
+  contact_id:       uuid('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  location:         text('location'),
+  start_date:       date('start_date'),
+  end_date:         date('end_date'),
+  budget:           numeric('budget'),
+  expected_revenue: numeric('expected_revenue'),
+  actual_cost:      numeric('actual_cost').notNull().default('0'),
+  description:      text('description'),
+  owner_id:         uuid('owner_id'),
+  created_at:       timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('projects_account_idx').on(t.account_id),
+  index('projects_status_idx').on(t.status),
+])
+
+// ----------------------------------------------------------------
 // import_logs（インポート実行ログ）
 // ----------------------------------------------------------------
 export const import_logs = pgTable('import_logs', {

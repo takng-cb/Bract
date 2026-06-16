@@ -114,6 +114,15 @@ export const MODULE_REGISTRY: Record<string, ModuleManifest> = {
       { label: '物件の一覧',     icon: '🏠', kind: 'list',   href: '/properties',     book: 'properties' },
     ],
   },
+  'projects': {
+    id: 'projects', name: 'プロジェクト管理', category: 'erp', dependsOn: ['crm-core'],
+    navItems: [{ href: '/projects', label: 'プロジェクト', icon: '🏗️' }],
+    books: [{ apiName: 'projects', label: 'プロジェクト' }],
+    quickActions: [
+      { label: 'プロジェクトの新規作成', icon: '🏗️', kind: 'create', href: '/projects/new', book: 'projects' },
+      { label: 'プロジェクトの一覧',     icon: '🏗️', kind: 'list',   href: '/projects',     book: 'projects' },
+    ],
+  },
   'auto-body': {
     id: 'auto-body', name: '板金・自動車整備', category: 'industry',
     dependsOn: ['crm-core', 'sales'], industry: 'auto-body',

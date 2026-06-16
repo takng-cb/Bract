@@ -40,6 +40,7 @@ export function bookForObjectApi(objectApi: string): string {
     case 'assignment':       return 'assignments'
     case 'warehouse':        return 'warehouses'
     case 'wiki':             return 'wiki_pages'
+    case 'project':          return 'projects'
     default:                 return objectApi // カスタムブックは api_name そのもの
   }
 }

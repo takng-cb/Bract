@@ -21,7 +21,7 @@ import {
   book_records, book_definitions,
   activity_related_records, task_related_records, expense_related_records,
   maintenance_records, customer_vehicles, assignments, vehicles,
-  parts, products, staff, warehouses, wiki_pages,
+  parts, products, staff, warehouses, wiki_pages, projects,
 } from '@/lib/schema'
 import { inArray, eq, and } from 'drizzle-orm'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
@@ -181,6 +181,7 @@ const STANDARD_META: Record<string, { icon: string; hrefPrefix: string }> = {
   staff:              { icon: '🧑‍💼', hrefPrefix: '/staff/' },
   warehouse:          { icon: '🏬', hrefPrefix: '/warehouses/' },
   wiki:               { icon: '📖', hrefPrefix: '/wiki/' },
+  project:            { icon: '🏗️', hrefPrefix: '/projects/' },
 }
 
 /**
@@ -371,6 +372,16 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
       db.select({ id: wiki_pages.id, title: wiki_pages.title })
         .from(wiki_pages).where(inArray(wiki_pages.id, [...wikiIds]))
         .then((rows) => { for (const r of rows) setLabel('wiki', r.id, r.title || 'Wiki') })
+    )
+  }
+
+  // プロジェクト（real-estate）
+  const projectIds = idsByApi.get('project')
+  if (projectIds && projectIds.size > 0) {
+    fetches.push(
+      db.select({ id: projects.id, name: projects.name })
+        .from(projects).where(inArray(projects.id, [...projectIds]))
+        .then((rows) => { for (const r of rows) setLabel('project', r.id, r.name || 'プロジェクト') })
     )
   }
 
