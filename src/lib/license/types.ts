@@ -25,6 +25,7 @@ export type FeatureFlag =
   | 'line_integration'   // LINE 連携
   | 'extra_industries'   // 追加業種（複数業種利用）
   | 'custom_documents'   // カスタム帳票
+  | 'plaud_import'       // PLAUD Note 共有リンク取り込み（#143）
 
 /** ライセンスの features オブジェクト */
 export type LicenseFeatures = {
@@ -32,6 +33,7 @@ export type LicenseFeatures = {
   line_integration?:  boolean
   extra_industries?:  string[]                  // ['real-estate'] など
   custom_documents?:  boolean
+  plaud_import?:      boolean                   // PLAUD Note 共有リンク取り込み（#143）
   max_users?:         number | null              // null = 無制限
   max_storage_mb?:    number | null
   // ── モジュール合成（#10 / ADR-0005/0016）。上限と表示を分離 ──

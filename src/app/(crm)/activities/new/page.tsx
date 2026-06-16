@@ -12,6 +12,7 @@ import { getAllUsers } from '@/lib/userUtils'
 import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import type { RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 import { requireBookRead } from '@/lib/permissions'
+import { hasFeature } from '@/lib/license'
 
 const FORM_ID = 'record-create-form'
 
@@ -35,11 +36,12 @@ export default async function NewActivityPage({
   await requireEditor()
 
   // Picker の選択肢（ブック一覧）。レコード本体はオンデマンド検索（/api/search/records）
-  const [pickerData, activityTypes, users, currentUserId] = await Promise.all([
+  const [pickerData, activityTypes, users, currentUserId, plaudEnabled] = await Promise.all([
     getRelatedRecordsPickerData('activities'),
     getActivityTypes(),
     getAllUsers(),
     getCurrentUserId(),
+    hasFeature('plaud_import'),
   ])
   const objectTypes = pickerData.objectTypes
 
@@ -117,6 +119,7 @@ export default async function NewActivityPage({
         activityTypes={activityTypes}
         users={users}
         formId={FORM_ID}
+        plaudEnabled={plaudEnabled}
         defaultValues={{
           related_records: defaultRelated,
           owner_id:        currentUserId ?? null,

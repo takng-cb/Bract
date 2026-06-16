@@ -12,6 +12,7 @@
 import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import FormFillModal from '@/components/FormFillModal'
+import PlaudImportButton from '@/components/PlaudImportButton'
 import SearchableSelect from '@/components/SearchableSelect'
 import CreateInfoCard from '@/components/create/CreateInfoCard'
 import { RecordColumns } from '@/components/record/RecordUI'
@@ -37,6 +38,8 @@ type ActivityFormProps = {
   users:           { id: string; name: string }[]
   /** ページヘッダの保存ボタンと紐付ける form id */
   formId?: string
+  /** PLAUD 取り込み機能の有効可否（コンテナ別フラグ plaud_import。サーバ側で hasFeature 判定） */
+  plaudEnabled?: boolean
   defaultValues?: {
     type?:            string
     subject?:         string
@@ -59,6 +62,7 @@ export default function ActivityForm({
   users,
   defaultValues = {},
   formId = 'record-create-form',
+  plaudEnabled = false,
 }: ActivityFormProps) {
   // 表示用に value→label / label→value Map を作成（FormFillModal で使用）
   const typeValueToLabel: Record<string, string> = {}
@@ -75,14 +79,17 @@ export default function ActivityForm({
     .toISOString()
     .slice(0, 16)
 
-  // 「テキストから入力」（全フィールドを1フォームに流し込むため、どのカードからでも同じ動作）
+  // 「テキストから入力」＋（有効時）「PLAUD取込」。全フィールドを1フォームに流し込む。
   const fillButton = (
-    <FormFillModal
-      formRef={formRef}
-      csvFormat="種別,件名,内容,日時"
-      fieldMap={{ '種別': 'type', '件名': 'subject', '内容': 'body', '日時': 'occurred_at' }}
-      valueMap={{ type: labelToValue }}
-    />
+    <div className="flex items-center gap-1.5">
+      {plaudEnabled && <PlaudImportButton formRef={formRef} />}
+      <FormFillModal
+        formRef={formRef}
+        csvFormat="種別,件名,内容,日時"
+        fieldMap={{ '種別': 'type', '件名': 'subject', '内容': 'body', '日時': 'occurred_at' }}
+        valueMap={{ type: labelToValue }}
+      />
+    </div>
   )
 
   return (
