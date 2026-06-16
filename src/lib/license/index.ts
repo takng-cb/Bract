@@ -58,6 +58,9 @@ function envOverride(flag: FeatureFlag): boolean | null {
       return parseEnvBool(process.env.AI_FEATURE_ENABLED)
     case 'line_integration':
       return parseEnvBool(process.env.LINE_FEATURE_ENABLED)
+    case 'plaud_import':
+      // env で即 ON/OFF（dev 検証・kill switch 用）。未設定なら DB の license に従う
+      return parseEnvBool(process.env.PLAUD_IMPORT_ENABLED)
     default:
       return null  // env override なし → DB の値をそのまま使う
   }
