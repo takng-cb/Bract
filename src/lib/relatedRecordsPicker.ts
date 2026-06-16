@@ -39,6 +39,7 @@ export async function getIndustryPickerData(): Promise<IndustryPickerData> {
     industryObjectTypes: [
       { api: 'maintenance',      label: '整備' },
       { api: 'customer-vehicle', label: '顧客車両' },
+      { api: 'vehicle',          label: '車両' },
     ],
     industryRecordsByObject: {},
   }

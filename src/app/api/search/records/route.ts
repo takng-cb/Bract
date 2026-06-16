@@ -12,7 +12,7 @@
 import { db } from '@/lib/db'
 import {
   accounts, contacts, opportunities, book_definitions, book_records,
-  maintenance_records, customer_vehicles,
+  maintenance_records, customer_vehicles, vehicles,
 } from '@/lib/schema'
 import { ilike, notInArray, inArray, and, or, eq, desc, sql, type SQL } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
@@ -32,6 +32,7 @@ function normalize(objectType: string): string {
     contact: 'contacts', contacts: 'contacts',
     opportunity: 'opportunities', opportunities: 'opportunities',
     maintenance: 'maintenance', 'customer-vehicle': 'customer-vehicle',
+    vehicle: 'vehicle', vehicles: 'vehicle',
   }
   return map[objectType] ?? objectType
 }
@@ -40,6 +41,7 @@ function normalize(objectType: string): string {
 function bookFor(normalized: string): string {
   if (normalized === 'maintenance') return 'maintenance_records'
   if (normalized === 'customer-vehicle') return 'customer_vehicles'
+  if (normalized === 'vehicle') return 'vehicles'
   return normalized
 }
 
@@ -174,6 +176,31 @@ export async function GET(req: NextRequest) {
         results = rows.map((v) => ({
           id: v.id,
           label: [v.plate_number ?? '—', v.car_model, v.account_name].filter(Boolean).join(' / '),
+        }))
+        break
+      }
+
+      case 'vehicle': {
+        const conds: (SQL | undefined)[] = [
+          q ? or(
+            ilike(vehicles.maker, pattern),
+            ilike(vehicles.model, pattern),
+            ilike(vehicles.license_plate, pattern),
+            ilike(vehicles.vin, pattern),
+          ) : undefined,
+          excludeIds.length > 0 ? notInArray(vehicles.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(vehicles.id, ids) : undefined,
+        ]
+        const rows = await db
+          .select({ id: vehicles.id, maker: vehicles.maker, model: vehicles.model, license_plate: vehicles.license_plate })
+          .from(vehicles)
+          .where(and(...conds.filter(Boolean) as SQL[]))
+          .orderBy(desc(vehicles.updated_at))
+          .limit(limit)
+        results = rows.map((v) => ({
+          id: v.id,
+          label: [v.maker, v.model].filter(Boolean).join(' '),
+          sub: v.license_plate ?? undefined,
         }))
         break
       }
