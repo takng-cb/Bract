@@ -21,6 +21,9 @@ import { NavIcon } from '@/lib/navIcon'
 import MonthCalendar, { type CalendarEvent } from '@/components/MonthCalendar'
 import { List as ListIcon, CalendarDays } from 'lucide-react'
 import { requireBookRead } from '@/lib/permissions'
+import { hasFeature } from '@/lib/license'
+import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
+import PlaudMultiImport from '@/components/PlaudMultiImport'
 
 const PAGE_SIZE = 20
 
@@ -42,8 +45,9 @@ export default async function ActivitiesPage({
   await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('activities', uid) : null)
-  const [sp, edit, colConfig, , activityTypes, dv] = await Promise.all([
+  const [sp, edit, colConfig, , activityTypes, dv, plaudEnabled, pickerData] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('activities'), userIdPromise, getActivityTypes(), dvPromise,
+    hasFeature('plaud_import'), getRelatedRecordsPickerData('activities'),
   ])
 
   const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
@@ -267,6 +271,7 @@ export default async function ActivitiesPage({
               { value: 'occurred_at', label: '実施日', type: 'date' },
             ]}
           />
+          {edit && plaudEnabled && <PlaudMultiImport objectTypes={pickerData.objectTypes} />}
           {edit && (
             <Link
               href="/activities/new"
