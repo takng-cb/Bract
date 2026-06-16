@@ -15,8 +15,7 @@ import Pagination from '@/components/Pagination'
 import { canEdit } from '@/lib/auth'
 import { requireBookRead } from '@/lib/permissions'
 import { NavIcon } from '@/lib/navIcon'
-import { PROJECT_STAGES } from '@/lib/statusStages'
-import { PROJECT_TYPES } from '@/components/ProjectForm'
+import { PROJECT_STAGES, PROJECT_TYPES } from '@/lib/statusStages'
 
 const PAGE_SIZE = 20
 const STATUS_VALUES = PROJECT_STAGES.map((s) => s.value)
