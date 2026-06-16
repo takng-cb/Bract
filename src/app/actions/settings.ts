@@ -105,7 +105,9 @@ export async function saveSystemSettings(
     'session_timeout_minutes',
     'allow_self_registration',
     'fiscal_year_start',
+    'timezone',
   ]
+  const { isValidTimeZone } = await import('@/lib/datetime')
 
   try {
     for (const key of keys) {
@@ -128,6 +130,9 @@ export async function saveSystemSettings(
         const n = parseInt(value, 10)
         if (isNaN(n) || n < 1 || n > 12)
           return 'error:会計年度開始月は1〜12の範囲で設定してください'
+      }
+      if (key === 'timezone' && !isValidTimeZone(value)) {
+        return 'error:不正なタイムゾーンです'
       }
 
       await db.insert(system_settings)

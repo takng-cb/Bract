@@ -5,6 +5,12 @@ import { saveSystemSettings } from '@/app/actions/settings'
 import { NavIcon } from '@/lib/navIcon'
 import { useActionToast } from '@/components/Toast'
 
+const TIMEZONES = [
+  'Asia/Tokyo', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Bangkok',
+  'Asia/Kolkata', 'Asia/Dubai', 'Australia/Sydney', 'Europe/London', 'Europe/Paris',
+  'America/New_York', 'America/Los_Angeles', 'UTC',
+] as const
+
 type Props = {
   current: {
     company_name:            string
@@ -12,6 +18,7 @@ type Props = {
     session_timeout_minutes: string
     allow_self_registration: string
     fiscal_year_start:       string
+    timezone:                string
   }
 }
 
@@ -63,6 +70,18 @@ export default function SystemSettingsForm({ current }: Props) {
                 <option key={i + 1} value={String(i + 1)}>{i + 1}月</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">タイムゾーン</label>
+            <select
+              name="timezone"
+              defaultValue={current.timezone}
+              className="border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+            </select>
+            <p className="text-xs text-zinc-400 mt-1">作成日時・活動日時などの表示に使うタイムゾーンです（既定: Asia/Tokyo）</p>
           </div>
         </div>
 
