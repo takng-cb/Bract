@@ -16,6 +16,7 @@ import {
   CreditCard, Boxes, Paperclip, Eye, MousePointer2, Search, FlaskConical,
   Folder, Hash, Warehouse, Repeat, BookOpen, SlidersHorizontal, Bolt, Store, StickyNote,
   Trash2, Droplet, BatteryFull, LifeBuoy, Octagon, CloudRain, KeyRound, Microscope, Mailbox, FileStack,
+  FolderKanban,
 } from 'lucide-react'
 
 /** 絵文字 → Lucide コンポーネント（design_handoff/README.md「Icon Map」準拠） */
@@ -24,6 +25,7 @@ export const EMOJI_TO_LUCIDE: Record<string, LucideIcon> = {
   '✅': SquareCheckBig,  // ToDo
   '🎫': Ticket,          // チケット/タグ
   '🏠': House,           // 物件 properties（家）
+  '🏗️': FolderKanban,    // プロジェクト projects（プロジェクト管理）
   '🏢': Building2,       // 取引先 accounts（ビル）
   '🏷️': Tag,             // タグ
   '👤': User,            // ユーザー/担当
