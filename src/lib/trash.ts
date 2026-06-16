@@ -31,6 +31,7 @@ export const TRASH_TABLES: Record<string, string> = {
   parts:               '部品',
   vehicles:            '車両',
   properties:          '物件',
+  projects:            'プロジェクト',
   assignments:         '案件',
   staff:               'スタッフ',
   book_records:      'カスタムレコード',

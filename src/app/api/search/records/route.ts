@@ -15,6 +15,7 @@ import {
   maintenance_records, customer_vehicles, vehicles,
   parts, products, staff, assignments, warehouses, wiki_pages,
 } from '@/lib/schema'
+import { projects } from '@/industries/real-estate/schema'
 import { ilike, notInArray, inArray, and, or, eq, desc, sql, type SQL } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
@@ -40,6 +41,7 @@ function normalize(objectType: string): string {
     assignment: 'assignment', assignments: 'assignment',
     warehouse: 'warehouse', warehouses: 'warehouse',
     wiki: 'wiki', wiki_pages: 'wiki',
+    project: 'project', projects: 'project',
   }
   return map[objectType] ?? objectType
 }
@@ -54,6 +56,7 @@ function bookFor(normalized: string): string {
   if (normalized === 'assignment') return 'assignments'
   if (normalized === 'warehouse') return 'warehouses'
   if (normalized === 'wiki') return 'wiki_pages'
+  if (normalized === 'project') return 'projects'
   return normalized
 }
 
@@ -286,6 +289,18 @@ export async function GET(req: NextRequest) {
         const rows = await db.select({ id: wiki_pages.id, title: wiki_pages.title })
           .from(wiki_pages).where(and(...conds.filter(Boolean) as SQL[])).orderBy(desc(wiki_pages.updated_at)).limit(limit)
         results = rows.map((r) => ({ id: r.id, label: r.title }))
+        break
+      }
+
+      case 'project': {
+        const conds: (SQL | undefined)[] = [
+          q ? or(ilike(projects.name, pattern), ilike(projects.location, pattern)) : undefined,
+          excludeIds.length > 0 ? notInArray(projects.id, excludeIds) : undefined,
+          ids.length > 0 ? inArray(projects.id, ids) : undefined,
+        ]
+        const rows = await db.select({ id: projects.id, name: projects.name, status: projects.status })
+          .from(projects).where(and(...conds.filter(Boolean) as SQL[])).orderBy(desc(projects.updated_at)).limit(limit)
+        results = rows.map((r) => ({ id: r.id, label: r.name, sub: r.status ?? undefined }))
         break
       }
 

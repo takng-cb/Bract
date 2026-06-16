@@ -6,7 +6,7 @@ import { eq, and } from 'drizzle-orm'
 import { addTagToObject, removeTagFromObject } from '@/app/actions/tags'
 
 type Props = {
-  objectType: 'account' | 'contact' | 'opportunity' | 'property'
+  objectType: 'account' | 'contact' | 'opportunity' | 'property' | 'project'
   objectId: string
   revalidatePath: string
 }
