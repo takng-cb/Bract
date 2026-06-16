@@ -215,10 +215,10 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
               action={saveContactInline}
               hiddenFields={[
-                { name: 'full_name', value: contact.full_name },
                 { name: 'contact_type', value: contact.contact_type ?? 'business' },
               ]}
               fields={[
+                { label: '氏名', name: 'full_name', kind: 'text' as const, value: contact.full_name, view: contact.full_name },
                 ...(isBiz ? [{ label: '取引先', name: 'account_id', kind: 'select' as const, value: account?.id ?? '', options: accountsList.map((a) => ({ value: a.id, label: a.name })), view: account ? <Link href={`/accounts/${account.id}`} className="text-brand-700 hover:underline">{account.name}</Link> : '—' }] : []),
                 ...(isBiz ? [{ label: '役職', name: 'title', kind: 'text' as const, value: contact.title, view: contact.title ?? '—' }] : []),
                 ...(isBiz ? [{ label: '部署', name: 'department', kind: 'text' as const, value: contact.department, view: contact.department ?? '—' }] : []),

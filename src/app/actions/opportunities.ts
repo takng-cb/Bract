@@ -168,16 +168,22 @@ export async function updateOpportunity(id: string, formData: FormData) {
 export async function updateOpportunityBasic(id: string, formData: FormData) {
   await requirePermission('opportunities', 'update')
   await assertNotPendingApproval('opportunities', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
+  // name は基本情報から編集可能（hiddenFields ではなくフィールド化）。未指定時は既存値を維持。
+  const nameRaw     = formData.get('name')
+  const name        = nameRaw != null ? (nameRaw as string) : null
+  if (name != null && !name.trim()) throw new Error('商談名は必須です')
   const amount      = formData.get('amount') as string
   const close_date  = formData.get('close_date') as string
   const probability = formData.get('probability') as string
 
   const [before] = await db.select({
+    name: opportunities.name,
     amount: opportunities.amount, close_date: opportunities.close_date,
     probability: opportunities.probability, description: opportunities.description,
   }).from(opportunities).where(eq(opportunities.id, id))
 
   await db.update(opportunities).set({
+    ...(name != null ? { name: name.trim() } : {}),
     amount:      amount ? String(Number(amount)) : null,
     close_date:  close_date || null,
     probability: probability ? Number(probability) : null,
@@ -188,8 +194,8 @@ export async function updateOpportunityBasic(id: string, formData: FormData) {
 
   if (before) {
     await logChanges('opportunity', id,
-      { amount: { label: '金額', value: before.amount }, close_date: { label: '完了予定日', value: before.close_date }, probability: { label: '確度', value: before.probability } },
-      { amount: { label: '金額', value: amount ? Number(amount) : null }, close_date: { label: '完了予定日', value: close_date || null }, probability: { label: '確度', value: probability ? Number(probability) : null } },
+      { name: { label: '商談名', value: before.name }, amount: { label: '金額', value: before.amount }, close_date: { label: '完了予定日', value: before.close_date }, probability: { label: '確度', value: before.probability } },
+      { name: { label: '商談名', value: name != null ? name.trim() : before.name }, amount: { label: '金額', value: amount ? Number(amount) : null }, close_date: { label: '完了予定日', value: close_date || null }, probability: { label: '確度', value: probability ? Number(probability) : null } },
     )
   }
 
