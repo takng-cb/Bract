@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, ChevronLeft, Sparkles, PencilLine, FilePlus2, Eye, ImagePlus, Loader2, Search } from 'lucide-react'
+import { X, ChevronLeft, Sparkles, PencilLine, FilePlus2, Eye, ImagePlus, Loader2, Search, AudioLines } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 import type { QuickModule, QuickBook } from '@/lib/modules/quick'
 import {
   quickAiExtract, quickAiCreate, quickAiDupCandidates, quickRelatedSearch, quickAiClassifyBook,
   type QuickAiDup, type QuickAiField, type QuickAiDraft, type RelatedCandidate,
 } from '@/app/actions/quickAi'
+import { importActivityFromPlaud, createTasksFromPlaud } from '@/app/actions/plaud'
+import type { PlaudActionItem } from '@/lib/plaud/markdown'
 
 /** 関連先紐づけを出すブック（quickAi.ts の linkable spec と一致） */
 const LINKABLE_BOOKS = new Set(['tasks', 'activities', 'expenses'])
@@ -24,7 +26,7 @@ import AiSearchChat from '@/components/AiSearchChat'
  *     手動入力 → モジュール選択 → ブック選択 → 新規入力画面へ遷移
  *   閲覧 → モジュール選択 → ブック選択 → 一覧へ遷移
  */
-type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook' | 'aiConfirm' | 'aiNotSupported' | 'aiSearch'
+type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook' | 'aiConfirm' | 'aiNotSupported' | 'aiSearch' | 'plaudTodos'
 type Mode = 'create' | 'view' | 'search'
 type CreateMode = 'ai' | 'manual'
 
@@ -59,6 +61,9 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
   const [aiUrl, setAiUrl] = useState('')
   const [aiImage, setAiImage] = useState<{ mediaType: string; dataBase64: string; preview: string } | null>(null)
   const [draft, setDraft] = useState<QuickAiDraft | null>(null)
+  // PLAUD 取り込み（#143）: アップロードしたファイルのアクション → 作成後に ToDo 確認
+  const [plaudItems, setPlaudItems] = useState<(PlaudActionItem & { selected: boolean })[]>([])
+  const [createdHref, setCreatedHref] = useState<string | null>(null)
   const [dups, setDups] = useState<QuickAiDup[]>([])
   const [bookCandidates, setBookCandidates] = useState<QuickBook[]>([])  // ブック未確定時の選択肢（REQ-0061）
   const [busy, setBusy] = useState(false)
@@ -130,9 +135,24 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     if (mode === 'view') return go(b.listHref)
     if (createMode === 'manual') return go(b.newHref)
     // createMode === 'ai'
-    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelQuery(''); setRelResults([]); setRelSelected(null); setStep('aiInput') }
+    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setPlaudItems([]); setCreatedHref(null); setRelQuery(''); setRelResults([]); setRelSelected(null); setStep('aiInput') }
     else if (b.aiWizardHref) go(b.aiWizardHref)
     else setStep('aiNotSupported')
+  }
+
+  // PLAUD エクスポート（.md/.txt）を読み込み、本文を自由入力へ流し込み＋アクションを保持（#143）
+  const onPickPlaud = async (file: File | null) => {
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { setError('ファイルが大きすぎます（2MBまで）'); return }
+    setBusy(true); setError(null)
+    try {
+      const res = await importActivityFromPlaud(await file.text())
+      if (!res.ok) { setError(res.error); return }
+      setAiText((prev) => (prev.trim() ? prev + '\n\n' : '') + res.fields.body)
+      setPlaudItems(res.actionItems.map((a) => ({ ...a, selected: true })))
+    } finally {
+      setBusy(false)
+    }
   }
 
   const onPickImage = (file: File | null) => {
@@ -216,10 +236,27 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
       }
       const cr = await quickAiCreate(book.apiName, values, relSelected ? { object_api: relSelected.object_api, record_id: relSelected.record_id } : null)
       if (!cr.ok) { setError(cr.error); setBusy(false); return }
+      // PLAUD のアクションがあれば、遷移前に ToDo 化の確認を挟む（#143）
+      if (plaudItems.length > 0) { setCreatedHref(cr.data.recordHref); setBusy(false); setStep('plaudTodos'); return }
       go(cr.data.recordHref)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setBusy(false)
+    }
+  }
+
+  // PLAUD: 選択したアクションを ToDo 作成 → 作成済みレコードへ遷移（#143）
+  const confirmPlaudTodos = async () => {
+    const chosen = plaudItems.filter((it) => it.selected && it.task.trim())
+    setBusy(true); setError(null)
+    try {
+      if (chosen.length > 0) {
+        const r = await createTasksFromPlaud(chosen.map((it) => ({ task: it.task, person: it.person })))
+        if (!r.ok) { setError(r.error); setBusy(false); return }
+      }
+      if (createdHref) go(createdHref); else { setBusy(false); close() }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e)); setBusy(false)
     }
   }
 
@@ -234,6 +271,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     step === 'aiInput' ? 'AI作成' :
     step === 'aiPickBook' ? '作成先を選択' :
     step === 'aiConfirm' ? '内容を確認・編集' :
+    step === 'plaudTodos' ? 'アクションを ToDo 化' :
     step === 'aiSearch' ? 'AI検索' :
     mode === 'search' ? 'AI検索は準備中' : 'AI作成は準備中'
 
@@ -374,6 +412,16 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                       </div>
                     )}
                   </div>
+                  <div>
+                    <label className="inline-flex items-center gap-2 cursor-pointer rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+                      <AudioLines className="w-4 h-4" />
+                      PLAUD ファイル（.md/.txt）から取り込む
+                      <input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" className="hidden" onChange={(e) => onPickPlaud(e.target.files?.[0] ?? null)} />
+                    </label>
+                    {plaudItems.length > 0 && (
+                      <p className="mt-1 text-xs text-positive">アクション {plaudItems.length} 件を検出（作成後に ToDo 化を確認できます）</p>
+                    )}
+                  </div>
                   <button
                     onClick={runExtract}
                     disabled={busy || (!aiText.trim() && !aiImage && !aiUrl.trim())}
@@ -383,6 +431,57 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                     {busy ? '解析中…' : 'AIで解析'}
                   </button>
                   <p className="text-xs text-zinc-400">※ 解析結果は次の画面で確認・編集してから作成します（自動反映しません）。</p>
+                </div>
+              )}
+
+              {step === 'plaudTodos' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-zinc-600">
+                    作成しました。検出したアクションを ToDo 化できます（担当者/顧客が混在するので<b>必要なものだけ</b>選択）。
+                  </p>
+                  {plaudItems.length > 0 ? (
+                    <ul className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                      {plaudItems.map((it, idx) => (
+                        <li key={idx} className="flex items-start gap-2 rounded-md border border-zinc-200 px-2.5 py-1.5">
+                          <input
+                            type="checkbox"
+                            checked={it.selected}
+                            onChange={() => setPlaudItems((arr) => arr.map((x, i) => (i === idx ? { ...x, selected: !x.selected } : x)))}
+                            className="mt-1 accent-blue-600 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="text"
+                              value={it.task}
+                              onChange={(e) => setPlaudItems((arr) => arr.map((x, i) => (i === idx ? { ...x, task: e.target.value } : x)))}
+                              className="w-full text-sm bg-transparent focus:outline-none text-zinc-900"
+                            />
+                            {(it.person || it.status) && (
+                              <p className="text-[11px] text-zinc-400">
+                                {it.person ? `担当: ${it.person}` : ''}{it.person && it.status ? ' ・ ' : ''}{it.status}
+                              </p>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-zinc-400">アクションアイテムはありませんでした。</p>
+                  )}
+                  {error && <p className="text-sm text-red-600">{error}</p>}
+                  <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => (createdHref ? go(createdHref) : close())} className="px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 rounded-md">
+                      スキップして開く
+                    </button>
+                    <button
+                      onClick={confirmPlaudTodos}
+                      disabled={busy}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+                      ToDo を作成して開く（{plaudItems.filter((x) => x.selected).length}）
+                    </button>
+                  </div>
                 </div>
               )}
 
