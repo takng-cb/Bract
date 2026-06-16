@@ -358,6 +358,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
               action={saveOppBasic}
               fields={[
+                { label: '商談名', name: 'name', kind: 'text', value: opportunity.name, view: opportunity.name },
                 { label: 'ステージ', view: STAGE_LABEL[opportunity.stage] ?? opportunity.stage },
                 { label: '完了予定', name: 'close_date', kind: 'date', value: opportunity.close_date ? String(opportunity.close_date).slice(0, 10) : '', view: opportunity.close_date ?? '—' },
                 { label: isReal && opportunity.transaction_type === '賃貸' ? '月額賃料' : '金額', name: 'amount', kind: 'number', value: opportunity.amount != null ? String(opportunity.amount) : '', view: opportunity.amount ? `¥${Number(opportunity.amount).toLocaleString()}` : '—' },

@@ -325,7 +325,6 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
 
               action={saveAccountInline}
               hiddenFields={[
-                { name: 'name', value: account.name },
                 { name: 'status', value: account.status ?? 'active' },
                 { name: 'phone', value: account.phone ?? '' },
                 { name: 'website', value: account.website ?? '' },
@@ -337,6 +336,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                 fieldMap: { '従業員数': 'employee_count', '年間売上': 'annual_revenue', '業種': 'industry', '種別': 'type', 'メモ': 'description' },
               }}
               fields={[
+                { label: '取引先名', name: 'name', kind: 'text', value: account.name, view: account.name },
                 { label: '従業員数', name: 'employee_count', kind: 'number', value: account.employee_count != null ? String(account.employee_count) : '', view: account.employee_count ? `${account.employee_count.toLocaleString()} 名` : '—' },
                 { label: '年間売上', name: 'annual_revenue', kind: 'number', value: account.annual_revenue != null ? String(account.annual_revenue) : '', view: account.annual_revenue ? `¥${Number(account.annual_revenue).toLocaleString()}` : '—' },
                 { label: '業種', name: 'industry', kind: 'select', value: account.industry, options: ACCOUNT_INDUSTRIES.map((i) => ({ value: i, label: i })), view: account.industry ?? '—' },
