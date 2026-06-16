@@ -140,7 +140,8 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     else setStep('aiNotSupported')
   }
 
-  // PLAUD エクスポート（.md/.txt）を読み込み、本文を自由入力へ流し込み＋アクションを保持（#143）
+  // PLAUD エクスポート（.md/.txt）を読み込み、活動の確認画面を直接プリフィル＋アクションを保持（#143）
+  // PLAUD はパース済みで件名/内容が綺麗なので、長文の AI 再抽出（空になりがち）は経由しない。
   const onPickPlaud = async (file: File | null) => {
     if (!file) return
     if (file.size > 2 * 1024 * 1024) { setError('ファイルが大きすぎます（2MBまで）'); return }
@@ -148,8 +149,19 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
     try {
       const res = await importActivityFromPlaud(await file.text())
       if (!res.ok) { setError(res.error); return }
-      setAiText((prev) => (prev.trim() ? prev + '\n\n' : '') + res.fields.body)
+      const actBook = aiBooks.find((b) => b.apiName === 'activities')
+      if (!actBook) { setError('活動履歴ブックが利用できません（管理者に確認してください）'); return }
+      setBook(actBook)
+      setDraft({
+        fields: [
+          { apiName: 'subject', label: '件名', fieldType: 'text', value: res.fields.subject },
+          { apiName: 'type', label: '種別', fieldType: 'select', value: res.fields.type ?? 'meeting', options: ['call', 'email', 'meeting', 'note'] },
+          { apiName: 'body', label: '内容', fieldType: 'textarea', value: res.fields.body },
+          { apiName: 'occurred_at', label: '日時', fieldType: 'date', value: '' },
+        ],
+      })
       setPlaudItems(res.actionItems.map((a) => ({ ...a, selected: true })))
+      setStep('aiConfirm')
     } finally {
       setBusy(false)
     }
@@ -418,9 +430,7 @@ export default function QuickLauncher({ modules }: { modules: QuickModule[] }) {
                       PLAUD ファイル（.md/.txt）から取り込む
                       <input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" className="hidden" onChange={(e) => onPickPlaud(e.target.files?.[0] ?? null)} />
                     </label>
-                    {plaudItems.length > 0 && (
-                      <p className="mt-1 text-xs text-positive">アクション {plaudItems.length} 件を検出（作成後に ToDo 化を確認できます）</p>
-                    )}
+                    <p className="mt-1 text-[11px] text-zinc-400">選択すると確認画面が開きます（件名/内容が入り、アクションは作成後に ToDo 化できます）。</p>
                   </div>
                   <button
                     onClick={runExtract}
