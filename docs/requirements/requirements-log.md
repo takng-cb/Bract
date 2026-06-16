@@ -473,11 +473,12 @@
 - 状態：未着手（Issue 起票のみ）。
 - 関連：#137 / ADR-0011 / src/app/actions/auth.ts
 
-### REQ-0077  活動記録に PLAUD Note 共有リンク取り込み（AI転記・コンテナ別フラグ）
-- 2026-06-15 / 会話（「活動記録に PLAUD の共有リンクを貼って中身を転記」「テキストコピーは手間／B案でリンク直貼り／コンテナで有効化した時だけ」）
-- 内容：活動フォームに「PLAUD取込」を追加（フラグ `plaud_import` ON 時のみ）。共有リンク → 公開 API `api-apne1.plaud.ai/share/access/<token>`（認証不要・WAF回避ヘッダ・リージョン-302 対応・host 許可 plaud.ai のみ）で文字起こし/AI要約を取得 → `callAI` で件名/種別/要点を抽出 → 本文に PLAUD の AI 要約も転記。AI 未設定時はタイトル＋要約でフォールバック。
-- 状態：実装済み（feature/plaud-import・3業種ビルド＋ユニットテスト緑・未デプロイ）。**有効化はコンテナ別**（license `features.plaud_import=true`、/admin/license）。AI抽出には当該コンテナの AI 設定が必要。
-- 関連：#143 / B案（非公式API・壊れやすさ既知）/ src/lib/plaud, src/app/actions/plaud.ts, src/components/PlaudImportButton.tsx
+### REQ-0077  活動記録に PLAUD Note 取り込み（エクスポートmd→活動＋ToDo化・コンテナ別フラグ）
+- 2026-06-15 / 会話（PLAUD の内容を活動に転記。テキストコピーは手間／コンテナ有効化時のみ）
+- 2026-06-16 **方針転換**：当初は共有リンク→公開API取得（B1）で実装したが、**PLAUD の Cloudflare が本番 Vercel のサーバIPを bot判定でブロック**（locally OK・本番で初回以降 NG／CORS も無くクライアント取得も不可）。**サーバ取得は廃止**し、**ユーザーが PLAUD でエクスポートした markdown/テキストをファイルアップロード→パース**する方式へ。
+- 内容：活動フォームに「PLAUD取込」（フラグ `plaud_import` ON 時のみ）。`.md/.txt` をアップロード → `parsePlaudMarkdown`（タイトル/セクション要約/`### @担当者` のアクションアイテム抽出。純粋関数・テスト）→ **件名=タイトル・内容=要約＋アクション、種別=打合せ**を活動フォームへ流し込み。さらに**アクションアイテムを確認チェックリスト**で取捨選択（担当者/顧客が混在するため）→ 選択分を `createTasksFromPlaud` で ToDo 作成（担当者名は description に付記）。AI 不要（構造が明確）。
+- 状態：実装済み（feature/plaud-markdown・3業種ビルド＋ユニットテスト緑）。**有効化はコンテナ別**（license `features.plaud_import=true` /admin/license、または env `PLAUD_IMPORT_ENABLED=true`）。
+- 関連：#143 / src/lib/plaud/markdown.ts, src/app/actions/plaud.ts, src/components/PlaudImportButton.tsx
 
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
