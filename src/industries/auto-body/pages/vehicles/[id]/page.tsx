@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import { toggleTaskDone, quickCreateTask } from '@/app/actions/tasks'
@@ -202,6 +203,8 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                 )}
               </RefCard>
             )}
+
+            <RecordLinksSection selfApi="vehicle" selfId={id} />
           </>
         }
       >

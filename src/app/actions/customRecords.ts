@@ -9,6 +9,7 @@ import { getBookDef, getFieldDefs } from '@/lib/bookMetadata'
 import { redirect } from 'next/navigation'
 import { withSaveToast } from '@/lib/saveToast'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 // ────────────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ export async function deleteCustomRecord(
   // Phase 2: junction クリーンアップ。api_name 経由で参照されているため
   // bookApiName (= book_definitions.api_name) を渡す。
   await cleanupRelatedRecordsForParent(bookApiName, recordId)
+  await cleanupRecordLinksForParent(bookApiName, recordId)
   await db.delete(book_records)
     .where(and(eq(book_records.id, recordId), eq(book_records.object_id, obj.id)))
 

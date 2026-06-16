@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation'
 import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -87,6 +88,7 @@ export async function deleteContact(id: string) {
   await assertNotPendingApproval('contacts', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('contacts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('contact', id)
+  await cleanupRecordLinksForParent('contact', id)
   await db.delete(contacts).where(eq(contacts.id, id))
   redirect(withSaveToast('/contacts', 'deleted'))
 }

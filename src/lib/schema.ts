@@ -1032,6 +1032,33 @@ export const relationship_values = pgTable('relationship_values', {
 ])
 
 // ----------------------------------------------------------------
+// record_links（任意レコード↔任意レコードの汎用双方向リンク。REQ-0078）
+//
+// activity/task/expense の関連先 junction や relationship_definitions と違い、
+// 事前定義なしで「どの詳細ページからでも任意のレコードを関連付ける」ための
+// 汎用テーブル。双方向は `<object_api>:<id>` 文字列の昇順（a <= b）で 1 行に
+// 正規化して格納し、重複・整合崩れを防ぐ（詳細: docs/data-model.md）。
+//
+// object_api の値は関連先 Picker / resolveRelatedRecords と同じ語彙
+//   ('account' / 'contact' / 'opportunity' / 'vehicle' / 'maintenance' /
+//    'customer-vehicle' / <book api_name>)。
+// 多態性のため FK は張らず、親レコード削除時の掃除はアプリ層で行う。
+// ----------------------------------------------------------------
+export const record_links = pgTable('record_links', {
+  id:           uuid('id').primaryKey().defaultRandom(),
+  a_object_api: text('a_object_api').notNull(),
+  a_record_id:  uuid('a_record_id').notNull(),
+  b_object_api: text('b_object_api').notNull(),
+  b_record_id:  uuid('b_record_id').notNull(),
+  created_by:   uuid('created_by'),
+  created_at:   timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  unique('record_links_pair_uniq').on(t.a_object_api, t.a_record_id, t.b_object_api, t.b_record_id),
+  index('record_links_a_idx').on(t.a_object_api, t.a_record_id),
+  index('record_links_b_idx').on(t.b_object_api, t.b_record_id),
+])
+
+// ----------------------------------------------------------------
 // import_logs（インポート実行ログ）
 // ----------------------------------------------------------------
 export const import_logs = pgTable('import_logs', {

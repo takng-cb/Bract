@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache'
 import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { requirePermission } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
@@ -200,6 +201,7 @@ export async function deleteOpportunity(id: string) {
   await assertNotPendingApproval('opportunities', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('opportunities', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('opportunity', id)
+  await cleanupRecordLinksForParent('opportunity', id)
   await db.delete(opportunities).where(eq(opportunities.id, id))
   redirect(withSaveToast('/opportunities', 'deleted'))
 }

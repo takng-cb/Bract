@@ -2,6 +2,7 @@
 
 import { requirePermission } from '@/lib/permissions'
 import { trashRecord } from '@/lib/trash'
+import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { db } from '@/lib/db'
 import { vehicles } from '@/industries/auto-body/schema'
 import { eq } from 'drizzle-orm'
@@ -208,5 +209,7 @@ export async function deleteVehicle(id: string) {
   await db.delete(vehicles).where(eq(vehicles.id, id))
   // book_records ミラー側も削除（cascade ではないので明示的に）
   await deleteVehicleCustomRecord(id)
+  // 汎用リンク（record_links）の掃除（object_api は picker/resolver と同じ 'vehicle'）
+  await cleanupRecordLinksForParent('vehicle', id)
   redirect(withSaveToast('/vehicles', 'deleted'))
 }
