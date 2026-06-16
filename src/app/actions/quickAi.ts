@@ -42,8 +42,8 @@ export type QuickAiRelated = { object_api: string; record_id: string }
 type TypedSpec = {
   label: string
   fields: TypedField[]
-  /** 活動/ToDo 等は関連先(related)に紐づけて作成（任意）。 */
-  create: (values: Record<string, string>, related?: QuickAiRelated | null) => Promise<{ recordHref: string }>
+  /** 活動/ToDo 等は関連先(related)に紐づけて作成（任意・複数可）。 */
+  create: (values: Record<string, string>, related?: QuickAiRelated[]) => Promise<{ recordHref: string }>
   /** 関連先の紐づけを推奨/許可するブックか（活動・ToDo） */
   linkable?: boolean
   /** 抽出プロンプトに足すブック固有の注意書き（例: 経費=領収書の読み方。#134 Phase A） */
@@ -187,9 +187,10 @@ const TYPED_SPECS: Record<string, TypedSpec> = {
         invoice_reg_no: /^T\d{13}$/.test(regNo) ? regNo : null,
         notes: v.notes?.trim() || null,
       }).returning({ id: expenses.id })
-      if (related?.object_api && related.record_id) {
+      for (const rel of related ?? []) {
+        if (!rel.object_api || !rel.record_id) continue
         await db.insert(expense_related_records)
-          .values({ expense_id: row.id, related_object_api: related.object_api, related_record_id: related.record_id })
+          .values({ expense_id: row.id, related_object_api: rel.object_api, related_record_id: rel.record_id })
           .onConflictDoNothing()
       }
       revalidatePath('/expenses')
@@ -214,9 +215,10 @@ const TYPED_SPECS: Record<string, TypedSpec> = {
         priority: ['high', 'medium', 'low'].includes(v.priority) ? v.priority : 'medium',
         owner_id,
       }).returning({ id: tasks.id })
-      if (related?.object_api && related.record_id) {
+      for (const rel of related ?? []) {
+        if (!rel.object_api || !rel.record_id) continue
         await db.insert(task_related_records)
-          .values({ task_id: row.id, related_object_api: related.object_api, related_record_id: related.record_id })
+          .values({ task_id: row.id, related_object_api: rel.object_api, related_record_id: rel.record_id })
           .onConflictDoNothing()
       }
       revalidatePath('/tasks')
@@ -241,9 +243,10 @@ const TYPED_SPECS: Record<string, TypedSpec> = {
         occurred_at: v.occurred_at?.trim() ? new Date(v.occurred_at) : new Date(),
         owner_id,
       }).returning({ id: activities.id })
-      if (related?.object_api && related.record_id) {
+      for (const rel of related ?? []) {
+        if (!rel.object_api || !rel.record_id) continue
         await db.insert(activity_related_records)
-          .values({ activity_id: row.id, related_object_api: related.object_api, related_record_id: related.record_id })
+          .values({ activity_id: row.id, related_object_api: rel.object_api, related_record_id: rel.record_id })
           .onConflictDoNothing()
       }
       revalidatePath('/activities')
@@ -399,11 +402,11 @@ async function quickAiExtractImpl(apiName: string, input: QuickAiInput): Promise
 }
 
 /** 確定値でレコードを作成。typed は既存 create アクション、custom は book_records。related は活動/ToDo の紐づけ先。 */
-export async function quickAiCreate(apiName: string, values: Record<string, string>, related?: QuickAiRelated | null): Promise<QuickAiResult<{ recordHref: string }>> {
-  return envelope(() => quickAiCreateImpl(apiName, values, related))
+export async function quickAiCreate(apiName: string, values: Record<string, string>, related?: QuickAiRelated[] | null): Promise<QuickAiResult<{ recordHref: string }>> {
+  return envelope(() => quickAiCreateImpl(apiName, values, related ?? undefined))
 }
 
-async function quickAiCreateImpl(apiName: string, values: Record<string, string>, related?: QuickAiRelated | null): Promise<{ recordHref: string }> {
+async function quickAiCreateImpl(apiName: string, values: Record<string, string>, related?: QuickAiRelated[]): Promise<{ recordHref: string }> {
   if (!(await canEdit())) throw new Error('権限がありません')
 
   const typed = TYPED_SPECS[apiName]
