@@ -1,60 +1,48 @@
 'use client'
 
 /**
- * 関連レコードの複数選択 Picker（オンデマンド検索版）。
+ * 関連レコードの複数選択 Picker（統一検索ボックス版 / REQ-0078）。
  * 活動・ToDo・経費フォームと詳細ページのインライン編集で使う共通 UI。
  *
- * 旧実装はサーバーから「全オブジェクトの全レコード」を props で受け取っていたが、
- * データ増加でページが重くなるため、/api/search/records をその場で叩く方式に変更。
- *   - 行を追加しオブジェクトを選ぶと、最近更新 30 件を表示
- *   - 検索ボックス入力で 250ms デバウンス検索
- *   - 選択済みはチップ表示（検索結果に出ていなくても保持・解除可能）
- *   - defaultValue（編集時の既存選択）は ids= でラベルを一括解決
+ * 旧実装は「行を追加→ブック種別を選ぶ→検索」の多段だったが、AI 検索の体験に寄せ、
+ * **1 つの検索ボックスで許可された種別を横断検索 → カードから選択 → チップ**に刷新。
+ *   - 入力で 250ms デバウンス。許可種別ごとに /api/search/records を並列で叩いて統合
+ *   - 結果はカード（ラベル＋種別バッジ）。クリックで選択/解除（＋ / ✓）
+ *   - 選択済みはチップ表示（検索しても保持）。defaultValue は ids= でラベル一括解決
  *
  * 送信形式は従来どおり hidden input name={name} value="<object_api>:<record_id>"。
  */
-import { useState, useMemo, useEffect, useRef } from 'react'
-import { X } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { X, Search, Plus, Check, Loader2 } from 'lucide-react'
+import { NavIcon } from '@/lib/navIcon'
 
 export type ObjectTypeOption = {
-  api:   string   // 'account' | 'contact' | 'opportunity' | 'maintenance' | <custom api_name>
+  api:   string
   label: string
-  icon?: string   // 旧互換（未使用）
+  icon?: string
 }
 
-export type RecordOption = {
-  id:    string
-  label: string
-  sub?:  string
-}
+export type RecordOption = { id: string; label: string; sub?: string }
 
 export type RelatedRecordSelection = {
   object_api: string
   record_id:  string
-  /** 既知ならラベル（無ければ API で解決） */
   label?: string
 }
 
 type Props = {
   name?:            string
   objectTypes:      ObjectTypeOption[]
-  /** @deprecated オンデマンド検索化により未使用（呼び出し側互換のため残置） */
+  /** @deprecated 互換のため残置（未使用） */
   recordsByObject?: Record<string, RecordOption[]>
   defaultValue?:    RelatedRecordSelection[]
   defaultObjectApi?: string
 }
 
-type Row = {
-  uid: string
-  object_api: string
-  /** 選択済み: id → label */
-  selected: Map<string, string>
-  search: string
-  results: RecordOption[]
-  loading: boolean
-}
+type Candidate = { object_api: string; record_id: string; label: string; sub?: string; typeLabel: string; icon?: string }
+type Selected = { object_api: string; record_id: string; label: string; typeLabel: string; icon?: string }
 
-function genUid() { return Math.random().toString(36).slice(2, 10) }
+const keyOf = (api: string, id: string) => `${api}:${id}`
 
 async function fetchRecords(objectApi: string, params: Record<string, string>): Promise<RecordOption[]> {
   const sp = new URLSearchParams({ objectType: objectApi, ...params })
@@ -63,247 +51,168 @@ async function fetchRecords(objectApi: string, params: Record<string, string>): 
   return res.json()
 }
 
-/** defaultValue を行配列にグルーピング（ラベル未解決は後で ids= で解決） */
-function groupDefaultsToRows(defaults: RelatedRecordSelection[]): Row[] {
-  const grouped: Record<string, Map<string, string>> = {}
-  for (const d of defaults) {
-    if (!grouped[d.object_api]) grouped[d.object_api] = new Map()
-    grouped[d.object_api].set(d.record_id, d.label ?? '…')
-  }
-  return Object.entries(grouped).map(([api, sel]) => ({
-    uid: genUid(), object_api: api, selected: sel, search: '', results: [], loading: false,
-  }))
-}
-
 export default function RelatedRecordsPicker({
   name = 'related_records',
   objectTypes,
   defaultValue = [],
-  defaultObjectApi,
 }: Props) {
-  const [rows, setRows] = useState<Row[]>(() => groupDefaultsToRows(defaultValue))
+  const [selected, setSelected] = useState<Map<string, Selected>>(() => {
+    const m = new Map<string, Selected>()
+    for (const d of defaultValue) {
+      const t = objectTypes.find((o) => o.api === d.object_api)
+      m.set(keyOf(d.object_api, d.record_id), {
+        object_api: d.object_api, record_id: d.record_id,
+        label: d.label ?? '…', typeLabel: t?.label ?? d.object_api, icon: t?.icon,
+      })
+    }
+    return m
+  })
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<Candidate[]>([])
+  const [loading, setLoading] = useState(false)
+  const reqIdRef = useRef(0)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 既存選択（編集時）のラベルを ids= で一括解決（初回のみ）
   const labelResolvedRef = useRef(false)
-
-  const usedApis = useMemo(() => new Set(rows.map((r) => r.object_api).filter(Boolean)), [rows])
-
-  const firstAvailableApi = useMemo(() => {
-    const candidates = [defaultObjectApi, ...objectTypes.map((t) => t.api)]
-    for (const c of candidates) if (c && !usedApis.has(c)) return c
-    return ''
-  }, [defaultObjectApi, objectTypes, usedApis])
-
-  // ── 既存選択のラベルを ids= で一括解決（初回のみ）──
   useEffect(() => {
     if (labelResolvedRef.current) return
     labelResolvedRef.current = true
-    const targets = rows.filter((r) => Array.from(r.selected.values()).some((v) => v === '…'))
-    if (targets.length === 0) return
+    const byApi = new Map<string, string[]>()
+    for (const s of selected.values()) {
+      if (s.label === '…') byApi.set(s.object_api, [...(byApi.get(s.object_api) ?? []), s.record_id])
+    }
+    if (byApi.size === 0) return
     ;(async () => {
-      for (const row of targets) {
-        const ids = Array.from(row.selected.keys())
-        const recs = await fetchRecords(row.object_api, { ids: ids.join(','), limit: String(ids.length) })
-        const byId = new Map(recs.map((r) => [r.id, r.label]))
-        setRows((prev) => prev.map((r) => {
-          if (r.uid !== row.uid) return r
-          const next = new Map(r.selected)
-          for (const id of next.keys()) {
-            if (next.get(id) === '…') next.set(id, byId.get(id) ?? `#${id.slice(0, 8)}`)
+      for (const [api, ids] of byApi) {
+        const recs = await fetchRecords(api, { ids: ids.join(','), limit: String(ids.length) })
+        const labels = new Map(recs.map((r) => [r.id, r.label]))
+        setSelected((prev) => {
+          const next = new Map(prev)
+          for (const id of ids) {
+            const k = keyOf(api, id)
+            const cur = next.get(k)
+            if (cur && cur.label === '…') next.set(k, { ...cur, label: labels.get(id) ?? `#${id.slice(0, 8)}` })
           }
-          return { ...r, selected: next }
-        }))
+          return next
+        })
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── 行ごとの検索（デバウンス）──
-  function loadResults(uid: string, objectApi: string, q: string) {
-    setRows((prev) => prev.map((r) => r.uid === uid ? { ...r, loading: true } : r))
-    fetchRecords(objectApi, q ? { q } : {}).then((recs) => {
-      setRows((prev) => prev.map((r) => {
-        if (r.uid !== uid) return r
-        if (r.object_api !== objectApi || r.search.trim() !== q) return r  // 古い応答は破棄
-        return { ...r, results: recs, loading: false }
-      }))
+  const search = useCallback((q: string) => {
+    const trimmed = q.trim()
+    if (!trimmed) { setResults([]); setLoading(false); return }
+    const reqId = ++reqIdRef.current
+    setLoading(true)
+    Promise.all(
+      objectTypes.map((t) =>
+        fetchRecords(t.api, { q: trimmed, limit: '6' }).then((recs) =>
+          recs.map((r) => ({ object_api: t.api, record_id: r.id, label: r.label, sub: r.sub, typeLabel: t.label, icon: t.icon })),
+        ),
+      ),
+    ).then((lists) => {
+      if (reqId !== reqIdRef.current) return // 古い応答は破棄
+      setResults(lists.flat())
+      setLoading(false)
+    })
+  }, [objectTypes])
+
+  function onQuery(v: string) {
+    setQuery(v)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => search(v), 250)
+  }
+
+  function toggle(c: Candidate) {
+    setSelected((prev) => {
+      const next = new Map(prev)
+      const k = keyOf(c.object_api, c.record_id)
+      if (next.has(k)) next.delete(k)
+      else next.set(k, { object_api: c.object_api, record_id: c.record_id, label: c.label, typeLabel: c.typeLabel, icon: c.icon })
+      return next
     })
   }
 
-  function addRow() {
-    const api = firstAvailableApi
-    const uid = genUid()
-    setRows((prev) => [...prev, { uid, object_api: api, selected: new Map(), search: '', results: [], loading: !!api }])
-    if (api) loadResults(uid, api, '')
+  function remove(k: string) {
+    setSelected((prev) => { const next = new Map(prev); next.delete(k); return next })
   }
 
-  function removeRow(uid: string) {
-    setRows((prev) => prev.filter((r) => r.uid !== uid))
-  }
-
-  function changeObject(uid: string, newApi: string) {
-    setRows((prev) => prev.map((r) =>
-      r.uid === uid ? { ...r, object_api: newApi, selected: new Map(), search: '', results: [], loading: !!newApi } : r
-    ))
-    if (newApi) loadResults(uid, newApi, '')
-  }
-
-  function toggleRecord(uid: string, rec: RecordOption) {
-    setRows((prev) => prev.map((r) => {
-      if (r.uid !== uid) return r
-      const next = new Map(r.selected)
-      if (next.has(rec.id)) next.delete(rec.id)
-      else next.set(rec.id, rec.label)
-      return { ...r, selected: next }
-    }))
-  }
-
-  function unselect(uid: string, recordId: string) {
-    setRows((prev) => prev.map((r) => {
-      if (r.uid !== uid) return r
-      const next = new Map(r.selected)
-      next.delete(recordId)
-      return { ...r, selected: next }
-    }))
-  }
-
-  // 検索デバウンス
-  const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
-  function setSearch(uid: string, objectApi: string, value: string) {
-    setRows((prev) => prev.map((r) => r.uid === uid ? { ...r, search: value } : r))
-    clearTimeout(debounceRef.current[uid])
-    debounceRef.current[uid] = setTimeout(() => loadResults(uid, objectApi, value.trim()), 250)
-  }
-
-  // 初期行（編集時）も結果を読み込む（effect 内の同期 setState を避けるため遅延起動）
-  useEffect(() => {
-    const t = setTimeout(() => {
-      for (const r of rows) {
-        if (r.object_api && r.results.length === 0 && !r.loading) loadResults(r.uid, r.object_api, '')
-      }
-    }, 0)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const flatSelections = rows.flatMap((r) =>
-    Array.from(r.selected.keys()).map((rid) => ({ object_api: r.object_api, record_id: rid }))
-  )
-
-  const remainingTypes = objectTypes.filter((t) => !usedApis.has(t.api))
-  const canAddRow = remainingTypes.length > 0
+  const selectedArr = Array.from(selected.entries())
 
   return (
-    <div className="space-y-3">
-      {/* 集約された hidden inputs（サーバ送信用） */}
-      {flatSelections.map((s, i) => (
-        <input key={`${s.object_api}-${s.record_id}-${i}`} type="hidden" name={name} value={`${s.object_api}:${s.record_id}`} />
+    <div className="space-y-2">
+      {/* hidden inputs（サーバ送信用） */}
+      {selectedArr.map(([k, s]) => (
+        <input key={k} type="hidden" name={name} value={`${s.object_api}:${s.record_id}`} />
       ))}
 
-      {rows.length === 0 && (
-        <p className="text-sm text-zinc-500">
-          関連レコードがまだありません。「+ 関連レコードを追加」をクリックして追加してください。
-        </p>
+      {/* 選択済みチップ */}
+      {selectedArr.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selectedArr.map(([k, s]) => (
+            <span key={k} className="inline-flex items-center gap-1 max-w-full rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs pl-1.5 pr-1 py-0.5">
+              {s.icon && <NavIcon icon={s.icon} className="w-3 h-3 shrink-0" />}
+              <span className="text-[10px] text-blue-500">{s.typeLabel}</span>
+              <span className="truncate">{s.label}</span>
+              <button type="button" onClick={() => remove(k)} aria-label="解除" className="shrink-0 rounded-full hover:bg-blue-100 p-0.5">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
       )}
 
-      {rows.map((row) => {
-        const availableForThisRow = objectTypes.filter(
-          (t) => t.api === row.object_api || !usedApis.has(t.api)
-        )
-        return (
-          <div key={row.uid} className="border border-zinc-200 rounded-md p-3 bg-zinc-50/50 space-y-2">
-            <div className="flex items-start gap-2">
-              <select
-                value={row.object_api}
-                onChange={(e) => changeObject(row.uid, e.target.value)}
-                className="border border-zinc-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {!row.object_api && <option value="">— ブックを選択 —</option>}
-                {availableForThisRow.map((t) => (
-                  <option key={t.api} value={t.api}>{t.label}</option>
-                ))}
-              </select>
-              <div className="flex-1" />
-              {row.selected.size > 0 && (
-                <span className="text-xs text-blue-600 font-medium pt-1.5">{row.selected.size} 件選択中</span>
-              )}
-              <button
-                type="button"
-                onClick={() => removeRow(row.uid)}
-                className="text-zinc-400 hover:text-red-600 transition-colors p-1"
-                aria-label="この行を削除"
-                title="削除"
-              >
-                ✕
-              </button>
-            </div>
+      {/* 統一検索ボックス */}
+      <div className="relative">
+        <Search className="w-4 h-4 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder={`名前で検索（${objectTypes.map((t) => t.label).slice(0, 4).join('・')}${objectTypes.length > 4 ? '…' : ''}）`}
+          className="w-full rounded-md border border-zinc-300 bg-white pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 transition-colors"
+        />
+        {loading && <Loader2 className="w-4 h-4 text-zinc-400 animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" aria-hidden />}
+      </div>
 
-            {row.object_api && (
-              <>
-                {/* 選択済みチップ（検索結果に無くても保持） */}
-                {row.selected.size > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {Array.from(row.selected.entries()).map(([id, label]) => (
-                      <span key={id} className="inline-flex items-center gap-1 max-w-full rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs pl-2.5 pr-1 py-0.5">
-                        <span className="truncate">{label}</span>
-                        <button type="button" onClick={() => unselect(row.uid, id)} aria-label="解除" className="shrink-0 rounded-full hover:bg-blue-100 p-0.5">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <input
-                  type="text"
-                  value={row.search}
-                  onChange={(e) => setSearch(row.uid, row.object_api, e.target.value)}
-                  placeholder="レコードを名前で検索..."
-                  className="w-full border border-zinc-300 rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {row.loading ? (
-                  <p className="text-xs text-zinc-400 px-2 py-1">検索中…</p>
-                ) : row.results.length === 0 ? (
-                  <p className="text-xs text-zinc-400 px-2 py-1">
-                    {row.search.trim() ? '該当するレコードがありません' : 'レコードがありません'}
-                  </p>
-                ) : (
-                  <div className="border border-zinc-200 rounded-md divide-y divide-zinc-100 max-h-40 overflow-y-auto bg-white">
-                    {row.results.map((rec) => {
-                      const checked = row.selected.has(rec.id)
-                      return (
-                        <label
-                          key={rec.id}
-                          className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-zinc-50 ${checked ? 'bg-blue-50' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleRecord(row.uid, rec)}
-                            className="accent-blue-600"
-                          />
-                          <span className="text-sm text-zinc-700 truncate">{rec.label}</span>
-                          {rec.sub && <span className="text-xs text-zinc-400 shrink-0 ml-auto">{rec.sub}</span>}
-                        </label>
-                      )
-                    })}
-                    {!row.search.trim() && row.results.length >= 30 && (
-                      <p className="text-[11px] text-zinc-400 px-3 py-1.5">最近更新の30件を表示中。検索で絞り込めます</p>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+      {/* 結果カード（横断） */}
+      {query.trim() && (
+        loading && results.length === 0 ? (
+          <p className="text-xs text-zinc-400 px-1 py-1">検索中…</p>
+        ) : results.length === 0 ? (
+          <p className="text-xs text-zinc-400 px-1 py-1">該当するレコードがありません</p>
+        ) : (
+          <div className="border border-zinc-200 rounded-md divide-y divide-zinc-100 max-h-56 overflow-y-auto bg-white">
+            {results.map((c) => {
+              const checked = selected.has(keyOf(c.object_api, c.record_id))
+              return (
+                <button
+                  key={keyOf(c.object_api, c.record_id)}
+                  type="button"
+                  onClick={() => toggle(c)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-zinc-50 transition-colors ${checked ? 'bg-blue-50/60' : ''}`}
+                >
+                  {c.icon && <NavIcon icon={c.icon} className="w-4 h-4 shrink-0 text-zinc-400" />}
+                  <span className="text-sm text-zinc-800 truncate">{c.label}</span>
+                  <span className="text-[10px] text-zinc-500 bg-zinc-100 rounded px-1.5 py-0.5 shrink-0">{c.typeLabel}</span>
+                  {c.sub && <span className="text-xs text-zinc-400 truncate hidden sm:inline">{c.sub}</span>}
+                  <span className="ml-auto shrink-0">
+                    {checked
+                      ? <Check className="w-4 h-4 text-blue-600" strokeWidth={2.5} aria-hidden />
+                      : <Plus className="w-4 h-4 text-zinc-400" aria-hidden />}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         )
-      })}
+      )}
 
-      <button
-        type="button"
-        onClick={addRow}
-        disabled={!canAddRow}
-        className="w-full border border-dashed border-zinc-300 rounded-md px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:border-zinc-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {canAddRow ? '+ 関連レコードを追加' : '全てのブックが既に追加されています'}
-      </button>
+      {selectedArr.length === 0 && !query.trim() && (
+        <p className="text-xs text-zinc-400 px-1">名前で検索して関連先を追加できます。</p>
+      )}
     </div>
   )
 }
