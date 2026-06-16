@@ -19,16 +19,9 @@ import { callAI } from '@/lib/ai/client'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { assertAiRateLimit } from '@/lib/ai/rateLimit'
 import { getCurrentUserId } from '@/lib/auth'
+import { extractJsonObject } from '@/lib/ai/extractJson'
 
 const MAX_LEN = 300_000 // アップロード本文の上限（約300KB）
-
-/** AI 応答テキストから最初の JSON オブジェクトを取り出す。 */
-function extractJsonObject(text: string): Record<string, unknown> | null {
-  const start = text.indexOf('{')
-  const end = text.lastIndexOf('}')
-  if (start < 0 || end <= start) return null
-  try { return JSON.parse(text.slice(start, end + 1)) as Record<string, unknown> } catch { return null }
-}
 
 export type PlaudImportResult =
   | {

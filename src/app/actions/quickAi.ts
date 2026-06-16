@@ -26,6 +26,7 @@ import { repairTextValue } from '@/lib/textGuard'
 import { getBookDef, getAllBookDefs, getFieldDefs, parseFieldOptions } from '@/lib/bookMetadata'
 import { callAI } from '@/lib/ai/client'
 import { assertAiRateLimit } from '@/lib/ai/rateLimit'
+import { extractJson } from '@/lib/ai/extractJson'
 import { createAccount } from '@/app/actions/accounts'
 import { createContact } from '@/app/actions/contacts'
 import { createVehicle } from '@/industries/auto-body/actions/vehicles'
@@ -364,7 +365,7 @@ async function quickAiExtractImpl(apiName: string, input: QuickAiInput): Promise
     maxTokens: 1500, temperature: 0.1, timeoutMs: 45000,
   })
 
-  const parsed = extractJson(result.text)
+  const parsed = extractJson<{ fields?: Record<string, unknown>; note?: string }>(result.text)
   const valueMap = (parsed?.fields ?? {}) as Record<string, unknown>
   const draftFields: QuickAiField[] = specFields.map((f) => {
     const raw = valueMap[f.apiName]
@@ -600,20 +601,6 @@ function coerceValue(fieldType: string, raw: string | null): unknown {
   }
 }
 
-/** AI 応答から JSON オブジェクトを頑健に取り出す（コードフェンス混入に耐える） */
-function extractJson(text: string): { fields?: Record<string, unknown>; note?: string } | null {
-  const trimmed = text.trim()
-  const candidates: string[] = []
-  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  if (fence) candidates.push(fence[1])
-  const brace = trimmed.match(/\{[\s\S]*\}/)
-  if (brace) candidates.push(brace[0])
-  candidates.push(trimmed)
-  for (const c of candidates) {
-    try { return JSON.parse(c) } catch { /* try next */ }
-  }
-  return null
-}
 
 /* ── ブック推論（REQ-0061: AI 作成のブック選択を不要に） ─────────────── */
 

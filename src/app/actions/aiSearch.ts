@@ -12,6 +12,7 @@ import { canEdit } from '@/lib/auth'
 import { canDo } from '@/lib/permissions'
 import { callAI } from '@/lib/ai/client'
 import { assertAiRateLimit } from '@/lib/ai/rateLimit'
+import { extractJson } from '@/lib/ai/extractJson'
 import { db } from '@/lib/db'
 import { accounts, contacts, opportunities, tasks, expenses, activities, vehicles } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
@@ -165,7 +166,7 @@ export async function aiSearchToFilter(apiName: string, query: string): Promise<
     maxTokens: 800, temperature: 0.1, timeoutMs: 30000,
   })
 
-  const parsed = extractJson(result.text)
+  const parsed = extractJson<{ conditions?: unknown[]; note?: string }>(result.text)
   const raw = Array.isArray(parsed?.conditions) ? parsed!.conditions : []
   const byField = new Map(fields.map((f) => [f.field, f]))
   const conditions: SearchCondition[] = []
@@ -288,7 +289,7 @@ async function aiSearchTurnAutoImpl(
     maxTokens: 900, temperature: 0.1, timeoutMs: 30000,
   })
 
-  const parsed = extractJson(result.text) as { book?: unknown; conditions?: unknown[] } | null
+  const parsed = extractJson<{ book?: unknown; conditions?: unknown[] }>(result.text)
   const rawBook = typeof parsed?.book === 'string' ? parsed.book : null
   // 返ってきたブックが候補外なら現在のブックを維持（未確定なら null のまま）
   const book = rawBook && allowed.includes(rawBook) ? rawBook : (currentBook && allowed.includes(currentBook) ? currentBook : null)
@@ -472,16 +473,4 @@ async function previewAiSearchImpl(apiName: string, conditions: SearchCondition[
   if (!def) throw new Error('このブックはプレビュー未対応です')
   const where = buildWhere(conditions.map(({ field, op, value }) => ({ field, op, value })), def.resolver)
   return def.fetch(where)
-}
-
-function extractJson(text: string): { conditions?: unknown[]; note?: string } | null {
-  const trimmed = text.trim()
-  const candidates: string[] = []
-  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  if (fence) candidates.push(fence[1])
-  const brace = trimmed.match(/\{[\s\S]*\}/)
-  if (brace) candidates.push(brace[0])
-  candidates.push(trimmed)
-  for (const c of candidates) { try { return JSON.parse(c) } catch { /* next */ } }
-  return null
 }
