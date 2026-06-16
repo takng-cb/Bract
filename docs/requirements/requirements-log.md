@@ -473,6 +473,12 @@
 - 状態：未着手（Issue 起票のみ）。
 - 関連：#137 / ADR-0011 / src/app/actions/auth.ts
 
+### REQ-0077  活動記録に PLAUD Note 共有リンク取り込み（AI転記・コンテナ別フラグ）
+- 2026-06-15 / 会話（「活動記録に PLAUD の共有リンクを貼って中身を転記」「テキストコピーは手間／B案でリンク直貼り／コンテナで有効化した時だけ」）
+- 内容：活動フォームに「PLAUD取込」を追加（フラグ `plaud_import` ON 時のみ）。共有リンク → 公開 API `api-apne1.plaud.ai/share/access/<token>`（認証不要・WAF回避ヘッダ・リージョン-302 対応・host 許可 plaud.ai のみ）で文字起こし/AI要約を取得 → `callAI` で件名/種別/要点を抽出 → 本文に PLAUD の AI 要約も転記。AI 未設定時はタイトル＋要約でフォールバック。
+- 状態：実装済み（feature/plaud-import・3業種ビルド＋ユニットテスト緑・未デプロイ）。**有効化はコンテナ別**（license `features.plaud_import=true`、/admin/license）。AI抽出には当該コンテナの AI 設定が必要。
+- 関連：#143 / B案（非公式API・壊れやすさ既知）/ src/lib/plaud, src/app/actions/plaud.ts, src/components/PlaudImportButton.tsx
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
@@ -492,6 +498,7 @@
 | #22 | [platform] ダッシュボードのユーザー別カスタマイズ強化 | REQ-0012 |
 | #134 | [erp] 経費の前処理＋会計ソフト連携 Phase A〜D (umbrella) | REQ-0068, ADR-0026 |
 | #137 | [ops] 本番のメール送信対応（パスワード再設定・招待等を独自SMTP/Resend） | REQ-0076, ADR-0011 |
+| #143 | [feature] 活動記録に PLAUD Note 共有リンク取り込み（AI転記・コンテナ別フラグ） | REQ-0077 |
 
 > 設計PR: #20（feature/erp-modular-design → develop）。Git運用は Gitflow（ADR-0015）。
 

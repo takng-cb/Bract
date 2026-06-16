@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { X } from 'lucide-react'
 import type { FieldDef } from '@/lib/bookMetadata'
 import { parseFieldOptions } from '@/lib/fieldUtils'
+import { applyField } from '@/lib/formFill'
 
 type Props = {
   /** モーダル内に表示するフォーマット文字列（ヘッダー行） */
@@ -40,39 +41,6 @@ function parseRow(line: string): string[] {
   return cols
 }
 
-/**
- * React の制御コンポーネント（EditableInfoCard 等）でも反映されるよう、
- * ネイティブ setter で値を入れてから input/change イベントを発火する。
- */
-function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: string) {
-  const proto = el instanceof HTMLTextAreaElement
-    ? HTMLTextAreaElement.prototype
-    : el instanceof HTMLSelectElement
-    ? HTMLSelectElement.prototype
-    : HTMLInputElement.prototype
-  const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
-  if (setter) setter.call(el, value)
-  else el.value = value
-  el.dispatchEvent(new Event('input', { bubbles: true }))
-  el.dispatchEvent(new Event('change', { bubbles: true }))
-}
-
-/** フォームフィールドに値をセット（input / textarea / select / radio グループ対応） */
-function applyField(form: HTMLFormElement, name: string, value: string) {
-  const el = form.elements.namedItem(name)
-  if (!el) return
-  if (el instanceof RadioNodeList) {
-    el.value = value
-    return
-  }
-  if (
-    el instanceof HTMLInputElement ||
-    el instanceof HTMLTextAreaElement ||
-    el instanceof HTMLSelectElement
-  ) {
-    setNativeValue(el, value)
-  }
-}
 
 export default function FormFillModal({
   csvFormat,

@@ -13,6 +13,7 @@ import { getAllUsers } from '@/lib/userUtils'
 import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import type { RelatedRecordSelection } from '@/components/RelatedRecordsPicker'
 import { requireBookRead } from '@/lib/permissions'
+import { hasFeature } from '@/lib/license'
 
 const FORM_ID = 'record-create-form'
 
@@ -21,7 +22,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
   const { id } = await params
   await requireEditor()
   // Picker の選択肢（ブック一覧）。レコード本体はオンデマンド検索（/api/search/records）
-  const [activity, pickerData, relatedRows, activityTypes, users] = await Promise.all([
+  const [activity, pickerData, relatedRows, activityTypes, users, plaudEnabled] = await Promise.all([
     db.select().from(activities).where(eq(activities.id, id)).then((r) => r[0] ?? null),
     getRelatedRecordsPickerData('activities'),
     db.select({
@@ -32,6 +33,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
       .where(eq(activity_related_records.activity_id, id)),
     getActivityTypes(),
     getAllUsers(),
+    hasFeature('plaud_import'),
   ])
 
   if (!activity) notFound()
@@ -87,6 +89,7 @@ export default async function EditActivityPage({ params }: { params: Promise<{ i
         activityTypes={activityTypes}
         users={users}
         formId={FORM_ID}
+        plaudEnabled={plaudEnabled}
         defaultValues={{
           type: activity.type,
           subject: activity.subject,
