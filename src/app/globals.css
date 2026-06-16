@@ -65,10 +65,12 @@
   --color-info-bg:     oklch(0.965 0.030 240);
   --color-ai-bg:       oklch(0.965 0.030 292);
 
-  /* sidebar (warm dark) */
-  --color-side:        oklch(0.235 0.010 80);
-  --color-side-2:      oklch(0.205 0.010 80);
-  --color-side-border: oklch(0.315 0.012 80);
+  /* sidebar — アクセント色の濃いトーンに連動（REQ-0079）。
+     brand-800 由来。brand-800 は .dark / プリセットで上書きしないため、
+     ライト/ダーク・全プリセットで安定して暗く、選んだアクセントの色味を帯びる。 */
+  --color-side:        color-mix(in oklab, var(--color-brand-800), black 28%);
+  --color-side-2:      color-mix(in oklab, var(--color-brand-800), black 46%);
+  --color-side-border: color-mix(in oklab, var(--color-brand-800), white 16%);
 
   /* ---- Radius (Sharp) ---- */
   --radius-xs: 3px;
@@ -189,9 +191,8 @@
   --color-info-bg:     oklch(0.285 0.050 245);
   --color-ai-bg:       oklch(0.295 0.060 292);
 
-  --color-side:        oklch(0.150 0.006 80);
-  --color-side-2:      oklch(0.215 0.008 80);
-  --color-side-border: oklch(0.280 0.008 80);
+  /* サイドバーは brand-800 由来でライト/ダーク共通（上の @theme 定義を使う）。
+     ダーク専用の上書きはしない（一貫して濃いアクセントトーンを保つ）。 */
 }
 
 /* ============================================================================

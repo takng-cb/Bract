@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import AttachmentsSection from '@/components/AttachmentsSection'
@@ -187,6 +188,8 @@ export default async function CustomerVehicleDetailPage({ params }: { params: Pr
                 </div>
               </RefCard>
             )}
+
+            <RecordLinksSection selfApi="customer-vehicle" selfId={id} />
           </>
         }
       >

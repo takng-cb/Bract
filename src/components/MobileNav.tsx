@@ -38,7 +38,7 @@ export default function MobileNav({ navGroups, dashboardItem, companyName, displ
         prefetch={true}
         onClick={() => setOpen(false)}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-          isActive ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+          isActive ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-white/10 hover:text-white'
         }`}
       >
         <NavIcon icon={item.icon} className="w-[18px] h-[18px] shrink-0" />
@@ -124,7 +124,7 @@ export default function MobileNav({ navGroups, dashboardItem, companyName, displ
             </div>
           )}
           <form action={signOut}>
-            <button type="submit" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-zinc-400 hover:bg-zinc-800 hover:text-white w-full text-left">
+            <button type="submit" className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-zinc-400 hover:bg-white/10 hover:text-white w-full text-left">
               <LogOut className="w-[18px] h-[18px] shrink-0" strokeWidth={2.25} />
               <span>ログアウト</span>
             </button>

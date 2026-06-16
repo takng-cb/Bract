@@ -82,7 +82,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
         } ${
           isActive
             ? 'bg-blue-600 text-white'
-            : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+            : 'text-zinc-400 hover:bg-white/10 hover:text-white'
         }`}
       >
         <NavIcon icon={item.icon} className="w-4.5 h-4.5 shrink-0" />
@@ -103,7 +103,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
       title={isCollapsed ? item.label : undefined}
       className={`flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium transition-colors ${
         isCollapsed ? 'justify-center' : ''
-      } ${active ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'}`}
+      } ${active ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:bg-white/10 hover:text-white'}`}
     >
       <NavIcon icon={item.icon} className="w-4.5 h-4.5 shrink-0" />
       {!isCollapsed && <span className="truncate">{item.label}</span>}
@@ -112,12 +112,12 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
 
   return (
     <aside
-      className={`hidden md:flex md:flex-col shrink-0 bg-zinc-900 text-white sticky top-0 h-screen self-start transition-[width] duration-200 ease-in-out overflow-hidden ${
+      className={`hidden md:flex md:flex-col shrink-0 bg-side text-white sticky top-0 h-screen self-start transition-[width] duration-200 ease-in-out overflow-hidden ${
         isCollapsed ? 'w-14' : 'w-56'
       }`}
     >
       {/* ヘッダー（ロゴ ＋ たたむボタン） */}
-      <div className="flex items-center border-b border-zinc-700 h-14 px-2 gap-2">
+      <div className="flex items-center border-b border-side-border h-14 px-2 gap-2">
         <Link
           href="/dashboard"
           prefetch={true}
@@ -133,7 +133,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
         <button
           onClick={toggle}
           title={isCollapsed ? 'メニューを展開' : 'メニューをたたむ'}
-          className="shrink-0 flex items-center justify-center w-7 h-7 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+          className="shrink-0 flex items-center justify-center w-7 h-7 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
         >
           {isCollapsed ? <ChevronRight /> : <ChevronLeft />}
         </button>
@@ -172,14 +172,14 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
                   <button
                     onClick={() => toggleGroup(group.id)}
                     title={groupCollapsed ? '展開' : '折りたたむ'}
-                    className="shrink-0 text-zinc-500 hover:text-white text-xs leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-800"
+                    className="shrink-0 text-zinc-500 hover:text-white text-xs leading-none w-5 h-5 flex items-center justify-center rounded hover:bg-white/10"
                   >
                     {groupCollapsed ? '▸' : '▾'}
                   </button>
                 </div>
               )}
               {isCollapsed && group.id !== '__all' && (
-                <div className="my-1 border-t border-zinc-800" />
+                <div className="my-1 border-t border-side-border" />
               )}
               {/* 項目（折りたたみ時は非表示。サイドバー全体が細い時は常に表示=アイコン） */}
               {(!groupCollapsed || isCollapsed) && (
@@ -193,7 +193,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
       </nav>
 
       {/* ボトムナビ：管理者はシステム設定を別出し、個人設定/使い方はユーザー名メニュー配下 */}
-      <div className="px-2 pb-3 border-t border-zinc-800 pt-3 space-y-0.5">
+      <div className="px-2 pb-3 border-t border-side-border pt-3 space-y-0.5">
         {/* 管理者のみ：システム設定（別メニュー） */}
         {isAdmin && bottomLink(SYSTEM_SETTINGS_ITEM, pathname.startsWith('/settings/system'))}
 
@@ -209,7 +209,7 @@ export default function Sidebar({ navGroups, dashboardItem, companyName, display
             <button
               onClick={() => setUserMenuOpen((v) => !v)}
               aria-expanded={userMenuOpen}
-              className="w-full flex items-center gap-3 px-2 py-2 rounded-md text-sm transition-colors text-zinc-400 hover:bg-zinc-800 hover:text-white"
+              className="w-full flex items-center gap-3 px-2 py-2 rounded-md text-sm transition-colors text-zinc-400 hover:bg-white/10 hover:text-white"
             >
               <NavIcon icon="👤" className="w-4.5 h-4.5 shrink-0" />
               <span className="flex-1 text-left truncate text-xs">{displayName ?? 'アカウント'}</span>

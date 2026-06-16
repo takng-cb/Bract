@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
+import RecordLinksSection from '@/components/RecordLinksSection'
 import AuthGuard from '@/components/AuthGuard'
 import { canEdit } from '@/lib/auth'
 import MaintenanceDriveLinks from '@/industries/auto-body/components/MaintenanceDriveLinks'
@@ -158,6 +159,8 @@ export default async function MaintenanceDetailPage({ params }: { params: Promis
           { id: 'files', label: '添付', icon: <Paperclip />, count: attachmentRows.length, content: attachmentsContent },
         ]}
       />
+
+      <div className="mt-4"><RecordLinksSection selfApi="maintenance" selfId={id} /></div>
 
       <div className="mt-4 text-right"><RecordId id={id} /></div>
     </div>
