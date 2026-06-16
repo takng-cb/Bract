@@ -21,11 +21,12 @@ export const AI_PROVIDER_LABELS: Record<AIProviderKind, string> = {
   anthropic: 'Anthropic Claude',
 }
 
-/** 各プロバイダのデフォルトモデル（安価・高速・要約向き） */
+/** 各プロバイダのデフォルトモデル（安価・高速・要約向き）。
+ *  注意: 旧 gemini-1.5-flash は Google が 2025 に提供終了。現行の安定モデルへ更新（REQ-0082）。 */
 export const AI_DEFAULT_MODELS: Record<AIProviderKind, string> = {
   groq:      'llama-3.3-70b-versatile',
-  gemini:    'gemini-1.5-flash',
-  anthropic: 'claude-3-5-haiku-20241022',
+  gemini:    'gemini-2.5-flash',
+  anthropic: 'claude-haiku-4-5-20251001',
 }
 
 /** 添付画像（Vision 入力）。base64 はプレフィックス無しの生データ */
