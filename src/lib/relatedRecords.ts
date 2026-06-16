@@ -20,7 +20,7 @@ import {
   accounts, contacts, opportunities,
   book_records, book_definitions,
   activity_related_records, task_related_records, expense_related_records,
-  maintenance_records, customer_vehicles, assignments,
+  maintenance_records, customer_vehicles, assignments, vehicles,
 } from '@/lib/schema'
 import { inArray, eq, and } from 'drizzle-orm'
 import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDisplay'
@@ -172,6 +172,7 @@ const STANDARD_META: Record<string, { icon: string; hrefPrefix: string }> = {
   // /books/<api>/<id> ではなく業種専用 URL に向ける。
   maintenance:        { icon: '🔧', hrefPrefix: '/maintenance/' },
   'customer-vehicle': { icon: '🚙', hrefPrefix: '/customer-vehicles/' },
+  vehicle:            { icon: '🚗', hrefPrefix: '/vehicles/' },
   assignment:         { icon: '📋', hrefPrefix: '/assignments/' },
 }
 
@@ -301,6 +302,20 @@ export async function resolveRelatedRecords(pairs: RelatedPair[]): Promise<Resol
           for (const r of rows) {
             const label = r.plate_number ?? r.car_model ?? r.car_name ?? '車両'
             setLabel('customer-vehicle', r.id, label)
+          }
+        })
+    )
+  }
+  // 在庫車両（auto-body）
+  const vehicleIds = idsByApi.get('vehicle')
+  if (vehicleIds && vehicleIds.size > 0) {
+    fetches.push(
+      db.select({ id: vehicles.id, maker: vehicles.maker, model: vehicles.model, license_plate: vehicles.license_plate })
+        .from(vehicles).where(inArray(vehicles.id, [...vehicleIds]))
+        .then((rows) => {
+          for (const r of rows) {
+            const label = [r.maker, r.model].filter(Boolean).join(' ') || r.license_plate || '車両'
+            setLabel('vehicle', r.id, label)
           }
         })
     )
