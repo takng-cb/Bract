@@ -494,12 +494,12 @@
 - 設計：色は `theme-presets.css` の `html[data-theme="<key>"]` が `--color-brand-*` を差し替え（blue-* 等のエイリアス経由で全画面に波及）。ダークは既存 `.dark` を流用。FOUC 防止に layout.tsx のインラインスクリプトが cookie `bract_theme=${color}:${mode}` から描画前適用。永続は `user_preferences.theme_color/theme_mode`（真実＝DB、クロスデバイスは `ThemeApply` が追従）。migration 20260616100000（全 Neon・nullable・冪等）。
 - 状態：実装済み（feature/user-theme-color・base ビルド緑／tsc・lint 緑）。**マイグレ未適用**（全 Neon 適用が merge 前提）。
 
-### REQ-0080  不動産モジュールに「プロジェクト」ブック（商談並の専用リッチ画面）
-- 2026-06-16 / 会話（「不動産管理にプロジェクトブックを。項目はおまかせ、見た目は商談を参考に」）→ 専用リッチ画面で実装（合意）。
-- 内容：real-estate モジュールに `projects` を第一級オブジェクトとして追加。用地取得〜開発〜販売/引渡を束ねる案件単位。商談を参考にした一覧/詳細（RecordHeader・StageBar・KPIバンド・EditableInfoカード・関連先）/新規/編集。
+### REQ-0080  「プロジェクト管理」モジュール（商談並の専用リッチ画面）
+- 2026-06-16 / 会話（当初「不動産管理にプロジェクトブックを。項目おまかせ・見た目は商談参考」→ 直後に「不動産ではなくプロジェクト管理のモジュールに」と方針変更）。
+- 内容：業種非依存の ERP モジュール `projects`（inventory と同型）。用地取得〜開発〜販売/引渡を束ねる案件単位。商談を参考にした一覧/詳細（RecordHeader・StageBar・KPIバンド・EditableInfoカード・関連先）/新規/編集。
 - 項目（おまかせ確定）：name / status(計画→用地取得→設計→施工→完了/中止=PROJECT_STAGES) / project_type(分譲開発/賃貸開発/リノベ/仲介/管理受託/その他) / account_id / contact_id / location / start_date / end_date / budget / expected_revenue / actual_cost / description / owner_id。KPI=予算/想定売上/想定粗利(売上−原価)/完了予定。
-- 設計：`projects` は properties 同様 industry 専用テーブル（src/industries/real-estate/schema.ts、check:schema 対象外）。migration 20260616140000。record_links のエンドポイント化（resolver/検索/picker[real-estate]/recordHref/bookFor）＋重複チェック＋ゴミ箱 whitelist＋next.config redirect（非 real-estate は /books/projects へ）。RBAC は system ロールの `'*'` で自動許可。
-- 状態：実装済み（feature/real-estate-projects）。tsc/eslint/3業種ビルド緑、dev に migration 適用済み。**未了**：real-estate Neon への migration 適用（merge 前提）。
+- 設計：`projects` は src/lib/schema.ts（check:schema 追跡＝全 Neon 必須）。module registry に 'projects'(erp) を登録。直接 (crm)/projects ルート（isModuleEnabled('projects') ガード）。actions=src/app/actions/projects.ts、form=src/components/ProjectForm.tsx。migration 20260616140000。record_links のエンドポイント化（resolver/検索/picker[projects]/recordHref/bookFor）＋重複チェック＋ゴミ箱 whitelist。RBAC は system ロールの `'*'` で自動許可。有効化は /admin/license の enabled_modules に 'projects'。
+- 状態：実装済み（feature/projects-module）。tsc/eslint/check:schema(dev)/3業種ビルド緑、dev に migration 適用済み。**未了**：real-estate / auto-body Neon への migration 適用（merge 前提）＋各コンテナで 'projects' モジュール有効化。
 
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
