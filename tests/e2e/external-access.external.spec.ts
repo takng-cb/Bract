@@ -52,3 +52,32 @@ test.describe('外部ユーザー: ポータル', () => {
     expect(res?.status()).toBe(404)
   })
 })
+
+// ── 正の経路: 共有された取引先がポータルに見え、読み取り詳細が開ける ──
+// scripts/seed-external-grant.ts で「E2E共有テスト取引先」を test-external に付与済みであることが前提。
+// 未 seed の環境ではマーカーが出ないため skip する（環境非依存に保つ）。
+const SHARED_NAME = 'E2E共有テスト取引先'
+
+test.describe('外部ユーザー: 共有レコードの閲覧（正の経路）', () => {
+  test('共有された取引先が /portal 一覧に表示される', async ({ page }) => {
+    await page.goto('/portal')
+    const link = page.getByRole('link', { name: new RegExp(SHARED_NAME) })
+    test.skip((await link.count()) === 0, 'grant が未 seed（seed-external-grant 未実行）のため skip')
+    await expect(link.first()).toBeVisible()
+  })
+
+  test('共有取引先の詳細が読み取り専用で開ける', async ({ page }) => {
+    await page.goto('/portal')
+    const link = page.getByRole('link', { name: new RegExp(SHARED_NAME) })
+    test.skip((await link.count()) === 0, 'grant が未 seed のため skip')
+
+    await link.first().click()
+    await page.waitForURL(/\/portal\/account\//)
+    // タイプラベル・名称・閲覧専用の注記が出る
+    await expect(page.getByText('取引先', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: new RegExp(SHARED_NAME) })).toBeVisible()
+    await expect(page.getByText('この情報は閲覧専用です。')).toBeVisible()
+    // 編集・削除導線が無いこと
+    await expect(page.getByRole('button', { name: /編集|削除/ })).toHaveCount(0)
+  })
+})
