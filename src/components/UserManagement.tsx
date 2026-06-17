@@ -94,17 +94,10 @@ export default function UserManagement({ users, currentUserId }: Props) {
               />
             </div>
           </div>
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1">ロール</label>
-            <select
-              name="role"
-              className="border border-zinc-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="viewer">閲覧者（viewer）</option>
-              <option value="editor">編集者（editor）</option>
-              <option value="admin">管理者（admin）</option>
-            </select>
-          </div>
+          <p className="text-xs text-zinc-400">
+            新規ユーザーは<span className="font-medium text-zinc-600">閲覧者</span>で作成されます。ロールの割り当ては作成後に
+            <Link href="/admin/roles" className="font-medium text-brand-700 underline hover:text-brand-800">ロール管理</Link>で行ってください。
+          </p>
           <div className="flex gap-2">
             <button
               type="submit" disabled={createPending}
