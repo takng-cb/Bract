@@ -46,9 +46,11 @@ const password = process.env.TEST_USER_PASSWORD ?? `Test_${randomBytes(8).toStri
 const passwordWasGenerated = !process.env.TEST_USER_PASSWORD
 
 const TEST_USERS = [
-  { email: 'test-admin@bract-crm.local',  role: 'admin'  as const },
-  { email: 'test-editor@bract-crm.local', role: 'editor' as const },
-  { email: 'test-viewer@bract-crm.local', role: 'viewer' as const },
+  { email: 'test-admin@bract-crm.local',    role: 'admin'  as const, is_external: false },
+  { email: 'test-editor@bract-crm.local',   role: 'editor' as const, is_external: false },
+  { email: 'test-viewer@bract-crm.local',   role: 'viewer' as const, is_external: false },
+  // 外部ユーザー（REQ-0084 / Phase2）。社内 (crm) 不可・/portal のみ。E2E 封鎖テスト用。
+  { email: 'test-external@bract-crm.local', role: 'viewer' as const, is_external: true  },
 ]
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -73,7 +75,7 @@ async function main() {
 
   const results: { email: string; role: string; created: boolean; authId: string }[] = []
 
-  for (const { email, role } of TEST_USERS) {
+  for (const { email, role, is_external } of TEST_USERS) {
     const found = existingByEmail.get(email)
     let authId: string
     let created = false
@@ -97,11 +99,11 @@ async function main() {
       created = true
     }
 
-    // 対象 Neon の users テーブルに upsert
+    // 対象 Neon の users テーブルに upsert（is_external も反映）
     await sql`
-      INSERT INTO users (id, email, role)
-      VALUES (${authId}::uuid, ${email}, ${role})
-      ON CONFLICT (id) DO UPDATE SET role = ${role}, email = ${email}
+      INSERT INTO users (id, email, role, is_external)
+      VALUES (${authId}::uuid, ${email}, ${role}, ${is_external})
+      ON CONFLICT (id) DO UPDATE SET role = ${role}, email = ${email}, is_external = ${is_external}
     `
     results.push({ email, role, created, authId })
   }
