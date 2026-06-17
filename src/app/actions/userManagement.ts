@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { users } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
 import { isAdminUser } from '@/lib/userRole'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 // ─────────────────────────────────────────────
@@ -94,7 +94,12 @@ export async function startImpersonation(
   const { data: target } = await adminClient.auth.admin.getUserById(targetUserId)
   if (!target.user?.email) return { error: 'ユーザーのメールアドレスが取得できません' }
 
-  const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  // リクエストホストからリダイレクト先を構築（業種ごとに本番URLが異なる＋env 未設定で
+  // localhost に飛ぶ事故を防ぐ）。auth.ts の パスワード再設定と同じ host 由来方式に統一。
+  const h = await headers()
+  const host  = h.get('host') ?? ''
+  const proto = h.get('x-forwarded-proto') ?? 'https'
+  const appUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000')
   const redirectTo = `${appUrl}/auth/callback?next=/dashboard`
 
   const { data: link, error } = await adminClient.auth.admin.generateLink({
