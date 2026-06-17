@@ -23,6 +23,8 @@ const ROLES = [
   { name: 'viewer',   email: 'test-viewer@bract-crm.local',   file: 'tests/e2e/.auth/viewer.json'   },
   // 外部ユーザー（REQ-0084）。ログイン後は (crm) layout により /portal へリダイレクトされる。
   { name: 'external', email: 'test-external@bract-crm.local', file: 'tests/e2e/.auth/external.json' },
+  // スコープ検証用（REQ-0083）。カスタムロール（own）。社内ユーザーなので /dashboard 着地。
+  { name: 'scoped',   email: 'test-scoped@bract-crm.local',   file: 'tests/e2e/.auth/scoped.json'   },
 ]
 
 for (const role of ROLES) {
