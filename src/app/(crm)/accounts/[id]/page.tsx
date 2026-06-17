@@ -21,6 +21,7 @@ import TagsSection from '@/components/TagsSection'
 import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import RecordLinksSection from '@/components/RecordLinksSection'
+import ExternalSharePanel from '@/components/portal/ExternalSharePanel'
 import AuthGuard from '@/components/AuthGuard'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
@@ -375,6 +376,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             </RefCard>
 
             <RecordLinksSection selfApi="account" selfId={id} />
+            <ExternalSharePanel objectApi="account" recordId={id} revalidatePath={`/accounts/${id}`} />
           </>
         }
       >

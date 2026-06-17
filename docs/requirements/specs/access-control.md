@@ -83,6 +83,11 @@ record_comments(
 
 ## 4. 外部ユーザーの仕様（Phase2–3）
 
+> Phase2 実装済み: `users.is_external`／`record_grants`／permissions.ts `EXTERNAL_DENY`＋`isExternalUser()`／
+> (crm) layout で外部を `/portal` へリダイレクト／`(portal)` 最小ルート群（grant 一覧・grant 検証済み読み取り詳細）／
+> 社内詳細の最小「外部共有」パネル（管理者のみ・account/contact/opportunity/project）／ユーザー追加に「外部ユーザー」チェック。
+> grant の object_api は単数規約（account/contact/opportunity/project）。関連子の選択・期限UI・コメント/ファイル・監査は Phase3。
+
 - **入口分離**：社内 `(crm)` ルートは `is_external` を入口で全拒否 → `/portal` リダイレクト。`/portal` は最小ルート群のみ。
 - **できること**：共有レコードの**閲覧**＋**ファイル追加**（attachments＋grant チェック）＋**コメント追加**（record_comments）。
 - **できないこと**：本文編集・削除、非共有レコードの参照（一覧にも詳細直 URL にも出さない＝404）、管理画面/設定/検索全体/ダッシュボード KPI/全件エクスポートへの到達。
@@ -106,7 +111,7 @@ record_comments(
 | Phase | 内容 | 状態 |
 |---|---|---|
 | 1 | レコードスコープ(own/all)を6ブック（取引先/人物/商談/活動/ToDo/プロジェクト）に強制 | 実装済 |
-| 2 | 外部基盤（is_external・record_grants・社内拒否・ポータル読み取り） | 未着手 |
+| 2 | 外部基盤（is_external・record_grants・社内拒否・ポータル読み取り） | 実装済 |
 | 3 | 外部の貢献（ファイル/コメント・共有パネル・期限・取消・監査） | 未着手 |
 | 4 | 堅牢化（全入口の封鎖レビュー＋テスト） | 未着手 |
 

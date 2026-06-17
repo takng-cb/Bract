@@ -7,6 +7,7 @@ import { Building2, Wallet, TrendingUp, CalendarClock, MapPin, UserRound, Tag, A
 import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
 import RecordLinksSection from '@/components/RecordLinksSection'
+import ExternalSharePanel from '@/components/portal/ExternalSharePanel'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import InlineEditButton from '@/components/detail/InlineEditButton'
@@ -187,7 +188,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <RecordTabPanel
           tabs={[
             { id: 'flow', label: 'アクティビティ', icon: <Activity />, count: interactionCount, content: <ActivityStream events={stream} composer={composer} /> },
-            { id: 'related', label: '関連情報', icon: <Folder />, content: <div className="space-y-4"><RecordLinksSection selfApi="project" selfId={id} /></div> },
+            { id: 'related', label: '関連情報', icon: <Folder />, content: <div className="space-y-4"><RecordLinksSection selfApi="project" selfId={id} /><ExternalSharePanel objectApi="project" recordId={id} revalidatePath={`/projects/${id}`} /></div> },
           ]}
         />
         <div className="mt-4 text-right"><RecordId id={id} /></div>

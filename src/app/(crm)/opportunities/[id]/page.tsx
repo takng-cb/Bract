@@ -28,6 +28,7 @@ import { canEdit, isAdmin } from '@/lib/auth'
 import RecordHeader from '@/components/RecordHeader'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import RecordLinksSection from '@/components/RecordLinksSection'
+import ExternalSharePanel from '@/components/portal/ExternalSharePanel'
 import AISummaryButton from '@/components/AISummaryButton'
 import ReportButton from '@/components/ReportButton'
 import { NavIcon } from '@/lib/navIcon'
@@ -385,6 +386,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             </RefCard>
 
             <RecordLinksSection selfApi="opportunity" selfId={id} />
+            <ExternalSharePanel objectApi="opportunity" recordId={id} revalidatePath={`/opportunities/${id}`} />
           </>
         }
       >

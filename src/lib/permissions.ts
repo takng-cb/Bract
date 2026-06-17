@@ -61,6 +61,13 @@ const VIEWER_FALLBACK: PermissionSet = {
   byBook: { '*': fullScope({ create: false, read: true, update: false, delete: false }) },
 }
 
+/** 外部ユーザー（REQ-0084）。ブック権限ゼロ＝社内 (crm) は一切不可。可視は record_grants のみ（/portal）。 */
+const EXTERNAL_DENY: PermissionSet = {
+  roleName: 'external',
+  isAdmin: false,
+  byBook: {},
+}
+
 function normScope(v: string | null | undefined): RecordScope {
   return v === 'own' ? 'own' : 'all'
 }
@@ -81,11 +88,15 @@ export const getCurrentPermissions = cache(async (): Promise<PermissionSet> => {
   if (!user) return VIEWER_FALLBACK
 
   const u = await db
-    .select({ role: users.role, role_id: users.role_id })
+    .select({ role: users.role, role_id: users.role_id, is_external: users.is_external })
     .from(users)
     .where(eq(users.id, user.id))
     .then((r) => r[0] ?? null)
   if (!u) return VIEWER_FALLBACK
+
+  // 外部ユーザーは社内アプリのブック権限を一切持たない（deny-by-default）。
+  // 可視は record_grants のみ（/portal で個別に判定）。
+  if (u.is_external) return EXTERNAL_DENY
 
   // 1. role_id → 2. users.role テキストと同名 system ロール
   let roleRow: { id: string; name: string; is_system: boolean } | null = null
@@ -114,6 +125,14 @@ export const getCurrentPermissions = cache(async (): Promise<PermissionSet> => {
   if (!byBook['*'] && isAdminRole) byBook['*'] = fullScope({ create: true, read: true, update: true, delete: true })
 
   return { roleName: roleRow.name, isAdmin: isAdminRole, byBook }
+})
+
+/** 外部ユーザー（REQ-0084）か。社内 (crm) の入口封鎖判定に使う。 */
+export const isExternalUser = cache(async (): Promise<boolean> => {
+  const user = await getSupabaseUser()
+  if (!user) return false
+  const u = await db.select({ is_external: users.is_external }).from(users).where(eq(users.id, user.id)).then((r) => r[0] ?? null)
+  return !!u?.is_external
 })
 
 /** 指定ブックの操作が許可されているか */
