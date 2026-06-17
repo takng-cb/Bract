@@ -3,13 +3,13 @@ import { expenses, accounts, opportunities, expense_related_records } from '@/li
 import { eq, desc, inArray, and } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
-import { requireApiUser } from '@/lib/apiAuth'
+import { requireApiBookRead } from '@/lib/apiAuth'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
 export async function GET(request: Request) {
-  // 認証確認（未ログインは 401）
-  const denied = await requireApiUser()
-  if (denied) return denied
+  // 認証＋ブック Read 権限＋外部ユーザー遮断（経費は owner_id 無しのためレコードスコープは非対象）
+  const auth = await requireApiBookRead('expenses')
+  if (auth instanceof NextResponse) return auth
 
   // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
   const filterRaw = new URL(request.url).searchParams.getAll('f')

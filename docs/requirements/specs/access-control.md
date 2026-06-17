@@ -97,6 +97,19 @@ record_comments(
 
 一覧 / 詳細直 URL / サーバアクション(update/delete/create) / 関連レコード解決 / 検索 API / AI 機能 / CSV エクスポート / ダッシュボード / ナビ / 添付の Storage 署名 URL / record_links。**1 箇所の漏れ＝情報漏えい**。go/no-go(#40) に脅威モデルレビュー＋封鎖テストを必須追加。
 
+### 封鎖状況（Phase4 進行中）
+
+| 入口 | 状況 |
+|---|---|
+| (crm) 全ページ（一覧/詳細/ダッシュボード/ナビ/管理） | ✅ layout で外部を /portal へリダイレクト＋全ページ EXTERNAL_DENY |
+| サーバアクション（update/delete 等） | ✅ requirePermission/requireBookRead が EXTERNAL_DENY で全拒否 |
+| 検索 API `/api/search/records` | ✅ canDo(read) ガード（外部 403） |
+| **CSV エクスポート `/api/export/*`（10ルート＋業種overlay）** | ✅ requireApiBookRead（外部403＋ブックRead＋owner scope）。E2E で外部403/own限定を検証 |
+| インポート `/api/import/*` | ✅ requireApiEditor（外部403） |
+| 添付 Storage 署名 URL / AI 機能 / 関連レコード経由 | ⬜ 未レビュー（ポータルは record 単体のみ表示で関連は出さない。要監査） |
+
+E2E: `external-access.external.spec.ts`（封鎖＋API403）/ `record-scope.scoped.spec.ts`（own限定・export own限定）。
+
 ## 6. ロールアウト状態
 
 ### 強制対象ブック（Phase1）
@@ -112,7 +125,7 @@ record_comments(
 |---|---|---|
 | 1 | レコードスコープ(own/all)を6ブック（取引先/人物/商談/活動/ToDo/プロジェクト）に強制 | 実装済 |
 | 2 | 外部基盤（is_external・record_grants・社内拒否・ポータル読み取り） | 実装済 |
-| 3 | 外部の貢献（ファイル/コメント・共有パネル・期限・取消・監査） | 未着手 |
-| 4 | 堅牢化（全入口の封鎖レビュー＋テスト） | 未着手 |
+| 3 | 外部の貢献（ファイル/コメント・共有パネル・期限・取消・監査） | 一部（共有パネル・期限・取消・監査ログ済。ファイル/コメント・関連子選択は未） |
+| 4 | 堅牢化（全入口の封鎖レビュー＋テスト） | 一部（export/search/import/(crm)/action 封鎖＋E2E済。添付/AI/関連は未） |
 
 > 既定スコープ `all` のため Phase1 は**現挙動と同一**から始まる。実際にロールへ `own` を設定して初めて絞り込みが効く。
