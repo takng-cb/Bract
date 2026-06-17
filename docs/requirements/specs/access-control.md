@@ -94,9 +94,18 @@ record_comments(
 
 ## 6. ロールアウト状態
 
+### 強制対象ブック（Phase1）
+
+レコードスコープ `own` の強制は **owner_id を持つブック**でのみ実装する。現状の対象は
+`SCOPE_ENFORCED_BOOKS = [accounts, contacts, opportunities, activities, tasks, projects]`（permissions.ts）。
+- 各ブックの一覧（SQL 述語）・詳細直URL（canSeeRecord→notFound）・更新/削除アクション（guard）に適用済み。
+- **expenses は owner_id を持たない**ため対象外（経費の所有者概念が無い）。
+- `/admin/roles` のスコープ選択は `SCOPE_ENFORCED_BOOKS`（＋`*`）のみ有効化し、未対応ブックは「—」表示で honest に保つ。
+- 未適用の社内導線（ダッシュボード/予測/検索/関連レコード）は後続。外部ユーザー(Phase2+)は別ポリシー。
+
 | Phase | 内容 | 状態 |
 |---|---|---|
-| 1 | `visibleRecordWhere` 抽象＋社内レコードスコープ(own/all) を商談・取引先に | 着手 |
+| 1 | レコードスコープ(own/all)を6ブック（取引先/人物/商談/活動/ToDo/プロジェクト）に強制 | 実装済 |
 | 2 | 外部基盤（is_external・record_grants・社内拒否・ポータル読み取り） | 未着手 |
 | 3 | 外部の貢献（ファイル/コメント・共有パネル・期限・取消・監査） | 未着手 |
 | 4 | 堅牢化（全入口の封鎖レビュー＋テスト） | 未着手 |

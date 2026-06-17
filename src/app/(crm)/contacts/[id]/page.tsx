@@ -27,7 +27,7 @@ import { getActivityTypes } from '@/lib/activityTypes'
 import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, RecordTable, RecordTableEmpty, type KpiItem, type BadgeTone } from '@/components/record/RecordUI'
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, canSeeRecord } from '@/lib/permissions'
 import { getAppTimeZone } from '@/lib/systemSettings'
 import { fmtDate, fmtTime, dayLabelInTz } from '@/lib/datetime'
 
@@ -68,6 +68,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   ])
 
   if (!contact) notFound()
+  if (!(await canSeeRecord('contacts', 'read', contact.owner_id))) notFound()  // レコードスコープ（REQ-0083）
 
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
   for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = t.label

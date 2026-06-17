@@ -19,7 +19,7 @@ import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { Activity, CalendarClock, UserRound } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 import { RecordColumns, Badge } from '@/components/record/RecordUI'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, canSeeRecord } from '@/lib/permissions'
 import { getAppTimeZone } from '@/lib/systemSettings'
 import { fmtDate, fmtDateTime } from '@/lib/datetime'
 
@@ -40,6 +40,7 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
   ])
 
   if (!activityRow) notFound()
+  if (!(await canSeeRecord('activities', 'read', activityRow.owner_id))) notFound()  // レコードスコープ（REQ-0083）
   const ownerName = activityRow.owner_id ? (allUsers.find((u) => u.id === activityRow.owner_id)?.name ?? null) : null
 
   const [allRelated, pickerData] = await Promise.all([

@@ -24,7 +24,7 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, recordScope } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -37,9 +37,11 @@ export default async function ContactsPage({
   // パフォーマンス最適化: getDefaultView を Round 1 と並列化
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('contacts', uid) : null)
-  const [sp, edit, colConfig, _userId, dv] = await Promise.all([
-    searchParams, canEdit(), getListViewColumns('contacts'), userIdPromise, dvPromise,
+  const [sp, edit, colConfig, meId, dv, conScope] = await Promise.all([
+    searchParams, canEdit(), getListViewColumns('contacts'), userIdPromise, dvPromise, recordScope('contacts', 'read'),
   ])
+  // レコードスコープ（REQ-0083）: 'own' なら owner_id = 自分のみ。owner_id 実カラムのため SQL 述語で表現。
+  const scopeWhere = conScope === 'own' && meId ? eq(contacts.owner_id, meId) : undefined
   const view       = (sp.view === 'consumer') ? 'consumer' : 'business'
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
@@ -106,7 +108,7 @@ export default async function ContactsPage({
   if (useJsFallback) {
     const [raw, tags, taggableRows, users] = await Promise.all([
       _typeProbe()
-        .where(viewWhere)
+        .where(and(viewWhere, scopeWhere))
         .orderBy(desc(contacts.created_at)),
       getAllTags(),
       tagConditions.length > 0
@@ -135,7 +137,7 @@ export default async function ContactsPage({
   } else {
     const userWhere = buildWhere(otherConditions, resolver)
     const tagWhere = buildTagWhere(tagConditions, 'contact', contacts.id)
-    const where = and(viewWhere, userWhere, tagWhere)
+    const where = and(viewWhere, userWhere, tagWhere, scopeWhere)
     const orderBy = buildOrderBy(sortDefs, resolver)
     const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(contacts.created_at)]
 

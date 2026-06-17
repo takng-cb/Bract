@@ -27,6 +27,15 @@ export type CrudOp = 'create' | 'read' | 'update' | 'delete'
 /** レコードスコープ（REQ-0083 / ADR-0029）。'all'=全件 / 'own'=owner_id が自分のみ（将来 'team'）。 */
 export type RecordScope = 'all' | 'own'
 
+/**
+ * レコードスコープ（'own'）の強制を実装済みのブック（owner_id を持つもの）。
+ * これ以外のブックでスコープを 'own' にしても一覧/詳細で強制されない（owner 概念が無い等）。
+ * 管理UI（/admin/roles）はこの集合だけスコープ選択を有効化して honest に保つ。
+ */
+export const SCOPE_ENFORCED_BOOKS: readonly string[] = [
+  'accounts', 'contacts', 'opportunities', 'activities', 'tasks', 'projects',
+]
+
 export type BookPerm = {
   create: boolean; read: boolean; update: boolean; delete: boolean
   /** read 系（read）の可視範囲 */

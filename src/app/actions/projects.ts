@@ -5,7 +5,7 @@
  * 業種非依存の ERP モジュール。UI は商談を参考にした専用リッチ画面。
  * インライン編集・編集フォームともに updateProject（全項目）を使う（フォームは全送信前提）。
  */
-import { requirePermission } from '@/lib/permissions'
+import { requirePermission, requireRecordScope, recordScope, type CrudOp } from '@/lib/permissions'
 import { trashRecord } from '@/lib/trash'
 import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
 import { db } from '@/lib/db'
@@ -15,6 +15,13 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
+
+/** レコードスコープ（REQ-0083）。'own' のロールは自分担当でないプロジェクトを更新/削除できない。 */
+async function guardProjectScope(id: string, op: CrudOp) {
+  if ((await recordScope('projects', op)) !== 'own') return
+  const [row] = await db.select({ owner_id: projects.owner_id }).from(projects).where(eq(projects.id, id))
+  await requireRecordScope('projects', op, row?.owner_id ?? null)
+}
 
 function s(formData: FormData, key: string): string | null {
   const v = formData.get(key)
@@ -55,6 +62,7 @@ export async function createProject(formData: FormData): Promise<string> {
 
 export async function updateProject(id: string, formData: FormData) {
   await requirePermission('projects', 'update')
+  await guardProjectScope(id, 'update')
   const v = valuesFrom(formData)
   if (!v.name) throw new Error('プロジェクト名は必須です')
   const name = v.name
@@ -78,6 +86,7 @@ export async function updateProject(id: string, formData: FormData) {
 /** StageBar からのステータス変更（直接更新） */
 export async function updateProjectStatus(id: string, status: string): Promise<void> {
   await requirePermission('projects', 'update')
+  await guardProjectScope(id, 'update')
   const [before] = await db.select({ status: projects.status }).from(projects).where(eq(projects.id, id))
   await db.update(projects).set({ status, updated_at: new Date() }).where(eq(projects.id, id))
   if (before) {
@@ -91,6 +100,7 @@ export async function updateProjectStatus(id: string, status: string): Promise<v
 
 export async function deleteProject(id: string) {
   await requirePermission('projects', 'delete')
+  await guardProjectScope(id, 'delete')
   await trashRecord('projects', id)        // ゴミ箱へ退避（REQ-0047）
   await cleanupRecordLinksForParent('project', id)
   await db.delete(projects).where(eq(projects.id, id))

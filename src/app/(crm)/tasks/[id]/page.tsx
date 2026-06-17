@@ -18,7 +18,7 @@ import { resolveRelatedRecords } from '@/lib/relatedRecords'
 import { SquareCheckBig, CalendarClock, UserRound, Check } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
 import { RecordColumns, Badge, type BadgeTone } from '@/components/record/RecordUI'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, canSeeRecord } from '@/lib/permissions'
 import { getAppTimeZone } from '@/lib/systemSettings'
 import { fmtDate } from '@/lib/datetime'
 
@@ -41,6 +41,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   ])
 
   if (!task) notFound()
+  if (!(await canSeeRecord('tasks', 'read', task.owner_id))) notFound()  // レコードスコープ（REQ-0083）
   const ownerName = task.owner_id ? (allUsers.find((u) => u.id === task.owner_id)?.name ?? null) : null
 
   const [allRelated, pickerData] = await Promise.all([
