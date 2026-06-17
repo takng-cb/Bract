@@ -20,7 +20,7 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, recordScope } from '@/lib/permissions'
 import MonthCalendar, { type CalendarEvent } from '@/components/MonthCalendar'
 import { List as ListIcon, CalendarDays } from 'lucide-react'
 
@@ -76,9 +76,11 @@ export default async function TasksPage({
   await requireBookRead('tasks')  // RBAC: Read 権限ガード（ADR-0023）
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('tasks', uid) : null)
-  const [sp, edit, colConfig, , dv] = await Promise.all([
-    searchParams, canEdit(), getListViewColumns('tasks'), userIdPromise, dvPromise,
+  const [sp, edit, colConfig, meId, dv, taskScope] = await Promise.all([
+    searchParams, canEdit(), getListViewColumns('tasks'), userIdPromise, dvPromise, recordScope('tasks', 'read'),
   ])
+  // レコードスコープ（REQ-0083）: 'own' なら owner_id = 自分のみ（SQL 述語で表現）
+  const scopeWhere = taskScope === 'own' && meId ? eq(tasks.owner_id, meId) : undefined
   const filterRaw  = [sp.f].flat().filter(Boolean) as string[]
   const page       = Math.max(1, parseInt(sp.page ?? '1', 10))
   const groupBy    = (sp.group ?? '').split(',').filter(Boolean)
@@ -108,7 +110,7 @@ export default async function TasksPage({
     priority:    tasks.priority,
     due_date:    tasks.due_date,
     owner_id:    tasks.owner_id,
-  }).from(tasks).orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
+  }).from(tasks).where(scopeWhere).orderBy(asc(tasks.done), asc(tasks.due_date), desc(tasks.created_at))
 
   // ── ステップ2: junction 経由で関連 account / opportunity を bulk fetch ─
   const allIds = allTasks.map((t) => t.id)

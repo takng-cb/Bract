@@ -10,8 +10,16 @@ import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
-import { requirePermission } from '@/lib/permissions'
+import { requirePermission, requireRecordScope, recordScope, type CrudOp } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
+
+/** レコードスコープ（REQ-0083）。'own' のロールは自分担当でない人物を更新/削除できない。
+ *  既定 'all' のときは owner 取得クエリを発行しない（無影響）。 */
+async function guardContactScope(id: string, op: CrudOp) {
+  if ((await recordScope('contacts', op)) !== 'own') return
+  const [row] = await db.select({ owner_id: contacts.owner_id }).from(contacts).where(eq(contacts.id, id))
+  await requireRecordScope('contacts', op, row?.owner_id ?? null)
+}
 
 export async function createContact(formData: FormData): Promise<string> {
   await requirePermission('contacts', 'create')
@@ -37,6 +45,7 @@ export async function createContact(formData: FormData): Promise<string> {
 
 export async function updateContact(id: string, formData: FormData) {
   await requirePermission('contacts', 'update')
+  await guardContactScope(id, 'update')
   await assertNotPendingApproval('contacts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const full_name    = formData.get('full_name') as string
   const contact_type = (formData.get('contact_type') as string) || 'business'
@@ -85,6 +94,7 @@ export async function updateContact(id: string, formData: FormData) {
 
 export async function deleteContact(id: string) {
   await requirePermission('contacts', 'delete')
+  await guardContactScope(id, 'delete')
   await assertNotPendingApproval('contacts', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('contacts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('contact', id)

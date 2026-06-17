@@ -28,7 +28,7 @@ import { NavIcon } from '@/lib/navIcon'
 import { canEdit } from '@/lib/auth'
 import { getAllUsers } from '@/lib/userUtils'
 import { isModuleEnabled } from '@/lib/modules/registry'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, canSeeRecord } from '@/lib/permissions'
 import { getAppTimeZone } from '@/lib/systemSettings'
 import { fmtDate } from '@/lib/datetime'
 import { updateProject, updateProjectStatus, deleteProject } from '@/app/actions/projects'
@@ -63,6 +63,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   ])
 
   if (!project) notFound()
+  if (!(await canSeeRecord('projects', 'read', project.owner_id))) notFound()  // レコードスコープ（REQ-0083）
 
   const editFlag = await canEdit()
   const account = project.account?.id ? project.account : null

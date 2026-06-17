@@ -20,7 +20,7 @@ import { getActivityTypes } from '@/lib/activityTypes'
 import { NavIcon } from '@/lib/navIcon'
 import MonthCalendar, { type CalendarEvent } from '@/components/MonthCalendar'
 import { List as ListIcon, CalendarDays } from 'lucide-react'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, recordScope } from '@/lib/permissions'
 import { hasFeature } from '@/lib/license'
 import { getRelatedRecordsPickerData } from '@/lib/relatedRecordsPicker'
 import PlaudMultiImport from '@/components/PlaudMultiImport'
@@ -47,10 +47,12 @@ export default async function ActivitiesPage({
   await requireBookRead('activities')  // RBAC: Read 権限ガード（ADR-0023）
   const userIdPromise = getCurrentUserId()
   const dvPromise     = userIdPromise.then((uid) => uid ? getDefaultView('activities', uid) : null)
-  const [sp, edit, colConfig, , activityTypes, dv, plaudEnabled, pickerData, tz] = await Promise.all([
+  const [sp, edit, colConfig, meId, activityTypes, dv, plaudEnabled, pickerData, tz, actScope] = await Promise.all([
     searchParams, canEdit(), getListViewColumns('activities'), userIdPromise, getActivityTypes(), dvPromise,
-    hasFeature('plaud_import'), getRelatedRecordsPickerData('activities'), getAppTimeZone(),
+    hasFeature('plaud_import'), getRelatedRecordsPickerData('activities'), getAppTimeZone(), recordScope('activities', 'read'),
   ])
+  // レコードスコープ（REQ-0083）: 'own' なら owner_id = 自分のみ（SQL 述語で表現。一覧/カレンダー共通）
+  const scopeWhere = actScope === 'own' && meId ? eq(activities.owner_id, meId) : undefined
 
   const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {}
   for (const t of activityTypes) {
@@ -95,7 +97,7 @@ export default async function ActivitiesPage({
     subject:     activities.subject,
     body:        activities.body,
     occurred_at: activities.occurred_at,
-  }).from(activities).orderBy(desc(activities.occurred_at))
+  }).from(activities).where(scopeWhere).orderBy(desc(activities.occurred_at))
 
   // ── ステップ2: junction 経由で関連 account を bulk fetch ─────────────
   const allIds = allActivities.map((a) => a.id)

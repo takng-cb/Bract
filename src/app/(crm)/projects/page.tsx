@@ -12,8 +12,8 @@ import { type FieldDef } from '@/components/FilterBuilder'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 import { parseSortParams, applySort } from '@/lib/sortUtils'
 import Pagination from '@/components/Pagination'
-import { canEdit } from '@/lib/auth'
-import { requireBookRead } from '@/lib/permissions'
+import { canEdit, getCurrentUserId } from '@/lib/auth'
+import { requireBookRead, recordScope } from '@/lib/permissions'
 import { NavIcon } from '@/lib/navIcon'
 import { PROJECT_STAGES, PROJECT_TYPES } from '@/lib/statusStages'
 
@@ -32,7 +32,9 @@ export default async function ProjectsListPage({
   await requireBookRead('projects')  // RBAC: Read 権限ガード（ADR-0023）
   if (!(await isModuleEnabled('projects'))) notFound()
 
-  const [sp, edit] = await Promise.all([searchParams, canEdit()])
+  const [sp, edit, meId, prjScope] = await Promise.all([searchParams, canEdit(), getCurrentUserId(), recordScope('projects', 'read')])
+  // レコードスコープ（REQ-0083）: 'own' なら owner_id = 自分のみ（SQL 述語で表現）
+  const scopeWhere = prjScope === 'own' && meId ? eq(projects.owner_id, meId) : undefined
   const filterRaw = [sp.f].flat().filter(Boolean) as string[]
   const page      = Math.max(1, parseInt(sp.page ?? '1', 10))
   const sortRaw   = sp.sort ?? ''
@@ -45,6 +47,7 @@ export default async function ProjectsListPage({
   })
     .from(projects)
     .leftJoin(accounts, eq(projects.account_id, accounts.id))
+    .where(scopeWhere)
     .orderBy(desc(projects.created_at))
 
   const conditions  = parseFilterParams(filterRaw)

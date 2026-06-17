@@ -12,6 +12,7 @@ import { listRolesWithPermissions, assignUserRole } from '@/app/actions/roles'
 import { listUsers } from '@/app/actions/userManagement'
 import PageHeader from '@/components/ui/PageHeader'
 import RoleManager from '@/components/admin/RoleManager'
+import { SCOPE_ENFORCED_BOOKS } from '@/lib/permissions'
 
 export default async function AdminRolesPage() {
   await requireAdmin()
@@ -54,6 +55,7 @@ export default async function AdminRolesPage() {
           })),
         }))}
         books={books.map((b) => ({ api: b.api_name, label: b.label_plural }))}
+        scopeBooks={[...SCOPE_ENFORCED_BOOKS]}
         users={userList.map((u) => ({ id: u.id, email: u.email, role: u.role, role_id: u.role_id ?? null }))}
         assignAction={assignAction}
       />

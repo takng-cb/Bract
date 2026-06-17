@@ -39,10 +39,12 @@ const SCOPE_SELECT = 'border border-zinc-300 rounded px-1.5 py-1 text-[12px] bg-
 const INPUT = 'border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export default function RoleManager({
-  roles, books, users, assignAction,
+  roles, books, scopeBooks, users, assignAction,
 }: {
   roles: RoleItem[]
   books: Book[]
+  /** レコードスコープ（自分の担当のみ）の強制が実装済みの book_api 集合（REQ-0083） */
+  scopeBooks: string[]
   users: UserRow[]
   assignAction: (userId: string, roleId: string) => Promise<void>
 }) {
@@ -72,7 +74,7 @@ export default function RoleManager({
       {/* ロール一覧 */}
       <div className="space-y-3">
         {roles.map((r) => (
-          <RoleCard key={r.id} role={r} books={books} onError={setError} />
+          <RoleCard key={r.id} role={r} books={books} scopeBooks={scopeBooks} onError={setError} />
         ))}
       </div>
 
@@ -142,7 +144,8 @@ function UserAssignRow({ user, roles, assignAction, onError }: {
   )
 }
 
-function RoleCard({ role, books, onError }: { role: RoleItem; books: Book[]; onError: (m: string) => void }) {
+function RoleCard({ role, books, scopeBooks, onError }: { role: RoleItem; books: Book[]; scopeBooks: string[]; onError: (m: string) => void }) {
+  const scopeSupported = (bookApi: string) => bookApi === '*' || scopeBooks.includes(bookApi)
   const [open, setOpen] = useState(false)
   const [pending, start] = useTransition()
   // マトリクスの編集状態: '*' 行 + ブック別上書き行
@@ -177,22 +180,31 @@ function RoleCard({ role, books, onError }: { role: RoleItem; books: Book[]; onE
     setDirty(true)
   }
 
-  const scopeCell = (bookApi: string, perm: PermRow) => (
-    <td className="px-2 py-2">
-      <div className="flex flex-col gap-1 items-start">
-        {SCOPE_FIELDS.map((sf) => (
-          <label key={sf.key} className="flex items-center gap-1 text-[11px] text-zinc-500">
-            <span className="w-10 shrink-0">{sf.label}</span>
-            <select value={perm[sf.key]} disabled={role.is_system || pending}
-              onChange={(e) => setScope(bookApi, sf.key, e.target.value as Scope)} className={SCOPE_SELECT}>
-              <option value="all">全件</option>
-              <option value="own">自分の担当のみ</option>
-            </select>
-          </label>
-        ))}
-      </div>
-    </td>
-  )
+  const scopeCell = (bookApi: string, perm: PermRow) => {
+    if (!scopeSupported(bookApi)) {
+      return (
+        <td className="px-2 py-2">
+          <span className="text-[11px] text-zinc-300" title="このブックは担当者スコープ未対応（owner なし）">—</span>
+        </td>
+      )
+    }
+    return (
+      <td className="px-2 py-2">
+        <div className="flex flex-col gap-1 items-start">
+          {SCOPE_FIELDS.map((sf) => (
+            <label key={sf.key} className="flex items-center gap-1 text-[11px] text-zinc-500">
+              <span className="w-10 shrink-0">{sf.label}</span>
+              <select value={perm[sf.key]} disabled={role.is_system || pending}
+                onChange={(e) => setScope(bookApi, sf.key, e.target.value as Scope)} className={SCOPE_SELECT}>
+                <option value="all">全件</option>
+                <option value="own">自分の担当のみ</option>
+              </select>
+            </label>
+          ))}
+        </div>
+      </td>
+    )
+  }
 
   function clearOverride(bookApi: string) {
     if (role.is_system || bookApi === '*') return
