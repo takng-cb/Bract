@@ -28,7 +28,7 @@ import { NavIcon } from '@/lib/navIcon'
 import OpportunityBoard, { type BoardColumn } from '@/components/OpportunityBoard'
 import MonthCalendar, { type CalendarEvent } from '@/components/MonthCalendar'
 import { List as ListIcon, Kanban as KanbanIcon, BarChart3, CalendarDays } from 'lucide-react'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, recordScope } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -124,6 +124,10 @@ export default async function OpportunitiesPage({
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string; view?: string; month?: string }>
 }) {
   await requireBookRead('opportunities')  // RBAC: Read 権限ガード（ADR-0023）
+  // レコードスコープ（REQ-0083）: 'own' なら owner_id = 自分のみ可視。owner_id は実カラムのため
+  // SQL の .where() に AND すれば board/list・JS フォールバック双方で一貫して効く。
+  const [oppScope, scopeMeId] = await Promise.all([recordScope('opportunities', 'read'), getCurrentUserId()])
+  const scopeWhere = oppScope === 'own' && scopeMeId ? eq(opportunities.owner_id, scopeMeId) : undefined
   const sp0 = await searchParams
   const hasListParams = Boolean(sp0.f || sp0.group || sp0.sort || sp0.page)
   // 既定はパイプライン（カンバン）。view 指定が無く一覧操作（フィルタ等）時はリスト。
@@ -152,7 +156,7 @@ export default async function OpportunitiesPage({
     const windowWhere = windowMonths > 0
       ? or(notInArray(opportunities.stage, TERMINAL_STAGES), gte(opportunities.updated_at, cutoff))
       : undefined
-    const where = and(baseWhere, useJsFallback ? undefined : windowWhere)
+    const where = and(baseWhere, useJsFallback ? undefined : windowWhere, scopeWhere)
 
     const [edit, rawRows, users, allTags, taggableRows, closedTotals] = await Promise.all([
       canEdit(),
@@ -181,7 +185,7 @@ export default async function OpportunitiesPage({
         ? db.select({ stage: opportunities.stage, total: count() })
             .from(opportunities)
             .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
-            .where(and(baseWhere, inArray(opportunities.stage, TERMINAL_STAGES)))
+            .where(and(baseWhere, inArray(opportunities.stage, TERMINAL_STAGES), scopeWhere))
             .groupBy(opportunities.stage)
         : Promise.resolve([] as { stage: string; total: number }[]),
     ])
@@ -356,6 +360,7 @@ export default async function OpportunitiesPage({
       db.select(selectShape)
         .from(opportunities)
         .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+        .where(scopeWhere)
         .orderBy(desc(opportunities.created_at)),
       getAllTags(),
       tagConditions.length > 0
@@ -386,7 +391,7 @@ export default async function OpportunitiesPage({
     const userWhere = buildWhere(otherConditions, FILTER_RESOLVER)
     const tagWhere = buildTagWhere(tagConditions, 'opportunity', opportunities.id)
     // and(undefined, x, y) は drizzle が undefined を無視するため安全
-    const where = and(userWhere, tagWhere)
+    const where = and(userWhere, tagWhere, scopeWhere)
     const orderBy = buildOrderBy(sortDefs, FILTER_RESOLVER)
     const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(opportunities.created_at)]
 

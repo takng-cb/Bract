@@ -23,7 +23,7 @@ import SavedViewsPanel from '@/components/SavedViewsPanel'
 import TableErrorBoundary from '@/components/TableErrorBoundary'
 import MobileGroupedCards from '@/components/MobileGroupedCards'
 import { NavIcon } from '@/lib/navIcon'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, recordScope } from '@/lib/permissions'
 
 const PAGE_SIZE = 20
 
@@ -33,6 +33,9 @@ export default async function AccountsPage({
   searchParams: Promise<{ f?: string | string[]; page?: string; group?: string; sort?: string }>
 }) {
   await requireBookRead('accounts')  // RBAC: Read 権限ガード（ADR-0023）
+  // レコードスコープ（REQ-0083）: 'own' なら owner_id = 自分のみ可視。既定 'all' は無制約。
+  const [accScope, meId] = await Promise.all([recordScope('accounts', 'read'), getCurrentUserId()])
+  const scopeWhere = accScope === 'own' && meId ? eq(accounts.owner_id, meId) : undefined
   // パフォーマンス最適化 (#40 Sprint 3+): getDefaultView を Round 1 と並列化。
   // userIdPromise を共有し、.then チェインで Promise.all 内で同時取得する。
   const userIdPromise = getCurrentUserId()
@@ -109,7 +112,9 @@ export default async function AccountsPage({
       taggedIdsByTagId.get(t.tag_id)!.add(t.object_id)
     }
 
-    let list = applyFilters(raw as Record<string, unknown>[], otherConditions) as SelectRow[]
+    // レコードスコープ（'own'）を JS でも適用（この経路は全件取得→JS 絞り込みのため）
+    const scoped = accScope === 'own' && meId ? raw.filter((r) => r.owner_id === meId) : raw
+    let list = applyFilters(scoped as Record<string, unknown>[], otherConditions) as SelectRow[]
     list = applyTagFilter(list, tagConditions, taggedIdsByTagId)
     const sorted = applySort(list as Record<string, unknown>[], sortDefs) as SelectRow[]
     totalCount = sorted.length
@@ -117,7 +122,7 @@ export default async function AccountsPage({
   } else {
     const userWhere = buildWhere(otherConditions, resolver)
     const tagWhere = buildTagWhere(tagConditions, 'account', accounts.id)
-    const where = and(userWhere, tagWhere)
+    const where = and(userWhere, tagWhere, scopeWhere)
     const orderBy = buildOrderBy(sortDefs, resolver)
     const finalOrderBy = orderBy.length > 0 ? orderBy : [desc(accounts.created_at)]
 

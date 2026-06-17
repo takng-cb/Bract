@@ -43,7 +43,7 @@ import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
 import RelatedSegments, { type RelatedSegment } from '@/components/record/RelatedSegments'
 import OpportunityProductsEditor, { type ProductOption } from '@/components/opportunity/OpportunityProductsEditor'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, canSeeRecord } from '@/lib/permissions'
 import { getAppTimeZone } from '@/lib/systemSettings'
 import { fmtDate, fmtTime, dayLabelInTz } from '@/lib/datetime'
 
@@ -105,6 +105,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   ])
 
   if (!opportunity) notFound()
+  // レコードスコープ（REQ-0083）: 'own' のロールは他人の担当レコードに直 URL で入れない
+  if (!(await canSeeRecord('opportunities', 'read', opportunity.owner_id))) notFound()
 
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
   for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = t.label

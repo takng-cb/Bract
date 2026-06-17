@@ -67,7 +67,12 @@ export async function saveRolePermissions(roleId: string, formData: FormData): P
   if (role.is_system) throw new Error('システムロールの権限は固定です')
 
   const raw = (formData.get('permissions') ?? '[]').toString()
-  let rows: { book_api: string; can_create: boolean; can_read: boolean; can_update: boolean; can_delete: boolean }[]
+  type Scope = 'all' | 'own'
+  const normScope = (v: unknown): Scope => (v === 'own' ? 'own' : 'all')
+  let rows: {
+    book_api: string; can_create: boolean; can_read: boolean; can_update: boolean; can_delete: boolean
+    read_scope?: unknown; write_scope?: unknown
+  }[]
   try {
     rows = JSON.parse(raw)
   } catch {
@@ -85,6 +90,8 @@ export async function saveRolePermissions(roleId: string, formData: FormData): P
       can_read: !!r.can_read,
       can_update: !!r.can_update,
       can_delete: !!r.can_delete,
+      read_scope: normScope(r.read_scope),    // レコードスコープ（REQ-0083）
+      write_scope: normScope(r.write_scope),
     }))
   if (values.length > 0) await db.insert(role_permissions).values(values).onConflictDoNothing()
   revalidatePath('/admin/roles')

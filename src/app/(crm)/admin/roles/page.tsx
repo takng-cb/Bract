@@ -32,7 +32,7 @@ export default async function AdminRolesPage() {
       <PageHeader
         icon="🛡️"
         title="ロール管理"
-        description="ロールごとに「ブック単位の作成・閲覧・更新・削除」を設定し、ユーザーに割り当てます"
+        description="ロールごとに「ブック単位の作成・閲覧・更新・削除」と「レコード範囲（全件 / 自分の担当のみ）」を設定し、ユーザーに割り当てます"
         className="mb-0"
       />
 
@@ -49,6 +49,8 @@ export default async function AdminRolesPage() {
             can_read: p.can_read,
             can_update: p.can_update,
             can_delete: p.can_delete,
+            read_scope: (p.read_scope === 'own' ? 'own' : 'all') as 'all' | 'own',
+            write_scope: (p.write_scope === 'own' ? 'own' : 'all') as 'all' | 'own',
           })),
         }))}
         books={books.map((b) => ({ api: b.api_name, label: b.label_plural }))}
