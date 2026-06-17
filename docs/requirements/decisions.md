@@ -306,3 +306,23 @@
 - ロールバック：Vercel の Connected Git を旧 `Bract-CRM` に戻して再デプロイ（DB 変更は加算的なので旧コードでも動作）。
 - 留意：本番 URL は real-estate=`bract-crm.vercel.app` / auto-body=`bract-crm-car.vercel.app`（旧 `bract-car.vercel.app` は無効エイリアス）。旧リポ `Bract-CRM` は今後アーカイブ扱い（push しない）。
 - 影響：Issue #18 / docs/deployment-runbook.md / README.md デプロイ表 / AGENTS.md（旧リポ非push 規律）。base 用 Neon・将来テナントは未移行（個別に同手順）。
+
+### ADR-0029  レコード単位アクセス制御：principal 別の可視述語＋grant 実体化＋外部はポータル分離
+- 2026-06-17 / **採用（設計）**（REQ-0083 / REQ-0084。会話で合意）
+- 文脈：既存 RBAC（ADR-0023）は「ロール×ブックの CRUD」までで、レコード単位の可視性が無い。要求は2層：(1) 社内＝担当者×ロールでレコードを絞る、(2) 外部ユーザーを作り**特定レコードだけ**見せる（非信頼）。一覧は SQL pushdown（FilterColumnResolver）でページ/件数も DB 側で確定するため、可視性は**必ず SQL の WHERE 述語**で表現する必要がある（JS 後フィルタはページ/件数が壊れる）。
+- 決定：
+  1. **単一の可視述語生成関数 `visibleRecordWhere(book, op, principal)`** に集約し、principal 種別でポリシー分岐。`canDo`（ブック CRUD）と直交させ、両者 AND で最終可視性を決める。一覧・詳細・サーバアクション・検索・ダッシュボード・エクスポートの**全入口から共用**。
+  2. **社内ポリシー**：`canDo(book,op)` ＋ ロール×ブック毎の**レコードスコープ** `all`（述語なし＝全件）/`own`（`owner_id = me`）。`team` は組織階層が必要なため将来（別 ADR）。既定 `all`＝現挙動で挙動非変更導入。スコープは `role_permissions` を拡張（`read_scope` / `write_scope` 列を追加、既定 `all`）。
+  3. **外部ポリシー**：外部ユーザーはブック権限を**強制ゼロ（deny-by-default）**。可視は `record_grants` 付与行が在るレコードのみ：`EXISTS(record_grants WHERE object_api=book AND record_id=rows.id AND grantee_id=me AND (expires_at IS NULL OR expires_at>now()))`。owner フォールバックもロール全件も無し。
+  4. **共有グラフ＝実体化（materialize）**：共有時に「含める関連子」を選ぶと**子ごとに record_grants 行を作る**。後から追加された関連は自動共有されない（＝「指定した関連子のみ」を満たし漏れない）。query は全種別で `EXISTS(record_grants)` に統一。ルールベースの実行時トラバースは漏れやすいため不採用。
+  5. **外部の書き込みは本文と分離**：外部は本文編集・削除**不可**。許すのは (a) 共有レコードへの**添付追加**（既存 attachments＋grant チェック）、(b) **コメント追加**（軽量な新テーブル `record_comments(object_api, record_id, author_id, body, created_at)`）。
+  6. **外部の入口はポータル分離**：`users.is_external`（または external system ロール）で principal を識別。**社内 (crm) ルートは外部を入口で全拒否→`/portal` リダイレクト**。`/portal` は最小ルート群（自分の grant 一覧／grant 検証済み詳細／ファイル・コメント追加）。認証基盤(Supabase)・DB・一部コンポーネントは流用。理由：非信頼ゆえ社内 UI 全体の封鎖は監査困難。専用面に限定すれば安全性を構造で担保。
+- ストラングラー段階（各 Phase 独立リリース可）：
+  - **Phase1（社内・低リスク）**：`visibleRecordWhere` 抽象＋`role_permissions.read_scope/write_scope`＋商談・取引先に own/all 適用。既定 all で挙動非変更。
+  - **Phase2（外部・基盤）**：`is_external`＋外部ロール（全拒否）＋社内アプリの外部拒否＋`record_grants`＋ポータル（grant 一覧／読み取り詳細）。
+  - **Phase3（外部・貢献）**：ポータルからファイル/コメント追加、社内詳細の「外部共有」パネル（共有先・含める子の選択・有効期限・取消）、監査ログ。
+  - **Phase4（堅牢化）**：外部の全入口（検索/AI/エクスポート/Storage 署名URL/関連/ダッシュボード/ナビ）の閉塞をセキュリティレビュー＋テスト。
+- 理由：可視性を 1 関数に集約することで入口ごとの実装ドリフト（＝漏れ）を防ぐ。既定 all による無影響導入で本番を守りつつ段階移行。grant 実体化で deny-by-default を維持。外部の専用面分離で非信頼 principal の監査範囲を最小化。
+- 却下/代替：(a) ロール×ブックのみで妥協（レコード単位要求を満たさない）。(b) フルACL を社内にも全面適用（運用重・不要）。(c) 同一ログイン＋外部ロールで社内 UI を封鎖（数十ルート/アクションのいずれか1つの漏れが即漏えい＝監査困難）。(d) 共有のルールベース実行時トラバース（漏れやすい）。
+- セキュリティ：外部=非信頼につき go/no-go(#40) に**「外部アクセスの脅威モデルレビュー＋封鎖テスト」を必須項目として追加**（直URL 404・非grant 操作拒否・検索/AI/エクスポート/Storage署名URL/関連 の閉塞）。
+- 影響：src/lib/schema.ts（`role_permissions` 拡張・`record_grants`・`record_comments`・`users.is_external`）/ src/lib/permissions.ts（`visibleRecordWhere` 追加）/ 各一覧・詳細・actions / 新 `(portal)` ルート群 / spec: access-control / 既存 ADR-0023 を拡張（Supersede ではなく上に積む）。

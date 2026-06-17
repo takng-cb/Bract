@@ -11,11 +11,20 @@ import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
-import { requirePermission } from '@/lib/permissions'
+import { requirePermission, requireRecordScope, recordScope, type CrudOp } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
+
+/** レコードスコープ（REQ-0083）。'own' のロールは自分が担当でない取引先を更新/削除できない。
+ *  既定 'all' のときは owner 取得クエリを発行しない（無影響）。 */
+async function guardAccountScope(id: string, op: CrudOp) {
+  if ((await recordScope('accounts', op)) !== 'own') return
+  const [row] = await db.select({ owner_id: accounts.owner_id }).from(accounts).where(eq(accounts.id, id))
+  await requireRecordScope('accounts', op, row?.owner_id ?? null)
+}
 
 export async function updateAccountStatus(id: string, status: string) {
   await requirePermission('accounts', 'update')
+  await guardAccountScope(id, 'update')
   await assertNotPendingApproval('accounts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const [before] = await db.select({ status: accounts.status })
     .from(accounts).where(eq(accounts.id, id))
@@ -58,6 +67,7 @@ export async function createAccount(formData: FormData): Promise<string> {
 
 export async function updateAccount(id: string, formData: FormData) {
   await requirePermission('accounts', 'update')
+  await guardAccountScope(id, 'update')
   await assertNotPendingApproval('accounts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('会社名は必須です')
@@ -115,6 +125,7 @@ export async function updateAccount(id: string, formData: FormData) {
 /** 連絡先のみ部分更新（右レールのインライン編集用） */
 export async function updateAccountContact(id: string, formData: FormData) {
   await requirePermission('accounts', 'update')
+  await guardAccountScope(id, 'update')
   await assertNotPendingApproval('accounts', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   await db.update(accounts).set({
     phone:      (formData.get('phone') as string) || null,
@@ -127,6 +138,7 @@ export async function updateAccountContact(id: string, formData: FormData) {
 
 export async function deleteAccount(id: string) {
   await requirePermission('accounts', 'delete')
+  await guardAccountScope(id, 'delete')
   await assertNotPendingApproval('accounts', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('accounts', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   // Phase 2: FK 列削除に伴い、DB 側 ON DELETE CASCADE が無くなる。

@@ -11,11 +11,20 @@ import { withSaveToast } from '@/lib/saveToast'
 import { logChanges } from '@/lib/changeLog'
 import { cleanupRelatedRecordsForParent } from '@/lib/relatedRecords'
 import { cleanupRecordLinksForParent } from '@/lib/recordLinks'
-import { requirePermission } from '@/lib/permissions'
+import { requirePermission, requireRecordScope, recordScope, type CrudOp } from '@/lib/permissions'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
+
+/** レコードスコープ（REQ-0083）。'own' のロールは自分が担当でない商談を更新/削除できない。
+ *  既定 'all' のときは owner 取得クエリを発行しない（無影響）。 */
+async function guardOpportunityScope(id: string, op: CrudOp) {
+  if ((await recordScope('opportunities', op)) !== 'own') return
+  const [row] = await db.select({ owner_id: opportunities.owner_id }).from(opportunities).where(eq(opportunities.id, id))
+  await requireRecordScope('opportunities', op, row?.owner_id ?? null)
+}
 
 export async function updateOpportunityStage(id: string, stage: string) {
   await requirePermission('opportunities', 'update')
+  await guardOpportunityScope(id, 'update')
   await assertNotPendingApproval('opportunities', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const [before] = await db.select({ stage: opportunities.stage })
     .from(opportunities).where(eq(opportunities.id, id))
@@ -73,6 +82,7 @@ export async function createOpportunity(formData: FormData): Promise<string> {
 
 export async function updateOpportunity(id: string, formData: FormData) {
   await requirePermission('opportunities', 'update')
+  await guardOpportunityScope(id, 'update')
   await assertNotPendingApproval('opportunities', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   const name = formData.get('name') as string
   if (!name?.trim()) throw new Error('商談名は必須です')
@@ -167,6 +177,7 @@ export async function updateOpportunity(id: string, formData: FormData) {
  */
 export async function updateOpportunityBasic(id: string, formData: FormData) {
   await requirePermission('opportunities', 'update')
+  await guardOpportunityScope(id, 'update')
   await assertNotPendingApproval('opportunities', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
   // name は基本情報から編集可能（hiddenFields ではなくフィールド化）。未指定時は既存値を維持。
   const nameRaw     = formData.get('name')
@@ -204,6 +215,7 @@ export async function updateOpportunityBasic(id: string, formData: FormData) {
 
 export async function deleteOpportunity(id: string) {
   await requirePermission('opportunities', 'delete')
+  await guardOpportunityScope(id, 'delete')
   await assertNotPendingApproval('opportunities', id)  // 承認待ち中は削除も不可（REQ-0023 / #131）
   await trashRecord('opportunities', id)  // 実削除の前にゴミ箱へ退避（REQ-0047）
   await cleanupRelatedRecordsForParent('opportunity', id)

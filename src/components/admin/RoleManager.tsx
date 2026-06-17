@@ -10,7 +10,11 @@ import { useState, useTransition } from 'react'
 import { Plus, Trash2, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import { createRole, deleteRole, saveRolePermissions } from '@/app/actions/roles'
 
-type PermRow = { book_api: string; can_create: boolean; can_read: boolean; can_update: boolean; can_delete: boolean }
+type Scope = 'all' | 'own'
+type PermRow = {
+  book_api: string; can_create: boolean; can_read: boolean; can_update: boolean; can_delete: boolean
+  read_scope: Scope; write_scope: Scope
+}
 type RoleItem = {
   id: string; name: string; description: string | null; is_system: boolean
   assignedUsers: number; permissions: PermRow[]
@@ -24,6 +28,13 @@ const OPS = [
   { key: 'can_update' as const, label: '更新' },
   { key: 'can_delete' as const, label: '削除' },
 ]
+
+// レコードスコープ（REQ-0083）。read_scope=閲覧範囲 / write_scope=作成・更新・削除の範囲。
+const SCOPE_FIELDS = [
+  { key: 'read_scope' as const, label: '閲覧範囲' },
+  { key: 'write_scope' as const, label: '編集範囲' },
+]
+const SCOPE_SELECT = 'border border-zinc-300 rounded px-1.5 py-1 text-[12px] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50'
 
 const INPUT = 'border border-zinc-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
@@ -139,7 +150,7 @@ function RoleCard({ role, books, onError }: { role: RoleItem; books: Book[]; onE
   const [rows, setRows] = useState<Map<string, PermRow>>(initialMap)
   const [dirty, setDirty] = useState(false)
 
-  const wildcard: PermRow = rows.get('*') ?? { book_api: '*', can_create: false, can_read: true, can_update: false, can_delete: false }
+  const wildcard: PermRow = rows.get('*') ?? { book_api: '*', can_create: false, can_read: true, can_update: false, can_delete: false, read_scope: 'all', write_scope: 'all' }
 
   function toggle(bookApi: string, key: (typeof OPS)[number]['key']) {
     if (role.is_system) return
@@ -153,6 +164,35 @@ function RoleCard({ role, books, onError }: { role: RoleItem; books: Book[]; onE
     })
     setDirty(true)
   }
+
+  function setScope(bookApi: string, which: (typeof SCOPE_FIELDS)[number]['key'], value: Scope) {
+    if (role.is_system) return
+    setRows((prev) => {
+      const next = new Map(prev)
+      const base = next.get(bookApi)
+        ?? (bookApi === '*' ? { ...wildcard } : { ...wildcard, book_api: bookApi })
+      next.set(bookApi, { ...base, book_api: bookApi, [which]: value })
+      return next
+    })
+    setDirty(true)
+  }
+
+  const scopeCell = (bookApi: string, perm: PermRow) => (
+    <td className="px-2 py-2">
+      <div className="flex flex-col gap-1 items-start">
+        {SCOPE_FIELDS.map((sf) => (
+          <label key={sf.key} className="flex items-center gap-1 text-[11px] text-zinc-500">
+            <span className="w-10 shrink-0">{sf.label}</span>
+            <select value={perm[sf.key]} disabled={role.is_system || pending}
+              onChange={(e) => setScope(bookApi, sf.key, e.target.value as Scope)} className={SCOPE_SELECT}>
+              <option value="all">全件</option>
+              <option value="own">自分の担当のみ</option>
+            </select>
+          </label>
+        ))}
+      </div>
+    </td>
+  )
 
   function clearOverride(bookApi: string) {
     if (role.is_system || bookApi === '*') return
@@ -203,6 +243,7 @@ function RoleCard({ role, books, onError }: { role: RoleItem; books: Book[]; onE
                 <tr className="bg-zinc-50 border-y border-zinc-200">
                   <th className="text-left px-3 py-2 text-xs font-semibold text-zinc-500">ブック</th>
                   {OPS.map((op) => <th key={op.key} className="px-2 py-2 text-xs font-semibold text-zinc-500 w-14 text-center">{op.label}</th>)}
+                  <th className="px-2 py-2 text-xs font-semibold text-zinc-500 text-left">レコード範囲</th>
                   <th className="w-16"></th>
                 </tr>
               </thead>
@@ -215,6 +256,7 @@ function RoleCard({ role, books, onError }: { role: RoleItem; books: Book[]; onE
                       <input type="checkbox" checked={wildcard[op.key]} disabled={role.is_system || pending} onChange={() => toggle('*', op.key)} className="accent-blue-600 w-4 h-4" />
                     </td>
                   ))}
+                  {scopeCell('*', wildcard)}
                   <td></td>
                 </tr>
                 {/* ブック別行 */}
@@ -232,6 +274,7 @@ function RoleCard({ role, books, onError }: { role: RoleItem; books: Book[]; onE
                           <input type="checkbox" checked={perm[op.key]} disabled={role.is_system || pending} onChange={() => toggle(b.api, op.key)} className="accent-blue-600 w-4 h-4" />
                         </td>
                       ))}
+                      {scopeCell(b.api, perm)}
                       <td className="px-2 py-2 text-right">
                         {overridden && !role.is_system && (
                           <button type="button" onClick={() => clearOverride(b.api)} className="text-[11px] text-zinc-400 hover:text-zinc-700 underline">既定に戻す</button>

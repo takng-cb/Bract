@@ -784,6 +784,10 @@ export const role_permissions = pgTable('role_permissions', {
   can_read:   boolean('can_read').notNull().default(false),
   can_update: boolean('can_update').notNull().default(false),
   can_delete: boolean('can_delete').notNull().default(false),
+  // レコードスコープ（REQ-0083 / ADR-0029）。'all'=全件 / 'own'=owner_id が自分のみ（将来 'team'）。
+  // 既定 'all' で挙動非変更（実際にロールへ 'own' を設定して初めて絞り込みが効く）。
+  read_scope:  text('read_scope').notNull().default('all'),
+  write_scope: text('write_scope').notNull().default('all'),
 }, (t) => [
   primaryKey({ columns: [t.role_id, t.book_api] }),
 ])

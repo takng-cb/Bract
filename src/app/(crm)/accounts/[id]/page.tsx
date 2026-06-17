@@ -32,7 +32,7 @@ import { RecordColumns, KpiBand, RefCard, MiniItem, Badge, RecordTable, RecordTa
 import RecordTabPanel from '@/components/record/RecordTabPanel'
 import ActivityStream, { type StreamEvent } from '@/components/record/ActivityStream'
 import RelatedSegments, { type RelatedSegment } from '@/components/record/RelatedSegments'
-import { requireBookRead } from '@/lib/permissions'
+import { requireBookRead, canSeeRecord } from '@/lib/permissions'
 import { getAppTimeZone } from '@/lib/systemSettings'
 import { fmtDate, fmtTime, dayLabelInTz } from '@/lib/datetime'
 
@@ -88,6 +88,8 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
   ])
 
   if (!account) notFound()
+  // レコードスコープ（REQ-0083）: 'own' のロールは他人の担当レコードに直 URL で入れない
+  if (!(await canSeeRecord('accounts', 'read', account.owner_id))) notFound()
 
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {}
   for (const t of activityTypes) ACTIVITY_TYPE_LABELS[t.value] = t.label

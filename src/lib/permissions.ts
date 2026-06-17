@@ -20,26 +20,50 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { users, roles, role_permissions } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
-import { getSupabaseUser } from '@/lib/auth'
+import { getSupabaseUser, getCurrentUserId } from '@/lib/auth'
 
 export type CrudOp = 'create' | 'read' | 'update' | 'delete'
 
-export type BookPerm = { create: boolean; read: boolean; update: boolean; delete: boolean }
+/** レコードスコープ（REQ-0083 / ADR-0029）。'all'=全件 / 'own'=owner_id が自分のみ（将来 'team'）。 */
+export type RecordScope = 'all' | 'own'
+
+export type BookPerm = {
+  create: boolean; read: boolean; update: boolean; delete: boolean
+  /** read 系（read）の可視範囲 */
+  readScope: RecordScope
+  /** write 系（create/update/delete）の操作範囲 */
+  writeScope: RecordScope
+}
 export type PermissionSet = {
   roleName: string
   isAdmin: boolean
-  /** book_api → CRUD（'*' はワイルドカード既定） */
+  /** book_api → CRUD＋スコープ（'*' はワイルドカード既定） */
   byBook: Record<string, BookPerm>
+}
+
+/** 全件スコープの BookPerm（フォールバック用ヘルパ） */
+function fullScope(p: Omit<BookPerm, 'readScope' | 'writeScope'>): BookPerm {
+  return { ...p, readScope: 'all', writeScope: 'all' }
 }
 
 const VIEWER_FALLBACK: PermissionSet = {
   roleName: 'viewer',
   isAdmin: false,
-  byBook: { '*': { create: false, read: true, update: false, delete: false } },
+  byBook: { '*': fullScope({ create: false, read: true, update: false, delete: false }) },
 }
 
-function rowToPerm(r: { can_create: boolean; can_read: boolean; can_update: boolean; can_delete: boolean }): BookPerm {
-  return { create: r.can_create, read: r.can_read, update: r.can_update, delete: r.can_delete }
+function normScope(v: string | null | undefined): RecordScope {
+  return v === 'own' ? 'own' : 'all'
+}
+
+function rowToPerm(r: {
+  can_create: boolean; can_read: boolean; can_update: boolean; can_delete: boolean
+  read_scope?: string | null; write_scope?: string | null
+}): BookPerm {
+  return {
+    create: r.can_create, read: r.can_read, update: r.can_update, delete: r.can_delete,
+    readScope: normScope(r.read_scope), writeScope: normScope(r.write_scope),
+  }
 }
 
 /** 現在ユーザーの権限セットを解決（リクエスト内キャッシュ） */
@@ -66,8 +90,8 @@ export const getCurrentPermissions = cache(async (): Promise<PermissionSet> => {
   }
   if (!roleRow) {
     // roles 未 seed の環境（migration 前）は旧テキストロールで近似＝挙動非変更
-    if (u.role === 'admin') return { roleName: 'admin', isAdmin: true, byBook: { '*': { create: true, read: true, update: true, delete: true } } }
-    if (u.role === 'editor') return { roleName: 'editor', isAdmin: false, byBook: { '*': { create: true, read: true, update: true, delete: true } } }
+    if (u.role === 'admin') return { roleName: 'admin', isAdmin: true, byBook: { '*': fullScope({ create: true, read: true, update: true, delete: true }) } }
+    if (u.role === 'editor') return { roleName: 'editor', isAdmin: false, byBook: { '*': fullScope({ create: true, read: true, update: true, delete: true }) } }
     return VIEWER_FALLBACK
   }
 
@@ -78,7 +102,7 @@ export const getCurrentPermissions = cache(async (): Promise<PermissionSet> => {
 
   const byBook: Record<string, BookPerm> = {}
   for (const r of permRows) byBook[r.book_api] = rowToPerm(r)
-  if (!byBook['*'] && isAdminRole) byBook['*'] = { create: true, read: true, update: true, delete: true }
+  if (!byBook['*'] && isAdminRole) byBook['*'] = fullScope({ create: true, read: true, update: true, delete: true })
 
   return { roleName: roleRow.name, isAdmin: isAdminRole, byBook }
 })
@@ -91,6 +115,41 @@ export async function canDo(bookApi: string, op: CrudOp): Promise<boolean> {
   return perm ? perm[op] : false
 }
 
+/* ── レコードスコープ（REQ-0083 / ADR-0029）─────────────────────────────
+ * 可視性は「層1: canDo（ブック CRUD）」と「層2: レコードスコープ」の AND。
+ * 一覧は recordScope() で 'all'|'own' を取り、'own' なら SQL の WHERE に
+ * owner_id = me を AND する（JS 後フィルタはページ/件数が壊れるため不可）。
+ * 詳細・サーバアクションは canSeeRecord() で対象1件を同ロジックで再判定する
+ * （リストに出さなくても直 URL を叩かれるため）。
+ */
+function scopeFor(p: PermissionSet, bookApi: string, op: CrudOp): RecordScope {
+  const perm = p.byBook[bookApi] ?? p.byBook['*']
+  if (!perm) return 'all'
+  return op === 'read' ? perm.readScope : perm.writeScope
+}
+
+/** 指定ブック・操作のレコードスコープ（admin は常に 'all'）。一覧の述語生成に使う。 */
+export async function recordScope(bookApi: string, op: CrudOp): Promise<RecordScope> {
+  const p = await getCurrentPermissions()
+  if (p.isAdmin) return 'all'
+  return scopeFor(p, bookApi, op)
+}
+
+/**
+ * 単一レコードが可視/操作可能か（層1＋層2）。
+ * 詳細ページ（notFound 分岐）・サーバアクション（拒否）から呼ぶ。
+ * @param ownerId 対象レコードの owner_id（null 可）
+ */
+export async function canSeeRecord(bookApi: string, op: CrudOp, ownerId: string | null): Promise<boolean> {
+  const p = await getCurrentPermissions()
+  if (p.isAdmin) return true
+  const perm = p.byBook[bookApi] ?? p.byBook['*']
+  if (!perm || !perm[op]) return false                 // 層1: ブック CRUD
+  if (scopeFor(p, bookApi, op) === 'all') return true   // 層2: スコープ
+  const me = await getCurrentUserId()
+  return !!me && ownerId === me
+}
+
 /** Server Action 冒頭ガード（不許可なら例外） */
 export class PermissionDeniedError extends Error {
   constructor(public readonly bookApi: string, public readonly op: CrudOp) {
@@ -101,6 +160,11 @@ export class PermissionDeniedError extends Error {
 
 export async function requirePermission(bookApi: string, op: CrudOp): Promise<void> {
   if (!(await canDo(bookApi, op))) throw new PermissionDeniedError(bookApi, op)
+}
+
+/** サーバアクション用：対象レコードの owner_id を渡し、スコープ違反なら拒否（REQ-0083）。 */
+export async function requireRecordScope(bookApi: string, op: CrudOp, ownerId: string | null): Promise<void> {
+  if (!(await canSeeRecord(bookApi, op, ownerId))) throw new PermissionDeniedError(bookApi, op)
 }
 
 /** ページ用 Read ガード（read 不可ならダッシュボードへ） */
