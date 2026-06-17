@@ -12,6 +12,16 @@
 import { test, expect } from '@playwright/test'
 import { SCOPE_BOOKS } from './scope.fixtures'
 
+// ── CSV エクスポートもレコードスコープを尊重する（REQ-0083/0084 Phase4）──
+// own ロールの社内ユーザーは export 可（403 にならない）だが、取得できるのは own のみ。
+test('CSV エクスポートは own のみ（other は含まれない）', async ({ request }) => {
+  const res = await request.get('/api/export/accounts')
+  expect(res.status()).toBe(200)
+  const csv = await res.text()
+  expect(csv).toContain('E2E自分の取引先')
+  expect(csv).not.toContain('E2E他人の取引先')
+})
+
 for (const b of SCOPE_BOOKS) {
   test.describe(`レコードスコープ own: ${b.key}`, () => {
     test('一覧は own が出て other は出ない', async ({ page }) => {

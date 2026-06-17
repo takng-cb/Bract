@@ -7,13 +7,13 @@ import { products } from '@/lib/schema'
 import { asc } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
-import { requireApiUser } from '@/lib/apiAuth'
+import { requireApiBookRead } from '@/lib/apiAuth'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
 export async function GET(request: Request) {
-  // 認証確認（未ログインは 401）
-  const denied = await requireApiUser()
-  if (denied) return denied
+  // 認証＋ブック Read 権限＋外部ユーザー遮断（REQ-0084）
+  const auth = await requireApiBookRead('products')
+  if (auth instanceof NextResponse) return auth
 
   // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
   const filterRaw = new URL(request.url).searchParams.getAll('f')

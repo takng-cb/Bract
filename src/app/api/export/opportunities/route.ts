@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
 import { calcProfit } from '@/industries/real-estate/lib/realEstateCommission'
 import { activeIndustry } from '@/lib/industry'
-import { requireApiUser } from '@/lib/apiAuth'
+import { requireApiBookRead } from '@/lib/apiAuth'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
 const STAGE_LABEL: Record<string, string> = {
@@ -14,9 +14,10 @@ const STAGE_LABEL: Record<string, string> = {
 }
 
 export async function GET(request: Request) {
-  // 認証確認（未ログインは 401）
-  const denied = await requireApiUser()
-  if (denied) return denied
+  // 認証＋ブック Read 権限＋外部ユーザー遮断（REQ-0083/0084）
+  const auth = await requireApiBookRead('opportunities')
+  if (auth instanceof NextResponse) return auth
+  const scopeWhere = auth.scope === 'own' && auth.scopeEnforced ? eq(opportunities.owner_id, auth.userId) : undefined
 
   // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
   const filterRaw = new URL(request.url).searchParams.getAll('f')
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
     })
       .from(opportunities)
       .leftJoin(accounts, eq(opportunities.account_id, accounts.id))
+      .where(scopeWhere)
       .orderBy(desc(opportunities.created_at))
 
     const filtered = conditions.length > 0

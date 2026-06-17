@@ -32,7 +32,8 @@ export default async function ExternalSharePanel({
   async function share(formData: FormData) {
     'use server'
     const granteeId = formData.get('granteeId') as string
-    if (granteeId) await grantRecordToExternal(objectApi, recordId, granteeId, revalidatePath)
+    const days = Number(formData.get('expiresInDays') ?? 0) || 0
+    if (granteeId) await grantRecordToExternal(objectApi, recordId, granteeId, revalidatePath, days)
   }
   async function revoke(formData: FormData) {
     'use server'
@@ -52,7 +53,10 @@ export default async function ExternalSharePanel({
         <ul className="mb-3 divide-y divide-zinc-100 rounded-lg border border-zinc-100">
           {grantees.map((g) => (
             <li key={g.grantee_id} className="flex items-center justify-between gap-2 px-3 py-2">
-              <span className="truncate text-sm text-zinc-700">{emailById.get(g.grantee_id) ?? g.grantee_id}</span>
+              <span className="min-w-0 truncate text-sm text-zinc-700">
+                {emailById.get(g.grantee_id) ?? g.grantee_id}
+                <span className="ml-2 text-[11px] text-zinc-400">{g.expires_at ? `期限 ${new Date(g.expires_at).toISOString().slice(0, 10)}` : '無期限'}</span>
+              </span>
               <form action={revoke}>
                 <input type="hidden" name="granteeId" value={g.grantee_id} />
                 <button type="submit" className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700">
@@ -72,10 +76,16 @@ export default async function ExternalSharePanel({
       ) : available.length === 0 ? (
         <p className="text-xs text-zinc-400">すべての外部ユーザーに共有済みです。</p>
       ) : (
-        <form action={share} className="flex items-center gap-2">
+        <form action={share} className="flex flex-wrap items-center gap-2">
           <select name="granteeId" className="min-w-0 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm" defaultValue="">
             <option value="" disabled>共有先の外部ユーザーを選択…</option>
             {available.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}
+          </select>
+          <select name="expiresInDays" className="shrink-0 rounded-md border border-zinc-300 px-2 py-1.5 text-sm" defaultValue="0" title="有効期限">
+            <option value="0">無期限</option>
+            <option value="7">7日</option>
+            <option value="30">30日</option>
+            <option value="90">90日</option>
           </select>
           <button type="submit" className="shrink-0 rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700">共有</button>
         </form>

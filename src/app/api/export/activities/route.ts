@@ -3,13 +3,14 @@ import { activities, accounts, contacts, opportunities, activity_related_records
 import { eq, desc, inArray, and } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
-import { requireApiUser } from '@/lib/apiAuth'
+import { requireApiBookRead } from '@/lib/apiAuth'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
 export async function GET(request: Request) {
-  // 認証確認（未ログインは 401）
-  const denied = await requireApiUser()
-  if (denied) return denied
+  // 認証＋ブック Read 権限＋外部ユーザー遮断（REQ-0083/0084）
+  const auth = await requireApiBookRead('activities')
+  if (auth instanceof NextResponse) return auth
+  const scopeWhere = auth.scope === 'own' && auth.scopeEnforced ? eq(activities.owner_id, auth.userId) : undefined
 
   // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
   const filterRaw = new URL(request.url).searchParams.getAll('f')
@@ -25,6 +26,7 @@ export async function GET(request: Request) {
       body:        activities.body,
     })
       .from(activities)
+      .where(scopeWhere)
       .orderBy(desc(activities.occurred_at))
 
     // occurred_at（timestamptz の Date オブジェクト）は applyFilters 側で

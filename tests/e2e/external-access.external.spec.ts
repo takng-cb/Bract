@@ -81,3 +81,21 @@ test.describe('外部ユーザー: 共有レコードの閲覧（正の経路）
     await expect(page.getByRole('button', { name: /編集|削除/ })).toHaveCount(0)
   })
 })
+
+// ── データ API の遮断（Phase4・脅威モデル封鎖）──
+// 外部ユーザーは CSV エクスポート・検索 API を一切叩けない（403）。request は project の
+// storageState（外部ユーザーの認証）を共有するため、API も外部ユーザーとして到達する。
+test.describe('外部ユーザー: データ API 遮断', () => {
+  const EXPORTS = ['accounts', 'contacts', 'opportunities', 'tasks', 'activities', 'expenses', 'products']
+  for (const e of EXPORTS) {
+    test(`/api/export/${e} は 403`, async ({ request }) => {
+      const res = await request.get(`/api/export/${e}`)
+      expect(res.status()).toBe(403)
+    })
+  }
+
+  test('/api/search/records は 403', async ({ request }) => {
+    const res = await request.get('/api/search/records?objectType=accounts&q=a')
+    expect(res.status()).toBe(403)
+  })
+})

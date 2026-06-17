@@ -10,19 +10,17 @@ import { book_records, book_definitions, book_fields, accounts, contacts } from 
 import { eq, asc, inArray } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 import { buildCsv } from '@/lib/csvUtils'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireApiBookRead } from '@/lib/apiAuth'
 import { parseFilterParams, applyFilters } from '@/lib/filterUtils'
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ objectApiName: string }> },
 ) {
-  // 認証確認
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const { objectApiName } = await params
+  // 認証＋ブック Read 権限＋外部ユーザー遮断（REQ-0083/0084）
+  const auth = await requireApiBookRead(objectApiName)
+  if (auth instanceof NextResponse) return auth
 
   // エクスポートのフィルタ指定（REQ-0052）: 一覧と同じ f パラメータ
   const filterRaw = req.nextUrl.searchParams.getAll('f')
