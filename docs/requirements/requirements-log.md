@@ -501,6 +501,33 @@
 - 設計：`projects` は src/lib/schema.ts（check:schema 追跡＝全 Neon 必須）。module registry に 'projects'(erp) を登録。直接 (crm)/projects ルート（isModuleEnabled('projects') ガード）。actions=src/app/actions/projects.ts、form=src/components/ProjectForm.tsx。migration 20260616140000。record_links のエンドポイント化（resolver/検索/picker[projects]/recordHref/bookFor）＋重複チェック＋ゴミ箱 whitelist。RBAC は system ロールの `'*'` で自動許可。有効化は /admin/license の enabled_modules に 'projects'。
 - 状態：実装済み（feature/projects-module）。tsc/eslint/check:schema(dev)/3業種ビルド緑、dev に migration 適用済み。**未了**：real-estate / auto-body Neon への migration 適用（merge 前提）＋各コンテナで 'projects' モジュール有効化。
 
+### REQ-0081  表示日時のタイムゾーン設定化（サーバ表示の GMT 解消）
+- 2026-06-14 / 会話（「作成日時や活動の日時が GST になっている。アプリ内の管理画面でタイムゾーン指定したい」）
+- 内容：timestamptz(UTC) 保存値を、サーバコンポーネントで素の toLocale* すると Vercel(UTC) が GMT 表示になる。表示タイムゾーンを system_settings で設定し、共有フォーマッタで全画面整形。日付のみ列（期限/誕生日/カスタムdate）は日跨ぎ回避のため非変換。
+- 状態：完了（merge+push 済 801fa9b。src/lib/datetime.ts ＋ getAppTimeZone()＋/admin/system「全般設定」。詳細8種・一覧/管理7画面に展開）。
+- 関連：spec: なし（横断ユーティリティ）/ commit 801fa9b
+
+### REQ-0082  AI 応答 JSON 抽出の共通化
+- 2026-06-14 / 会話（「テストも進めておいて。Gemini APIキーでエラー」起点の整備）
+- 内容：quickAi/aiSearch/plaud に重複していた「LLM応答からJSONを頑健に取り出す」処理を src/lib/ai/extractJson.ts に集約（フェンス→{…}→［…］→全体）。plaud は素のbrace検索だったため上位互換に強化。staffing は throw 仕様が異なるため据え置き。
+- 状態：完了（merge+push 済 bb4ffdf。単体テスト10件）。
+- 関連：commit bb4ffdf
+
+### REQ-0083  レコード単位アクセス制御（社内：担当者×ロールのレコードスコープ）
+- 2026-06-17 / 会話（「レコードごとにロールでの閲覧/編集権限をコントロールしたい」）
+- 内容：現状の RBAC は「ロール×ブックの CRUD」までで、レコード単位の可視性が無い。ロール×ブック毎に**レコードスコープ**（`all`＝全件／`own`＝owner_id=自分／将来 `team`）を設定し、一覧 SQL に可視述語を注入する。可視性は必ず SQL の WHERE で表現（JS 後フィルタはページ/件数がズレるため不可）。可視判定は `visibleRecordWhere(book, op, principal)` の単一関数に集約し、一覧・詳細・サーバアクション・検索・ダッシュボード・エクスポートから共用。
+- 初期対象：商談・取引先など主要 CRM。既定スコープ=`all`（＝現挙動）から段階導入＝挙動非変更で開始。
+- 状態：合意（設計済 / Phase1 着手）
+- 関連：ADR-0029 / spec: access-control / 既存 ADR-0023（RBAC）
+
+### REQ-0084  外部ユーザーへのレコード個別共有（ポータル・閲覧＋ファイル/コメント）
+- 2026-06-17 / 会話（「外部ユーザーを作成し、特定レコードだけを見せたい」）
+- 内容：**非信頼**な外部ユーザーを作成し、**既定で全拒否**＋明示付与したレコードのみ可視にする（per-record ACL）。外部の操作は**閲覧＋ファイル/コメント追加**（本文編集・削除は不可）。1件の共有は「レコード＋**明示指定した関連子のみ**」に波及（自動波及なし＝deny-by-default を維持）。共有グラフは grant 行の**実体化（子ごとに record_grants 行を作成）**で表現。
+- 認証・入口：**専用ポータル面を分離**（同じ Supabase 認証・同じ DB を流用、UI のみ分離）。社内 (crm) は外部ユーザーを入口で全拒否→`/portal` へ。理由：非信頼ゆえ社内 UI 全体の封鎖は監査が困難。専用面に限定すると安全性を構造で担保できる。
+- セキュリティ：go/no-go(#40) に「外部アクセスの脅威モデルレビュー＋封鎖テスト（直URL 404・非grant操作拒否・検索/AI/エクスポート/Storage署名URL/関連 の閉塞）」を必須項目として追加する。
+- 状態：合意（設計済 / Phase2 以降）
+- 関連：ADR-0029 / spec: access-control / REQ-0083（社内スコープと述語基盤を共有）
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
