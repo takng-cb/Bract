@@ -39,6 +39,8 @@ export async function createUser(
   const password = formData.get('password') as string
   const roleRaw  = (formData.get('role') as string) ?? ''
   const role     = ['admin', 'editor', 'viewer'].includes(roleRaw) ? roleRaw : 'viewer'
+  // 外部ユーザー（REQ-0084）: 社内アプリ不可・共有ポータルのみ。ロールは無関係（EXTERNAL_DENY）。
+  const isExternal = formData.get('is_external') === 'on'
 
   if (!email || !password) return 'メールアドレスとパスワードは必須です'
   if (password.length < 8) return 'パスワードは8文字以上にしてください'
@@ -57,7 +59,7 @@ export async function createUser(
   }
 
   // Neon users テーブルにも登録
-  await db.insert(users).values({ id: data.user.id, email, role }).onConflictDoNothing()
+  await db.insert(users).values({ id: data.user.id, email, role, is_external: isExternal }).onConflictDoNothing()
 
   return null  // null = success
 }

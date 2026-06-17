@@ -760,8 +760,29 @@ export const users = pgTable('users', {
   email:      text('email').notNull(),
   role:       text('role').notNull().default('viewer'), // 'admin' | 'editor' | 'viewer'（RBAC 移行中のフォールバック）
   role_id:    uuid('role_id').references(() => roles.id, { onDelete: 'set null' }), // RBAC ロール割当（ADR-0023）
+  // 外部ユーザー（REQ-0084 / ADR-0029）。true の人は社内 (crm) を一切見られず、
+  // record_grants で明示付与されたレコードのみ /portal で閲覧できる（deny-by-default）。
+  is_external: boolean('is_external').notNull().default(false),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
+
+// ----------------------------------------------------------------
+// record_grants（外部ユーザーへのレコード個別共有・per-record ACL。REQ-0084 / ADR-0029）
+//   外部ユーザーはブック権限ゼロ。ここに行がある (object_api, record_id) のみ閲覧可。
+//   共有グラフは「子ごとに行を作る」実体化方式（自動波及なし＝漏れない）。
+// ----------------------------------------------------------------
+export const record_grants = pgTable('record_grants', {
+  object_api: text('object_api').notNull(),                 // 'opportunities' 等（STANDARD_META / book api）
+  record_id:  uuid('record_id').notNull(),
+  grantee_id: uuid('grantee_id').notNull(),                 // 外部ユーザー（users.id）
+  level:      text('level').notNull().default('read'),      // 'read'（Phase2）/ 'contribute'（Phase3: ファイル・コメント）
+  granted_by: uuid('granted_by'),                           // 付与した社内ユーザー
+  expires_at: timestamp('expires_at', { withTimezone: true }),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.object_api, t.record_id, t.grantee_id] }),
+  index('record_grants_grantee_idx').on(t.grantee_id),
+])
 
 // ----------------------------------------------------------------
 // roles / role_permissions（RBAC: ロール × ブック別 CRUD。REQ-0031 / ADR-0023）

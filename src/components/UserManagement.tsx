@@ -105,9 +105,16 @@ export default function UserManagement({ users, currentUserId }: Props) {
             </div>
           </div>
           <p className="text-xs text-zinc-400">
-            新規ユーザーは<span className="font-medium text-zinc-600">閲覧者</span>で作成されます。ロールの割り当ては作成後に
+            社内ユーザーは<span className="font-medium text-zinc-600">閲覧者</span>で作成されます。ロールの割り当ては作成後に
             <Link href="/admin/roles" className="font-medium text-brand-700 underline hover:text-brand-800">ロール管理</Link>で行ってください。
           </p>
+          <label className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm">
+            <input type="checkbox" name="is_external" className="mt-0.5 accent-brand-600" />
+            <span>
+              <span className="font-medium text-zinc-700">外部ユーザーとして作成</span>
+              <span className="block text-xs text-zinc-400">社内 CRM は閲覧不可。共有された特定レコードのみ「共有ポータル」で閲覧できます（REQ-0084）。</span>
+            </span>
+          </label>
           <div className="flex gap-2">
             <button
               type="submit" disabled={createPending}

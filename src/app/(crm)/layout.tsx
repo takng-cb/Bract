@@ -18,7 +18,8 @@ import { isAdmin, getSupabaseUser } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
 import { isAIFeatureEnabled } from '@/lib/ai/featureFlag'
 import { getEnabledModules } from '@/lib/modules/registry'
-import { filterNavByRead } from '@/lib/permissions'
+import { filterNavByRead, isExternalUser } from '@/lib/permissions'
+import { redirect } from 'next/navigation'
 import { buildModuleBooks } from '@/lib/modules/quick'
 import QuickLauncher from '@/components/QuickLauncher'
 import { hasFeature } from '@/lib/license'
@@ -36,6 +37,10 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     getSupabaseUser(),
     cookies(),
   ])
+
+  // 外部ユーザー（REQ-0084）は社内 (crm) を一切閲覧不可 → ポータルへ。
+  // （万一ここを通っても各ページ/アクションの権限ガードは EXTERNAL_DENY で全拒否）
+  if (user && (await isExternalUser())) redirect('/portal')
 
   // ── Round 2: ユーザー ID が確定してから残りを並列実行 ─────────────────
   // user_preferences を1回のクエリで nav_order と display_name の両方を取得
