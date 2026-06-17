@@ -55,7 +55,7 @@ export default defineConfig({
         storageState: 'tests/e2e/.auth/admin.json',
       },
       dependencies: ['setup'],
-      testIgnore: [/auth\.setup\.ts/, /.*\.viewer\.spec\.ts/, /.*\.editor\.spec\.ts/],
+      testIgnore: [/auth\.setup\.ts/, /.*\.viewer\.spec\.ts/, /.*\.editor\.spec\.ts/, /.*\.external\.spec\.ts/],
     },
     // ── 3) editor として実行（編集可、admin 画面に弾かれる検証） ─────
     {
@@ -76,6 +76,16 @@ export default defineConfig({
       },
       dependencies: ['setup'],
       testMatch: /.*\.viewer\.spec\.ts/,
+    },
+    // ── 5) external として実行（社内アプリ封鎖・/portal のみ・非grant 404）REQ-0084 ─
+    {
+      name: 'chromium-external',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'tests/e2e/.auth/external.json',
+      },
+      dependencies: ['setup'],
+      testMatch: /.*\.external\.spec\.ts/,
     },
   ],
 })
