@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { db } from '@/lib/db'
 import { users } from '@/lib/schema'
-import { eq, asc } from 'drizzle-orm'
+import { asc } from 'drizzle-orm'
 import { isAdminUser } from '@/lib/userRole'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -60,22 +60,6 @@ export async function createUser(
   await db.insert(users).values({ id: data.user.id, email, role }).onConflictDoNothing()
 
   return null  // null = success
-}
-
-// ─────────────────────────────────────────────
-// ロール変更
-// ─────────────────────────────────────────────
-export async function updateUserRole(
-  targetUserId: string,
-  newRole: 'admin' | 'editor' | 'viewer',
-): Promise<{ error?: string }> {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user: me } } = await supabase.auth.getUser()
-  if (!me || !(await isAdminUser(me.id))) return { error: '管理者権限がありません' }
-  if (targetUserId === me.id) return { error: '自分自身のロールは変更できません' }
-
-  await db.update(users).set({ role: newRole }).where(eq(users.id, targetUserId))
-  return {}
 }
 
 // ─────────────────────────────────────────────

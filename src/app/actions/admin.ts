@@ -13,7 +13,6 @@ import { requireAdmin, getSupabaseUser } from '@/lib/auth'
 import { activeIndustry } from '@/lib/industry'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import type { Role } from '@/lib/userRole'
 
 /**
  * 他のユーザーのパスワードを管理者権限で強制上書きする。
@@ -71,16 +70,6 @@ export async function resetUserPassword(
 
   revalidatePath('/admin/users')
   return 'success'
-}
-
-/** ユーザーのロールを変更する（管理者専用） */
-export async function updateUserRole(formData: FormData): Promise<void> {
-  await requireAdmin()
-  const userId = formData.get('userId') as string
-  const role   = formData.get('role') as Role
-  if (!userId || !['admin', 'editor', 'viewer'].includes(role)) return
-  await db.update(users).set({ role }).where(eq(users.id, userId))
-  revalidatePath('/admin/users')
 }
 
 /**

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useTransition, useActionState } from 'react'
-import { createUser, updateUserRole, startImpersonation } from '@/app/actions/userManagement'
+import Link from 'next/link'
+import { createUser, startImpersonation } from '@/app/actions/userManagement'
 import { NavIcon } from '@/lib/navIcon'
 
 type User = {
@@ -36,19 +37,6 @@ export default function UserManagement({ users, currentUserId }: Props) {
   )
   const [isPending, startTransition] = useTransition()
 
-  function handleRoleChange(userId: string, newRole: 'admin' | 'editor' | 'viewer') {
-    startTransition(async () => {
-      const { error } = await updateUserRole(userId, newRole)
-      if (!error) {
-        setLocalUsers((prev) =>
-          prev.map((u) => u.id === userId ? { ...u, role: newRole } : u)
-        )
-      } else {
-        alert(error)
-      }
-    })
-  }
-
   function handleImpersonate(userId: string, email: string) {
     if (!confirm(`「${email}」としてログインします。現在のセッションは保持され、後で管理者に戻れます。\n\n続けますか？`)) return
     setImpersonating(userId)
@@ -75,6 +63,9 @@ export default function UserManagement({ users, currentUserId }: Props) {
           ＋ ユーザー追加
         </button>
       </div>
+      <p className="text-xs text-zinc-400">
+        ロールの割り当て・変更は <Link href="/admin/roles" className="font-medium text-brand-700 underline hover:text-brand-800">ロール管理</Link> で行います（ここでは表示のみ）。
+      </p>
 
       {/* ユーザー追加フォーム */}
       {showForm && (
@@ -145,25 +136,12 @@ export default function UserManagement({ users, currentUserId }: Props) {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {/* ロール変更（自分以外） */}
-                {u.id !== currentUserId ? (
-                  <select
-                    value={u.role}
-                    onChange={(e) => handleRoleChange(u.id, e.target.value as 'admin' | 'editor' | 'viewer')}
-                    disabled={isPending}
-                    className="border border-zinc-300 rounded-md px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    <option value="viewer">閲覧者</option>
-                    <option value="editor">編集者</option>
-                    <option value="admin">管理者</option>
-                  </select>
-                ) : (
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    u.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-600'
-                  }`}>
-                    {u.role === 'admin' ? '管理者' : u.role === 'editor' ? '編集者' : '閲覧者'}（自分）
-                  </span>
-                )}
+                {/* ロールは読み取り表示（割り当て・変更は /admin/roles に一本化。#144） */}
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  u.role === 'admin' ? 'bg-red-100 text-red-700' : u.role === 'editor' ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-600'
+                }`}>
+                  {u.role === 'admin' ? '管理者' : u.role === 'editor' ? '編集者' : '閲覧者'}{u.id === currentUserId ? '（自分）' : ''}
+                </span>
 
                 {/* なりすましボタン（自分以外） */}
                 {u.id !== currentUserId && (
