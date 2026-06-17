@@ -55,7 +55,7 @@ export default defineConfig({
         storageState: 'tests/e2e/.auth/admin.json',
       },
       dependencies: ['setup'],
-      testIgnore: [/auth\.setup\.ts/, /.*\.viewer\.spec\.ts/, /.*\.editor\.spec\.ts/, /.*\.external\.spec\.ts/],
+      testIgnore: [/auth\.setup\.ts/, /.*\.viewer\.spec\.ts/, /.*\.editor\.spec\.ts/, /.*\.external\.spec\.ts/, /.*\.scoped\.spec\.ts/],
     },
     // ── 3) editor として実行（編集可、admin 画面に弾かれる検証） ─────
     {
@@ -86,6 +86,16 @@ export default defineConfig({
       },
       dependencies: ['setup'],
       testMatch: /.*\.external\.spec\.ts/,
+    },
+    // ── 6) scoped として実行（レコードスコープ own: 自分の担当のみ可視）REQ-0083 ─
+    {
+      name: 'chromium-scoped',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'tests/e2e/.auth/scoped.json',
+      },
+      dependencies: ['setup'],
+      testMatch: /.*\.scoped\.spec\.ts/,
     },
   ],
 })

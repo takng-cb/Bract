@@ -51,6 +51,8 @@ const TEST_USERS = [
   { email: 'test-viewer@bract-crm.local',   role: 'viewer' as const, is_external: false },
   // 外部ユーザー（REQ-0084 / Phase2）。社内 (crm) 不可・/portal のみ。E2E 封鎖テスト用。
   { email: 'test-external@bract-crm.local', role: 'viewer' as const, is_external: true  },
+  // スコープ検証用（REQ-0083）。role は seed-scoped-data でカスタムロール(own)に差し替える。
+  { email: 'test-scoped@bract-crm.local',   role: 'viewer' as const, is_external: false },
 ]
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
