@@ -9,6 +9,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { db } from '@/lib/db'
+import { roles } from '@/lib/schema'
 import { isAdminUser } from '@/lib/userRole'
 import { isProvider } from '@/lib/auth'
 import { listUsers } from '@/app/actions/userManagement'
@@ -24,7 +26,27 @@ export default async function SystemSettingsPage() {
   const adminFlag = user ? await isAdminUser(user.id) : false
   if (!adminFlag) redirect('/settings')
 
-  const [userList, aiEnabled, providerFlag] = await Promise.all([listUsers(), isAIFeatureEnabled(), isProvider()])
+  const [userList, roleRows, aiEnabled, providerFlag] = await Promise.all([
+    listUsers(),
+    db.select({ id: roles.id, name: roles.name, is_system: roles.is_system }).from(roles),
+    isAIFeatureEnabled(),
+    isProvider(),
+  ])
+
+  // permissions.ts と同じ解決順（role_id 優先 → role テキスト）で実効ロールを表示する（#144）。
+  // assignUserRole はカスタムロール割当時 users.role を editor/viewer に近似するため、
+  // テキストだけだとカスタムロール名（例「外部閲覧者」）が出ない。role_id から実名を解決する。
+  const rolesById = new Map(roleRows.map((r) => [r.id, r]))
+  const SYS_LABEL: Record<string, string> = { admin: '管理者', editor: '編集者', viewer: '閲覧者' }
+  const usersWithRole = userList.map((u) => {
+    const byId = u.role_id ? rolesById.get(u.role_id) : null
+    if (byId && !byId.is_system) {
+      return { id: u.id, email: u.email, created_at: u.created_at, roleLabel: byId.name, roleTone: 'custom' as const }
+    }
+    const sysName = byId?.name ?? u.role
+    const tone = (['admin', 'editor', 'viewer'] as const).find((t) => t === sysName) ?? 'viewer'
+    return { id: u.id, email: u.email, created_at: u.created_at, roleLabel: SYS_LABEL[tone], roleTone: tone }
+  })
   const visibleLinks = ADMIN_LINKS.filter((l) => !l.aiGated || aiEnabled)
   const tenantLinks   = visibleLinks.filter((l) => !l.provider)
   // コンテナ（契約・プラン）設定は運営者にのみ表示（REQ-0046）
@@ -67,7 +89,7 @@ export default async function SystemSettingsPage() {
       </div>
 
       {/* ユーザー管理（追加・ロール変更・代理ログイン。パスワード再発行/削除は「ユーザー管理」画面へ） */}
-      <UserManagement users={userList} currentUserId={user?.id ?? ''} />
+      <UserManagement users={usersWithRole} currentUserId={user?.id ?? ''} />
 
       {/* サービス提供者（運営）向け：契約・プラン・利用上限 */}
       {providerLinks.length > 0 && (
