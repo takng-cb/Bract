@@ -21,11 +21,12 @@ import { db } from '@/lib/db'
 import { users, roles, role_permissions } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { getSupabaseUser, getCurrentUserId } from '@/lib/auth'
+import { type RecordScope, normScope, pickScope, canAccessRecord } from '@/lib/accessDecision'
 
 export type CrudOp = 'create' | 'read' | 'update' | 'delete'
 
 /** レコードスコープ（REQ-0083 / ADR-0029）。'all'=全件 / 'own'=owner_id が自分のみ（将来 'team'）。 */
-export type RecordScope = 'all' | 'own'
+export type { RecordScope }
 
 /**
  * レコードスコープ（'own'）の強制を実装済みのブック（owner_id を持つもの）。
@@ -66,10 +67,6 @@ const EXTERNAL_DENY: PermissionSet = {
   roleName: 'external',
   isAdmin: false,
   byBook: {},
-}
-
-function normScope(v: string | null | undefined): RecordScope {
-  return v === 'own' ? 'own' : 'all'
 }
 
 function rowToPerm(r: {
@@ -153,7 +150,7 @@ export async function canDo(bookApi: string, op: CrudOp): Promise<boolean> {
 function scopeFor(p: PermissionSet, bookApi: string, op: CrudOp): RecordScope {
   const perm = p.byBook[bookApi] ?? p.byBook['*']
   if (!perm) return 'all'
-  return op === 'read' ? perm.readScope : perm.writeScope
+  return pickScope(perm.readScope, perm.writeScope, op)
 }
 
 /** 指定ブック・操作のレコードスコープ（admin は常に 'all'）。一覧の述語生成に使う。 */
@@ -164,7 +161,7 @@ export async function recordScope(bookApi: string, op: CrudOp): Promise<RecordSc
 }
 
 /**
- * 単一レコードが可視/操作可能か（層1＋層2）。
+ * 単一レコードが可視/操作可能か（層1＋層2）。判定は accessDecision.canAccessRecord に集約。
  * 詳細ページ（notFound 分岐）・サーバアクション（拒否）から呼ぶ。
  * @param ownerId 対象レコードの owner_id（null 可）
  */
@@ -172,10 +169,12 @@ export async function canSeeRecord(bookApi: string, op: CrudOp, ownerId: string 
   const p = await getCurrentPermissions()
   if (p.isAdmin) return true
   const perm = p.byBook[bookApi] ?? p.byBook['*']
-  if (!perm || !perm[op]) return false                 // 層1: ブック CRUD
-  if (scopeFor(p, bookApi, op) === 'all') return true   // 層2: スコープ
-  const me = await getCurrentUserId()
-  return !!me && ownerId === me
+  const canOp = !!perm?.[op]                            // 層1: ブック CRUD
+  if (!canOp) return false
+  const scope = scopeFor(p, bookApi, op)                // 層2: スコープ
+  // 'own' のときだけ自分の ID を取得（不要なクエリを避ける）
+  const meId = scope === 'own' ? await getCurrentUserId() : null
+  return canAccessRecord({ isAdmin: false, canOp, scope, ownerId, meId })
 }
 
 /** Server Action 冒頭ガード（不許可なら例外） */
