@@ -5,11 +5,22 @@ import Link from 'next/link'
 import { createUser, startImpersonation } from '@/app/actions/userManagement'
 import { NavIcon } from '@/lib/navIcon'
 
+type RoleTone = 'admin' | 'editor' | 'viewer' | 'custom'
 type User = {
   id:         string
   email:      string
-  role:       string
+  /** 実効ロールの表示名（role_id 優先で解決。カスタムロール名を含む） */
+  roleLabel:  string
+  /** バッジ配色用のトーン */
+  roleTone:   RoleTone
   created_at: Date | null
+}
+
+const ROLE_TONE_CLASS: Record<RoleTone, string> = {
+  admin:  'bg-red-100 text-red-700',
+  editor: 'bg-blue-100 text-blue-700',
+  viewer: 'bg-zinc-100 text-zinc-600',
+  custom: 'bg-violet-100 text-violet-700',
 }
 
 type Props = {
@@ -25,10 +36,9 @@ export default function UserManagement({ users, currentUserId }: Props) {
     async (_: string | null, fd: FormData) => {
       const err = await createUser(_, fd)
       if (!err) {
-        // 追加したユーザーをローカルリストに反映（簡易）
+        // 追加したユーザーをローカルリストに反映（新規は常に閲覧者。ロールは /admin/roles で割当）
         const email = fd.get('email') as string
-        const role  = (fd.get('role') as string) || 'viewer'
-        setLocalUsers((prev) => [...prev, { id: crypto.randomUUID(), email, role, created_at: new Date() }])
+        setLocalUsers((prev) => [...prev, { id: crypto.randomUUID(), email, roleLabel: '閲覧者', roleTone: 'viewer', created_at: new Date() }])
         setShowForm(false)
       }
       return err
@@ -129,11 +139,10 @@ export default function UserManagement({ users, currentUserId }: Props) {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {/* ロールは読み取り表示（割り当て・変更は /admin/roles に一本化。#144） */}
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  u.role === 'admin' ? 'bg-red-100 text-red-700' : u.role === 'editor' ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-600'
-                }`}>
-                  {u.role === 'admin' ? '管理者' : u.role === 'editor' ? '編集者' : '閲覧者'}{u.id === currentUserId ? '（自分）' : ''}
+                {/* ロールは読み取り表示（割り当て・変更は /admin/roles に一本化。#144）。
+                    role_id から解決した実効ロール名（カスタムロール名を含む）を表示する。 */}
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${ROLE_TONE_CLASS[u.roleTone]}`}>
+                  {u.roleLabel}{u.id === currentUserId ? '（自分）' : ''}
                 </span>
 
                 {/* なりすましボタン（自分以外） */}
