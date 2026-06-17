@@ -109,8 +109,8 @@ export type AdminLink = {
 export const ADMIN_LINKS: AdminLink[] = [
   { href: '/admin/books',       label: 'ブック/モジュール管理', icon: '🗂️', desc: 'モジュールの有効/無効・ブック・フィールド・並び順' },
   { href: '/admin/relationships', label: '関係性管理',       icon: '🔗',  desc: 'ブック間のリレーション' },
-  { href: '/admin/users',         label: 'ユーザー管理',     icon: '👥',  desc: '権限・パスワード・削除' },
-  { href: '/admin/roles',         label: 'ロール管理',       icon: '🛡️', desc: 'ロール作成・ブック別CRUD権限・割当' },
+  { href: '/admin/users',         label: 'ユーザー管理',     icon: '👥',  desc: 'パスワード・削除（ロール割当はロール管理）' },
+  { href: '/admin/roles',         label: 'ロール管理',       icon: '🛡️', desc: 'ロール作成・ブック別CRUD権限・レコード範囲・ユーザー割当' },
   { href: '/tags',                label: 'タグ管理',         icon: '🏷️', desc: 'タグの作成・整理' },
   { href: '/admin/ai',            label: 'AI 設定',          icon: '🤖',  desc: 'プロバイダ・APIキー・プロンプト', aiGated: true },
   { href: '/admin/notifications', label: '通知設定',         icon: '🔔',  desc: '外部通知チャンネル' },
