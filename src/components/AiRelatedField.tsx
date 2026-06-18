@@ -8,7 +8,8 @@
  */
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
-import { type RelatedRef, NEW_RELATED_TYPES } from '@/lib/quickAiTypes'
+import { type RelatedRef } from '@/lib/quickAiTypes'
+import QuickCreateRelatedModal from '@/components/QuickCreateRelatedModal'
 
 type Candidate = { object_api: string; record_id: string; label: string; kind: string }
 
@@ -22,6 +23,7 @@ export default function AiRelatedField({
 }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Candidate[]>([])
+  const [modalOpen, setModalOpen] = useState(false)
   const q = query.trim()
 
   const run = async (v: string) => {
@@ -31,7 +33,6 @@ export default function AiRelatedField({
   }
   const isSelected = (api: string, id: string) => value.some((x) => x.mode === 'existing' && x.object_api === api && x.record_id === id)
   const addExisting = (c: Candidate) => { onChange([...value, { mode: 'existing', ...c }]); setQuery(''); setResults([]) }
-  const addNew = (object_api: string, kind: string) => { onChange([...value, { mode: 'new', object_api, name: q, kind }]); setQuery(''); setResults([]) }
   const remove = (i: number) => onChange(value.filter((_, k) => k !== i))
 
   return (
@@ -70,17 +71,23 @@ export default function AiRelatedField({
       )}
 
       {q.length >= 1 && (
-        <div className="mt-1 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-2.5 py-1.5">
-          <p className="mb-1 text-[11px] text-zinc-500">該当が無ければ「{q}」を新規作成:</p>
-          <div className="flex flex-wrap gap-1">
-            {NEW_RELATED_TYPES.map((t) => (
-              <button key={t.object_api} type="button" onClick={() => addNew(t.object_api, t.kind)}
-                className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 hover:bg-emerald-100">
-                <Plus className="h-3 w-3" aria-hidden />{t.kind}
-              </button>
-            ))}
-          </div>
+        <div className="mt-1">
+          <button type="button" onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-1 rounded-md border border-dashed border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100">
+            <Plus className="h-3.5 w-3.5" aria-hidden />該当が無ければ「{q}」を新規作成…
+          </button>
         </div>
+      )}
+
+      {modalOpen && (
+        <QuickCreateRelatedModal
+          onClose={() => setModalOpen(false)}
+          initialName={q}
+          onCreated={(ref) => {
+            onChange([...value, { mode: 'existing', object_api: ref.object_api, record_id: ref.record_id, label: ref.label, kind: ref.kind }])
+            setQuery(''); setResults([])
+          }}
+        />
       )}
     </div>
   )

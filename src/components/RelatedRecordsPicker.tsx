@@ -15,7 +15,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Search, Plus, Check, Loader2 } from 'lucide-react'
 import { NavIcon } from '@/lib/navIcon'
-import { NEW_RELATED_TYPES } from '@/lib/quickAiTypes'
+import QuickCreateRelatedModal from '@/components/QuickCreateRelatedModal'
+import type { CreatedRelatedRef } from '@/app/actions/quickAi'
 
 export type ObjectTypeOption = {
   api:   string
@@ -41,8 +42,7 @@ type Props = {
 }
 
 type Candidate = { object_api: string; record_id: string; label: string; sub?: string; typeLabel: string; icon?: string }
-// record_id（既存）か name（新規・確定時に作成）のどちらかを持つ。
-type Selected = { object_api: string; record_id?: string; name?: string; label: string; typeLabel: string; icon?: string; isNew?: boolean }
+type Selected = { object_api: string; record_id: string; label: string; typeLabel: string; icon?: string }
 
 const keyOf = (api: string, id: string) => `${api}:${id}`
 
@@ -72,6 +72,7 @@ export default function RelatedRecordsPicker({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
   const reqIdRef = useRef(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -82,8 +83,7 @@ export default function RelatedRecordsPicker({
     labelResolvedRef.current = true
     const byApi = new Map<string, string[]>()
     for (const s of selected.values()) {
-      // 既存（record_id 持ち）のラベル未解決のみ対象。新規(isNew)は名前がラベル。
-      if (s.label === '…' && s.record_id) byApi.set(s.object_api, [...(byApi.get(s.object_api) ?? []), s.record_id])
+      if (s.label === '…') byApi.set(s.object_api, [...(byApi.get(s.object_api) ?? []), s.record_id])
     }
     if (byApi.size === 0) return
     ;(async () => {
@@ -142,41 +142,38 @@ export default function RelatedRecordsPicker({
     setSelected((prev) => { const next = new Map(prev); next.delete(k); return next })
   }
 
-  // 新規作成（REQ-0085）: 入力中の名前で「新規○○」を追加。確定時にサーバで作成して紐付け。
-  function addNew(object_api: string, typeLabel: string, icon?: string) {
-    const nm = query.trim()
-    if (!nm) return
+  // 新規作成（REQ-0085）: モーダルで作成権限のある任意ブックを即時作成 → 既存参照として追加。
+  function onCreated(ref: CreatedRelatedRef) {
     setSelected((prev) => {
       const next = new Map(prev)
-      next.set(`new:${object_api}:${nm}`, { object_api, name: nm, label: nm, typeLabel, icon, isNew: true })
+      const icon = objectTypes.find((o) => o.api === ref.object_api)?.icon
+      next.set(keyOf(ref.object_api, ref.record_id), {
+        object_api: ref.object_api, record_id: ref.record_id,
+        label: ref.label, typeLabel: ref.kind, icon,
+      })
       return next
     })
     setQuery(''); setResults([])
   }
-  // この Picker が許可する種別のうち、新規作成に対応するもの（取引先/人物/商談/プロジェクト）
-  const creatableTypes = NEW_RELATED_TYPES
-    .map((nt) => ({ nt, t: objectTypes.find((o) => o.api === nt.object_api) }))
-    .filter((x) => x.t)
 
   const selectedArr = Array.from(selected.entries())
 
   return (
     <div className="space-y-2">
-      {/* hidden inputs（サーバ送信用）。既存="api:id" / 新規="new:api:name"（確定時に作成）。 */}
+      {/* hidden inputs（サーバ送信用）。"api:id"。 */}
       {selectedArr.map(([k, s]) => (
-        <input key={k} type="hidden" name={name} value={s.isNew ? `new:${s.object_api}:${s.name}` : `${s.object_api}:${s.record_id}`} />
+        <input key={k} type="hidden" name={name} value={`${s.object_api}:${s.record_id}`} />
       ))}
 
       {/* 選択済みチップ */}
       {selectedArr.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {selectedArr.map(([k, s]) => (
-            <span key={k} className={`inline-flex items-center gap-1 max-w-full rounded-full border text-xs pl-1.5 pr-1 py-0.5 ${s.isNew ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+            <span key={k} className="inline-flex items-center gap-1 max-w-full rounded-full border bg-blue-50 border-blue-200 text-blue-800 text-xs pl-1.5 pr-1 py-0.5">
               {s.icon && <NavIcon icon={s.icon} className="w-3 h-3 shrink-0" />}
-              <span className={`text-[10px] ${s.isNew ? 'text-emerald-500' : 'text-blue-500'}`}>{s.typeLabel}</span>
+              <span className="text-[10px] text-blue-500">{s.typeLabel}</span>
               <span className="truncate">{s.label}</span>
-              {s.isNew && <span className="text-[10px] text-emerald-600 shrink-0">(新規)</span>}
-              <button type="button" onClick={() => remove(k)} aria-label="解除" className={`shrink-0 rounded-full p-0.5 ${s.isNew ? 'hover:bg-emerald-100' : 'hover:bg-blue-100'}`}>
+              <button type="button" onClick={() => remove(k)} aria-label="解除" className="shrink-0 rounded-full p-0.5 hover:bg-blue-100">
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -230,23 +227,24 @@ export default function RelatedRecordsPicker({
         )
       )}
 
-      {/* 新規作成（REQ-0085）: 入力中の名前で取引先/人物/商談/プロジェクトを新規作成して紐付け */}
-      {query.trim() && creatableTypes.length > 0 && (
-        <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-2.5 py-1.5">
-          <p className="text-[11px] text-zinc-500 mb-1">該当が無ければ「{query.trim()}」を新規作成:</p>
-          <div className="flex flex-wrap gap-1">
-            {creatableTypes.map(({ nt, t }) => (
-              <button key={nt.object_api} type="button" onClick={() => addNew(nt.object_api, t!.label, t!.icon)}
-                className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 hover:bg-emerald-100">
-                <Plus className="w-3 h-3" aria-hidden />{nt.kind}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* 新規作成（REQ-0085）: モーダルで作成権限のある任意ブックをリッチに作成して紐付け */}
+      {query.trim() && (
+        <button type="button" onClick={() => setModalOpen(true)}
+          className="inline-flex items-center gap-1 rounded-md border border-dashed border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100">
+          <Plus className="w-3.5 h-3.5" aria-hidden />該当が無ければ「{query.trim()}」を新規作成…
+        </button>
       )}
 
       {selectedArr.length === 0 && !query.trim() && (
         <p className="text-xs text-zinc-400 px-1">名前で検索して追加、または「新規作成」で作成できます。</p>
+      )}
+
+      {modalOpen && (
+        <QuickCreateRelatedModal
+          onClose={() => setModalOpen(false)}
+          initialName={query.trim()}
+          onCreated={onCreated}
+        />
       )}
     </div>
   )
