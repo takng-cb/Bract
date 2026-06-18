@@ -62,7 +62,7 @@ const AI_WIZARD_HREF: Record<string, string> = {
 }
 
 /** ウィザードの AI 作成に対応する typed ブック（#49・quickAi.ts の TYPED_SPECS と一致） */
-const AI_TYPED_BOOKS = new Set(['accounts', 'contacts', 'vehicles', 'parts', 'properties', 'tasks', 'activities', 'expenses'])
+const AI_TYPED_BOOKS = new Set(['accounts', 'contacts', 'opportunities', 'projects', 'vehicles', 'parts', 'properties', 'tasks', 'activities', 'expenses'])
 
 /** AI 検索（自然文→フィルタ）対応ブック（aiSearch.ts の SEARCH_FIELDS と一致） */
 const AI_SEARCH_BOOKS = new Set(['accounts', 'contacts', 'opportunities', 'tasks', 'expenses', 'activities', 'properties', 'vehicles'])
