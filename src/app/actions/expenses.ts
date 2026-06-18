@@ -10,19 +10,12 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission } from '@/lib/permissions'
+import { resolveRelatedFormValues } from '@/lib/relatedCreate'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
-function parseRelatedRecords(formData: FormData): { object_api: string; record_id: string }[] {
-  const raw = formData.getAll('related_records') as string[]
-  const out: { object_api: string; record_id: string }[] = []
-  for (const r of raw) {
-    const idx = r.indexOf(':')
-    if (idx < 0) continue
-    const api = r.slice(0, idx).trim()
-    const id  = r.slice(idx + 1).trim()
-    if (api && id) out.push({ object_api: api, record_id: id })
-  }
-  return out
+/** related_records[] hidden inputs（"<api>:<id>" 既存 / "new:<api>:<name>" 新規）を解決（REQ-0085）。 */
+async function parseRelatedRecords(formData: FormData): Promise<{ object_api: string; record_id: string }[]> {
+  return resolveRelatedFormValues(formData.getAll('related_records') as string[])
 }
 
 /**
@@ -74,7 +67,7 @@ export async function createExpense(formData: FormData) {
 
   const expense_date = formData.get('expense_date') as string
   const return_to    = (formData.get('return_to') as string) || null
-  const selections   = parseRelatedRecords(formData)
+  const selections   = await parseRelatedRecords(formData)
 
   const [row] = await db.insert(expenses).values({
     title:        title.trim(),
@@ -133,7 +126,7 @@ export async function updateExpense(id: string, formData: FormData) {
   const amount = formData.get('amount') as string
   if (!amount || Number(amount) <= 0) throw new Error('金額は0より大きい値を入力してください')
 
-  const selections = parseRelatedRecords(formData)
+  const selections = await parseRelatedRecords(formData)
 
   await db.update(expenses).set({
     title:        title.trim(),
@@ -166,7 +159,7 @@ export async function quickCreateExpense(formData: FormData) {
     expense_date: (formData.get('expense_date') as string) || new Date().toISOString().slice(0, 10),
     notes: (formData.get('notes') as string)?.trim() || null,
   }).returning({ id: expenses.id })
-  await syncExpenseRelatedRecords(row.id, parseRelatedRecords(formData))
+  await syncExpenseRelatedRecords(row.id, await parseRelatedRecords(formData))
   const revalidate = formData.get('revalidate') as string
   if (revalidate) revalidatePath(revalidate)
 }
@@ -175,7 +168,7 @@ export async function quickCreateExpense(formData: FormData) {
 export async function updateExpenseRelatedRecords(id: string, formData: FormData) {
   await requirePermission('expenses', 'update')
   await assertNotPendingApproval('expenses', id)  // 承認待ち中は編集ロック（REQ-0023）
-  await syncExpenseRelatedRecords(id, parseRelatedRecords(formData))
+  await syncExpenseRelatedRecords(id, await parseRelatedRecords(formData))
   redirect(withSaveToast(`/expenses/${id}`, 'saved'))
 }
 
