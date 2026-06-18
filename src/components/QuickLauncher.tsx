@@ -149,14 +149,22 @@ export default function QuickLauncher({
     else pushStep('aiNotSupported')
   }
 
-  // PLAUD エクスポート（.md/.txt）を読み込み、活動の確認画面を直接プリフィル＋アクションを保持（#143）
-  // PLAUD はパース済みで件名/内容が綺麗なので、長文の AI 再抽出（空になりがち）は経由しない。
+  // PLAUD エクスポート（.md/.txt）を読み込む（#143 / REQ-0087）。
+  // まず AI作成（ディールグラフ）で複数案件を一括抽出 → 同じ確認画面へ。
+  // AI 無効・抽出0件・長文で空振り等のときは、markdown パースの単一活動取込にフォールバック。
   const onPickPlaud = async (file: File | null) => {
     if (!file) return
     if (file.size > 2 * 1024 * 1024) { setError('ファイルが大きすぎます（2MBまで）'); return }
     setBusy(true); setError(null)
     try {
-      const res = await importActivityFromPlaud(await file.text())
+      const noteText = await file.text()
+      // PLAUD ノートも AI作成（ディールグラフ）で扱う（REQ-0087）。議事録に複数案件があれば
+      // 取引先・商談・活動として一括抽出 → 同じ確認画面へ。失敗/0件は従来の単一活動取込にフォールバック。
+      try {
+        const g = await quickAiExtractGraph({ text: noteText })
+        if (g.ok && g.data.nodes.length > 0) { setGraph(g.data); pushStep('aiGraphConfirm'); return }
+      } catch { /* フォールバック */ }
+      const res = await importActivityFromPlaud(noteText)
       if (!res.ok) { setError(res.error); return }
       const actBook = aiBooks.find((b) => b.apiName === 'activities')
       if (!actBook) { setError('活動履歴ブックが利用できません（管理者に確認してください）'); return }
@@ -209,22 +217,17 @@ export default function QuickLauncher({
   const runExtract = async () => {
     // ブック確定済み（候補から選択済み等）ならそのまま単一抽出
     if (book) return extractWith(book)
-    // プレーンテキスト（画像なし）はディールグラフ抽出に回す（REQ-0086）。
-    // 複数レコード・単一いずれも同じ確認画面で扱う。画像/URL単独は従来の単一フロー。
+    // プレーンテキスト（画像なし）はまずディールグラフ抽出（REQ-0086）。複数/単一を同じ確認画面で扱う。
+    // 失敗・0件のときは従来の単一AI作成（classify→extract）へフォールバックして必ず動かす。
     if (aiText.trim() && !aiImage) {
       setBusy(true); setError(null)
       try {
         const g = await quickAiExtractGraph({ text: aiText, url: aiUrl.trim() || undefined })
-        if (!g.ok) { setError(g.error); return }
-        if (g.data.nodes.length === 0) { setError('レコードを抽出できませんでした。表現を変えてお試しください。'); return }
-        setGraph(g.data)
-        pushStep('aiGraphConfirm')
-        return
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e)); return
-      } finally { setBusy(false) }
+        if (g.ok && g.data.nodes.length > 0) { setGraph(g.data); pushStep('aiGraphConfirm'); return }
+        // ここに来たら失敗 or 0件 → 下の単一フローにフォールバック
+      } catch { /* フォールバック */ } finally { setBusy(false) }
     }
-    // 入力からブックを推論（REQ-0061）。画像のみの場合は AI を呼ばず候補提示になる
+    // 入力からブックを推論（REQ-0061）。画像のみ／グラフ失敗時のフォールバック先。
     setBusy(true); setError(null)
     try {
       const cls = await quickAiClassifyBook({ text: aiText || undefined, url: aiUrl.trim() || undefined })
