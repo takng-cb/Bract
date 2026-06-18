@@ -23,6 +23,10 @@ import { revalidatePath } from 'next/cache'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { canDo } from '@/lib/permissions'
 import { type RelatedRef } from '@/lib/quickAiTypes'
+import {
+  buildGraphNodes, OPP_STAGES,
+  type ParsedGraphNode, type GraphBookSpec, type GraphLineItem as QuickGraphLineItem,
+} from '@/lib/quickGraph'
 import { createBareRelated } from '@/lib/relatedCreate'
 import { repairTextValue } from '@/lib/textGuard'
 import { getBookDef, getAllBookDefs, getFieldDefs, parseFieldOptions } from '@/lib/bookMetadata'
@@ -841,21 +845,10 @@ const GRAPH_BOOKS = ['accounts', 'contacts', 'opportunities', 'activities', 'tas
 const GRAPH_OBJECT_API: Record<string, string> = {
   accounts: 'account', contacts: 'contact', opportunities: 'opportunity', activities: 'activity', tasks: 'task',
 }
-const OPP_STAGES = new Set(['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'])
 
-export type GraphLineItem = { name: string; quantity: string; unit_price: string }
-/** 抽出されたノード（確認画面で編集可能）。 */
-export type GraphNode = {
-  ref: string                 // AI が付ける一時ID（関係解決用）
-  book: string
-  bookLabel: string
-  fields: QuickAiField[]
-  accountRef?: string | null  // contacts/opportunities の親取引先
-  contactRef?: string | null  // opportunities の連絡先
-  relatedRefs?: string[]      // activities/tasks の関連先（account/contact/opportunity の ref）
-  lineItems?: GraphLineItem[] // opportunities の商品明細
-  existing?: QuickAiDup[]     // 既存照合候補（account/contact/opportunity）
-}
+export type GraphLineItem = QuickGraphLineItem
+/** 抽出されたノード（確認画面で編集可能）。既存照合候補を付与した純粋ノード。 */
+export type GraphNode = ParsedGraphNode & { existing?: QuickAiDup[] }
 export type GraphDraft = { nodes: GraphNode[]; note?: string }
 /** 確認画面 → 作成へ渡すノード（編集後の値＋既存選択）。 */
 export type GraphCreateNode = {
@@ -867,10 +860,6 @@ export type GraphCreateNode = {
   relatedRefs?: string[]
   lineItems?: GraphLineItem[]
   existingRecordId?: string | null  // 既存に紐付ける場合（新規作成しない）
-}
-
-function strOrNull(v: unknown): string | null {
-  return typeof v === 'string' && v.trim() ? v.trim() : null
 }
 
 /** 自由文から関連レコードのグラフ（下書き）を抽出する。 */
@@ -936,44 +925,9 @@ async function quickAiExtractGraphImpl(input: { text?: string; url?: string }): 
 
   const parsed = extractJson<{ records?: unknown[]; note?: string }>(result.text)
   const rawRecords = Array.isArray(parsed?.records) ? parsed!.records : []
-  const nodes: GraphNode[] = []
-  const usedRefs = new Set<string>()
-  for (const rec of rawRecords) {
-    const r = (rec ?? {}) as Record<string, unknown>
-    const book = typeof r.book === 'string' ? r.book : ''
-    if (!allowed.includes(book)) continue
-    let ref = typeof r.ref === 'string' && r.ref.trim() ? r.ref.trim() : `n${nodes.length + 1}`
-    while (usedRefs.has(ref)) ref = `${ref}_`
-    usedRefs.add(ref)
-    const valueMap = (r.fields ?? {}) as Record<string, unknown>
-    const spec = TYPED_SPECS[book]
-    const fields: QuickAiField[] = spec.fields.map((f) => {
-      const raw = valueMap[f.apiName]
-      let val = raw == null ? '' : String(raw)
-      if (f.apiName === 'stage' && val && !OPP_STAGES.has(val)) val = ''  // 不正な stage は空に
-      return { apiName: f.apiName, label: f.label, fieldType: f.fieldType, value: val, options: f.options }
-    })
-    const node: GraphNode = { ref, book, bookLabel: spec.label, fields }
-    if (book === 'contacts') node.accountRef = strOrNull(r.account_ref)
-    if (book === 'opportunities') {
-      node.accountRef = strOrNull(r.account_ref)
-      node.contactRef = strOrNull(r.contact_ref)
-      node.lineItems = Array.isArray(r.line_items)
-        ? (r.line_items as unknown[]).map((li) => {
-            const o = (li ?? {}) as Record<string, unknown>
-            return {
-              name: typeof o.name === 'string' ? o.name : '',
-              quantity: o.quantity == null ? '1' : String(o.quantity),
-              unit_price: o.unit_price == null ? '' : String(o.unit_price),
-            }
-          }).filter((li) => li.name.trim())
-        : []
-    }
-    if (book === 'activities' || book === 'tasks') {
-      node.relatedRefs = Array.isArray(r.related_refs) ? (r.related_refs as unknown[]).filter((s): s is string => typeof s === 'string') : []
-    }
-    nodes.push(node)
-  }
+  const specsByBook: Record<string, GraphBookSpec> = {}
+  for (const b of allowed) specsByBook[b] = { label: TYPED_SPECS[b].label, fields: TYPED_SPECS[b].fields }
+  const nodes: GraphNode[] = buildGraphNodes(rawRecords, allowed, specsByBook)
 
   // 既存照合（取引先/連絡先/商談）。確認画面で「既存に紐付け」既定にできるよう候補を付ける。
   for (const n of nodes) {
