@@ -1,21 +1,25 @@
 /**
  * GET /api/attachments/[id]
  *
- * 添付ファイルの権限チェック付きダウンロード（REQ-0083/0084・Phase4）。
+ * 添付ファイルの権限チェック付きダウンロード（REQ-0083/0084・Phase4/Phase3）。
  * 公開バケット直リンク（誰でも取得可）を廃し、ここで:
- *   1. 認証＋外部ユーザー遮断（requireApiUser）
- *   2. 親レコードの Read 権限＋レコードスコープ（canSeeRecord / canDo）を確認
- *   3. 許可時のみ署名 URL（60秒）を発行してリダイレクト（バケットが private でも動作）
- *
- * 運用: 本ルート導入後、Supabase の attachments バケットを private 化して公開直リンクを塞ぐ。
+ *   1. 認証
+ *   2. 親レコードに対する可視性を確認
+ *        - 社内: ブック Read 権限＋レコードスコープ（canSeeRecord / canDo）
+ *        - 外部: 親レコードに有効な grant があること（ポータルの共有レコードの添付のみ）
+ *   3. 許可時のみ署名 URL（60秒）を発行してリダイレクト（private バケットでも動作）
  */
 import { db } from '@/lib/db'
 import { attachments, accounts, contacts, opportunities, activities } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { requireApiUser } from '@/lib/apiAuth'
-import { canDo, canSeeRecord, SCOPE_ENFORCED_BOOKS } from '@/lib/permissions'
+import { getSupabaseUser } from '@/lib/auth'
+import { canDo, canSeeRecord, isExternalUser, SCOPE_ENFORCED_BOOKS } from '@/lib/permissions'
+import { userHasGrant } from '@/lib/recordGrants'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+
+/** 親ブック（複数 api）→ grant 用の単数 api（共有対応の3種のみ）。 */
+const GRANT_API: Record<string, string> = { accounts: 'account', contacts: 'contact', opportunities: 'opportunity' }
 
 /** 添付の親レコード owner_id を取得（スコープ強制ブックのみ）。 */
 async function fetchOwner(book: string, recordId: string): Promise<string | null> {
@@ -29,9 +33,8 @@ async function fetchOwner(book: string, recordId: string): Promise<string | null
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  // 認証＋外部ユーザー遮断
-  const denied = await requireApiUser()
-  if (denied) return denied
+  const user = await getSupabaseUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
   const [att] = await db.select().from(attachments).where(eq(attachments.id, id))
@@ -50,10 +53,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // 親不明の添付は保守的に拒否（誰の権限で見せるか不明なため）
   if (!parent) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  // 権限: スコープ強制ブックは owner スコープ込み、その他はブック Read
-  const allowed = SCOPE_ENFORCED_BOOKS.includes(parent.book)
-    ? await canSeeRecord(parent.book, 'read', await fetchOwner(parent.book, parent.recordId))
-    : await canDo(parent.book, 'read')
+  // 権限判定: 外部=親レコードへの grant / 社内=ブック Read＋レコードスコープ
+  let allowed: boolean
+  if (await isExternalUser()) {
+    const singular = GRANT_API[parent.book]
+    allowed = singular ? await userHasGrant(singular, parent.recordId, user.id) : false
+  } else {
+    allowed = SCOPE_ENFORCED_BOOKS.includes(parent.book)
+      ? await canSeeRecord(parent.book, 'read', await fetchOwner(parent.book, parent.recordId))
+      : await canDo(parent.book, 'read')
+  }
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   // 署名 URL を発行してリダイレクト（public/private いずれのバケットでも有効）

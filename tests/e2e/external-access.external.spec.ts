@@ -76,9 +76,28 @@ test.describe('外部ユーザー: 共有レコードの閲覧（正の経路）
     // タイプラベル・名称・閲覧専用の注記が出る
     await expect(page.getByText('取引先', { exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: new RegExp(SHARED_NAME) })).toBeVisible()
-    await expect(page.getByText('この情報は閲覧専用です。')).toBeVisible()
+    await expect(page.getByText(/閲覧専用/)).toBeVisible()
     // 編集・削除導線が無いこと
     await expect(page.getByRole('button', { name: /編集|削除/ })).toHaveCount(0)
+  })
+
+  test('共有レコードにファイルを添付でき、開ける（外部の貢献・Phase3）', async ({ page }) => {
+    await page.goto('/portal')
+    const link = page.getByRole('link', { name: new RegExp(SHARED_NAME) })
+    test.skip((await link.count()) === 0, 'grant 未 seed のため skip')
+
+    await link.first().click()
+    await page.waitForURL(/\/portal\/account\//)
+    const fname = `e2e_${Date.now()}.txt`
+    await page.locator('input[type="file"]').setInputFiles({ name: fname, mimeType: 'text/plain', buffer: Buffer.from('e2e portal upload') })
+    await page.getByRole('button', { name: '追加' }).click()
+    // アップロードしたファイルが一覧に出る
+    const fileLink = page.getByRole('link', { name: /開く/ }).first()
+    await expect(page.getByText(fname)).toBeVisible()
+    // ダウンロード経路は署名URLへリダイレクト（外部=grant 許可）。404/403 ではない。
+    const href = await fileLink.getAttribute('href')
+    const res = await page.request.get(href!, { maxRedirects: 0 })
+    expect([302, 307, 200]).toContain(res.status())
   })
 
   test('共有レコードにコメントを投稿でき表示される（外部の貢献・Phase3）', async ({ page }) => {
@@ -112,8 +131,9 @@ test.describe('外部ユーザー: データ API 遮断', () => {
     expect(res.status()).toBe(403)
   })
 
-  test('/api/attachments/<id> は 403（添付ダウンロード遮断）', async ({ request }) => {
+  test('/api/attachments/<grant無し> はファイルを返さない（4xx）', async ({ request }) => {
+    // 存在しない/grant の無い添付は配信されない（404 or 403。いずれも非配信）。
     const res = await request.get('/api/attachments/00000000-0000-0000-0000-000000000000', { maxRedirects: 0 })
-    expect(res.status()).toBe(403)
+    expect(res.status()).toBeGreaterThanOrEqual(400)
   })
 })

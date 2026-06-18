@@ -11,6 +11,7 @@ import { getSupabaseUser } from '@/lib/auth'
 import { userHasGrant } from '@/lib/recordGrants'
 import { getPortalRecord } from '@/lib/portalRecord'
 import RecordComments from '@/components/record/RecordComments'
+import PortalAttachments from '@/components/record/PortalAttachments'
 
 export default async function PortalRecordPage({
   params,
@@ -52,8 +53,9 @@ export default async function PortalRecordPage({
         </dl>
       </div>
 
-      <p className="text-center text-xs text-zinc-400">この情報は閲覧専用です。</p>
+      <p className="text-center text-xs text-zinc-400">基本情報は閲覧専用です。コメント・ファイルは追加できます。</p>
 
+      <PortalAttachments objectApi={objectApi} recordId={recordId} revalidatePath={`/portal/${objectApi}/${recordId}`} />
       <RecordComments objectApi={objectApi} recordId={recordId} revalidatePath={`/portal/${objectApi}/${recordId}`} />
     </div>
   )
