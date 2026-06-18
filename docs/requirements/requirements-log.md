@@ -528,6 +528,17 @@
 - 状態：**Phase2 実装済**（is_external・record_grants・(crm)外部拒否→/portal・ポータル読み取り・最小共有パネル[管理者]・外部ユーザー作成チェック。対応 api=account/contact/opportunity/project）。Phase3（関連子の選択UI・期限・コメント/ファイル・監査）は未着手。
 - 関連：ADR-0029 / spec: access-control / REQ-0083（社内スコープと述語基盤を共有）
 
+### REQ-0085  関連先選択の「既存 or 新規」統一＋PLAUD を AI作成に統合
+- 2026-06-18 / 会話（「PLAUDの複数案件取込のイメージが違う・通常のAI作成と統一」「区切りごとに既存が無ければ新規作成」「この思想は他レコードの関連先選択でも同様」）
+- 内容：
+  1. **関連先選択を「既存 or 新規」対応に統一**：検索で既存を選ぶに加え、該当が無ければ「新規作成（型＋名前）」を選べる。新規は確定時にまとめて作成（materialize）。
+  2. **新規の型はAIが推論＋ユーザー変更可**（取引先/商談/プロジェクト等）。
+  3. **PLAUD複数案件をクイック操作のAI作成に完全統合**：PLAUD=「AI作成（複数案件）」。各 segment を通常AI作成と同じ確認カード＋同じ関連先フィールドで表示。独自モーダル（PlaudMultiImport）は廃止。
+  4. **精度改善**：segmentPlaudByCase が relatedName＋relatedType を返し、バックエンドで既存検索→確信マッチは「既存」既定／無ければ「新規（推論型・その名前）」既定。
+- 合意：(a) PLAUDは**クイック操作に完全統合** (b) 新規の型は**AI推論＋変更可** (c) 適用は**PLAUD＋通常AI作成を先に**（詳細ページの関連先編集は後続スライス）。
+- 状態：合意（設計済 / Phase A=既存or新規基盤＋通常AI作成 → Phase B=PLAUD統合）
+- 関連：ADR-0030 / 既存 REQ-0061(ブック推論)・REQ-0065(関連自動セット)・REQ-0077(PLAUD)
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |

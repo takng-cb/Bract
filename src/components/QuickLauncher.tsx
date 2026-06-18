@@ -7,8 +7,10 @@ import { NavIcon } from '@/lib/navIcon'
 import type { QuickModule, QuickBook } from '@/lib/modules/quick'
 import {
   quickAiExtract, quickAiCreate, quickAiDupCandidates, quickRelatedSearch, quickAiClassifyBook,
-  type QuickAiDup, type QuickAiField, type QuickAiDraft, type RelatedCandidate,
+  type QuickAiDup, type QuickAiField, type QuickAiDraft,
 } from '@/app/actions/quickAi'
+import { type RelatedRef } from '@/lib/quickAiTypes'
+import AiRelatedField from '@/components/AiRelatedField'
 import { importActivityFromPlaud, createTasksFromPlaud } from '@/app/actions/plaud'
 import type { PlaudActionItem } from '@/lib/plaud/markdown'
 
@@ -65,10 +67,8 @@ export default function QuickLauncher({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 関連先（活動/ToDo の AI 作成で紐づけ）
-  const [relQuery, setRelQuery] = useState('')
-  const [relResults, setRelResults] = useState<RelatedCandidate[]>([])
-  const [relSelected, setRelSelected] = useState<RelatedCandidate[]>([])
+  // 関連先（活動/ToDo の AI 作成で紐づけ）。既存 or 新規（REQ-0085）。
+  const [relSelected, setRelSelected] = useState<RelatedRef[]>([])
 
   // 戻る（ブラウザ/OS）トラップ用に最新値を参照する ref（同期は effect 側で行う）
   const stepRef = useRef<Step>(step)
@@ -84,7 +84,7 @@ export default function QuickLauncher({
     setStep('root'); setHistory([]); setMode('create'); setCreateMode('manual')
     setMod(null); setBook(null)
     setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setDups([]); setBusy(false); setError(null)
-    setRelQuery(''); setRelResults([]); setRelSelected([])
+    setRelSelected([])
   }, [])
 
   const close = useCallback(() => { setOpen(false); reset() }, [reset])
@@ -139,7 +139,7 @@ export default function QuickLauncher({
     if (mode === 'view') return go(b.listHref)
     if (createMode === 'manual') return go(b.newHref)
     // createMode === 'ai'
-    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setPlaudItems([]); setCreatedHref(null); setRelQuery(''); setRelResults([]); setRelSelected([]); pushStep('aiInput') }
+    if (b.aiCreate) { setError(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setPlaudItems([]); setCreatedHref(null); setRelSelected([]); pushStep('aiInput') }
     else if (b.aiWizardHref) go(b.aiWizardHref)
     else pushStep('aiNotSupported')
   }
@@ -194,7 +194,7 @@ export default function QuickLauncher({
       if (!r.ok) { setError(r.error); return }
       setDraft(r.data)
       // テキストに登場した既存レコードを関連先に自動セット（REQ-0065。確認画面で変更可）
-      if (r.data.related) setRelSelected([r.data.related])
+      if (r.data.related) setRelSelected([{ mode: 'existing', ...r.data.related }])
       pushStep('aiConfirm')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -229,12 +229,6 @@ export default function QuickLauncher({
     } finally { setBusy(false) }
   }
 
-  const runRelSearch = async (q: string) => {
-    setRelQuery(q)
-    if (q.trim().length < 1) { setRelResults([]); return }
-    try { setRelResults(await quickRelatedSearch(q)) } catch { setRelResults([]) }
-  }
-
   const updField = (apiName: string, value: string) =>
     setDraft((p) => p ? { ...p, fields: p.fields.map((f) => f.apiName === apiName ? { ...f, value } : f) } : p)
 
@@ -250,7 +244,7 @@ export default function QuickLauncher({
         if (!dr.ok) { setError(dr.error); setBusy(false); return }
         if (dr.data.length > 0) { setDups(dr.data); setBusy(false); return }
       }
-      const cr = await quickAiCreate(book.apiName, values, relSelected.length ? relSelected.map((r) => ({ object_api: r.object_api, record_id: r.record_id })) : null)
+      const cr = await quickAiCreate(book.apiName, values, relSelected.length ? relSelected : null)
       if (!cr.ok) { setError(cr.error); setBusy(false); return }
       // PLAUD のアクションがあれば、遷移前に ToDo 化の確認を挟む（#143）
       if (plaudItems.length > 0) { setCreatedHref(cr.data.recordHref); setBusy(false); pushStep('plaudTodos'); return }
@@ -378,7 +372,7 @@ export default function QuickLauncher({
               {step === 'createMode' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <BigChoice icon={<Sparkles className="w-6 h-6 text-violet-600" />} label="AI作成" desc="文章・画像から自動入力（対象もAIが判断）" accent="violet"
-                    onClick={() => { setCreateMode('ai'); setError(null); setBook(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelQuery(''); setRelResults([]); setRelSelected([]); pushStep('aiInput') }} />
+                    onClick={() => { setCreateMode('ai'); setError(null); setBook(null); setDraft(null); setAiText(''); setAiUrl(''); setAiImage(null); setRelSelected([]); pushStep('aiInput') }} />
                   <BigChoice icon={<PencilLine className="w-6 h-6" />} label="手動入力" desc="フォームに直接入力"
                     onClick={() => { setCreateMode('manual'); pushStep('module') }} />
                 </div>
@@ -564,32 +558,9 @@ export default function QuickLauncher({
 
                   {LINKABLE_BOOKS.has(book.apiName) && (
                     <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                      <label className="block text-xs font-semibold text-zinc-600 mb-1">関連先（任意・複数可・既存レコードに紐づけ）</label>
-                      {relSelected.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-1.5">
-                          {relSelected.map((r) => (
-                            <span key={`${r.object_api}-${r.record_id}`} className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                              <span className="text-[10px] text-blue-500">{r.kind}</span>{r.label}
-                              <button type="button" onClick={() => setRelSelected((prev) => prev.filter((x) => !(x.object_api === r.object_api && x.record_id === r.record_id)))} className="hover:text-red-600" aria-label="外す"><X className="w-3 h-3" /></button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <input value={relQuery} onChange={(e) => runRelSearch(e.target.value)} placeholder="名前で検索して追加（取引先・商談・案件など）…"
-                        className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none" />
-                      {relResults.length > 0 && (
-                        <ul className="mt-1 max-h-40 overflow-y-auto rounded-md border border-zinc-200 bg-white divide-y divide-zinc-100">
-                          {relResults.filter((r) => !relSelected.some((s) => s.object_api === r.object_api && s.record_id === r.record_id)).map((r) => (
-                            <li key={`${r.object_api}-${r.record_id}`}>
-                              <button type="button" onClick={() => { setRelSelected((prev) => [...prev, r]); setRelQuery(''); setRelResults([]) }}
-                                className="block w-full px-2 py-1.5 text-left text-xs hover:bg-blue-50">
-                                <span className="text-zinc-400">{r.kind}</span> {r.label}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <p className="mt-1 text-[10px] text-zinc-400">複数の関連先を追加できます。未選択なら単独で作成します。</p>
+                      <label className="block text-xs font-semibold text-zinc-600 mb-1">関連先（任意・複数可・既存に紐づけ or 新規作成）</label>
+                      <AiRelatedField value={relSelected} onChange={setRelSelected} search={quickRelatedSearch} />
+                      <p className="mt-1 text-[10px] text-zinc-400">該当が無ければ「新規作成」で取引先/商談などを同時に作成できます。未選択なら単独で作成します。</p>
                     </div>
                   )}
                   {draft.note && (
