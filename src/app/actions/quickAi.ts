@@ -14,7 +14,7 @@
 import net from 'node:net'
 import { lookup as dnsLookup } from 'node:dns/promises'
 import { db } from '@/lib/db'
-import { book_records, accounts, contacts, opportunities, projects, tasks, activities, expenses, task_related_records, activity_related_records, expense_related_records, maintenance_records, customer_vehicles, assignments } from '@/lib/schema'
+import { book_records, accounts, contacts, opportunities, tasks, activities, expenses, task_related_records, activity_related_records, expense_related_records, maintenance_records, customer_vehicles, assignments } from '@/lib/schema'
 import { properties } from '@/industries/real-estate/schema'
 import { ilike, or, eq, desc } from 'drizzle-orm'
 import { isModuleEnabled } from '@/lib/modules/registry'
@@ -22,7 +22,8 @@ import { maintenanceDisplayName } from '@/industries/auto-body/lib/maintenanceDi
 import { revalidatePath } from 'next/cache'
 import { canEdit, getCurrentUserId } from '@/lib/auth'
 import { canDo } from '@/lib/permissions'
-import { type RelatedRef, NEW_RELATED_TYPES } from '@/lib/quickAiTypes'
+import { type RelatedRef } from '@/lib/quickAiTypes'
+import { createBareRelated } from '@/lib/relatedCreate'
 import { repairTextValue } from '@/lib/textGuard'
 import { getBookDef, getAllBookDefs, getFieldDefs, parseFieldOptions } from '@/lib/bookMetadata'
 import { callAI } from '@/lib/ai/client'
@@ -403,35 +404,6 @@ async function quickAiExtractImpl(apiName: string, input: QuickAiInput): Promise
   }
 }
 
-/** 新規関連レコードを名前だけで作成（取引先/人物/商談/プロジェクト）。作成権限が無ければ null。 */
-async function createBareRecord(objectApi: string, name: string): Promise<QuickAiRelated | null> {
-  const t = NEW_RELATED_TYPES.find((x) => x.object_api === objectApi)
-  const nm = name.trim().slice(0, 200)
-  if (!t || !nm) return null
-  if (!(await canDo(t.book, 'create'))) return null
-  const owner_id = (await getCurrentUserId()) ?? null
-  switch (objectApi) {
-    case 'account': {
-      const [r] = await db.insert(accounts).values({ name: nm, owner_id }).returning({ id: accounts.id })
-      revalidatePath('/accounts'); return { object_api: 'account', record_id: r.id }
-    }
-    case 'contact': {
-      const [r] = await db.insert(contacts).values({ full_name: nm, owner_id }).returning({ id: contacts.id })
-      revalidatePath('/contacts'); return { object_api: 'contact', record_id: r.id }
-    }
-    case 'opportunity': {
-      const [r] = await db.insert(opportunities).values({ name: nm, owner_id }).returning({ id: opportunities.id })
-      revalidatePath('/opportunities'); return { object_api: 'opportunity', record_id: r.id }
-    }
-    case 'project': {
-      if (!(await isModuleEnabled('projects'))) return null
-      const [r] = await db.insert(projects).values({ name: nm, owner_id }).returning({ id: projects.id })
-      revalidatePath('/projects'); return { object_api: 'project', record_id: r.id }
-    }
-    default: return null
-  }
-}
-
 /** RelatedRef[]（既存 or 新規）を junction 紐付け用 {object_api, record_id}[] に解決（new は作成）。 */
 async function materializeRelated(refs: RelatedRef[]): Promise<QuickAiRelated[]> {
   const out: QuickAiRelated[] = []
@@ -439,7 +411,7 @@ async function materializeRelated(refs: RelatedRef[]): Promise<QuickAiRelated[]>
     if (r.mode === 'existing') {
       if (r.object_api && r.record_id) out.push({ object_api: r.object_api, record_id: r.record_id })
     } else {
-      const created = await createBareRecord(r.object_api, r.name)
+      const created = await createBareRelated(r.object_api, r.name)
       if (created) out.push(created)
     }
   }

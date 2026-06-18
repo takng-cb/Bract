@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { withSaveToast } from '@/lib/saveToast'
 import { requirePermission, requireRecordScope, recordScope, type CrudOp } from '@/lib/permissions'
+import { resolveRelatedFormValues } from '@/lib/relatedCreate'
 import { assertNotPendingApproval } from '@/app/actions/approvals'
 
 /** レコードスコープ（REQ-0083）。'own' のロールは自分担当でない ToDo を更新/削除できない。 */
@@ -19,18 +20,9 @@ async function guardTaskScope(id: string, op: CrudOp) {
   await requireRecordScope('tasks', op, row?.owner_id ?? null)
 }
 
-/** related_records[] hidden inputs ("<api>:<id>") をパース */
-function parseRelatedRecords(formData: FormData): { object_api: string; record_id: string }[] {
-  const raw = formData.getAll('related_records') as string[]
-  const out: { object_api: string; record_id: string }[] = []
-  for (const r of raw) {
-    const idx = r.indexOf(':')
-    if (idx < 0) continue
-    const api = r.slice(0, idx).trim()
-    const id  = r.slice(idx + 1).trim()
-    if (api && id) out.push({ object_api: api, record_id: id })
-  }
-  return out
+/** related_records[] hidden inputs（"<api>:<id>" 既存 / "new:<api>:<name>" 新規）を解決（REQ-0085）。 */
+async function parseRelatedRecords(formData: FormData): Promise<{ object_api: string; record_id: string }[]> {
+  return resolveRelatedFormValues(formData.getAll('related_records') as string[])
 }
 
 /**
@@ -68,7 +60,7 @@ export async function createTask(formData: FormData) {
   if (!title?.trim()) throw new Error('タイトルは必須です')
 
   const return_to  = (formData.get('return_to') as string) || null
-  const selections = parseRelatedRecords(formData)
+  const selections = await parseRelatedRecords(formData)
 
   const description = (formData.get('description') as string)?.trim() || null
   const owner_id    = (formData.get('owner_id') as string)?.trim() || null
@@ -109,7 +101,7 @@ export async function quickCreateTask(formData: FormData) {
     priority: (formData.get('priority') as string) || 'medium',
     owner_id: (formData.get('owner_id') as string)?.trim() || null,
   }).returning({ id: tasks.id })
-  await syncTaskRelatedRecords(row.id, parseRelatedRecords(formData))
+  await syncTaskRelatedRecords(row.id, await parseRelatedRecords(formData))
   const revalidate = formData.get('revalidate') as string
   if (revalidate) revalidatePath(revalidate)
 }
@@ -136,7 +128,7 @@ export async function updateTask(id: string, formData: FormData) {
   const title = formData.get('title') as string
   if (!title?.trim()) throw new Error('タイトルは必須です')
 
-  const selections = parseRelatedRecords(formData)
+  const selections = await parseRelatedRecords(formData)
 
   const description = (formData.get('description') as string)?.trim() || null
   const owner_id    = (formData.get('owner_id') as string)?.trim() || null
@@ -160,7 +152,7 @@ export async function updateTaskRelatedRecords(id: string, formData: FormData) {
   await requirePermission('tasks', 'update')
   await guardTaskScope(id, 'update')
   await assertNotPendingApproval('tasks', id)  // 承認待ち中は編集ロック（REQ-0023 / #131）
-  await syncTaskRelatedRecords(id, parseRelatedRecords(formData))
+  await syncTaskRelatedRecords(id, await parseRelatedRecords(formData))
   redirect(withSaveToast(`/tasks/${id}`, 'saved'))
 }
 
