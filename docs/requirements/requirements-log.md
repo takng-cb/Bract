@@ -536,7 +536,7 @@
   3. **PLAUD複数案件をクイック操作のAI作成に完全統合**：PLAUD=「AI作成（複数案件）」。各 segment を通常AI作成と同じ確認カード＋同じ関連先フィールドで表示。独自モーダル（PlaudMultiImport）は廃止。
   4. **精度改善**：segmentPlaudByCase が relatedName＋relatedType を返し、バックエンドで既存検索→確信マッチは「既存」既定／無ければ「新規（推論型・その名前）」既定。
 - 合意：(a) PLAUDは**クイック操作に完全統合** (b) 新規の型は**AI推論＋変更可** (c) 適用は**PLAUD＋通常AI作成を先に**（詳細ページの関連先編集は後続スライス）。
-- 状態：**Phase A 実装済**（merge 5538f74。RelatedRef[既存|新規]＋createBareRecord＋materializeRelated、AiRelatedField を通常AI作成に。「該当が無ければ新規作成[取引先/人物/商談/プロジェクト]」可能に）。**Phase B 未着手**（PLAUD を QuickLauncher の複数案件モードに統合・segment の relatedType 推論＋既存照合・PlaudMultiImport 廃止）。
+- 状態：**Phase A 実装済**（merge 5538f74。通常AI作成の関連先で既存or新規）＋**詳細ページ/フォームの関連先 Picker にも新規作成を展開済み**（merge dffa9f4。lib/relatedCreate に createBareRelated/resolveRelatedFormValues を共通化、RelatedRecordsPicker＋activities/tasks/expenses 保存アクション）。**Phase B 未着手**（PLAUD を QuickLauncher の複数案件モードに統合・segment の relatedType 推論＋既存照合・PlaudMultiImport 廃止）。
 - 関連：ADR-0030 / 既存 REQ-0061(ブック推論)・REQ-0065(関連自動セット)・REQ-0077(PLAUD)
 
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
