@@ -326,3 +326,16 @@
 - 却下/代替：(a) ロール×ブックのみで妥協（レコード単位要求を満たさない）。(b) フルACL を社内にも全面適用（運用重・不要）。(c) 同一ログイン＋外部ロールで社内 UI を封鎖（数十ルート/アクションのいずれか1つの漏れが即漏えい＝監査困難）。(d) 共有のルールベース実行時トラバース（漏れやすい）。
 - セキュリティ：外部=非信頼につき go/no-go(#40) に**「外部アクセスの脅威モデルレビュー＋封鎖テスト」を必須項目として追加**（直URL 404・非grant 操作拒否・検索/AI/エクスポート/Storage署名URL/関連 の閉塞）。
 - 影響：src/lib/schema.ts（`role_permissions` 拡張・`record_grants`・`record_comments`・`users.is_external`）/ src/lib/permissions.ts（`visibleRecordWhere` 追加）/ 各一覧・詳細・actions / 新 `(portal)` ルート群 / spec: access-control / 既存 ADR-0023 を拡張（Supersede ではなく上に積む）。
+
+### ADR-0030  関連先選択の「既存 or 新規」統一と PLAUD の AI作成統合
+- 2026-06-18 / **採用（設計）**（REQ-0085。会話で合意）
+- 文脈：関連先の選択UIが3系統（QuickLauncher 独自 / PlaudMultiImport 直叩き / RelatedRecordsPicker）に分散。「新規作成」導線が無く、該当なしはスキップ＝未紐付け。PLAUD複数案件は独自モーダルで通常AI作成と体験が分断、relatedName を既存照合せず精度も低い。
+- 決定：
+  1. **関連先の値を「既存 or 新規」の判別ユニオンで表現**：`{mode:'existing', object_api, record_id}` か `{mode:'new', object_api, name}`。確定時に new を先に作成（materialize）→ existing に解決して junction へ。途中キャンセルでゴミを残さない。
+  2. **新規の型は AI 推論＋ユーザー変更可**。作成対象は当面 account/contact/opportunity/project（owner と専用ルートを持つ標準型）。
+  3. **PLAUD をクイック操作のAI作成へ完全統合**：AI作成は「単一」「複数案件」を同じ確認パラダイムで扱う。複数案件時は draft カードのリスト（各 segment＝活動下書き＋関連先フィールド＋ToDo化）。`PlaudMultiImport` は廃止。
+  4. **精度改善**：`segmentPlaudByCase` が segment ごとに relatedName＋relatedType を返す。サーバで既存検索→確信マッチは「既存」既定、無ければ「新規（推論型・その名前）」既定にして UI へ。ユーザーは確認・修正のみ。
+  5. **段階導入**：Phase A=「既存or新規」関連先フィールド＋create-new materialize を**通常AI作成**に。Phase B=**PLAUD を QuickLauncher へ統合**（同フィールド再利用）。詳細ページの関連先編集(InlineRelatedRecordsEditor/フォーム)への展開は後続スライス。
+- 理由：UIと型の3重化を解消し、「新規作成」を第一級にする。AI事前照合で「既存/新規」既定を正しくして手数と精度を改善。materialize でデータ衛生を保つ。
+- 却下/代替：(a) その場で即新規作成（キャンセルでゴミ／重複）。(b) PLAUDを別モーダルのまま部品だけ共通化（「完全統合」要望に未達）。(c) 新規型を固定（案件の実態に合わない）。
+- 影響：src/components/QuickLauncher.tsx（複数案件モード・関連先フィールド）/ 新 関連先フィールド部品 / src/app/actions/quickAi.ts（related を判別ユニオン化・create-new）/ src/app/actions/plaud.ts（relatedType＋既存照合）/ src/components/PlaudMultiImport.tsx 廃止 / 後続で RelatedRecordsPicker・InlineRelatedRecordsEditor。
