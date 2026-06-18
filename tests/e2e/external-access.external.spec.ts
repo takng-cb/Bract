@@ -80,6 +80,19 @@ test.describe('外部ユーザー: 共有レコードの閲覧（正の経路）
     // 編集・削除導線が無いこと
     await expect(page.getByRole('button', { name: /編集|削除/ })).toHaveCount(0)
   })
+
+  test('共有レコードにコメントを投稿でき表示される（外部の貢献・Phase3）', async ({ page }) => {
+    await page.goto('/portal')
+    const link = page.getByRole('link', { name: new RegExp(SHARED_NAME) })
+    test.skip((await link.count()) === 0, 'grant 未 seed のため skip')
+
+    await link.first().click()
+    await page.waitForURL(/\/portal\/account\//)
+    const msg = `E2Eコメント ${Date.now()}`
+    await page.getByPlaceholder('コメントを追加…').fill(msg)
+    await page.getByRole('button', { name: '投稿' }).click()
+    await expect(page.getByText(msg)).toBeVisible()
+  })
 })
 
 // ── データ API の遮断（Phase4・脅威モデル封鎖）──
