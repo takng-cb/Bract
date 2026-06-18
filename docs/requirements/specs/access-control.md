@@ -106,9 +106,11 @@ record_comments(
 | 検索 API `/api/search/records` | ✅ canDo(read) ガード（外部 403） |
 | **CSV エクスポート `/api/export/*`（10ルート＋業種overlay）** | ✅ requireApiBookRead（外部403＋ブックRead＋owner scope）。E2E で外部403/own限定を検証 |
 | インポート `/api/import/*` | ✅ requireApiEditor（外部403） |
-| 添付 Storage 署名 URL / AI 機能 / 関連レコード経由 | ⬜ 未レビュー（ポータルは record 単体のみ表示で関連は出さない。要監査） |
+| 添付ファイル | ✅ 公開直リンク廃止 → `/api/attachments/[id]`（認証＋外部403＋親レコードの canSeeRecord/canDo＋署名URL60秒）。**要運用: Supabase の attachments バケットを private 化**（コード反映後。それまでは旧 public パスが残る） |
+| AI 機能（quickAi/aiSearch/plaud） | ✅ canDo/requirePermission/ensureFeature で外部・無権限を遮断 |
+| 関連レコード経由 | ✅ ポータルは record 単体のみ表示（関連は出さない） |
 
-E2E: `external-access.external.spec.ts`（封鎖＋API403）/ `record-scope.scoped.spec.ts`（own限定・export own限定）。
+E2E: `external-access.external.spec.ts`（封鎖＋API403：export/search/attachments）/ `record-scope.scoped.spec.ts`（own限定・export own限定）。
 
 ## 6. ロールアウト状態
 

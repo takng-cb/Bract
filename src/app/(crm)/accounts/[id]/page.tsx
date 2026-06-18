@@ -114,7 +114,6 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     await deleteAttachment(formData.get('attach_id') as string, formData.get('storage_path') as string, `/accounts/${id}`)
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const ownerName = account.owner_id ? (allUsers.find((u) => u.id === account.owner_id)?.name ?? null) : null
 
   // ── KPI band ────────────────────────────────────────────────────
@@ -256,7 +255,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             <RecordTable columns={[{ label: 'ファイル' }, { label: 'サイズ' }, { label: '追加日' }, { label: '' }]}>
               {attachmentsList.map((f) => (
                 <tr key={f.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-2.5 border-b border-zinc-100 font-semibold text-zinc-900"><a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">{f.file_name}</a></td>
+                  <td className="px-4 py-2.5 border-b border-zinc-100 font-semibold text-zinc-900"><a href={`/api/attachments/${f.id}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">{f.file_name}</a></td>
                   <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{formatFileSize(f.file_size)}</td>
                   <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? fmtDate(f.created_at, tz) : ''}</td>
                   <td className="px-4 py-2.5 border-b border-zinc-100 text-right">

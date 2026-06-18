@@ -94,7 +94,6 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     await deleteAttachment(formData.get('attach_id') as string, formData.get('storage_path') as string, `/contacts/${id}`)
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const tz = await getAppTimeZone()
   // eslint-disable-next-line react-hooks/purity
   const NOW = Date.now()
@@ -162,7 +161,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         <RecordTable columns={[{ label: 'ファイル' }, { label: 'サイズ' }, { label: '追加日' }, { label: '' }]}>
           {attachmentsList.map((f) => (
             <tr key={f.id} className="hover:bg-zinc-50">
-              <td className="px-4 py-2.5 border-b border-zinc-100 font-semibold text-zinc-900"><a href={`${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">{f.file_name}</a></td>
+              <td className="px-4 py-2.5 border-b border-zinc-100 font-semibold text-zinc-900"><a href={`/api/attachments/${f.id}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">{f.file_name}</a></td>
               <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{formatFileSize(f.file_size)}</td>
               <td className="px-4 py-2.5 border-b border-zinc-100 text-zinc-500">{f.created_at ? fmtDate(f.created_at, tz) : ''}</td>
               <td className="px-4 py-2.5 border-b border-zinc-100 text-right"><AuthGuard minRole="editor"><form action={deleteFile}><input type="hidden" name="attach_id" value={f.id} /><input type="hidden" name="storage_path" value={f.storage_path} /><button type="submit" className="text-xs text-rose-400 hover:text-rose-600">削除</button></form></AuthGuard></td>
