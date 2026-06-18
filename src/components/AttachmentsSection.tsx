@@ -41,7 +41,7 @@ function formatFileSize(bytes: number | null): string {
 }
 
 export default function AttachmentsSection({
-  attachments, supabaseUrl, uploadAction, deleteAction, heading = '添付ファイル',
+  attachments, uploadAction, deleteAction, heading = '添付ファイル',
 }: Props) {
   return (
     <section className="mb-6">
@@ -54,7 +54,8 @@ export default function AttachmentsSection({
         {attachments.length > 0 && (
           <div className="divide-y divide-zinc-100">
             {attachments.map((f) => {
-              const url     = `${supabaseUrl}/storage/v1/object/public/attachments/${f.storage_path}`
+              // 権限チェック付きの署名URL経由（公開直リンクを廃止。REQ-0084 Phase4）
+              const url     = `/api/attachments/${f.id}`
               const isImage = (f.content_type ?? '').startsWith('image/')
               return (
                 <div key={f.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50">

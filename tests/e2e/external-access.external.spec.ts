@@ -98,4 +98,9 @@ test.describe('外部ユーザー: データ API 遮断', () => {
     const res = await request.get('/api/search/records?objectType=accounts&q=a')
     expect(res.status()).toBe(403)
   })
+
+  test('/api/attachments/<id> は 403（添付ダウンロード遮断）', async ({ request }) => {
+    const res = await request.get('/api/attachments/00000000-0000-0000-0000-000000000000', { maxRedirects: 0 })
+    expect(res.status()).toBe(403)
+  })
 })
