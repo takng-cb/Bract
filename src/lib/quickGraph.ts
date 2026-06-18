@@ -6,6 +6,8 @@
  * 既存レコード照合（DB 参照）は呼び出し側（quickAi.ts）で別途付与する。
  */
 
+import { repairTextValue } from './textGuard'
+
 /** 商談ステージの正規値（accounts/dashboard/forecast の表示ラベルと一致する英語値）。 */
 export const OPP_STAGES = new Set(['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'])
 
@@ -42,6 +44,7 @@ export function buildGraphNodes(
   rawRecords: unknown[],
   allowed: string[],
   specsByBook: Record<string, GraphBookSpec>,
+  sourceText = '',
 ): ParsedGraphNode[] {
   const nodes: ParsedGraphNode[] = []
   const usedRefs = new Set<string>()
@@ -58,7 +61,13 @@ export function buildGraphNodes(
     const fields: GraphFieldValue[] = spec.fields.map((f) => {
       const raw = valueMap[f.apiName]
       let val = raw == null ? '' : String(raw)
-      if (f.apiName === 'stage' && val && !OPP_STAGES.has(val)) val = ''
+      if (f.apiName === 'stage' && val && !OPP_STAGES.has(val)) {
+        val = ''  // 正規値以外のステージは空に
+      } else if (val && f.fieldType === 'text') {
+        // 固有名詞の改変ガード（REQ-0064）: 短いテキスト系（会社名/氏名/件名）が原文に
+        // 無ければ、原文中の最も近い表記に修復する。AI の名称ハルシネーション対策。
+        val = repairTextValue(val, sourceText)
+      }
       return { apiName: f.apiName, label: f.label, fieldType: f.fieldType, value: val, options: f.options }
     })
 
