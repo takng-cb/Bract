@@ -556,6 +556,14 @@
 - 状態：**設計済→実装中**（2026-06-19）。draft-then-apply 厳守（AIは下書きのみ、全レコード編集可能な確認画面を経て一括作成）。
 - 関連：ADR-0031 / REQ-0022(AI作成)・REQ-0061(ブック推論)・REQ-0065(関連自動セット)・REQ-0085(既存or新規)・#5(商品明細)
 
+### REQ-0087  PLAUD ノート取り込みを AI作成（ディールグラフ）化＋複数案件対応
+- 2026-06-19 / 会話（「PLAUDノートの読み込みもAI生成と似たような形にしてほしい。その中で複数の案件の話が上がることもあるかと思う」）
+- 内容：PLAUD のエクスポート（.md/.txt）を REQ-0086 のディールグラフ抽出（quickAiExtractGraph）に通し、議事録の複数案件を取引先・商談・活動として一括抽出 → 同じ確認画面（QuickGraphConfirm）で編集 → 一括作成。
+- 実装：QuickLauncher の `onPickPlaud` がノート本文を quickAiExtractGraph に渡す。ノード>0 ならグラフ確認へ。AI無効・0件・長文空振り時は従来の `importActivityFromPlaud`（markdown パースの単一活動取込）にフォールバック。グラフ抽出は maxTokens 3000・入力 16000字上限に調整。
+- あわせて通常 AI作成（プレーンテキスト）もグラフ失敗/0件時は単一AI作成（classify→extract）へフォールバックして堅牢化（「AI生成が動かない」リスク軽減。Server Component エラーは別途 digest 待ち）。
+- 状態：**実装中**（フォールバック付き）。PlaudMultiImport（独立モーダル）廃止は後続（当面併存）。
+- 関連：REQ-0086 / ADR-0030・ADR-0031 / REQ-0077(PLAUD) / #143
+
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）
 
 | Issue | 内容 | 関連 REQ/ADR |
