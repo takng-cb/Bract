@@ -119,4 +119,20 @@ describe('buildGraphNodes', () => {
   it('records が空配列なら空を返す', () => {
     expect(buildGraphNodes([], ALLOWED, SPECS)).toEqual([])
   })
+
+  it('text フィールドの固有名詞が原文と1字違いなら原文表記に修復する（REQ-0064）', () => {
+    const source = '株式会社山田製作所から追加の引き合い。保守契約を提案。'
+    const records = [
+      { ref: 'a1', book: 'accounts', fields: { name: '株式会社山田製昨所' } },  // 「作」→「昨」の改変
+    ]
+    const [a1] = buildGraphNodes(records, ALLOWED, SPECS, source)
+    expect(a1.fields.find((f) => f.apiName === 'name')?.value).toBe('株式会社山田製作所')
+  })
+
+  it('原文に一致する固有名詞はそのまま保持する', () => {
+    const source = '株式会社山田製作所と商談。'
+    const records = [{ ref: 'a1', book: 'accounts', fields: { name: '株式会社山田製作所' } }]
+    const [a1] = buildGraphNodes(records, ALLOWED, SPECS, source)
+    expect(a1.fields.find((f) => f.apiName === 'name')?.value).toBe('株式会社山田製作所')
+  })
 })
