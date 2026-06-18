@@ -536,7 +536,13 @@
   3. **PLAUD複数案件をクイック操作のAI作成に完全統合**：PLAUD=「AI作成（複数案件）」。各 segment を通常AI作成と同じ確認カード＋同じ関連先フィールドで表示。独自モーダル（PlaudMultiImport）は廃止。
   4. **精度改善**：segmentPlaudByCase が relatedName＋relatedType を返し、バックエンドで既存検索→確信マッチは「既存」既定／無ければ「新規（推論型・その名前）」既定。
 - 合意：(a) PLAUDは**クイック操作に完全統合** (b) 新規の型は**AI推論＋変更可** (c) 適用は**PLAUD＋通常AI作成を先に**（詳細ページの関連先編集は後続スライス）。
-- 状態：**Phase A 実装済**（merge 5538f74。通常AI作成の関連先で既存or新規）＋**詳細ページ/フォームの関連先 Picker にも新規作成を展開済み**（merge dffa9f4。lib/relatedCreate に createBareRelated/resolveRelatedFormValues を共通化、RelatedRecordsPicker＋activities/tasks/expenses 保存アクション）。**Phase B 未着手**（PLAUD を QuickLauncher の複数案件モードに統合・segment の relatedType 推論＋既存照合・PlaudMultiImport 廃止）。
+- 状態：**Phase A 実装済**（merge 5538f74。通常AI作成の関連先で既存or新規）＋**詳細ページ/フォームの関連先 Picker にも新規作成を展開済み**（merge dffa9f4）。
+- **追補（2026-06-18 / 会話「選択可能なブック以外も作れるように・名前だけでなく色々入力させたい・新規作成ボタン→ブック選択→入力」「『新規作成』1つに統一」「作成権限のある全ブック（標準＋カスタム）」）**：
+  - 名前のみ4種ボタンを廃し、**「新規作成」1ボタン→ブック選択→フィールド入力フォーム（モーダル）→即時作成→既存参照として紐付け**に刷新（`QuickCreateRelatedModal`）。
+  - 対象ブック＝**作成権限のある全ブック（標準＋カスタム）かつ関連先 resolver 対応**（取引先/人物/商談/プロジェクト/車両/部品＋カスタム。projects/vehicles/parts はモジュール有効時のみ。expenses/tasks/activities/properties は対象外）。
+  - バックエンド：`listCreatableRelatedBooks` / `getQuickCreateFields` / `createRecordForRelated`（quickAi.ts）。TYPED_SPECS に opportunities・projects を追加（AI作成も拡張）。ブック apiName→junction object_api（単数）対応表で参照を生成、href 末尾から record_id を取得。
+  - AiRelatedField・RelatedRecordsPicker の双方で同一モーダルを共用。DraftField を `QuickFieldInput` に共通化。
+- **Phase B 未着手**（PLAUD を QuickLauncher の複数案件モードに統合・segment の relatedType 推論＋既存照合・PlaudMultiImport 廃止）。
 - 関連：ADR-0030 / 既存 REQ-0061(ブック推論)・REQ-0065(関連自動セット)・REQ-0077(PLAUD)
 
 ## GitHub Issue 対応（takng-cb/Bract・ADR-0015）

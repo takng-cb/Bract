@@ -31,6 +31,8 @@ import { assertAiRateLimit } from '@/lib/ai/rateLimit'
 import { extractJson } from '@/lib/ai/extractJson'
 import { createAccount } from '@/app/actions/accounts'
 import { createContact } from '@/app/actions/contacts'
+import { createOpportunity } from '@/app/actions/opportunities'
+import { createProject } from '@/app/actions/projects'
 import { createVehicle } from '@/industries/auto-body/actions/vehicles'
 import { createPart } from '@/industries/auto-body/actions/parts'
 import { createProperty } from '@/industries/real-estate/actions/properties'
@@ -254,6 +256,41 @@ const TYPED_SPECS: Record<string, TypedSpec> = {
       }
       revalidatePath('/activities')
       return { recordHref: `/activities/${row.id}` }
+    },
+  },
+  opportunities: {
+    label: '商談',
+    fields: [
+      { apiName: 'name',        label: '商談名',           fieldType: 'text' },
+      { apiName: 'amount',      label: '金額（円）',       fieldType: 'number' },
+      { apiName: 'close_date',  label: 'クローズ予定日',   fieldType: 'date' },
+      { apiName: 'stage',       label: 'ステージ',         fieldType: 'text' },
+      { apiName: 'description', label: '備考',             fieldType: 'textarea' },
+    ],
+    async create(v) {
+      const id = await createOpportunity(fd(v, {
+        name: 'name', amount: 'amount', close_date: 'close_date',
+        stage: 'stage', description: 'description',
+      }))
+      return { recordHref: `/opportunities/${id}` }
+    },
+  },
+  projects: {
+    label: 'プロジェクト',
+    fields: [
+      { apiName: 'name',        label: 'プロジェクト名', fieldType: 'text' },
+      { apiName: 'status',      label: 'ステータス',     fieldType: 'text' },
+      { apiName: 'start_date',  label: '開始日',         fieldType: 'date' },
+      { apiName: 'end_date',    label: '終了日',         fieldType: 'date' },
+      { apiName: 'budget',      label: '予算（円）',     fieldType: 'number' },
+      { apiName: 'description', label: '備考',           fieldType: 'textarea' },
+    ],
+    async create(v) {
+      const id = await createProject(fd(v, {
+        name: 'name', status: 'status', start_date: 'start_date',
+        end_date: 'end_date', budget: 'budget', description: 'description',
+      }))
+      return { recordHref: `/projects/${id}` }
     },
   },
 }
@@ -635,6 +672,8 @@ export type QuickAiClassifyResult = {
 async function quickAiCreatableBooks(): Promise<QuickAiBookCandidate[]> {
   const out: QuickAiBookCandidate[] = []
   for (const [apiName, spec] of Object.entries(TYPED_SPECS)) {
+    // projects はモジュール有効時のみ（createBareRelated と整合）
+    if (apiName === 'projects' && !(await isModuleEnabled('projects'))) continue
     if (await canDo(apiName, 'create')) out.push({ apiName, label: spec.label })
   }
   for (const obj of await getAllBookDefs()) {
@@ -699,4 +738,89 @@ async function quickAiClassifyBookImpl(input: { text?: string; url?: string }): 
     .map((c) => (typeof c === 'string' ? allowedSet.get(c) : undefined))
     .filter((c): c is QuickAiBookCandidate => Boolean(c))
   return { book, candidates: candidates.length > 0 ? candidates : allowed }
+}
+
+/* ── 関連先の「新規作成」（REQ-0085 / ADR-0030）─────────────────────────
+ * 既存の TYPED_SPECS / book_fields をそのまま再利用して、関連先にできるブックを
+ * リッチなフィールド入力で新規作成し、junction 紐付け用の {object_api(単数), record_id}
+ * を即時で返す。AI作成（AiRelatedField）・詳細/フォーム（RelatedRecordsPicker）で共用。 */
+
+/** ブック apiName → 関連先 junction の object_api（単数規約）。
+ *  ここに無い typed ブック（expenses/tasks/activities/properties）は関連先にしない
+ *  （それ自体がホスト側、または resolveRelatedRecords 未対応）。custom は api_name がそのまま object_api。 */
+const RELATED_OBJECT_BY_BOOK: Record<string, string> = {
+  accounts: 'account', contacts: 'contact', opportunities: 'opportunity',
+  projects: 'project', vehicles: 'vehicle', parts: 'part',
+}
+/** 関連先ブックを出すためのモジュール条件（未対応モジュールのブックは出さない）。 */
+const RELATED_BOOK_MODULE_GATE: Record<string, string> = {
+  projects: 'projects', vehicles: 'auto-body', parts: 'auto-body',
+}
+
+export type RelatedCreatableBook = { apiName: string; label: string; objectApi: string }
+export type CreatedRelatedRef = { object_api: string; record_id: string; label: string; kind: string }
+
+/** 関連先として「新規作成」できるブック一覧（作成権限＋有効モジュール＋resolver対応のみ）。 */
+export async function listCreatableRelatedBooks(): Promise<QuickAiResult<RelatedCreatableBook[]>> {
+  return envelope(async () => {
+    if (!(await canEdit())) throw new Error('権限がありません')
+    const out: RelatedCreatableBook[] = []
+    for (const [apiName, spec] of Object.entries(TYPED_SPECS)) {
+      const objectApi = RELATED_OBJECT_BY_BOOK[apiName]
+      if (!objectApi) continue
+      const gate = RELATED_BOOK_MODULE_GATE[apiName]
+      if (gate && !(await isModuleEnabled(gate))) continue
+      if (!(await canDo(apiName, 'create'))) continue
+      out.push({ apiName, label: spec.label, objectApi })
+    }
+    for (const obj of await getAllBookDefs()) {
+      if (obj.is_builtin) continue
+      if (!(await canDo(obj.api_name, 'create'))) continue
+      out.push({ apiName: obj.api_name, label: obj.label, objectApi: obj.api_name })
+    }
+    return out
+  })
+}
+
+/** ブックの入力フィールド定義（値は空）。typed=spec / custom=book_fields。 */
+export async function getQuickCreateFields(apiName: string): Promise<QuickAiResult<QuickAiField[]>> {
+  return envelope(async () => {
+    if (!(await canEdit())) throw new Error('権限がありません')
+    const typed = TYPED_SPECS[apiName]
+    if (typed) {
+      return typed.fields.map((f) => ({ apiName: f.apiName, label: f.label, fieldType: f.fieldType, value: '', options: f.options }))
+    }
+    const obj = await getBookDef(apiName)
+    if (!obj) throw new Error(`ブック "${apiName}" が見つかりません`)
+    if (obj.is_builtin) throw new Error('このブックは作成に未対応です')
+    const fdefs = await getFieldDefs(obj.id)
+    return fdefs.map((f) => ({ apiName: f.api_name, label: f.label, fieldType: f.field_type, value: '', options: parseFieldOptions(f) }))
+  })
+}
+
+function pickRelatedLabel(values: Record<string, string>): string {
+  for (const k of ['name', 'full_name', 'title', 'subject']) {
+    const v = values[k]?.trim()
+    if (v) return v
+  }
+  return ''
+}
+
+/** 関連先ブックのレコードを新規作成し、junction 紐付け用の参照を返す（即時作成）。 */
+export async function createRecordForRelated(apiName: string, values: Record<string, string>): Promise<QuickAiResult<CreatedRelatedRef>> {
+  return envelope(async () => {
+    const typed = TYPED_SPECS[apiName]
+    // typed は対応表、それ以外は custom（api_name=object_api）。対象外 typed は null で弾く。
+    const objectApi = RELATED_OBJECT_BY_BOOK[apiName] ?? (typed ? null : apiName)
+    if (!objectApi) throw new Error('このブックは関連先として作成できません')
+    const gate = RELATED_BOOK_MODULE_GATE[apiName]
+    if (gate && !(await isModuleEnabled(gate))) throw new Error('このモジュールは無効です')
+    if (!(await canDo(apiName, 'create'))) throw new Error('作成権限がありません')
+    const { recordHref } = await quickAiCreateImpl(apiName, values)
+    const record_id = recordHref.split('/').filter(Boolean).pop()
+    if (!record_id) throw new Error('作成結果の取得に失敗しました')
+    const kind = typed?.label ?? (await getBookDef(apiName))?.label ?? apiName
+    const label = pickRelatedLabel(values) || kind
+    return { object_api: objectApi, record_id, label, kind }
+  })
 }

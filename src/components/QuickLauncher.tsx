@@ -7,10 +7,11 @@ import { NavIcon } from '@/lib/navIcon'
 import type { QuickModule, QuickBook } from '@/lib/modules/quick'
 import {
   quickAiExtract, quickAiCreate, quickAiDupCandidates, quickRelatedSearch, quickAiClassifyBook,
-  type QuickAiDup, type QuickAiField, type QuickAiDraft,
+  type QuickAiDup, type QuickAiDraft,
 } from '@/app/actions/quickAi'
 import { type RelatedRef } from '@/lib/quickAiTypes'
 import AiRelatedField from '@/components/AiRelatedField'
+import QuickFieldInput from '@/components/QuickFieldInput'
 import { importActivityFromPlaud, createTasksFromPlaud } from '@/app/actions/plaud'
 import type { PlaudActionItem } from '@/lib/plaud/markdown'
 
@@ -568,7 +569,7 @@ export default function QuickLauncher({
                   )}
                   <div className="grid grid-cols-1 gap-2.5">
                     {draft.fields.map((f) => (
-                      <DraftField key={f.apiName} field={f} onChange={(v) => updField(f.apiName, v)} />
+                      <QuickFieldInput key={f.apiName} field={f} onChange={(v) => updField(f.apiName, v)} />
                     ))}
                   </div>
 
@@ -655,32 +656,3 @@ function BigChoice({ icon, label, desc, onClick, accent }: {
   )
 }
 
-function DraftField({ field, onChange }: { field: QuickAiField; onChange: (v: string) => void }) {
-  const base = 'w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none'
-  return (
-    <label className="block">
-      <span className="block text-xs text-zinc-500 mb-1">{field.label}</span>
-      {field.fieldType === 'select' && field.options && field.options.length > 0 ? (
-        <select value={field.value} onChange={(e) => onChange(e.target.value)} className={base}>
-          <option value="">—</option>
-          {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-      ) : field.fieldType === 'textarea' ? (
-        <textarea value={field.value} onChange={(e) => onChange(e.target.value)} rows={3} className={base} />
-      ) : field.fieldType === 'boolean' ? (
-        <select value={field.value} onChange={(e) => onChange(e.target.value)} className={base}>
-          <option value="">—</option>
-          <option value="true">はい</option>
-          <option value="false">いいえ</option>
-        </select>
-      ) : (
-        <input
-          type={field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : 'text'}
-          value={field.value}
-          onChange={(e) => onChange(e.target.value)}
-          className={base}
-        />
-      )}
-    </label>
-  )
-}
