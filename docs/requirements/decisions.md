@@ -339,3 +339,16 @@
 - 理由：UIと型の3重化を解消し、「新規作成」を第一級にする。AI事前照合で「既存/新規」既定を正しくして手数と精度を改善。materialize でデータ衛生を保つ。
 - 却下/代替：(a) その場で即新規作成（キャンセルでゴミ／重複）。(b) PLAUDを別モーダルのまま部品だけ共通化（「完全統合」要望に未達）。(c) 新規型を固定（案件の実態に合わない）。
 - 影響：src/components/QuickLauncher.tsx（複数案件モード・関連先フィールド）/ 新 関連先フィールド部品 / src/app/actions/quickAi.ts（related を判別ユニオン化・create-new）/ src/app/actions/plaud.ts（relatedType＋既存照合）/ src/components/PlaudMultiImport.tsx 廃止 / 後続で RelatedRecordsPicker・InlineRelatedRecordsEditor。
+
+### ADR-0031  AI作成のディールグラフ化（1入力→関連レコード一括作成）
+- 2026-06-19 / **採用（設計）**（REQ-0086。会話＋AskUserQuestion で合意）
+- 文脈：AI作成は「1入力→1ブック1レコード」。実務の入力（営業メモ等）は1文に取引先・商談・商品・活動が混在し、人手で複数画面を作り直す必要があった。
+- 決定：
+  1. **テキスト入力の AI作成をグラフ抽出に拡張**：`quickAiExtractGraph` が1回のAI呼び出しで複数レコード（accounts/contacts/opportunities(+商品明細)/activities/tasks）と**関係（account_ref/contact_ref/related_refs）**を持つ下書きを返す。ref はAIが付ける一時ID。
+  2. **自動判定**：画像・URL単独・PLAUD・ブック確定済みは従来の単一フローのまま。プレーンテキスト（画像なし）のみグラフ抽出に回す。ノード1件でも同じ確認画面で扱う（入口を増やさない）。
+  3. **draft-then-apply 厳守**：`QuickGraphConfirm` で各ノードをカード表示（編集可・除外可・既存照合の「既存に紐付け/新規作成」切替・商談は商品明細エディタ）。確定で `quickAiCreateGraph` が**依存順**（取引先→連絡先→商談→商品明細→活動/ToDo）に作成し FK/junction を配線、主レコード（商談優先）へ遷移。
+  4. **既存照合**：account/contact/opportunity は名称一致候補を提示し既存紐付けを既定（REQ-0085）。商品明細は opportunity_products のフリー入力（実商品レコード不要）。
+  5. **対象は当面コアCRM**（account/contact/opportunity/activity/task＋商談の商品明細）。車両・カスタム等は対象外（後続）。
+- 理由：実務の1文＝1ディールという単位に合わせ、手数を最小化。単一AI呼び出しで関係まで取るため往復が少ない。確認画面を必須にして誤投入を防ぐ。
+- 却下/代替：(a) 単一抽出を複数回（関係が取れず手配線）。(b) 即作成（誤りの一括登録リスク）。(c) 新規メニュー追加（入口分散・既存AI作成と二重化）。
+- 影響：src/app/actions/quickAi.ts（quickAiExtractGraph / quickAiCreateGraph）/ src/components/QuickLauncher.tsx（aiGraphConfirm ステップ・runExtract 分岐）/ 新 確認カード部品。opportunity_products を再利用。

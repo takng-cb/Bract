@@ -7,11 +7,13 @@ import { NavIcon } from '@/lib/navIcon'
 import type { QuickModule, QuickBook } from '@/lib/modules/quick'
 import {
   quickAiExtract, quickAiCreate, quickAiDupCandidates, quickRelatedSearch, quickAiClassifyBook,
-  type QuickAiDup, type QuickAiDraft,
+  quickAiExtractGraph,
+  type QuickAiDup, type QuickAiDraft, type GraphDraft,
 } from '@/app/actions/quickAi'
 import { type RelatedRef } from '@/lib/quickAiTypes'
 import AiRelatedField from '@/components/AiRelatedField'
 import QuickFieldInput from '@/components/QuickFieldInput'
+import QuickGraphConfirm from '@/components/QuickGraphConfirm'
 import { importActivityFromPlaud, createTasksFromPlaud } from '@/app/actions/plaud'
 import type { PlaudActionItem } from '@/lib/plaud/markdown'
 
@@ -30,7 +32,7 @@ import PlaudMultiImport from '@/components/PlaudMultiImport'
  *     手動入力 → モジュール選択 → ブック選択 → 新規入力画面へ遷移
  *   閲覧 → モジュール選択 → ブック選択 → 一覧へ遷移
  */
-type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook' | 'aiConfirm' | 'aiNotSupported' | 'aiSearch' | 'plaudTodos'
+type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook' | 'aiConfirm' | 'aiGraphConfirm' | 'aiNotSupported' | 'aiSearch' | 'plaudTodos'
 type Mode = 'create' | 'view' | 'search'
 type CreateMode = 'ai' | 'manual'
 
@@ -60,6 +62,8 @@ export default function QuickLauncher({
   const [aiUrl, setAiUrl] = useState('')
   const [aiImage, setAiImage] = useState<{ mediaType: string; dataBase64: string; preview: string } | null>(null)
   const [draft, setDraft] = useState<QuickAiDraft | null>(null)
+  // ディールグラフ下書き（1入力→関連レコード一括作成。REQ-0086）
+  const [graph, setGraph] = useState<GraphDraft | null>(null)
   // PLAUD 取り込み（#143）: アップロードしたファイルのアクション → 作成後に ToDo 確認
   const [plaudItems, setPlaudItems] = useState<(PlaudActionItem & { selected: boolean })[]>([])
   const [createdHref, setCreatedHref] = useState<string | null>(null)
@@ -84,7 +88,7 @@ export default function QuickLauncher({
   const reset = useCallback(() => {
     setStep('root'); setHistory([]); setMode('create'); setCreateMode('manual')
     setMod(null); setBook(null)
-    setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setDups([]); setBusy(false); setError(null)
+    setAiText(''); setAiUrl(''); setAiImage(null); setDraft(null); setGraph(null); setDups([]); setBusy(false); setError(null)
     setRelSelected([])
   }, [])
 
@@ -203,8 +207,23 @@ export default function QuickLauncher({
   }
 
   const runExtract = async () => {
-    // ブック確定済み（候補から選択済み等）ならそのまま抽出
+    // ブック確定済み（候補から選択済み等）ならそのまま単一抽出
     if (book) return extractWith(book)
+    // プレーンテキスト（画像なし）はディールグラフ抽出に回す（REQ-0086）。
+    // 複数レコード・単一いずれも同じ確認画面で扱う。画像/URL単独は従来の単一フロー。
+    if (aiText.trim() && !aiImage) {
+      setBusy(true); setError(null)
+      try {
+        const g = await quickAiExtractGraph({ text: aiText, url: aiUrl.trim() || undefined })
+        if (!g.ok) { setError(g.error); return }
+        if (g.data.nodes.length === 0) { setError('レコードを抽出できませんでした。表現を変えてお試しください。'); return }
+        setGraph(g.data)
+        pushStep('aiGraphConfirm')
+        return
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e)); return
+      } finally { setBusy(false) }
+    }
     // 入力からブックを推論（REQ-0061）。画像のみの場合は AI を呼ばず候補提示になる
     setBusy(true); setError(null)
     try {
@@ -297,6 +316,7 @@ export default function QuickLauncher({
     step === 'aiInput' ? 'AI作成' :
     step === 'aiPickBook' ? '作成先を選択' :
     step === 'aiConfirm' ? '内容を確認・編集' :
+    step === 'aiGraphConfirm' ? '内容を確認・一括作成' :
     step === 'plaudTodos' ? 'アクションを ToDo 化' :
     step === 'aiSearch' ? 'AI検索' :
     mode === 'search' ? 'AI検索は準備中' : 'AI作成は準備中'
@@ -601,6 +621,15 @@ export default function QuickLauncher({
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* ディールグラフ確認（1入力→関連レコード一括作成 REQ-0086） */}
+              {step === 'aiGraphConfirm' && graph && (
+                <QuickGraphConfirm
+                  draft={graph}
+                  onCreated={(href) => go(href)}
+                  onBack={backToInput}
+                />
               )}
 
               {/* AI未対応ブック */}
