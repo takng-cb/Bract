@@ -785,6 +785,22 @@ export const record_grants = pgTable('record_grants', {
 ])
 
 // ----------------------------------------------------------------
+// record_comments（レコードへのコメント。REQ-0084 Phase3）
+//   外部ユーザーは grant のあるレコードに、社内ユーザーは閲覧可能なレコードにコメントできる。
+//   object_api は record_grants と同じ単数規約（account/contact/opportunity/project）。
+// ----------------------------------------------------------------
+export const record_comments = pgTable('record_comments', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  object_api: text('object_api').notNull(),
+  record_id:  uuid('record_id').notNull(),
+  author_id:  uuid('author_id').notNull(),   // users.id（社内/外部いずれも）
+  body:       text('body').notNull(),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (t) => [
+  index('record_comments_record_idx').on(t.object_api, t.record_id, t.created_at),
+])
+
+// ----------------------------------------------------------------
 // roles / role_permissions（RBAC: ロール × ブック別 CRUD。REQ-0031 / ADR-0023）
 //   admin/editor/viewer は is_system=true の system ロール（削除・改名不可）。
 //   role_permissions.book_api='*' はワイルドカード既定。ブック個別行が優先。

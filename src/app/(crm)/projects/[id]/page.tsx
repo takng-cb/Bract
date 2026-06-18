@@ -8,6 +8,7 @@ import RecordHeader from '@/components/RecordHeader'
 import RecordId from '@/components/RecordId'
 import RecordLinksSection from '@/components/RecordLinksSection'
 import ExternalSharePanel from '@/components/portal/ExternalSharePanel'
+import RecordComments from '@/components/record/RecordComments'
 import AuthGuard from '@/components/AuthGuard'
 import DeleteButton from '@/components/DeleteButton'
 import InlineEditButton from '@/components/detail/InlineEditButton'
@@ -188,7 +189,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <RecordTabPanel
           tabs={[
             { id: 'flow', label: 'アクティビティ', icon: <Activity />, count: interactionCount, content: <ActivityStream events={stream} composer={composer} /> },
-            { id: 'related', label: '関連情報', icon: <Folder />, content: <div className="space-y-4"><RecordLinksSection selfApi="project" selfId={id} /><ExternalSharePanel objectApi="project" recordId={id} revalidatePath={`/projects/${id}`} /></div> },
+            { id: 'related', label: '関連情報', icon: <Folder />, content: <div className="space-y-4"><RecordLinksSection selfApi="project" selfId={id} /><ExternalSharePanel objectApi="project" recordId={id} revalidatePath={`/projects/${id}`} /><RecordComments objectApi="project" recordId={id} revalidatePath={`/projects/${id}`} tz={tz} /></div> },
           ]}
         />
         <div className="mt-4 text-right"><RecordId id={id} /></div>

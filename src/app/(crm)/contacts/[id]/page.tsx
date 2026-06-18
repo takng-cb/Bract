@@ -18,6 +18,7 @@ import DeleteButton from '@/components/DeleteButton'
 import RecordId from '@/components/RecordId'
 import RecordLinksSection from '@/components/RecordLinksSection'
 import ExternalSharePanel from '@/components/portal/ExternalSharePanel'
+import RecordComments from '@/components/record/RecordComments'
 import AuthGuard from '@/components/AuthGuard'
 import CustomFieldsCard from '@/components/CustomFieldsCard'
 import { getCustomFieldsWithValues } from '@/lib/customFields'
@@ -245,6 +246,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
             <RecordLinksSection selfApi="contact" selfId={id} />
             <ExternalSharePanel objectApi="contact" recordId={id} revalidatePath={`/contacts/${id}`} />
+            <RecordComments objectApi="contact" recordId={id} revalidatePath={`/contacts/${id}`} tz={tz} />
           </>
         }
       >

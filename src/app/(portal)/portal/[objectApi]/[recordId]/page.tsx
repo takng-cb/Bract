@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react'
 import { getSupabaseUser } from '@/lib/auth'
 import { userHasGrant } from '@/lib/recordGrants'
 import { getPortalRecord } from '@/lib/portalRecord'
+import RecordComments from '@/components/record/RecordComments'
 
 export default async function PortalRecordPage({
   params,
@@ -52,6 +53,8 @@ export default async function PortalRecordPage({
       </div>
 
       <p className="text-center text-xs text-zinc-400">この情報は閲覧専用です。</p>
+
+      <RecordComments objectApi={objectApi} recordId={recordId} revalidatePath={`/portal/${objectApi}/${recordId}`} />
     </div>
   )
 }

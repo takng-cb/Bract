@@ -29,6 +29,7 @@ import RecordHeader from '@/components/RecordHeader'
 import RelatedRecordsSection from '@/components/RelatedRecordsSection'
 import RecordLinksSection from '@/components/RecordLinksSection'
 import ExternalSharePanel from '@/components/portal/ExternalSharePanel'
+import RecordComments from '@/components/record/RecordComments'
 import AISummaryButton from '@/components/AISummaryButton'
 import ReportButton from '@/components/ReportButton'
 import { NavIcon } from '@/lib/navIcon'
@@ -386,6 +387,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
             <RecordLinksSection selfApi="opportunity" selfId={id} />
             <ExternalSharePanel objectApi="opportunity" recordId={id} revalidatePath={`/opportunities/${id}`} />
+            <RecordComments objectApi="opportunity" recordId={id} revalidatePath={`/opportunities/${id}`} tz={tz} />
           </>
         }
       >
