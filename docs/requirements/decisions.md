@@ -352,3 +352,20 @@
 - 理由：実務の1文＝1ディールという単位に合わせ、手数を最小化。単一AI呼び出しで関係まで取るため往復が少ない。確認画面を必須にして誤投入を防ぐ。
 - 却下/代替：(a) 単一抽出を複数回（関係が取れず手配線）。(b) 即作成（誤りの一括登録リスク）。(c) 新規メニュー追加（入口分散・既存AI作成と二重化）。
 - 影響：src/app/actions/quickAi.ts（quickAiExtractGraph / quickAiCreateGraph）/ src/components/QuickLauncher.tsx（aiGraphConfirm ステップ・runExtract 分岐）/ 新 確認カード部品。opportunity_products を再利用。
+
+### ADR-0032  AI を「統一アシスタント（エージェント）」へ：tool-calling ＋ 上限付きループ
+- 2026-06-23 / **採用（設計）**（REQ-0088。会話＋AskUserQuestion「統一アシスタント」「ADR→PoC両方」で合意）
+- 文脈：現状のAIは全機能が単発（1プロンプト→1返答）でバラバラ（要約/検索/抽出/分類/ディールグラフ/レポート/quickRegister）。`callAI` は tool-calling 非対応・状態なし。自然文で何でも頼める「統一アシスタント」にしたい。
+- 決定：
+  1. **エージェント基盤**＝「型付きツール群（contract-first）＋上限付きループ（observe→act→observe…）」。各機能を**ツール**として表現し、Agent が必要なツールを選んで多段で実行する。
+  2. **安全機構は既存原則をそのまま流用**：
+     - **読み取りツールは自由実行／書き込みは draft-then-apply**（Agent は DB を直接書かず"下書き"を返し、既存の確認画面で確定）。
+     - **各ツールはサーバ側で `requirePermission`／`canDo` を満たす**（Agent はユーザー権限を超えない）。
+     - **ステップ上限・タイムアウト・監査**でループ暴走を防ぐ。
+  3. **モジュールファースト**：ツールはモジュール別に登録 → 有効モジュールに応じて Agent の能力が自動増減。
+  4. **プロバイダ戦略**：本格運用は tool use と日本語が強い **Gemini / Anthropic** 前提。PoC は provider 非依存にするため**JSONプロトコルのツールループ**（モデルに `{"action":"tool"|"final"}` の厳密JSONを出させ、parse→実行→結果を戻して再入力）で `callAI` の上に薄く載せる。native function-calling は後続フェーズで provider 層に追加（ハードニング）。
+  5. **段階導入**：(P1 PoC) provider非依存ループ＋読み取りツール数個＋上限ループ＋最小チャットUI（読み取り専用＝安全）。(P2) native tool-calling を provider に追加・書き込みツールを draft-then-apply で。(P3) 既存単発機能をツール化して統一UIへ集約（単発は併存しつつ順次移行）。(P4) 監査ログ・コスト/レイテンシ最適化。
+  6. **テスト容易性**：ランナーはモデル補完関数 `complete` を**注入可能**にし、AIキー無しでもツール選択・ループ・上限を決定論的にユニットテストする。
+- 理由：contract-first / draft-then-apply / module-first / server-RBAC が Agent の安全機構に一対一で対応する。単発機能の重複（プロンプト/パーサ）を「ツール」へ集約でき、入口も一本化できる。
+- 却下/代替：(a) いきなり native function-calling 全provider実装（PoCには重い・provider差で詰まる）。(b) Agent に直接DB書き込みを許可（draft-then-apply 違反・誤投入リスク）。(c) 単発のまま個別拡張（重複と入口分散が残る）。
+- 影響：新 `src/lib/ai/agent/`（types/tools/runner）＋ `src/app/actions/assistant.ts`＋最小UI。既存 `callAI`・単発機能は不変（併存）。本格運用は Gemini/Anthropic 推奨。
