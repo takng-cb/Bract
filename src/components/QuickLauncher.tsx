@@ -20,6 +20,7 @@ import type { PlaudActionItem } from '@/lib/plaud/markdown'
 /** 関連先紐づけを出すブック（quickAi.ts の linkable spec と一致） */
 const LINKABLE_BOOKS = new Set(['tasks', 'activities', 'expenses'])
 import AiSearchChat from '@/components/AiSearchChat'
+import AssistantChat from '@/components/AssistantChat'
 import PlaudMultiImport from '@/components/PlaudMultiImport'
 
 /**
@@ -32,7 +33,7 @@ import PlaudMultiImport from '@/components/PlaudMultiImport'
  *     手動入力 → モジュール選択 → ブック選択 → 新規入力画面へ遷移
  *   閲覧 → モジュール選択 → ブック選択 → 一覧へ遷移
  */
-type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook' | 'aiConfirm' | 'aiGraphConfirm' | 'aiNotSupported' | 'aiSearch' | 'plaudTodos'
+type Step = 'root' | 'createMode' | 'module' | 'book' | 'aiInput' | 'aiPickBook' | 'aiConfirm' | 'aiGraphConfirm' | 'aiNotSupported' | 'aiSearch' | 'assistant' | 'plaudTodos'
 type Mode = 'create' | 'view' | 'search'
 type CreateMode = 'ai' | 'manual'
 
@@ -322,6 +323,7 @@ export default function QuickLauncher({
     step === 'aiGraphConfirm' ? '内容を確認・一括作成' :
     step === 'plaudTodos' ? 'アクションを ToDo 化' :
     step === 'aiSearch' ? 'AI検索' :
+    step === 'assistant' ? 'AIアシスタント（β）' :
     mode === 'search' ? 'AI検索は準備中' : 'AI作成は準備中'
 
   const moduleList = modules.filter((m) => m.books.length > 0)
@@ -380,6 +382,8 @@ export default function QuickLauncher({
                       onClick={() => { setMode('view'); pushStep('module') }} />
                     <BigChoice icon={<Search className="w-6 h-6 text-violet-600" />} label="AIで検索" desc="会話で絞り込み（対象もAIが判断）" accent="violet"
                       onClick={() => { setMode('search'); setError(null); pushStep('aiSearch') }} />
+                    <BigChoice icon={<Sparkles className="w-6 h-6 text-violet-600" />} label="AIアシスタント（β）" desc="自然文で依頼→ツールで検索・回答" accent="violet"
+                      onClick={() => { setError(null); pushStep('assistant') }} />
                   </div>
                   {plaudEnabled && (
                     <PlaudMultiImport
@@ -643,6 +647,9 @@ export default function QuickLauncher({
                   <p className="text-xs text-zinc-400">※ 「一覧を開く」後も、画面上のフィルタでさらに調整できます。</p>
                 </div>
               )}
+
+              {/* AIアシスタント（β）: エージェント PoC（REQ-0088 / ADR-0032） */}
+              {step === 'assistant' && <AssistantChat />}
 
               {step === 'aiNotSupported' && book && (
                 <div className="space-y-3 text-sm text-zinc-600">
