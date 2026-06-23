@@ -28,8 +28,10 @@ const REPORT_TARGETS: Record<string, { label: string; junctionApi: string }> = {
   assignment:  { label: '案件', junctionApi: 'assignment' },
 }
 
-/** テンプレ未保存でも使える標準テンプレ（フォールバック） */
-export const DEFAULT_REPORT_PROMPT = `あなたは業務報告を作成するアシスタントです。
+/** テンプレ未保存でも使える標準テンプレ（フォールバック）。
+ *  'use server' ファイルは async 関数しか export できないため module-private に保つ
+ *  （export するとランタイムで "can only export async functions" となりページが 500）。 */
+const DEFAULT_REPORT_PROMPT = `あなたは業務報告を作成するアシスタントです。
 以下に対象（案件・商談）に紐づく活動（打合せ・電話・現場対応等）と ToDo を期間で抽出したリストを与えます。
 これを基に、報告書として次の構成でまとめてください:
 
