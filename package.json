@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
-    "vercel-build": "tsx scripts/check-schema-vs-db.ts && next build --webpack",
+    "vercel-build": "tsx scripts/check-use-server-exports.ts && tsx scripts/check-schema-vs-db.ts && next build --webpack",
     "check:schema": "tsx scripts/check-schema-vs-db.ts",
+    "check:use-server": "tsx scripts/check-use-server-exports.ts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
